@@ -1,12 +1,12 @@
 
-INSERT INTO myApp_role (nomRole) VALUES 
+INSERT INTO gimao_role (nomRole) VALUES 
 ('Operateur'),
 ('Magasinier'),
 ('Technicien'),
 ('Responsable GMAO'),
 ('Administrateur');
 
-INSERT INTO myApp_lieu (nomLieu, typeLieu, lieuParent_id) VALUES
+INSERT INTO gimao_lieu (nomLieu, typeLieu, lieuParent_id) VALUES
 -- Niveau 1 : Bâtiments principaux
 ('Bâtiment Principal', 'Bâtiment', NULL),
 ('Entrepôt Logistique', 'Entrepôt', NULL),
@@ -81,7 +81,7 @@ INSERT INTO auth_user (
 
 
 
-INSERT INTO myApp_fabricant (nomFabricant, paysFabricant, mailFabricant, numTelephoneFabricant, serviceApresVente) VALUES
+INSERT INTO gimao_fabricant (nomFabricant, paysFabricant, mailFabricant, numTelephoneFabricant, serviceApresVente) VALUES
 ('Acme Corporation', 'USA', 'contact@acmecorp.com', '+1234567890', True),
 ('Beta Industries', 'France', 'support@betaindustries.fr', '+33987654321', False),
 ('Gamma Tech', 'Germany', 'info@gammatech.de', '+491234567890', True),
@@ -89,7 +89,7 @@ INSERT INTO myApp_fabricant (nomFabricant, paysFabricant, mailFabricant, numTele
 ('Epsilon Innovations', 'UK', 'enquiries@epsiloninnovations.co.uk', '+441234567890', False);
 
 -- Ajout de nouveaux consommables/pièces
-INSERT INTO myApp_consommable (designation, lienImageConsommable, fabricant_id) VALUES
+INSERT INTO gimao_consommable (designation, lienImageConsommable, fabricant_id) VALUES
 ('Cellule de Plasma Confiné', 'images/consomable/cellule_plasma.jpg', 1),
 ('Cristal de Focalisation Quantique', 'images/consomable/cristal_quantique.jpg', 2),
 ('Nanofiltre Gravitationnel', 'images/consomable/nanofiltre.jpg', 3),
@@ -117,7 +117,7 @@ INSERT INTO myApp_consommable (designation, lienImageConsommable, fabricant_id) 
 
 
 
-INSERT INTO myApp_fournisseur (nomFournisseur, numRue, nomRue, codePostal, ville, paysFournisseur, mailFournisseur, numTelephoneFournisseur, serviceApresVente) VALUES
+INSERT INTO gimao_fournisseur (nomFournisseur, numRue, nomRue, codePostal, ville, paysFournisseur, mailFournisseur, numTelephoneFournisseur, serviceApresVente) VALUES
 ('Alpha Supplies', 123, 'Main Street', '12345', 'New York', 'USA', 'orders@alphasupplies.com', '+1987654321', True),
 ('Bravo Parts', 456, 'Elm Street', '67890', 'Los Angeles', 'USA', 'sales@bravoparts.com', '+1234567890', False),
 ('Charlie Components', 789, 'Oak Avenue', '12345', 'Chicago', 'USA', 'info@charliecomponents.com', '+1345678901', True),
@@ -126,7 +126,7 @@ INSERT INTO myApp_fournisseur (nomFournisseur, numRue, nomRue, codePostal, ville
 
 
 
-INSERT INTO myApp_modeleequipement (
+INSERT INTO gimao_modeleequipement (
     nomModeleEquipement,
     fabricant_id
 ) VALUES
@@ -163,7 +163,7 @@ INSERT INTO myApp_modeleequipement (
 ('Téléporteur de Particules TP-X1', 5);
 
 
-INSERT INTO myApp_equipement (
+INSERT INTO gimao_equipement (
     reference,
     dateCreation,
     designation,
@@ -189,7 +189,7 @@ INSERT INTO myApp_equipement (
 ('EQ-010', '2023-10-25 10:15:00', 'Robot Assembleur Intelligent RAI-5000', '2023-10-30', 700000.00, 'images/equipement/robot.jpg', 1, 25, 10, 5, FALSE, 200);
 
 
-INSERT INTO myApp_informationstatut (
+INSERT INTO gimao_informationstatut (
     statutEquipement,
     dateChangement,
     equipement_id,
@@ -208,7 +208,7 @@ INSERT INTO myApp_informationstatut (
 ('En fonctionnement', NULL, 'EQ-010', NULL, 1);
 
 
-INSERT INTO myApp_defaillance (
+INSERT INTO gimao_defaillance (
     commentaireDefaillance,
     niveau,
     utilisateur_id,
@@ -221,53 +221,53 @@ INSERT INTO myApp_defaillance (
 ('Dysfonctionnement du système d''alimentation', 'Majeur', 3, 'EQ-009',NULL);
 
 -- Insert pour EQ-004
-INSERT INTO myApp_informationstatut (
+INSERT INTO gimao_informationstatut (
     statutEquipement,
     dateChangement,
     equipement_id,
     informationStatutParent_id,
     ModificateurStatut_id
 ) SELECT 'Dégradé', CURRENT_TIMESTAMP, 'EQ-004',
-(SELECT id FROM (SELECT id FROM myApp_informationstatut WHERE equipement_id = 'EQ-004' ORDER BY dateChangement DESC LIMIT 1) AS temp),
+(SELECT id FROM (SELECT id FROM gimao_informationstatut WHERE equipement_id = 'EQ-004' ORDER BY dateChangement DESC LIMIT 1) AS temp),
 3;
 
 -- Insert pour EQ-006
-INSERT INTO myApp_informationstatut (
+INSERT INTO gimao_informationstatut (
     statutEquipement,
     dateChangement,
     equipement_id,
     informationStatutParent_id,
     ModificateurStatut_id
 ) SELECT 'A l''arret', CURRENT_TIMESTAMP, 'EQ-006',
-(SELECT id FROM (SELECT id FROM myApp_informationstatut WHERE equipement_id = 'EQ-006' ORDER BY dateChangement DESC LIMIT 1) AS temp),
+(SELECT id FROM (SELECT id FROM gimao_informationstatut WHERE equipement_id = 'EQ-006' ORDER BY dateChangement DESC LIMIT 1) AS temp),
 3;
 
 -- Insert pour EQ-007
-INSERT INTO myApp_informationstatut (
+INSERT INTO gimao_informationstatut (
     statutEquipement,
     dateChangement,
     equipement_id,
     informationStatutParent_id,
     ModificateurStatut_id
 ) SELECT 'Dégradé', CURRENT_TIMESTAMP, 'EQ-007',
-(SELECT id FROM (SELECT id FROM myApp_informationstatut WHERE equipement_id = 'EQ-007' ORDER BY dateChangement DESC LIMIT 1) AS temp),
+(SELECT id FROM (SELECT id FROM gimao_informationstatut WHERE equipement_id = 'EQ-007' ORDER BY dateChangement DESC LIMIT 1) AS temp),
 3;
 
 -- Insert pour EQ-009
-INSERT INTO myApp_informationstatut (
+INSERT INTO gimao_informationstatut (
     statutEquipement,
     dateChangement,
     equipement_id,
     informationStatutParent_id,
     ModificateurStatut_id
 ) SELECT 'A l''arret', CURRENT_TIMESTAMP, 'EQ-009',
-(SELECT id FROM (SELECT id FROM myApp_informationstatut WHERE equipement_id = 'EQ-009' ORDER BY dateChangement DESC LIMIT 1) AS temp),
+(SELECT id FROM (SELECT id FROM gimao_informationstatut WHERE equipement_id = 'EQ-009' ORDER BY dateChangement DESC LIMIT 1) AS temp),
 3;
 
 
 
 
-INSERT INTO myApp_defaillance (
+INSERT INTO gimao_defaillance (
     commentaireDefaillance,
     niveau,
     utilisateur_id,
@@ -281,31 +281,31 @@ INSERT INTO myApp_defaillance (
 
 
 -- Insert pour EQ-007
-INSERT INTO myApp_informationstatut (
+INSERT INTO gimao_informationstatut (
     statutEquipement,
     dateChangement,
     equipement_id,
     informationStatutParent_id,
     ModificateurStatut_id
 ) SELECT 'Dégradé', CURRENT_TIMESTAMP, 'EQ-007',
-(SELECT id FROM (SELECT id FROM myApp_informationstatut WHERE equipement_id = 'EQ-007' ORDER BY dateChangement DESC LIMIT 1) AS temp),
+(SELECT id FROM (SELECT id FROM gimao_informationstatut WHERE equipement_id = 'EQ-007' ORDER BY dateChangement DESC LIMIT 1) AS temp),
 3;
 
 
 
 -- Insert pour EQ-007
-INSERT INTO myApp_informationstatut (
+INSERT INTO gimao_informationstatut (
     statutEquipement,
     dateChangement,
     equipement_id,
     informationStatutParent_id,
     ModificateurStatut_id
 ) SELECT 'A l''arret', CURRENT_TIMESTAMP, 'EQ-007',
-(SELECT id FROM (SELECT id FROM myApp_informationstatut WHERE equipement_id = 'EQ-007' ORDER BY dateChangement DESC LIMIT 1) AS temp),
+(SELECT id FROM (SELECT id FROM gimao_informationstatut WHERE equipement_id = 'EQ-007' ORDER BY dateChangement DESC LIMIT 1) AS temp),
 3;
 
 
-INSERT INTO myApp_intervention
+INSERT INTO gimao_intervention
 (nomIntervention, interventionCurative, dateAssignation, dateCloture, dateDebutIntervention,
 dateFinIntervention, tempsEstime, commentaireIntervention, commentaireRefusCloture, 
 createurIntervention_id, defaillance_id, responsable_id) 
@@ -315,7 +315,7 @@ VALUES
 
 
 -- Association des consommables aux équipements
-INSERT INTO myApp_constituer (equipement_id, consommable_id) VALUES
+INSERT INTO gimao_constituer (equipement_id, consommable_id) VALUES
 ('EQ-001', 1), ('EQ-001', 6), ('EQ-001', 11),
 ('EQ-002', 2), ('EQ-002', 7), ('EQ-002', 12),
 ('EQ-003', 3), ('EQ-003', 8), ('EQ-003', 13),
@@ -330,21 +330,21 @@ INSERT INTO myApp_constituer (equipement_id, consommable_id) VALUES
 
 
 -- Insertion des documents de défaillance pour EQ-007
-INSERT INTO myApp_documentdefaillance (nomDocumentDefaillance, lienDocumentDefaillance, defaillance_id)
+INSERT INTO gimao_documentdefaillance (nomDocumentDefaillance, lienDocumentDefaillance, defaillance_id)
 VALUES
 ('Rapport fluctuations laser EQ-007', 'documents/documentDefaillance/rapport_fluctuations_laser_EQ-007.pdf', 
- (SELECT id FROM myApp_defaillance WHERE commentaireDefaillance = 'Fluctuations de puissance du laser' AND equipement_id = 'EQ-007')),
+ (SELECT id FROM gimao_defaillance WHERE commentaireDefaillance = 'Fluctuations de puissance du laser' AND equipement_id = 'EQ-007')),
 ('Analyse fluctuations laser EQ-007', 'documents/documentDefaillance/analyse_fluctuations_laser_EQ-007.pdf', 
- (SELECT id FROM myApp_defaillance WHERE commentaireDefaillance = 'Fluctuations de puissance du laser' AND equipement_id = 'EQ-007')),
+ (SELECT id FROM gimao_defaillance WHERE commentaireDefaillance = 'Fluctuations de puissance du laser' AND equipement_id = 'EQ-007')),
 ('Rapport défaillance refroidissement EQ-007', 'documents/documentDefaillance/rapport_defaillance_refroidissement_EQ-007.pdf', 
- (SELECT id FROM myApp_defaillance WHERE commentaireDefaillance = 'Défaillance du système de refroidissement optique' AND equipement_id = 'EQ-007')),
+ (SELECT id FROM gimao_defaillance WHERE commentaireDefaillance = 'Défaillance du système de refroidissement optique' AND equipement_id = 'EQ-007')),
 ('Diagnostic système refroidissement EQ-007', 'documents/documentDefaillance/diagnostic_systeme_refroidissement_EQ-007.pdf', 
- (SELECT id FROM myApp_defaillance WHERE commentaireDefaillance = 'Défaillance du système de refroidissement optique' AND equipement_id = 'EQ-007'));
+ (SELECT id FROM gimao_defaillance WHERE commentaireDefaillance = 'Défaillance du système de refroidissement optique' AND equipement_id = 'EQ-007'));
 
 
 
 -- Association des consommables compatibles avec les équipements
-INSERT INTO myApp_estcompatible (modeleEquipement_id, consommable_id) VALUES
+INSERT INTO gimao_estcompatible (modeleEquipement_id, consommable_id) VALUES
 (1, 1), (1, 6), (1, 11),  -- Excavatrice Quantique XQ-1000
 (2, 2), (2, 7), (2, 12),  -- Foreuse Moléculaire FM-500
 (3, 3), (3, 8), (3, 13),  -- Compresseur Gravitationnel CG-750
@@ -358,31 +358,31 @@ INSERT INTO myApp_estcompatible (modeleEquipement_id, consommable_id) VALUES
 
 
 -- Insertion des documents techniques
-INSERT INTO myApp_documenttechnique (nomDocumentTechnique, lienDocumentTechnique) VALUES
+INSERT INTO gimao_documenttechnique (nomDocumentTechnique, lienDocumentTechnique) VALUES
 ('Manuel d''utilisation LPN-X', 'documents/documentTecnique/manuel_utilisation_LPN-X.pdf'),
 ('Guide de maintenance LPN-X', 'documents/documentTecnique/guide_maintenance_LPN-X.pdf');
 
 -- Association des documents techniques au modèle d'équipement (ID 7)
-INSERT INTO myApp_correspondre (documentTechnique_id, modeleEquipement_id) VALUES
-((SELECT id FROM myApp_documenttechnique WHERE nomDocumentTechnique = 'Manuel d''utilisation LPN-X'), 7),
-((SELECT id FROM myApp_documenttechnique WHERE nomDocumentTechnique = 'Guide de maintenance LPN-X'), 7);
+INSERT INTO gimao_correspondre (documentTechnique_id, modeleEquipement_id) VALUES
+((SELECT id FROM gimao_documenttechnique WHERE nomDocumentTechnique = 'Manuel d''utilisation LPN-X'), 7),
+((SELECT id FROM gimao_documenttechnique WHERE nomDocumentTechnique = 'Guide de maintenance LPN-X'), 7);
 
 
 -- Insertion des documents de défaillance pour EQ-007
-INSERT INTO myApp_documentdefaillance (nomDocumentDefaillance, lienDocumentDefaillance, defaillance_id)
+INSERT INTO gimao_documentdefaillance (nomDocumentDefaillance, lienDocumentDefaillance, defaillance_id)
 VALUES
 ('Rapport fluctuations laser EQ-007', 'documents/documentDefaillance/rapport_fluctuations_laser_EQ-007.pdf', 
- (SELECT id FROM myApp_defaillance WHERE commentaireDefaillance = 'Fluctuations de puissance du laser' AND equipement_id = 'EQ-007')),
+ (SELECT id FROM gimao_defaillance WHERE commentaireDefaillance = 'Fluctuations de puissance du laser' AND equipement_id = 'EQ-007')),
 ('Analyse fluctuations laser EQ-007', 'documents/documentDefaillance/analyse_fluctuations_laser_EQ-007.pdf', 
- (SELECT id FROM myApp_defaillance WHERE commentaireDefaillance = 'Fluctuations de puissance du laser' AND equipement_id = 'EQ-007')),
+ (SELECT id FROM gimao_defaillance WHERE commentaireDefaillance = 'Fluctuations de puissance du laser' AND equipement_id = 'EQ-007')),
 ('Rapport défaillance refroidissement EQ-007', 'documents/documentDefaillance/rapport_defaillance_refroidissement_EQ-007.pdf', 
- (SELECT id FROM myApp_defaillance WHERE commentaireDefaillance = 'Défaillance du système de refroidissement optique' AND equipement_id = 'EQ-007')),
+ (SELECT id FROM gimao_defaillance WHERE commentaireDefaillance = 'Défaillance du système de refroidissement optique' AND equipement_id = 'EQ-007')),
 ('Diagnostic système refroidissement EQ-007', 'documents/documentDefaillance/diagnostic_systeme_refroidissement_EQ-007.pdf', 
- (SELECT id FROM myApp_defaillance WHERE commentaireDefaillance = 'Défaillance du système de refroidissement optique' AND equipement_id = 'EQ-007'));
+ (SELECT id FROM gimao_defaillance WHERE commentaireDefaillance = 'Défaillance du système de refroidissement optique' AND equipement_id = 'EQ-007'));
 
 
  -- Insertion des documents d'intervention pour l'intervention avec id = 1 (EQ-007)
-INSERT INTO myApp_documentintervention (nomDocumentIntervention, lienDocumentIntervention, intervention_id) VALUES
+INSERT INTO gimao_documentintervention (nomDocumentIntervention, lienDocumentIntervention, intervention_id) VALUES
 ('Procédure de réparation du système de refroidissement LPN-X', 'documents/documentIntervention/procedure_reparation_refroidissement_LPN-X.pdf', 1),
 ('Rapport d''intervention sur le système de refroidissement LPN-X', 'documents/documentIntervention/rapport_intervention_refroidissement_LPN-X.pdf', 1),
 ('Checklist de maintenance du système de refroidissement LPN-X', 'documents/documentIntervention/checklist_maintenance_refroidissement_LPN-X.pdf', 1),
