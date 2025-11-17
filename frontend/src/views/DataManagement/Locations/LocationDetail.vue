@@ -35,21 +35,22 @@
 </template>
 
 <script>
-import api from '@/services/api';
-import { ref, onMounted } from 'vue';
+import { useApi } from '@/composables/useApi';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'LocationDetails',
   setup() {
     const router = useRouter();
     const route = useRoute();
-    const location = ref(null);
+    const api = useApi(API_BASE_URL);
+    const location = computed(() => api.data.value);
 
     const fetch_location = async () => {
       try {
-        const response = await api.getLieu(route.params.id);
-        location.value = response.data;
+        await api.get(`lieux/${route.params.id}/`);
       } catch (error) {
         console.error('Error loading the location:', error);
       }

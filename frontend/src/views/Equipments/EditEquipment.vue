@@ -142,19 +142,41 @@
 </template>
 
 <script>
-import api, { BASE_URL } from '@/services/api';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL, BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'EditEquipment',
   setup() {
     const router = useRouter();
-    return { router };
+    const route = useRoute();
+    const api = useApi(API_BASE_URL);
+    const equipment = computed(() => api.data.value || {});
+    const is_loading = computed(() => api.loading.value);
+    
+    const fetch_equipment_data = async () => {
+      try {
+        await api.get(`equipement/${route.params.reference}/affichage/`);
+      } catch (error) {
+        console.error("Error fetching equipment data:", error);
+      }
+    };
+    
+    onMounted(() => {
+      fetch_equipment_data();
+    });
+    
+    return { 
+      router, 
+      equipment, 
+      is_loading,
+      fetch_equipment_data 
+    };
   },
   data() {
     return {
-      is_loading: true,
-      equipment: {},
       technical_documents_headers: [
         { title: "Technical Document", value: "nomDocumentTechnique", align: "start" },
         { title: "Download", value: "action", align: "center", sortable: false }
@@ -211,16 +233,6 @@ export default {
   },
 
   methods: {
-    async fetch_equipment_data() {
-      try {
-        const response = await api.getEquipementAffichage(this.$route.params.reference);
-        this.equipment = response.data;
-        this.is_loading = false;
-      } catch (error) {
-        console.error("Error fetching equipment data:", error);
-        this.is_loading = false;
-      }
-    },
     format_date(dateString) {
       if (!dateString) return '';
       const date = new Date(dateString);

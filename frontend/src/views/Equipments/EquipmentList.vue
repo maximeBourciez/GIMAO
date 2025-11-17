@@ -117,10 +117,12 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, reactive, toRefs } from 'vue';
+import { computed, onMounted, reactive, toRefs } from 'vue';
 import { useRouter } from 'vue-router';
 import { VTreeView } from 'vuetify/labs/components';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { getStatusColor } from '@/utils/helpers';
+import { TABLE_HEADERS, API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'EquipmentList',
@@ -129,12 +131,15 @@ export default {
   },
   setup() {
     const router = useRouter();
+    const equipmentsApi = useApi(API_BASE_URL);
+    const locationsApi = useApi(API_BASE_URL);
+    const modelsApi = useApi(API_BASE_URL);
 
     // Reactive state to manage data and component state
     const state = reactive({
-      equipments: [],
-      locations: [],
-      equipment_models: [],
+      equipments: computed(() => equipmentsApi.data.value || []),
+      locations: computed(() => locationsApi.data.value || []),
+      equipment_models: computed(() => modelsApi.data.value || []),
       selected_location: [],
       selected_type_equipments: [],
       selected_tree_nodes: [],
@@ -157,30 +162,13 @@ export default {
     // Function to fetch data from the API
     const fetchData = async () => {
       try {
-        const [equipmentsRes, locationsRes, equipmentModelsRes] = await Promise.all([
-          api.getEquipementsVue(),
-          api.getLieuxHierarchy(),
-          api.getModeleEquipements()
+        await Promise.all([
+          equipmentsApi.get('equipements-detail/'),
+          locationsApi.get('lieux-hierarchy/'),
+          modelsApi.get('modele-equipements/')
         ]);
-
-        state.equipments = equipmentsRes.data;
-        state.locations = locationsRes.data;
-        state.equipment_models = equipmentModelsRes.data;
       } catch (error) {
         console.error('Error fetching data:', error);
-      }
-    };
-
-    const get_status_color = (status) => {
-      switch (status) {
-        case 'En fonctionnement':
-          return 'green';
-        case 'Dégradé':
-          return 'orange';
-          case 'À l\'arrêt':
-          return 'red';
-        default:
-          return 'black';
       }
     };
 
@@ -282,7 +270,8 @@ export default {
       open_view_equipment,
       is_equipment_type_selected,
       toggle_node,
-      get_status_color,
+      get_status_color: getStatusColor,
+      loading: computed(() => equipmentsApi.loading.value || locationsApi.loading.value || modelsApi.loading.value),
     };
   }
 };

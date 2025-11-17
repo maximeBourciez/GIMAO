@@ -28,15 +28,21 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { getFailureLevelColor, formatDateTime } from '@/utils/helpers';
+import { TABLE_HEADERS, API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'InterventionList',
   setup() {
     const router = useRouter();
-    const interventions = ref([]);
+    const api = useApi(API_BASE_URL);
+    
+    const interventions = computed(() => api.data.value || []);
+    const loading = computed(() => api.loading.value);
+
     const table_headers = [
       {
         title: 'Nom de l\' intervention',
@@ -64,45 +70,21 @@ export default {
       },
     ];
 
-    const fetch_interventions = async () => {
-      try {
-        const response = await api.getInterventions();
-        interventions.value = response.data;
-      } catch (error) {
-        console.error("Error while fetching interventions:", error);
-      }
-    };
-
     const open_intervention_detail = (id) => {
-      router.push({ name: 'InterventionDetail', params: { id: id } });
+      router.push({ name: 'InterventionDetail', params: { id } });
     };
 
-    const get_level_color = (niveau) => {
-      switch (niveau) {
-        case 'Critique':
-          return 'red';
-        case 'Majeur':
-          return 'orange';
-        default:
-          return 'green';
-      }
-    };
-
-    const formatDate = (dateString) => {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-      return date.toLocaleDateString(undefined, options);
-    };
-
-    onMounted(fetch_interventions);
+    onMounted(() => {
+      api.get('interventions/');
+    });
 
     return {
       interventions,
+      loading,
       table_headers,
-      get_level_color,
+      get_level_color: getFailureLevelColor,
       open_intervention_detail,
-      formatDate,
+      formatDate: formatDateTime,
     };
   },
 }

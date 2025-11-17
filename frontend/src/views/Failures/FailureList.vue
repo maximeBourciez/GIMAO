@@ -22,72 +22,34 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { getFailureLevelColor } from '@/utils/helpers';
+import { TABLE_HEADERS, API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'FailureList',
   setup() {
     const router = useRouter();
-    const failures = ref([]);
-    const table_headers = [
-      { 
-        title: 'Commentaire', 
-        align: 'start',  
-        sortable: true, 
-        value: 'commentaireDefaillance' 
-      },
-      { 
-        title: 'Traitée', 
-        align: 'center', 
-        sortable: true, 
-        value: 'traite' 
-      },
-      { 
-        title: 'Niveau', 
-        align: 'center', 
-        sortable: true, 
-        value: 'niveau' 
-      },
-      { 
-        title: 'Équipement', 
-        align: 'center', 
-        sortable: false, 
-        value: 'equipement' 
-      },
-    ];
-
-    const fetch_failures = async () => {
-      try {
-        const response = await api.getDefaillances();
-        failures.value = response.data;
-      } catch (error) {
-        console.error("Error while fetching failures:", error);
-      }
-    };
+    const api = useApi(API_BASE_URL);
+    
+    const failures = computed(() => api.data.value || []);
+    const loading = computed(() => api.loading.value);
 
     const open_failure_details = (id) => {
-      router.push({ name: 'FailureDetail', params: { id: id } });
+      router.push({ name: 'FailureDetail', params: { id } });
     };
 
-    const get_level_color = (niveau) => {
-      switch (niveau) {
-        case 'Critique':
-          return 'red';
-        case 'Majeur':
-          return 'orange';
-        default:
-          return 'green';
-      }
-    };
-
-    onMounted(fetch_failures);
+    onMounted(() => {
+      api.get('defaillances/');
+    });
 
     return {
       failures,
-      table_headers,
-      get_level_color,
+      loading,
+      table_headers: TABLE_HEADERS.FAILURES,
+      get_level_color: getFailureLevelColor,
       open_failure_details,
     };
   },

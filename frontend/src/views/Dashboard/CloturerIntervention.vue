@@ -64,12 +64,14 @@
 <script>
 import { reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'CloseIntervention',
   setup() {
     const router = useRouter();
+    const api = useApi(API_BASE_URL);
     const intervention = reactive({
       nomIntervention: "",
       interventionCurative: false,
@@ -82,11 +84,11 @@ export default {
 
     const fetchData = async () => {
       try {
-        const interventionsRes = await api.getInterventions();
+        const interventionsRes = await api.get('interventions/');
 
-        if (interventionsRes && interventionsRes.data && interventionsRes.data.length > 0) {
+        if (interventionsRes && interventionsRes.length > 0) {
           // Assigner les données du premier élément du tableau intervention
-          Object.assign(intervention, interventionsRes.data[0]);
+          Object.assign(intervention, interventionsRes[0]);
         }
       } catch (error) {
         console.error('Erreur lors de la récupération des données:', error);

@@ -160,21 +160,44 @@
 </template>
 
 <script>
-import api , { BASE_URL } from '@/services/api';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { useApi } from '@/composables/useApi';
+import { getStatusColor } from '@/utils/helpers';
+import { API_BASE_URL, BASE_URL } from '@/utils/constants';
 
 
 export default {
   name: 'EquipmentDetail',
   setup() {
     const router = useRouter();
-    return { router };
+    const route = useRoute();
+    const api = useApi(API_BASE_URL);
+    const equipement = computed(() => api.data.value || {});
+    const is_loading = computed(() => api.loading.value);
+    
+    const fetch_equipment_data = async () => {
+      try {
+        await api.get(`equipement/${route.params.reference}/affichage/`);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des données de l'équipement:", error);
+      }
+    };
+    
+    onMounted(() => {
+      fetch_equipment_data();
+    });
+    
+    return { 
+      router, 
+      equipement, 
+      is_loading,
+      fetch_equipment_data 
+    };
   },
   data() {
     
     return {
-      is_loading: true,
-      equipement: {},
       technical_documents_headers: [
         { title: "Document technique", value: "nomDocumentTechnique", align: "start" },
         { title: "Télécharger", value: "action", align: "start", sortable: false }
@@ -235,31 +258,7 @@ export default {
   },
 
   methods: {
-    async fetch_equipment_data() {
-      try {
-        const response = await api.getEquipementAffichage(this.$route.params.reference);
-        this.equipement = response.data;
-        this.is_loading = false;
-      } catch (error) {
-        console.error("Erreur lors de la récupération des données de l'équipement:", error);
-        this.is_loading = false;
-      }
-    },
-
-    get_status_color(status) {
-      switch (status) {
-        case 'En fonctionnement':
-          return 'green';
-        case 'Dégradé':
-          return 'orange';
-        case 'À l\'arrêt':
-          return 'red';
-        case 'Rebuté':
-          return 'grey';
-        default:
-          return 'blue';
-      }
-    },
+    get_status_color: getStatusColor,
 
 
     format_date(dateString) {

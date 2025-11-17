@@ -61,30 +61,28 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   setup() {
     const router = useRouter();
     const route = useRoute();
-    const manufacturer = ref(null);
+    const api = useApi(API_BASE_URL);
+    const manufacturer = computed(() => api.data.value);
     const error_message = ref('');
-    const is_loading = ref(true);
+    const is_loading = computed(() => api.loading.value);
     const show_delete_confirmation = ref(false);
 
     const get_manufacturer = async () => {
-      is_loading.value = true;
       error_message.value = '';
       try {
-        const response = await api.getFabricant(route.params.id);
-        manufacturer.value = response.data;
+        await api.get(`fabricants/${route.params.id}/`);
       } catch (error) {
         console.error('Error fetching manufacturer:', error);
         error_message.value = 'Erreur lors de la récupération du fabricant.';
-      } finally {
-        is_loading.value = false;
       }
     };
 

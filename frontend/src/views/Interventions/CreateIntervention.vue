@@ -141,7 +141,9 @@
 import '@/assets/css/global.css';
 import { reactive, onMounted, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { getFailureLevelColor } from '@/utils/helpers';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'CreateIntervention',
@@ -149,18 +151,12 @@ export default {
   setup() {
     const router = useRouter();
     const route = useRoute();
+    const failureApi = useApi(API_BASE_URL);
+    const usersApi = useApi(API_BASE_URL);
+    const interventionApi = useApi(API_BASE_URL);
     const error_message = ref(''); // Add error message
 
-    const get_level_color = (niveau) => {
-      switch (niveau) {
-        case 'À l\'arrêt':
-          return 'red';
-        case 'Majeur':
-          return 'orange';
-        default:
-          return 'green';
-      }
-    };
+
 
     const recovered_information = reactive({
       designation: "",
@@ -194,10 +190,12 @@ export default {
           throw new Error('ID de défaillance manquant');
         }
 
-        const [failure_res, users_res] = await Promise.all([
-          api.getDefaillanceAffichage(failure_id),
-          api.getUtilisateur()
+        await Promise.all([
+          failureApi.get(`defaillance/${failure_id}/affichage/`),
+          usersApi.get('utilisateurs/')
         ]);
+        const failure_res = { data: failureApi.data.value };
+        const users_res = { data: usersApi.data.value };
 
         if (failure_res && failure_res.data) {
           Object.assign(recovered_information, {
@@ -252,9 +250,9 @@ export default {
             responsable: 1
           };
 
-          const response = await api.postIntervention(interventionData);
+          const response = await interventionApi.post('interventions/', interventionData);
 
-          if (response && response.data) {
+          if (response) {
             // Redirection vers la page d'affichage de l'intervention
             router.push({ name: 'Dashboard' });
           } else {

@@ -47,13 +47,15 @@
 <script>
 import { ref, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'AddDocumentFailure',
   setup() {
     const route = useRoute();
     const router = useRouter();
+    const api = useApi(API_BASE_URL);
     const documents = ref([{ document_name: '', document_file: null }]);
     const snackbar = reactive({
       show: false,
@@ -92,7 +94,7 @@ export default {
             formData.append('defaillance', failure_id);
 
             try {
-              const response = await api.postDefaillanceDocument(formData);
+              const response = await api.post('document-defaillances/', formData);
             } catch (error) {
               console.error("Erreur lors de l'ajout du document:", error);
               allSuccess = false;

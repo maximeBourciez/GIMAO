@@ -154,13 +154,19 @@
 <script>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import api, { BASE_URL } from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { getFailureLevelColor } from '@/utils/helpers';
+import { API_BASE_URL, BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'InterventionDetail',
   setup() {
     const router = useRouter();
     const route = useRoute();
+    const interventionApi = useApi(API_BASE_URL);
+    const deleteApi = useApi(API_BASE_URL);
+    const reopenApi = useApi(API_BASE_URL);
+    const closeApi = useApi(API_BASE_URL);
     const action_mode = ref('download');
     const intervention = ref(null);
     const show_defaillance_details = ref(false);
@@ -187,8 +193,8 @@ export default {
 
     const fetch_data = async () => {
       try {
-        const response = await api.getInterventionAffichage(route.params.id);
-        intervention.value = response.data;
+        const response = await interventionApi.get(`intervention/${route.params.id}/affichage/`);
+        intervention.value = response;
       } catch (error) {
         console.error('Erreur lors de la récupération des données:', error);
       }
@@ -244,7 +250,7 @@ export default {
     const delete_intervention = async () => {
       if (confirm('Êtes-vous sûr de vouloir supprimer cette intervention ?')) {
         try {
-          await api.deleteIntervention(intervention.value.id);
+          await deleteApi.remove(`interventions/${intervention.value.id}/`);
           router.push({ name: 'ListeInterventions' });
         } catch (error) {
           console.error('Erreur lors de la suppression de l\'intervention:', error);
@@ -255,7 +261,7 @@ export default {
     const reopen_intervention = async () => {
       if (confirm('Êtes-vous sûr de vouloir rouvrir cette intervention ?')) {
         try {
-          await api.reouvrirIntervention(intervention.value.id);
+          await reopenApi.patch(`interventions/${intervention.value.id}/`, { dateCloture: null });
           fetch_data(); // Recharger les données après la réouverture
         } catch (error) {
           console.error('Erreur lors de la réouverture de l\'intervention:', error);
@@ -328,7 +334,7 @@ export default {
     const close_intervention = async () => {
       if (confirm('Êtes-vous sûr de vouloir clôturer cette intervention ?')) {
         try {
-          await api.cloturerIntervention(intervention.value.id);
+          await closeApi.patch(`interventions/${intervention.value.id}/`, { dateCloture: new Date().toISOString() });
           router.go(-1);
         } catch (error) {
           console.error('Erreur lors de la clôture de l\'intervention:', error);

@@ -177,10 +177,11 @@
 </template>
 
 <script>
-import api from '@/services/api';
 import { ref, computed, reactive, onMounted, toRefs } from 'vue';
 import { useRouter } from 'vue-router';
 import { VTreeView } from 'vuetify/labs/components';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'CreateEquipment',
@@ -189,6 +190,7 @@ export default {
   },
   setup() {
     const router = useRouter();
+    const api = useApi(API_BASE_URL);
     const state = reactive({
       form_data: {
         reference: "",
@@ -268,13 +270,13 @@ export default {
         }
 
         // Envoi avec multipart/form-data
-        const response = await api.postEquipement(form_data, {
+        const response = await api.post('equipements/', form_data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-        if (response.status === 201) {
+        if (response) {
 
-          const equipement_id = response.data.reference; // Récupération de l'ID de l'équipement créé
+          const equipement_id = response.reference; // Récupération de l'ID de l'équipement créé
 
           // Création de l'objet InformationStatut
           const information_statut_data = {
@@ -286,13 +288,13 @@ export default {
           };
 
           // Envoi de l'information de statut
-          const statut_response = await api.postInformationStatut(information_statut_data, {
+          const statut_response = await api.post('information-statuts/', information_statut_data, {
             headers: { "Content-Type": "application/json" },
           });
 
-          if (statut_response.status === 201) {
+          if (statut_response) {
             for (const consumable_id of state.selected_consumables) {
-              await api.postConstituer({
+              await api.post('constituer/', {
                 equipement: equipement_id,
                 consommable: consumable_id
               });
@@ -310,16 +312,21 @@ export default {
 
     const fetchData = async () => {
       try {
-        const [locations_res, models_res, suppliers_res, consumables_res] = await Promise.all([
-          api.getLieuxHierarchy(),
-          api.getModeleEquipements(),
-          api.getFournisseurs(),
-          api.getConsommables()
+        const locationsApi = useApi(API_BASE_URL);
+        const modelsApi = useApi(API_BASE_URL);
+        const suppliersApi = useApi(API_BASE_URL);
+        const consumablesApi = useApi(API_BASE_URL);
+        
+        await Promise.all([
+          locationsApi.get('lieux-hierarchy/'),
+          modelsApi.get('modele-equipements/'),
+          suppliersApi.get('fournisseurs/'),
+          consumablesApi.get('consommables/')
         ]);
-        state.locations = locations_res.data;
-        state.equipment_models = models_res.data;
-        state.suppliers = suppliers_res.data;
-        state.consumables = consumables_res.data;
+        state.locations = locationsApi.data.value;
+        state.equipment_models = modelsApi.data.value;
+        state.suppliers = suppliersApi.data.value;
+        state.consumables = consumablesApi.data.value;
       } catch (error) {
         console.error('Error loading data:', error);
       }

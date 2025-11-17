@@ -89,10 +89,12 @@
 
 <script>
 import { useRouter } from 'vue-router';
+import { useApi } from '@/composables/useApi';
+import { getFailureLevelColor } from '@/utils/helpers';
 import NavigationDrawer from '@/components/NavigationBar.vue';
 import TopNavBar from "@/components/TopBar.vue";
 import '@/assets/css/global.css';
-import api from '@/services/api';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   components: {
@@ -102,6 +104,8 @@ export default {
 
   setup() {
     const router = useRouter();
+    const failuresApi = useApi(API_BASE_URL);
+    const interventionsApi = useApi(API_BASE_URL);
 
     const open_show_failure = (id) => {
       router.push({ name: 'FailureDetail', params: { id: id } });
@@ -113,7 +117,9 @@ export default {
 
     return {
       open_show_failure,
-      open_show_intervention
+      open_show_intervention,
+      failuresApi,
+      interventionsApi
     };
   },
 
@@ -157,8 +163,8 @@ export default {
 
     async fetch_failures() {
       try {
-        const response = await api.getDefaillances();
-        this.failures = response.data.filter(defaillance => defaillance.dateTraitementDefaillance === null);
+        const response = await this.failuresApi.get('defaillances/');
+        this.failures = response.filter(defaillance => defaillance.dateTraitementDefaillance === null);
         this.total_failures = this.failures.length;
 
         // Calculate level distribution
@@ -176,21 +182,12 @@ export default {
       }
     },
 
-    get_level_color(niveau) {
-      switch (niveau) {
-        case 'Critique':
-          return 'red';
-        case 'Majeur':
-          return 'orange';
-        default:
-          return 'green';
-      }
-    },
+    get_level_color: getFailureLevelColor,
 
     async fetch_interventions() {
       try {
-        const response = await api.getInterventions();
-        this.interventions = response.data
+        const response = await this.interventionsApi.get('interventions/');
+        this.interventions = response
           .filter(intervention => intervention.dateCloture === null) // Filtre les interventions non clôturées
           .map(intervention => ({
             ...intervention,

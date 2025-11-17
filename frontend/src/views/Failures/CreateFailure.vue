@@ -3,7 +3,7 @@
     <v-main>
       <v-container class="py-5">
         <v-card class="pa-4">
-          <v-form ref="form" v-model="form_valid">
+          <v-form ref="formRef" v-model="form_valid">
 
             <!-- Error Alert -->
             <v-alert v-if="error_message" type="error" class="mb-4">
@@ -55,109 +55,121 @@
 </template>
 
 <script>
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import '@/assets/css/global.css';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   setup() {
     const router = useRouter();
-    return { router };
-  },
-  data() {
-    return {
-      equipment_list: [],
-      levels: ['Mineur', 'Majeur', 'Critique'],
-      form: {
-        equipement: null,
-        commentaireDefaillance: "",
-        niveau: null,
-      },
-      form_valid: false,
-      validation_triggered: false,
-      equipment_reference: null,
-      connected_user: {
-        id: 1,
-        username: "admin",
-        first_name: "admin",
-        last_name: "admin",
-        email: "admin@a.com",
-      },
-      error_message: "", // Keep error message
+    const route = useRoute();
+    const api = useApi(API_BASE_URL);
+    const equipmentsApi = useApi(API_BASE_URL);
+    
+    const equipment_list = computed(() => 
+      (equipmentsApi.data.value || []).map(eq => ({
+        ...eq,
+        label: `${eq.reference} - ${eq.designation}`
+      }))
+    );
+    const levels = ['Mineur', 'Majeur', 'Critique'];
+    const form = ref({
+      equipement: null,
+      commentaireDefaillance: "",
+      niveau: null,
+    });
+    const form_valid = ref(false);
+    const validation_triggered = ref(false);
+    const equipment_reference = ref(null);
+    const connected_user = {
+      id: 1,
+      username: "admin",
+      first_name: "admin",
+      last_name: "admin",
+      email: "admin@a.com",
     };
-  },
+    const error_message = ref("");
+    const formRef = ref(null);
 
-  async created() {
-    await this.fetch_data();
-    this.equipment_reference = this.$route.params.equipementReference;
-    if (this.equipment_reference) {
-      this.form.equipement = this.equipment_reference;
-    }
-  },
-
-  methods: {
-    async fetch_data() {
+    const fetch_data = async () => {
       try {
-        const [equipments_response] = await Promise.all([
-          api.getEquipements(),
-        ]);
-        this.equipment_list = equipments_response.data.map(eq => ({
-          ...eq,
-          label: `${eq.reference} - ${eq.designation}`
-        }));
+        await equipmentsApi.get('equipements/');
       } catch (error) {
         console.error('Erreur lors de la récupération des données:', error);
       }
-    },
+    };
 
-    reset_form() {
-      this.form = {
-        equipement: this.equipment_reference || null,
+    const reset_form = () => {
+      form.value = {
+        equipement: equipment_reference.value || null,
         commentaireDefaillance: "",
         niveau: null,
       };
-      this.validation_triggered = false;
-      this.error_message = ""; // Clear error message
-      if (this.$refs.form) {
-        this.$refs.form.resetValidation();
+      validation_triggered.value = false;
+      error_message.value = "";
+      if (formRef.value) {
+        formRef.value.resetValidation();
       }
-    },
+    };
 
-    go_back(){
-      this.router.go(-1);
-    },
+    const go_back = () => {
+      router.go(-1);
+    };
 
-    async validate_form() {
-      this.validation_triggered = true;
-      const form = this.$refs.form;
+    const validate_form = async () => {
+      validation_triggered.value = true;
+      const formElement = formRef.value;
 
-      if (form) {
-        form.validate();
-        if (this.form_valid) {
+      if (formElement) {
+        formElement.validate();
+        if (form_valid.value) {
           try {
             const failure_data = {
-              commentaireDefaillance: this.form.commentaireDefaillance,
-              niveau: this.form.niveau,
-              equipement: this.form.equipement,
-              utilisateur: this.connected_user.id,
+              commentaireDefaillance: form.value.commentaireDefaillance,
+              niveau: form.value.niveau,
+              equipement: form.value.equipement,
+              utilisateur: connected_user.id,
               dateTraitementDefaillance: null
             };
-            const response = await api.postDefaillance(failure_data);
+            const response = await api.post('defaillances/', failure_data);
 
-            const new_failure_id = response.data.id;
+            const new_failure_id = response.id;
 
-            // Navigate immediately after successful form submission
-            this.router.push({ name: 'FailureDetail', params: { id: new_failure_id } });
+            router.push({ name: 'FailureDetail', params: { id: new_failure_id } });
 
           } catch (error) {
             console.error('Erreur lors de la création de la défaillance:', error);
-            this.error_message = "Une erreur est survenue lors de la création de la défaillance.";
+            error_message.value = "Une erreur est survenue lors de la création de la défaillance.";
           }
         } else {
-          this.error_message = "Veuillez remplir tous les champs obligatoires.";
+          error_message.value = "Veuillez remplir tous les champs obligatoires.";
         }
       }
-    },
+    };
+
+    onMounted(async () => {
+      await fetch_data();
+      equipment_reference.value = route.params.equipementReference;
+      if (equipment_reference.value) {
+        form.value.equipement = equipment_reference.value;
+      }
+    });
+
+    return {
+      router,
+      equipment_list,
+      levels,
+      form,
+      form_valid,
+      validation_triggered,
+      error_message,
+      formRef,
+      reset_form,
+      go_back,
+      validate_form
+    };
   },
 };
 </script>

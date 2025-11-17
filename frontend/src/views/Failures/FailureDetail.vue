@@ -169,13 +169,19 @@
 <script>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import api, { BASE_URL } from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { getFailureLevelColor } from '@/utils/helpers';
+import { API_BASE_URL, BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'FailureDetail',
   setup() {
     const router = useRouter();
     const route = useRoute();
+    const failureApi = useApi(API_BASE_URL);
+    const equipmentApi = useApi(API_BASE_URL);
+    const patchApi = useApi(API_BASE_URL);
+    const statutApi = useApi(API_BASE_URL);
     const defaillance = ref(null);
     const show_equipment_details = ref(false);
     const show_documents_details = ref(false);
@@ -230,14 +236,14 @@ export default {
 
   const fetch_data = async () => {
     try {
-      const response = await api.getDefaillanceAffichage(route.params.id);
-      const defaillanceData = response.data;
+      const response = await failureApi.get(`defaillance/${route.params.id}/affichage/`);
+      const defaillanceData = response;
 
       if (defaillanceData.equipement && typeof defaillanceData.equipement === 'object') {
         defaillanceData.equipement.dernier_statut = defaillanceData.equipement.dernier_statut || {};
       } else if (typeof defaillanceData.equipement === 'string') {
-        const equipementResponse = await api.getEquipementAffichage(defaillanceData.equipement);
-        defaillanceData.equipement = equipementResponse.data;
+        const equipementResponse = await equipmentApi.get(`equipement/${defaillanceData.equipement}/affichage/`);
+        defaillanceData.equipement = equipementResponse;
         defaillanceData.equipement.dernier_statut = defaillanceData.equipement.dernier_statut || {};
       } else {
         console.error('Les données de l\'équipement sont manquantes ou invalides');
@@ -360,13 +366,13 @@ export default {
       if (confirm('Êtes-vous sûr de vouloir traiter cette défaillance ?')) {
         try {
           const dateTraitementDefaillance = new Date().toISOString();
-          const response = await api.patchDefaillance(defaillance.value.id, {
+          const response = await patchApi.patch(`defaillances/${defaillance.value.id}/`, {
             dateTraitementDefaillance: dateTraitementDefaillance
           });
           
           defaillance.value = { 
             ...defaillance.value, 
-            ...response.data,
+            ...response,
             equipement: defaillance.value.equipement 
           };
 
@@ -379,7 +385,7 @@ export default {
               ModificateurStatut: 1
             };
 
-            await api.postInformationStatut(statutData);
+            await statutApi.post('information-statuts/', statutData);
           }
 
           await fetch_data();

@@ -29,17 +29,20 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'ModelEquipmentDetail',
   setup() {
     const router = useRouter();
     const route = useRoute();
-    const modelEquipment = ref(null);
-    const manufacturer = ref(null);
+    const modelApi = useApi(API_BASE_URL);
+    const manufacturerApi = useApi(API_BASE_URL);
+    const modelEquipment = computed(() => modelApi.data.value);
+    const manufacturer = computed(() => manufacturerApi.data.value);
 
     const manufacturer_name = computed(() => {
       return manufacturer.value ? manufacturer.value.nomFabricant : 'Non spécifié';
@@ -47,10 +50,9 @@ export default {
 
     const fetch_modelEquipment = async () => {
       try {
-        const response = await api.getModeleEquipement(route.params.id);
-        modelEquipment.value = response.data;
-        if (modelEquipment.value.fabricant) {
-          await get_manufacturer(modelEquipment.value.fabricant);
+        const response = await modelApi.get(`modele-equipements/${route.params.id}/`);
+        if (response.fabricant) {
+          await get_manufacturer(response.fabricant);
         }
       } catch (error) {
         console.error('Error loading the modelEquipment:', error);
@@ -59,8 +61,7 @@ export default {
 
     const get_manufacturer = async (id) => {
       try {
-        const response = await api.getFabricant(id);
-        manufacturer.value = response.data;
+        await manufacturerApi.get(`fabricants/${id}/`);
       } catch (error) {
         console.error('Error fetching fabricant:', error);
       }

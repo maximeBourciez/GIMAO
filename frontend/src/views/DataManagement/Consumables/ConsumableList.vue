@@ -40,7 +40,12 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
+
+const api = useApi(API_BASE_URL);
 
 export default {
   name: 'ConsumableList',
@@ -74,16 +79,16 @@ export default {
   methods: {
     async fetch_consumables() {
       try {
-        const response = await api.getConsommables();
-        this.consommables = response.data;
+        const response = await api.get('consommables/');
+        this.consommables = response;
       } catch (error) {
         console.error('Erreur lors de la récupération des consommables:', error);
       }
     },
     async fetch_manufacturers() {
       try {
-        const response = await api.getFabricants();
-        this.fabricants = response.data;
+        const response = await api.get('fabricants/');
+        this.fabricants = response;
       } catch (error) {
         console.error('Erreur lors de la récupération des fabricants:', error);
       }

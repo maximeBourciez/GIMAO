@@ -81,11 +81,13 @@
 <script>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   setup() {
     const router = useRouter();
+    const api = useApi(API_BASE_URL);
     const supplier = ref({
       nomFournisseur: '',
       numRue: '',
@@ -117,7 +119,7 @@ export default {
       }
 
       try {
-        const response = await api.postFournisseur(supplier.value);
+        await api.post('fournisseurs/', supplier.value);
         go_back();
       } catch (error) {
         console.error('Error creating supplier:', error);

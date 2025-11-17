@@ -47,13 +47,15 @@
 <script>
 import { ref, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'AddDocumentIntervention',
   setup() {
     const route = useRoute();
     const router = useRouter();
+    const api = useApi(API_BASE_URL);
     const documents = ref([{ name: '', file: null }]);
     const snackbar = reactive({
       show: false,
@@ -92,7 +94,7 @@ export default {
             formData.append('intervention', intervention_id);
 
             try {
-              const response = await api.postInterventionDocument(formData);
+              const response = await api.post('document-interventions/', formData);
             } catch (error) {
               console.error('Error while adding the document:', error);
               all_success = false;
