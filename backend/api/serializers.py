@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.db.models import Max
 from django.contrib.auth import get_user_model
-from myApp.models import (
+from gimao.models import (
     Role, Avoir, Fabricant, Fournisseur, Consommable, StockConsommable,
     ModeleEquipement, EstCompatible, Lieu, Equipement, Constituer,
     InformationStatut, DocumentTechnique, Correspondre, Defaillance,

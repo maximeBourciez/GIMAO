@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.apps import apps
 from rest_framework.decorators import api_view
 from django.contrib.auth import get_user_model
-from myApp.models import (
+from gimao.models import (
     Role, Avoir, Fabricant, Fournisseur, Consommable, StockConsommable,
     ModeleEquipement, EstCompatible, Lieu, Equipement, Constituer,
     InformationStatut, DocumentTechnique, Correspondre, Defaillance,
@@ -125,7 +125,7 @@ class DocumentInterventionViewSet(viewsets.ModelViewSet):
 def delete_document(request, model_name, pk):
     try:
         # Obtenir le modèle dynamiquement
-        model = apps.get_model('myApp', model_name)
+        model = apps.get_model('gimao', model_name)
         
         # Vérifier si le modèle existe
         if model is None:

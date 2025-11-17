@@ -5,8 +5,8 @@ cheat_sheet.txt
 node_modules/
 
 # Fichiers binaire 
-backend/myApp/__pycache__
-backend/myApp/migrations/__pycache__
+backend/gimao/__pycache__
+backend/gimao/migrations/__pycache__
 backend/api/__pycache__
 backend/gimao/__pycache__
 
