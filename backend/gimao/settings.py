@@ -1,9 +1,13 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'your-secret-key'
+
+
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = True
 
@@ -32,8 +36,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
 ]
+
 
 ROOT_URLCONF = 'gimao.urls'
 
@@ -61,13 +65,14 @@ WSGI_APPLICATION = 'gimao.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'gimao',
-        'USER': 'gimao_user',
-        'PASSWORD': 'gimao_password',
-        'HOST': 'db',
-        'PORT': '3306',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -96,11 +101,10 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# if not DEBUG:
-#     CORS_ALLOWED_ORIGINS = [
-#         "http://localhost:8081",
-#         "http://127.0.0.1:8081",
-#     ]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
+]
 
 CORS_ALLOW_ALL_ORIGINS = True  # Uniquement pour le développement !
 CORS_ALLOW_CREDENTIALS = True

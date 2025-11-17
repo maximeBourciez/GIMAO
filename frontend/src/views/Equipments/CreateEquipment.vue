@@ -180,12 +180,12 @@
 import api from '@/services/api';
 import { ref, computed, reactive, onMounted, toRefs } from 'vue';
 import { useRouter } from 'vue-router';
-import { VTreeview } from 'vuetify/labs/VTreeview';
+import { VTreeView } from 'vuetify/labs/components';
 
 export default {
   name: 'CreateEquipment',
   components: {
-    VTreeview,
+    VTreeView,
   },
   setup() {
     const router = useRouter();

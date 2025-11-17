@@ -32,12 +32,12 @@
 </template>
 
 <script>
-import { VTreeview } from 'vuetify/labs/VTreeview';
+import { VTreeView } from 'vuetify/labs/components';
 
 export default {
   name: 'LocationExplorer',
   components: {
-    VTreeview
+    VTreeView
   },
   props: {
     lieux: {

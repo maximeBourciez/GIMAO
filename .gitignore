@@ -13,3 +13,11 @@ backend/gimao/__pycache__
 
 # Fichier de stockage des images et des différents types de fichiers complémentaires 
 backend/media
+
+# Variables d'environnement de Django
+backend/.env
+
+# Fichier de création de la BD
+db/create-db.sql
+db/Modele_entite_relation
+db/Schema.loo

@@ -119,13 +119,13 @@
 <script>
 import { ref, computed, onMounted, reactive, toRefs } from 'vue';
 import { useRouter } from 'vue-router';
-import { VTreeview } from 'vuetify/labs/VTreeview';
+import { VTreeView } from 'vuetify/labs/components';
 import api from '@/services/api';
 
 export default {
   name: 'EquipmentList',
   components: {
-    VTreeview,
+    VTreeView,
   },
   setup() {
     const router = useRouter();
