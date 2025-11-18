@@ -2,362 +2,272 @@
   <v-app>
     <v-main>
       <v-container>
-        <h1 class="mb-4">Creer un Equipement</h1>
-        <v-form @submit.prevent="submit_form">
-          <v-text-field
-            v-model="form_data.reference"
-            label="Référence"
-            required
-            outlined
-            dense
-            class="mb-4"
-          ></v-text-field>
+        <BaseForm v-model="formData" title="Créer un Équipement" :loading="loading" :error-message="errorMessage"
+          :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
+          :custom-validation="validateForm" submit-button-text="Créer un Équipement" @submit="handleSubmit">
+          <template #default="{ formData }">
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="formData.reference" label="Référence" outlined dense required
+                  :rules="[v => !!v || 'La référence est requise']"></v-text-field>
+              </v-col>
 
-          <v-text-field
-            v-model="form_data.designation"
-            label="Désignation"
-            required
-            outlined
-            dense
-            class="mb-4"
-          ></v-text-field>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="formData.designation" label="Désignation" outlined dense required
+                  :rules="[v => !!v || 'La désignation est requise']"></v-text-field>
+              </v-col>
 
-          <v-menu
-            ref="menu"
-            v-model="date_service_start_menu"
-            :close-on-content-click="false"
-            transition="scale-transition"
-            offset-y
-            min-width="auto"
-          >
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="form_data.dateMiseEnService"
-                label="Date de mise en service"
-                prepend-icon="mdi-calendar"
-                readonly
-                v-bind="attrs"
-                v-on="on"
-                outlined
-                dense
-                class="mb-4"
-              ></v-text-field>
-            </template>
-            <v-date-picker
-              v-model="form_data.dateMiseEnService"
-              @input="date_service_start_menu = false"
-              no-title
-              scrollable
-            >
-              <v-spacer></v-spacer>
-              <v-btn text color="primary" @click="date_service_start_menu = false">
-                Cancel
-              </v-btn>
-              <v-btn text color="primary" @click="$refs.menu.save(form_data.dateMiseEnService)">
-                OK
-              </v-btn>
-            </v-date-picker>
-          </v-menu>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="formData.dateMiseEnService" label="Date de mise en service" type="date" outlined
+                  dense></v-text-field>
+              </v-col>
 
-          <v-text-field
-            v-model="form_data.prixAchat"
-            label="Prix Achat"
-            type="number"
-            outlined
-            dense
-            class="mb-4"
-          ></v-text-field>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="formData.prixAchat" label="Prix d'achat" type="number" outlined
+                  dense></v-text-field>
+              </v-col>
 
-          <v-file-input
-            label="Image de l'Equipement"
-            outlined
-            dense
-            class="mb-4"
-            @change="handle_file_upload"
-          ></v-file-input>
+              <v-col cols="12" md="6">
+                <v-file-input label="Image de l'équipement" outlined dense accept="image/*"
+                  @change="handleFileUpload"></v-file-input>
+              </v-col>
 
-          <v-text-field
-            v-model="form_data.joursIntervalleMaintenance"
-            label="Intervalle de la maintenance (jours)"
-            type="number"
-            outlined
-            dense
-            class="mb-4"
-          ></v-text-field>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="formData.joursIntervalleMaintenance" label="Intervalle de maintenance (jours)"
+                  type="number" outlined dense></v-text-field>
+              </v-col>
 
-          <v-switch
-            v-model="form_data.preventifGlissant"
-            label="Intervention Préventive Glissante"
-            class="mb-4"
-          ></v-switch>
+              <v-col cols="12" md="6">
+                <v-switch v-model="formData.preventifGlissant" label="Intervention Préventive Glissante" color="primary"
+                  inset></v-switch>
+              </v-col>
 
-          <v-select
-            v-model="form_data.modeleEquipement"
-            :items="equipment_models"
-            item-text="nomModeleEquipement"
-            item-title="nomModeleEquipement"
-            item-value="id"
-            label="Modele de l'Equipement"
-            outlined
-            dense
-            class="mb-4"
-          ></v-select>
+              <v-col cols="12" md="6">
+                <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nomModeleEquipement"
+                  item-value="id" label="Modèle de l'équipement" outlined dense></v-select>
+              </v-col>
 
-          <v-select
-            v-model="form_data.fournisseur"
-            :items="suppliers"
-            item-text="nomFournisseur"
-            item-title="nomFournisseur"
-            item-value="id"
-            label="Fournisseur"
-            outlined
-            dense
-            class="mb-4"
-          ></v-select>
+              <v-col cols="12" md="6">
+                <v-select v-model="formData.fournisseur" :items="suppliers" item-title="nomFournisseur" item-value="id"
+                  label="Fournisseur" outlined dense></v-select>
+              </v-col>
 
-          <div>
-            <h3 class="mb-2">Selectionner un lieu</h3>
-            <p v-if="!locations_with_all || locations_with_all.length === 0">Pas de données disponibles.</p>
-            <v-treeview
-              v-else
-              :items="locations_with_all"
-              item-key="id"
-              :open-on-click="false"
-              item-text="nomLieu"
-              rounded
-              hoverable
-              activatable
-              dense
-            >
-              <template v-slot:prepend="{ item, open }">
-                <v-icon
-                  v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
-                  @click.stop="toggle_node(item)"
-                  :class="{ 'rotate-icon': open }"
-                >
-                  {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
-                </v-icon>
-                <span v-else class="tree-icon-placeholder"></span>
-                <span @click="on_click_equipment(item)">{{ item.nomLieu }}</span>
-              </template>
-              <template v-slot:label="{ item }">
-                <span class="text-caption ml-2">{{ item.typeLieu }}</span>
-              </template>
-            </v-treeview>
-          </div>
+              <v-col cols="12">
+                <v-divider class="my-4"></v-divider>
+                <h3 class="mb-3">Sélectionner un lieu</h3>
+                <p v-if="!locations || locations.length === 0" class="text-caption">
+                  Pas de données disponibles.
+                </p>
+                <v-treeview v-else :items="locations" item-key="id" :open-on-click="false" item-text="nomLieu" rounded
+                  hoverable activatable dense>
+                  <template v-slot:prepend="{ item, open }">
+                    <v-icon v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
+                      @click.stop="toggleNode(item)" :class="{ 'rotate-icon': open }">
+                      {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
+                    </v-icon>
+                    <span v-else class="tree-icon-placeholder"></span>
+                    <span @click="selectLocation(item)">{{ item.nomLieu }}</span>
+                  </template>
+                  <template v-slot:label="{ item }">
+                    <span class="text-caption ml-2">{{ item.typeLieu }}</span>
+                  </template>
+                </v-treeview>
+                <v-chip v-if="formData.lieu" color="primary" class="mt-2" closable @click:close="formData.lieu = null">
+                  Lieu sélectionné: {{ formData.lieu.nomLieu }}
+                </v-chip>
+              </v-col>
 
-          <div class="mt-4">
-            <h3 class="mb-2">Consommables Associés</h3>
-            <v-select
-              v-model="selected_consumables"
-              :items="consumables"
-              item-text="designation"
-              item-title="designation"
-              item-value="id"
-              label="Selectionner le consommable"
-              multiple
-              chips
-              outlined
-              dense
-            ></v-select>
-          </div>
-
-          <v-row justify="end">
-            <v-btn color="secondary" class="mt-4 rounded" @click="go_back" style="border-radius: 0; margin-right: 35px;" large>
-              Annuler
-            </v-btn>
-            <v-btn type="submit" color="primary" class="mt-4 rounded" style="border-radius: 0; margin-right: 35px;" large>
-              Creer un Equipement
-            </v-btn>
-          </v-row>
-        </v-form>
+              <v-col cols="12">
+                <v-divider class="my-4"></v-divider>
+                <h3 class="mb-3">Consommables Associés</h3>
+                <v-select v-model="selectedConsumables" :items="consumables" item-title="designation" item-value="id"
+                  label="Sélectionner les consommables" multiple chips outlined dense></v-select>
+              </v-col>
+            </v-row>
+          </template>
+        </BaseForm>
       </v-container>
     </v-main>
   </v-app>
 </template>
 
-<script>
-import { ref, computed, reactive, onMounted, toRefs } from 'vue';
+<script setup>
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { VTreeView } from 'vuetify/labs/components';
+import BaseForm from '@/components/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
+import { useFormValidation } from '@/composables/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
 
-export default {
-  name: 'CreateEquipment',
-  components: {
-    VTreeView,
-  },
-  setup() {
-    const router = useRouter();
-    const api = useApi(API_BASE_URL);
-    const state = reactive({
-      form_data: {
-        reference: "",
-        designation: "",
-        dateCreation: new Date().toISOString(),
-        dateMiseEnService: new Date().toISOString().substr(0, 10),
-        prixAchat: null,
-        lienImageEquipement: null,
-        preventifGlissant: false,
-        joursIntervalleMaintenance: null,
-        createurEquipement: 1, 
-        lieu: null,
-        modeleEquipement: null,
-        fournisseur: null,
-      },
-      locations: [],
-      equipment_models: [],
-      suppliers: [],
-      consumables: [],
-      selected_consumables: [],
-      open_nodes: new Set(),
-      date_service_start_menu: false,
-    });
+const router = useRouter();
+const api = useApi(API_BASE_URL);
 
-    const locations_with_all = computed(() => {
-      return [...state.locations];
-    });
+const loading = ref(false);
+const loadingData = ref(false);
+const errorMessage = ref('');
+const successMessage = ref('');
 
-    const on_click_equipment = (item) => {
-      if (state.form_data.lieu && state.form_data.lieu.id === item.id) {
-        state.form_data.lieu = null;
-      } else {
-        state.form_data.lieu = item;
-      }
-    };
+const formData = ref({
+  reference: '',
+  designation: '',
+  dateCreation: new Date().toISOString(),
+  dateMiseEnService: new Date().toISOString().substr(0, 10),
+  prixAchat: null,
+  lienImageEquipement: null,
+  preventifGlissant: false,
+  joursIntervalleMaintenance: null,
+  createurEquipement: 1,
+  lieu: null,
+  modeleEquipement: null,
+  fournisseur: null
+});
 
-    const toggle_node = (item) => {
-      if (state.open_nodes.has(item.id)) {
-        state.open_nodes.delete(item.id);
-      } else {
-        state.open_nodes.add(item.id);
-      }
-    };
+const locations = ref([]);
+const equipmentModels = ref([]);
+const suppliers = ref([]);
+const consumables = ref([]);
+const selectedConsumables = ref([]);
+const openNodes = ref(new Set());
 
-    const submit_form = async () => {
-      try {
+const validation = useFormValidation(formData, {
+  reference: [v => !!v || 'La référence est requise'],
+  designation: [v => !!v || 'La désignation est requise']
+});
 
-        state.form_data.dateCreation = new Date().toISOString();
-
-        if (!state.form_data.reference || !state.form_data.designation) {
-          return;
-        }
-
-        // Création de form_data
-        const form_data = new FormData();
-        for (const key in state.form_data) {
-          if (state.form_data[key] !== null && key !== "lienImageEquipement") {
-            if (key == "lieu" ) {
-              form_data.append(key, state.form_data.lieu.id.toString());
-            }
-            else {
-              form_data.append(key, state.form_data[key]);
-            }
-          }
-        }
-
-        // Vérification et ajout de l'image
-        if (state.form_data.lienImageEquipement instanceof File) {
-          form_data.append("lienImageEquipement", state.form_data.lienImageEquipement);
-        } else {
-          console.warn("Aucun fichier valide détecté.");
-        }
-
-       
-        for (let pair of form_data.entries()) {
-          console.log(pair[0], pair[1]);
-        }
-
-        // Envoi avec multipart/form-data
-        const response = await api.post('equipements/', form_data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        if (response) {
-
-          const equipement_id = response.reference; // Récupération de l'ID de l'équipement créé
-
-          // Création de l'objet InformationStatut
-          const information_statut_data = {
-            statutEquipement: "En fonctionnement",
-            dateChangement: new Date().toISOString(),
-            equipement: equipement_id,
-            informationStatutParent: null, // Ou une valeur par défaut si nécessaire
-            ModificateurStatut: 1, // ID fixe du modificateur
-          };
-
-          // Envoi de l'information de statut
-          const statut_response = await api.post('information-statuts/', information_statut_data, {
-            headers: { "Content-Type": "application/json" },
-          });
-
-          if (statut_response) {
-            for (const consumable_id of state.selected_consumables) {
-              await api.post('constituer/', {
-                equipement: equipement_id,
-                consommable: consumable_id
-              });
-            }
-          }
-
-          go_back();
-        } else {
-          console.log("Erreur lors de l'ajout de l'équipement.");
-        }
-      } catch (error) {
-        console.error("Erreur lors de la soumission du formulaire:", error);
-      }
-    };
-
-    const fetchData = async () => {
-      try {
-        const locationsApi = useApi(API_BASE_URL);
-        const modelsApi = useApi(API_BASE_URL);
-        const suppliersApi = useApi(API_BASE_URL);
-        const consumablesApi = useApi(API_BASE_URL);
-        
-        await Promise.all([
-          locationsApi.get('lieux-hierarchy/'),
-          modelsApi.get('modele-equipements/'),
-          suppliersApi.get('fournisseurs/'),
-          consumablesApi.get('consommables/')
-        ]);
-        state.locations = locationsApi.data.value;
-        state.equipment_models = modelsApi.data.value;
-        state.suppliers = suppliersApi.data.value;
-        state.consumables = consumablesApi.data.value;
-      } catch (error) {
-        console.error('Error loading data:', error);
-      }
-    };
-
-    const handle_file_upload = (event) => {
-      const file = event.target.files ? event.target.files[0] : event;
-      if (file) {
-        state.form_data.lienImageEquipement = file;
-      } else {
-        console.error("Aucun fichier sélectionné !");
-      }
-    };
-
-    const go_back = () => {
-      router.go(-1);
-    };
-
-    onMounted(() => {
-      fetchData();
-    });
-
-    return {
-      ...toRefs(state),
-      submit_form,
-      locations_with_all,
-      on_click_equipment,
-      toggle_node,
-      go_back,
-      handle_file_upload
-    };
-  },
+const validateForm = () => {
+  return validation.checkRequiredFields(['reference', 'designation']);
 };
+
+const selectLocation = (item) => {
+  if (formData.value.lieu && formData.value.lieu.id === item.id) {
+    formData.value.lieu = null;
+  } else {
+    formData.value.lieu = item;
+  }
+};
+
+const toggleNode = (item) => {
+  if (openNodes.value.has(item.id)) {
+    openNodes.value.delete(item.id);
+  } else {
+    openNodes.value.add(item.id);
+  }
+};
+
+const handleFileUpload = (event) => {
+  const file = event.target.files ? event.target.files[0] : event;
+  if (file) {
+    formData.value.lienImageEquipement = file;
+  }
+};
+
+const fetchData = async () => {
+  loadingData.value = true;
+  errorMessage.value = '';
+
+  try {
+    const locationsApi = useApi(API_BASE_URL);
+    const modelsApi = useApi(API_BASE_URL);
+    const suppliersApi = useApi(API_BASE_URL);
+    const consumablesApi = useApi(API_BASE_URL);
+
+    await Promise.all([
+      locationsApi.get('lieux-hierarchy/'),
+      modelsApi.get('modele-equipements/'),
+      suppliersApi.get('fournisseurs/'),
+      consumablesApi.get('consommables/')
+    ]);
+
+    locations.value = locationsApi.data.value;
+    equipmentModels.value = modelsApi.data.value;
+    suppliers.value = suppliersApi.data.value;
+    consumables.value = consumablesApi.data.value;
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error);
+    errorMessage.value = 'Erreur lors du chargement des données. Veuillez réessayer.';
+  } finally {
+    loadingData.value = false;
+  }
+};
+
+const handleSubmit = async () => {
+  loading.value = true;
+  errorMessage.value = '';
+
+  try {
+    formData.value.dateCreation = new Date().toISOString();
+
+    const form_data = new FormData();
+    for (const key in formData.value) {
+      if (formData.value[key] !== null && key !== 'lienImageEquipement') {
+        if (key === 'lieu') {
+          form_data.append(key, formData.value.lieu.id.toString());
+        } else {
+          form_data.append(key, formData.value[key]);
+        }
+      }
+    }
+
+    if (formData.value.lienImageEquipement instanceof File) {
+      form_data.append('lienImageEquipement', formData.value.lienImageEquipement);
+    }
+
+    const response = await api.post('equipements/', form_data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    if (response) {
+      const equipement_id = response.reference;
+
+      const information_statut_data = {
+        statutEquipement: 'En fonctionnement',
+        dateChangement: new Date().toISOString(),
+        equipement: equipement_id,
+        informationStatutParent: null,
+        ModificateurStatut: 1
+      };
+
+      const statut_response = await api.post('information-statuts/', information_statut_data, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (statut_response) {
+        for (const consumable_id of selectedConsumables.value) {
+          await api.post('constituer/', {
+            equipement: equipement_id,
+            consommable: consumable_id
+          });
+        }
+      }
+
+      successMessage.value = 'Équipement créé avec succès !';
+
+      setTimeout(() => {
+        router.go(-1);
+      }, 1500);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'équipement:', error);
+    errorMessage.value = 'Erreur lors de la création de l\'équipement. Veuillez réessayer.';
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchData();
+});
 </script>
+
+<style scoped>
+.rotate-icon {
+  transform: rotate(90deg);
+  transition: transform 0.2s;
+}
+
+.tree-icon-placeholder {
+  display: inline-block;
+  width: 24px;
+}
+</style>

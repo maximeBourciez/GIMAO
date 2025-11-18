@@ -72,8 +72,6 @@ export default {
     });
     const fabricants = ref([]);
     const error_message = ref('');
-    const is_loading = ref(false);
-
     const is_loading = computed(() => fabricantsApi.loading.value);
 
     const is_form_valid = computed(() => {

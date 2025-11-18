@@ -197,19 +197,19 @@ const props = defineProps({
   },
   md: {
     type: [String, Number],
-    default: 8
+    default: 12
   },
   lg: {
     type: [String, Number],
-    default: 6
+    default: 12
   },
   xl: {
     type: [String, Number],
-    default: 4
+    default: 12
   },
   justify: {
     type: String,
-    default: 'center'
+    default: 'start'
   },
   fluid: {
     type: Boolean,

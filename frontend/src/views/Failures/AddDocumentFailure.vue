@@ -1,131 +1,100 @@
 <template>
-  <v-container>
-    <v-card>
-      <v-card-title>Ajouter des documents à la demande d'intervention</v-card-title>
-      <v-card-text>
-        <v-form @submit.prevent="submit_form">
-          <v-container>
-            <v-row v-for="(document, index) in documents" :key="index">
-              <v-col cols="5">
-                <v-text-field
-                  v-model="document.document_name"
-                  label="Nom du document"
-                  required
-                ></v-text-field>
-              </v-col>
-              <v-col cols="5">
-                <v-file-input
-                  v-model="document.document_file"
-                  label="Fichier du document"
-                  required
-                ></v-file-input>
-              </v-col>
-              <v-col cols="2">
-                <v-btn color="error" @click="remove_document(index)" icon>
-                  <v-icon>mdi-delete</v-icon>
-                </v-btn>
-              </v-col>
-            </v-row>
-          </v-container>
-          <v-btn color="secondary" @click="go_back" class="mb-4 mr-2">
-            Retour
+  <BaseForm v-model="formData" title="Ajouter des documents à la défaillance" :loading="loading"
+    :error-message="errorMessage" :success-message="successMessage" submit-button-text="Enregistrer tous les documents"
+    @submit="handleSubmit">
+    <template #default="{ formData }">
+      <v-row v-for="(document, index) in documents" :key="index" class="mb-2">
+        <v-col cols="5">
+          <v-text-field v-model="document.document_name" label="Nom du document" required
+            :rules="[v => !!v || 'Le nom est requis']"></v-text-field>
+        </v-col>
+        <v-col cols="5">
+          <v-file-input v-model="document.document_file" label="Fichier du document" required
+            :rules="[v => !!v || 'Le fichier est requis']"></v-file-input>
+        </v-col>
+        <v-col cols="2" class="d-flex align-center">
+          <v-btn color="error" @click="removeDocument(index)" icon :disabled="documents.length === 1">
+            <v-icon>mdi-delete</v-icon>
           </v-btn>
-          
-          <v-btn color="secondary" @click="add_document" class="mb-4">
-            Ajouter un autre document
-          </v-btn>
-          <v-btn type="submit" color="primary" block>Enregistrer tous les documents</v-btn>
-        </v-form>
-      </v-card-text>
-    </v-card>
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color">
-      {{ snackbar.message }}
-    </v-snackbar>
-  </v-container>
+        </v-col>
+      </v-row>
+
+      <v-btn color="secondary" @click="addDocument" class="mt-2" prepend-icon="mdi-plus">
+        Ajouter un autre document
+      </v-btn>
+    </template>
+  </BaseForm>
 </template>
 
-<script>
-import { ref, reactive } from 'vue';
+<script setup>
+import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import BaseForm from '@/components/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 
-export default {
-  name: 'AddDocumentFailure',
-  setup() {
-    const route = useRoute();
-    const router = useRouter();
-    const api = useApi(API_BASE_URL);
-    const documents = ref([{ document_name: '', document_file: null }]);
-    const snackbar = reactive({
-      show: false,
-      message: '',
-      color: 'success'
-    });
+const route = useRoute();
+const router = useRouter();
+const api = useApi(API_BASE_URL);
 
-    const add_document = () => {
-      documents.value.push({ document_name: '', document_file: null });
-    };
+const loading = ref(false);
+const errorMessage = ref('');
+const successMessage = ref('');
 
-    const go_back = () => {
-      router.go(-1);
-    };
+const formData = ref({});
+const documents = ref([{ document_name: '', document_file: null }]);
 
-    const remove_document = (index) => {
-      documents.value.splice(index, 1);
-    };
+const addDocument = () => {
+  documents.value.push({ document_name: '', document_file: null });
+};
 
-    const showSnackbar = (message, color = 'success') => {
-      snackbar.message = message;
-      snackbar.color = color;
-      snackbar.show = true;
-    };
+const removeDocument = (index) => {
+  if (documents.value.length > 1) {
+    documents.value.splice(index, 1);
+  }
+};
 
-    const submit_form = async () => {
-      try {
-        const failure_id = route.params.id;
-        let allSuccess = true;
+const handleSubmit = async () => {
+  loading.value = true;
+  errorMessage.value = '';
 
-        for (const doc of documents.value) {
-          if (doc.document_name && doc.document_file) {
-            const formData = new FormData();
-            formData.append('nomDocumentDefaillance', doc.document_name);
-            formData.append('lienDocumentDefaillance', doc.document_file);
-            formData.append('defaillance', failure_id);
+  try {
+    const failure_id = route.params.id;
+    let allSuccess = true;
+    const errors = [];
 
-            try {
-              const response = await api.post('document-defaillances/', formData);
-            } catch (error) {
-              console.error("Erreur lors de l'ajout du document:", error);
-              allSuccess = false;
-            }
-          }
+    for (const doc of documents.value) {
+      if (doc.document_name && doc.document_file) {
+        const formData = new FormData();
+        formData.append('nomDocumentDefaillance', doc.document_name);
+        formData.append('lienDocumentDefaillance', doc.document_file);
+        formData.append('defaillance', failure_id);
+
+        try {
+          await api.post('document-defaillances/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+        } catch (error) {
+          console.error("Erreur lors de l'ajout du document:", error);
+          allSuccess = false;
+          errors.push(doc.document_name);
         }
-
-        if (allSuccess) {
-          showSnackbar('Tous les documents ont été enregistrés avec succès');
-          router.push({ name: 'FailureDetail', params: { id: failure_id } });
-        } else {
-          showSnackbar("Certains documents n'ont pas pu être enregistrés", 'warning');
-        }
-      } catch (error) {
-        console.error("Erreur générale lors de l'ajout des documents:", error);
-        showSnackbar("Erreur lors de l'ajout des documents. Veuillez réessayer.", 'error');
       }
-    };
+    }
 
-    return {
-      documents,
-      add_document,
-      remove_document,
-      submit_form,
-      snackbar,
-      go_back
-    };
-  },
+    if (allSuccess) {
+      successMessage.value = 'Tous les documents ont été enregistrés avec succès !';
+      setTimeout(() => {
+        router.push({ name: 'FailureDetail', params: { id: failure_id } });
+      }, 1500);
+    } else {
+      errorMessage.value = `Certains documents n'ont pas pu être enregistrés: ${errors.join(', ')}`;
+    }
+  } catch (error) {
+    console.error("Erreur générale lors de l'ajout des documents:", error);
+    errorMessage.value = "Erreur lors de l'ajout des documents. Veuillez réessayer.";
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
-
-<style scoped>
-/* Vous pouvez ajouter des styles spécifiques ici si nécessaire */
-</style>
