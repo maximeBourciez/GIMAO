@@ -29,7 +29,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import BaseForm from '@/components/BaseForm.vue';
+import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 

@@ -1,91 +1,84 @@
 <template>
-  <v-container>
-    <v-data-table
-      :headers="table_headers"
-      :items="interventions"
-      :items-per-page="10"
-      class="elevation-1"
-      @click:row="(event, {item}) => open_intervention_detail(item.id)"
-    >
-      <template v-slot:item.traite="{ item }">
-        <v-chip :color="item.dateTraitementDefaillance ? 'green' : 'red'" dark>
-          {{ item.dateTraitementDefaillance ? 'Oui' : 'Non' }}
-        </v-chip>
-      </template>
-      <template v-slot:item.niveau="{ item }">
-        <v-chip :color="get_level_color(item.niveau)" dark>
-          {{ item.niveau }}
-        </v-chip>
-      </template>
-      <template v-slot:item.dateAssignation="{ item }">
-        {{ formatDate(item.dateAssignation) }}
-      </template>
-      <template v-slot:item.dateCloture="{ item }">
-        {{ formatDate(item.dateCloture) }}
-      </template>
-    </v-data-table>
-  </v-container>
+  <BaseListView
+    title="Liste des Interventions"
+    :headers="tableHeaders"
+    :items="interventions"
+    :loading="loading"
+    :error-message="errorMessage"
+    create-button-text="Nouvelle Intervention"
+    no-data-text="Aucune intervention enregistrée"
+    no-data-icon="mdi-wrench-outline"
+    @create="handleCreate"
+    @row-click="handleRowClick"
+    @clear-error="errorMessage = ''"
+  >
+    <!-- Colonne Date d'assignation -->
+    <template #item.dateAssignation="{ item }">
+      {{ formatDateTime(item.dateAssignation) }}
+    </template>
+
+    <!-- Colonne Date de clôture -->
+    <template #item.dateCloture="{ item }">
+      {{ item.dateCloture ? formatDateTime(item.dateCloture) : '-' }}
+    </template>
+  </BaseListView>
 </template>
 
-<script>
-import { computed, onMounted } from 'vue';
+<script setup>
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
-import { getFailureLevelColor, formatDateTime } from '@/utils/helpers';
-import { TABLE_HEADERS, API_BASE_URL } from '@/utils/constants';
+import { formatDateTime } from '@/utils/helpers';
+import { API_BASE_URL } from '@/utils/constants';
 
-export default {
-  name: 'InterventionList',
-  setup() {
-    const router = useRouter();
-    const api = useApi(API_BASE_URL);
-    
-    const interventions = computed(() => api.data.value || []);
-    const loading = computed(() => api.loading.value);
+const router = useRouter();
+const api = useApi(API_BASE_URL);
 
-    const table_headers = [
-      {
-        title: 'Nom de l\' intervention',
-        align: 'start',
-        sortable: true,
-        value: 'nomIntervention'
-      },
-      {
-        title: 'Date d\'assignation',
-        align: 'center',
-        sortable: true,
-        value: 'dateAssignation'
-      },
-      {
-        title: 'Date de clôture',
-        align: 'center',
-        sortable: true,
-        value: 'dateCloture'
-      },
-      {
-        title: 'Temps estimé',
-        align: 'center',
-        sortable: true,
-        value: 'tempsEstime'
-      },
-    ];
+const interventions = computed(() => api.data.value || []);
+const loading = computed(() => api.loading.value);
+const errorMessage = ref('');
 
-    const open_intervention_detail = (id) => {
-      router.push({ name: 'InterventionDetail', params: { id } });
-    };
-
-    onMounted(() => {
-      api.get('interventions/');
-    });
-
-    return {
-      interventions,
-      loading,
-      table_headers,
-      get_level_color: getFailureLevelColor,
-      open_intervention_detail,
-      formatDate: formatDateTime,
-    };
+const tableHeaders = [
+  {
+    title: "Nom de l'intervention",
+    align: 'start',
+    sortable: true,
+    key: 'nomIntervention'
   },
-}
+  {
+    title: "Date d'assignation",
+    align: 'center',
+    sortable: true,
+    key: 'dateAssignation'
+  },
+  {
+    title: 'Date de clôture',
+    align: 'center',
+    sortable: true,
+    key: 'dateCloture'
+  },
+  {
+    title: 'Temps estimé',
+    align: 'center',
+    sortable: true,
+    key: 'tempsEstime'
+  }
+];
+
+const handleCreate = () => {
+  router.push({ name: 'CreateIntervention' });
+};
+
+const handleRowClick = (item) => {
+  router.push({ name: 'InterventionDetail', params: { id: item.id } });
+};
+
+onMounted(async () => {
+  try {
+    await api.get('interventions/');
+  } catch (error) {
+    errorMessage.value = 'Erreur lors du chargement des interventions';
+  }
+});
 </script>

@@ -95,7 +95,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { VTreeView } from 'vuetify/labs/components';
-import BaseForm from '@/components/BaseForm.vue';
+import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
