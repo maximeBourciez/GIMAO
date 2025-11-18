@@ -1,17 +1,8 @@
 <template>
-  <BaseListView
-    title="Liste des Défaillances"
-    :headers="tableHeaders"
-    :items="failures"
-    :loading="loading"
-    :error-message="errorMessage"
-    create-button-text="Nouvelle Défaillance"
-    no-data-text="Aucune défaillance enregistrée"
-    no-data-icon="mdi-alert-circle-outline"
-    @create="handleCreate"
-    @row-click="handleRowClick"
-    @clear-error="errorMessage = ''"
-  >
+  <BaseListView title="Liste des Défaillances" :headers="tableHeaders" :items="failures" :loading="loading"
+    :error-message="errorMessage" create-button-text="Nouvelle Défaillance"
+    no-data-text="Aucune défaillance enregistrée" no-data-icon="mdi-alert-circle-outline" @create="handleCreate"
+    @row-click="handleRowClick" @clear-error="errorMessage = ''">
     <!-- Colonne Traité -->
     <template #item.traite="{ item }">
       <v-chip :color="item.dateTraitementDefaillance ? 'green' : 'red'" dark>

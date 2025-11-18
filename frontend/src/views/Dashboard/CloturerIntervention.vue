@@ -15,7 +15,8 @@
                 </v-col>
                 <!-- Switch Champ interventionCurative -->
                 <v-col cols="12">
-                  <p><strong>Intervention Curative ? :</strong> {{ intervention.interventionCurative ? 'Oui' : 'Non' }}</p>
+                  <p><strong>Intervention Curative ? :</strong> {{ intervention.interventionCurative ? 'Oui' : 'Non' }}
+                  </p>
                 </v-col>
                 <!-- Champ DateAssignation -->
                 <v-col cols="12">
@@ -23,11 +24,13 @@
                 </v-col>
                 <!-- Champ DebutIntervention -->
                 <v-col cols="12">
-                  <p><strong>Date début Intervention :</strong> {{ intervention.dateDebutIntervention || 'Non spécifié' }}</p>
+                  <p><strong>Date début Intervention :</strong> {{ intervention.dateDebutIntervention || 'Non spécifié'
+                    }}</p>
                 </v-col>
                 <!-- Champ FinIntervention -->
                 <v-col cols="12">
-                  <p><strong>Date fin Intervention :</strong> {{ intervention.dateFinIntervention || 'Non spécifié' }}</p>
+                  <p><strong>Date fin Intervention :</strong> {{ intervention.dateFinIntervention || 'Non spécifié' }}
+                  </p>
                 </v-col>
                 <!-- Champ Responsable -->
                 <v-col cols="12">

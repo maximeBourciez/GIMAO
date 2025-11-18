@@ -12,26 +12,16 @@
                 <v-spacer></v-spacer>
               </v-card-title>
               <v-divider></v-divider>
-              <v-data-table
-                :headers="failures_headers"
-                :items="failures"
-                :items-per-page="5"
-                :page.sync="failures_page"
-                item-value="id"
-                class="elevation-1 rounded-lg"
-                hide-default-footer
-                @click:row="(event, {item}) => open_show_failure(item.id)"
-              >
+              <v-data-table :headers="failures_headers" :items="failures" :items-per-page="5" :page.sync="failures_page"
+                item-value="id" class="elevation-1 rounded-lg" hide-default-footer
+                @click:row="(event, { item }) => open_show_failure(item.id)">
                 <template v-slot:item.niveau="{ item }">
                   <v-chip :color="get_level_color(item.niveau)" dark>
                     {{ item.niveau }}
                   </v-chip>
                 </template>
               </v-data-table>
-              <v-pagination
-                v-model="failures_page"
-                :length="Math.ceil(failures.length / 5)"
-              ></v-pagination>
+              <v-pagination v-model="failures_page" :length="Math.ceil(failures.length / 5)"></v-pagination>
             </v-card>
           </v-col>
 
@@ -42,20 +32,10 @@
                 <v-spacer></v-spacer>
               </v-card-title>
               <v-divider></v-divider>
-              <v-data-table
-                :headers="interventions_headers"
-                :items="interventions"
-                :items-per-page="5"
-                :page.sync="interventions_page"
-                item-value="id"
-                class="elevation-1 rounded-lg"
-                hide-default-footer
-                @click:row="(event, {item}) => open_show_intervention(item.id)"
-              ></v-data-table>
-              <v-pagination
-                v-model="interventions_page"
-                :length="Math.ceil(interventions.length / 5)"
-              ></v-pagination>
+              <v-data-table :headers="interventions_headers" :items="interventions" :items-per-page="5"
+                :page.sync="interventions_page" item-value="id" class="elevation-1 rounded-lg" hide-default-footer
+                @click:row="(event, { item }) => open_show_intervention(item.id)"></v-data-table>
+              <v-pagination v-model="interventions_page" :length="Math.ceil(interventions.length / 5)"></v-pagination>
             </v-card>
           </v-col>
         </v-row>

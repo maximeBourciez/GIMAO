@@ -20,12 +20,8 @@
 
           <!-- Tableau des utilisateurs -->
           <v-col cols="9">
-            <v-data-table
-              :headers="headers"
-              :items="filteredUsers"
-              :items-per-page="5"
-              class="elevation-1 rounded-lg"
-            ></v-data-table>
+            <v-data-table :headers="headers" :items="filteredUsers" :items-per-page="5"
+              class="elevation-1 rounded-lg"></v-data-table>
           </v-col>
         </v-row>
       </v-container>

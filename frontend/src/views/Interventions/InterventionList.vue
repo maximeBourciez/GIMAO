@@ -1,17 +1,8 @@
 <template>
-  <BaseListView
-    title="Liste des Interventions"
-    :headers="tableHeaders"
-    :items="interventions"
-    :loading="loading"
-    :error-message="errorMessage"
-    create-button-text="Nouvelle Intervention"
-    no-data-text="Aucune intervention enregistrée"
-    no-data-icon="mdi-wrench-outline"
-    @create="handleCreate"
-    @row-click="handleRowClick"
-    @clear-error="errorMessage = ''"
-  >
+  <BaseListView title="Liste des Interventions" :headers="tableHeaders" :items="interventions" :loading="loading"
+    :error-message="errorMessage" create-button-text="Nouvelle Intervention"
+    no-data-text="Aucune intervention enregistrée" no-data-icon="mdi-wrench-outline" @create="handleCreate"
+    @row-click="handleRowClick" @clear-error="errorMessage = ''">
     <!-- Colonne Date d'assignation -->
     <template #item.dateAssignation="{ item }">
       {{ formatDateTime(item.dateAssignation) }}

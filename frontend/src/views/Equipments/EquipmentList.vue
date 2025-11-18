@@ -13,23 +13,11 @@
             <p v-if="!locations || locations.length === 0" class="text-caption">
               Pas de données disponibles.
             </p>
-            <v-treeview
-              v-else
-              v-model:selected="selectedTreeNodes"
-              :items="locations"
-              item-title="nomLieu"
-              item-value="id"
-              select-strategy="selectionType"
-              selectable
-              dense
-              @update:selected="onSelectLocation"
-            >
+            <v-treeview v-else v-model:selected="selectedTreeNodes" :items="locations" item-title="nomLieu"
+              item-value="id" select-strategy="selectionType" selectable dense @update:selected="onSelectLocation">
               <template v-slot:prepend="{ item, open }">
-                <v-icon
-                  v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
-                  @click.stop="toggleNode(item)"
-                  :class="{ 'rotate-icon': open }"
-                >
+                <v-icon v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
+                  @click.stop="toggleNode(item)" :class="{ 'rotate-icon': open }">
                   {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
                 </v-icon>
                 <span v-else class="tree-icon-placeholder"></span>
@@ -40,7 +28,7 @@
             </v-treeview>
           </div>
         </v-card>
-        
+
         <!-- Card: Types d'équipements -->
         <v-card elevation="1" class="rounded-lg pa-2">
           <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
@@ -48,49 +36,28 @@
           </v-card-title>
           <v-divider></v-divider>
           <v-list dense>
-            <v-list-item
-              link
-              @click="handleEquipmentTypeSelected(null)"
-              :class="{ 'selected-item': selectedTypeEquipments.length === 0 }"
-            >
+            <v-list-item link @click="handleEquipmentTypeSelected(null)"
+              :class="{ 'selected-item': selectedTypeEquipments.length === 0 }">
               <v-list-item-title>Tous</v-list-item-title>
             </v-list-item>
-            <v-list-item
-              v-for="(model, index) in equipmentModels"
-              :key="index"
-              link
-              @click="handleEquipmentTypeSelected(model)"
-              :class="{ 'selected-item': isEquipmentTypeSelected(model) }"
-            >
+            <v-list-item v-for="(model, index) in equipmentModels" :key="index" link
+              @click="handleEquipmentTypeSelected(model)" :class="{ 'selected-item': isEquipmentTypeSelected(model) }">
               <v-list-item-title>{{ model.nomModeleEquipement }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-card>
       </v-col>
-      
+
       <!-- Colonne principale avec BaseListView -->
       <v-col cols="12" md="8" lg="9">
-        <BaseListView
-          title="Liste des Équipements"
-          :headers="tableHeaders"
-          :items="filteredEquipments"
-          :loading="loading"
-          :error-message="errorMessage"
-          :show-search="false"
-          create-button-text="Ajouter un équipement"
-          no-data-text="Aucun équipement trouvé avec ces filtres"
-          no-data-icon="mdi-package-variant-closed"
-          @create="handleCreate"
-          @row-click="handleRowClick"
-          @clear-error="errorMessage = ''"
-        >
+        <BaseListView title="Liste des Équipements" :headers="tableHeaders" :items="filteredEquipments"
+          :loading="loading" :error-message="errorMessage" :show-search="false"
+          create-button-text="Ajouter un équipement" no-data-text="Aucun équipement trouvé avec ces filtres"
+          no-data-icon="mdi-package-variant-closed" @create="handleCreate" @row-click="handleRowClick"
+          @clear-error="errorMessage = ''">
           <!-- Colonne Statut avec chip coloré -->
           <template #item.statut.statutEquipement="{ item }">
-            <v-chip
-              :color="getStatusColor(item.statut.statutEquipement)"
-              text-color="white"
-              size="small"
-            >
+            <v-chip :color="getStatusColor(item.statut.statutEquipement)" text-color="white" size="small">
               {{ item.statut.statutEquipement }}
             </v-chip>
           </template>
@@ -123,17 +90,17 @@ const openNodes = ref(new Set());
 const equipments = computed(() => equipmentsApi.data.value || []);
 const locations = computed(() => locationsApi.data.value || []);
 const equipmentModels = computed(() => modelsApi.data.value || []);
-const loading = computed(() => 
+const loading = computed(() =>
   equipmentsApi.loading.value || locationsApi.loading.value || modelsApi.loading.value
 );
 
 const tableHeaders = [
   { title: 'Désignation', key: 'modeleEquipement.nomModeleEquipement', sortable: true, align: 'center' },
   { title: 'Lieu', key: 'lieu.nomLieu', sortable: true, align: 'center' },
-  { 
-    title: 'Statut', 
-    key: 'statut.statutEquipement', 
-    sortable: true, 
+  {
+    title: 'Statut',
+    key: 'statut.statutEquipement',
+    sortable: true,
     align: 'center',
     sort: (a, b) => {
       const order = ['Rebuté', 'En fonctionnement', 'Dégradé', 'À l\'arrêt'];
@@ -208,13 +175,13 @@ const isEquipmentTypeSelected = (model) => {
 
 const filteredEquipments = computed(() => {
   return equipments.value.filter(e => {
-    const locationMatch = selectedLocation.value.length === 0 || 
-                       selectedLocation.value.includes('All') || 
-                       selectedLocation.value.includes(e.lieu.nomLieu);
+    const locationMatch = selectedLocation.value.length === 0 ||
+      selectedLocation.value.includes('All') ||
+      selectedLocation.value.includes(e.lieu.nomLieu);
     const typeMatch = selectedTypeEquipments.value.length === 0 ||
-                     selectedTypeEquipments.value.some(m => 
-                       m.nomModeleEquipement === e.modeleEquipement.nomModeleEquipement
-                     );
+      selectedTypeEquipments.value.some(m =>
+        m.nomModeleEquipement === e.modeleEquipement.nomModeleEquipement
+      );
     return locationMatch && typeMatch;
   });
 });
