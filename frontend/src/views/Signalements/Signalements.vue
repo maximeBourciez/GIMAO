@@ -1,130 +1,108 @@
 <template>
-  <v-app>
-    <v-main>
-      <v-container class="py-5">
-        <v-card class="pa-4">
-          <h1 class="text-primary text-center">Signaler une défaillance</h1>
-
-          <v-row>
-            <!-- Colonne de gauche avec les champs -->
-            <v-col cols="6">
-              <v-form ref="formulaire" v-model="formulaireValide">
-                <v-row>
-                  <v-col cols="12">
-                    <v-select
-                      v-model="form.lieu"
-                      label="Lieu"
-                      :items="lieux"
-                      outlined
-                      dense
-                      :rules="[v => !!v || (validationTriggered && 'Lieu requis')]"
-                    ></v-select>
-                  </v-col>
-                  <v-col cols="12">
-                    <v-select
-                      v-model="form.salle"
-                      label="Salle"
-                      :items="salles"
-                      outlined
-                      dense
-                      :rules="[v => !!v || (validationTriggered && 'Salle requise')]"
-                    ></v-select>
-                  </v-col>
-                  <v-col cols="12">
-                    <v-select
-                      v-model="form.equipement"
-                      label="Équipement"
-                      :items="equipements"
-                      outlined
-                      dense
-                      :rules="[v => !!v || (validationTriggered && 'Équipement requis')]"
-                    ></v-select>
-                  </v-col>
-                </v-row>
-              </v-form>
-            </v-col>
-
-            <!-- Colonne de droite avec le champ commentaire -->
-            <v-col cols="6">
-              <v-textarea
-                v-model="form.commentaire"
-                label="Commentaires"
-                rows="10"
-                outlined
-              ></v-textarea>
-            </v-col>
-          </v-row>
-
-          <!-- Boutons en bas -->
-          <v-row justify="center" class="mt-4">
-            <v-btn color="primary" class="text-white mx-2" @click="reinitialiserFormulaire">
-              Annuler
-            </v-btn>
-            <v-btn color="success" class="text-white mx-2" @click="validerFormulaire">
-              Valider
-            </v-btn>
-          </v-row>
-        </v-card>
-      </v-container>
-    </v-main>
-  </v-app>
+  <BaseForm v-model="formData" title="Signaler une défaillance" :loading="loading" :error-message="errorMessage"
+    :success-message="successMessage" :fields="formFields" submit-text="Valider" cancel-text="Annuler"
+    @submit="handleSubmit" @cancel="handleCancel">
+    <template #additional-fields>
+      <v-col cols="12" md="6">
+        <v-textarea v-model="formData.commentaire" label="Commentaires" rows="10" outlined dense></v-textarea>
+      </v-col>
+    </template>
+  </BaseForm>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      lieux: ["Lieu 1", "Lieu 2", "Lieu 3"],
-      salles: ["Salle 1", "Salle 2", "Salle 3"],
-      equipements: ["Equipement 1", "Equipement 2", "Equipement 3"],
-      form: {
-        lieu: null,
-        salle: null,
-        equipement: null,
-        commentaire: "",
-      },
-      formulaireValide: false,
-      validationTriggered: false, // Contrôle de l'affichage des messages d'erreur
-    };
-  },
+<script setup>
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import BaseForm from '@/components/common/BaseForm.vue';
 
-  methods: {
-    /**
-     * Réinitialise le formulaire en mettant toutes les valeurs à leur état initial.
-     */
-    reinitialiserFormulaire() {
-      this.form = {
+const router = useRouter();
+
+const loading = ref(false);
+const errorMessage = ref('');
+const successMessage = ref('');
+
+const formData = ref({
+  lieu: null,
+  salle: null,
+  equipement: null,
+  commentaire: ''
+});
+
+const lieux = ref(["Lieu 1", "Lieu 2", "Lieu 3"]);
+const salles = ref(["Salle 1", "Salle 2", "Salle 3"]);
+const equipements = ref(["Equipement 1", "Equipement 2", "Equipement 3"]);
+
+const formFields = computed(() => [
+  {
+    name: 'lieu',
+    label: 'Lieu',
+    type: 'select',
+    items: lieux.value,
+    required: true,
+    cols: 12,
+    md: 6
+  },
+  {
+    name: 'salle',
+    label: 'Salle',
+    type: 'select',
+    items: salles.value,
+    required: true,
+    cols: 12,
+    md: 6
+  },
+  {
+    name: 'equipement',
+    label: 'Équipement',
+    type: 'select',
+    items: equipements.value,
+    required: true,
+    cols: 12,
+    md: 6
+  }
+]);
+
+const handleSubmit = async () => {
+  loading.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+
+  try {
+    // TODO: Remplacer par l'appel API réel
+    // await api.post('signalements/', formData.value);
+
+    // Simulation de succès
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    successMessage.value = 'Défaillance signalée avec succès !';
+
+    // Réinitialiser le formulaire après succès
+    setTimeout(() => {
+      formData.value = {
         lieu: null,
         salle: null,
         equipement: null,
-        commentaire: "",
+        commentaire: ''
       };
-      this.validationTriggered = false; // Réinitialise les messages d'erreur
-      if (this.$refs.formulaire) {
-        this.$refs.formulaire.resetValidation(); // Réinitialise les validations
-      }
-    },
+      successMessage.value = '';
+    }, 2000);
 
-    /**
-     * Valide le formulaire et réinitialise les champs après validation réussie.
-     */
-    validerFormulaire() {
-      this.validationTriggered = true; // Active les messages d'erreur
-      const formulaire = this.$refs.formulaire;
+  } catch (error) {
+    console.error('Erreur lors du signalement:', error);
+    errorMessage.value = 'Une erreur est survenue lors du signalement de la défaillance.';
+  } finally {
+    loading.value = false;
+  }
+};
 
-      if (formulaire) {
-        formulaire.validate(); // Déclenche la validation
-        if (this.formulaireValide) {
-          alert("Formulaire validé !");
-          // Réinitialiser le formulaire après validation
-          this.reinitialiserFormulaire();
-        } else {
-          alert("Veuillez remplir tous les champs obligatoires.");
-        }
-      }
-    },
-  },
+const handleCancel = () => {
+  formData.value = {
+    lieu: null,
+    salle: null,
+    equipement: null,
+    commentaire: ''
+  };
+  errorMessage.value = '';
+  successMessage.value = '';
 };
 </script>
-
-
