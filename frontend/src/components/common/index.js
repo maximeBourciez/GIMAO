@@ -14,8 +14,10 @@ export { default as FormAlert } from "./FormAlert.vue";
 export { default as FormActions } from "./FormActions.vue";
 export { default as FormContainer } from "./FormContainer.vue";
 
-// Export du composant principal (aussi disponible directement)
-export { default as BaseForm } from "../BaseForm.vue";
+// Export des composants principaux
+export { default as BaseForm } from "./BaseForm.vue";
+export { default as BaseListView } from "./BaseListView.vue";
+export { default as BaseDetailView } from "./BaseDetailView.vue";
 
 // Export du plugin Vue (pour enregistrement global)
 export { default as formComponentsPlugin } from "./plugin.js";

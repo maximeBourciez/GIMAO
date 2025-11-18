@@ -83,7 +83,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { FormAlert, FormActions, FormContainer } from './common';
+import { FormAlert, FormActions, FormContainer } from '.';
 
 const props = defineProps({
   // Titre et sous-titre

@@ -11,10 +11,12 @@
  * etc.
  */
 
-import BaseForm from "../BaseForm.vue";
+import BaseForm from "./BaseForm.vue";
 import FormAlert from "./FormAlert.vue";
 import FormActions from "./FormActions.vue";
 import FormContainer from "./FormContainer.vue";
+import BaseListView from "./BaseListView.vue";
+import BaseDetailView from "./BaseDetailView.vue";
 
 export default {
   install(app) {
@@ -23,6 +25,8 @@ export default {
     app.component("FormAlert", FormAlert);
     app.component("FormActions", FormActions);
     app.component("FormContainer", FormContainer);
+    app.component("BaseListView", BaseListView);
+    app.component("BaseDetailView", BaseDetailView);
   },
 };
 
