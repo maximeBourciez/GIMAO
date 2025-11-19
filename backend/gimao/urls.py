@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/', include('equipement.api.urls')),
     path('api/', include('demandeIntervention.api.urls')),
     path('api/', include('bonTravail.api.urls')),
+    path('api/', include('gestionCompte.api.urls')),
 ]
 
 
