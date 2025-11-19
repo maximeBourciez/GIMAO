@@ -24,6 +24,15 @@ INSTALLED_APPS = [
     'rest_framework',
     'gimao',
     'corsheaders',
+    # Applications métier
+    'equipement',
+    'dashboard',
+    'bonTravail',
+    'demandeIntervention',
+    'gestionCompte',
+    'gestionDonnee',
+    'stock',
+    'technicien',
 ]
 
 

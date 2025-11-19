@@ -5,10 +5,7 @@ cheat_sheet.txt
 node_modules/
 
 # Fichiers binaire 
-backend/gimao/__pycache__
-backend/gimao/migrations/__pycache__
-backend/api/__pycache__
-backend/gimao/__pycache__
+**/__pycache__/*
 
 
 # Fichier de stockage des images et des différents types de fichiers complémentaires 
