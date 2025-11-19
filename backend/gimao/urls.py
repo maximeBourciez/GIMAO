@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/', include('demandeIntervention.api.urls')),
     path('api/', include('bonTravail.api.urls')),
     path('api/', include('gestionCompte.api.urls')),
+    path('api/', include('gestionDonnee.api.urls')),
 ]
 
 
