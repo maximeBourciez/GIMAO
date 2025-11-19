@@ -20,24 +20,14 @@
 
                 <!-- Technical Documents -->
                 <v-card-subtitle class="pt-4">Technical Documents</v-card-subtitle>
-                <v-data-table
-                  :headers="technical_documents_headers"
-                  :items="equipment.list_documents_techniques"
-                  item-value="nomDocumentTechnique"
-                  class="elevation-1 rounded-lg mb-4"
-                  hide-default-footer
-                >
+                <v-data-table :headers="technical_documents_headers" :items="equipment.list_documents_techniques"
+                  item-value="nomDocumentTechnique" class="elevation-1 rounded-lg mb-4" hide-default-footer>
                   <template v-slot:item="{ item }">
                     <tr>
                       <td>{{ item.nomDocumentTechnique }}</td>
                       <td>
-                        <v-btn
-                          icon
-                          small
-                          color="primary"
-                          center="center"
-                          @click="download_document(item.lienDocumentTechnique, item.nomDocumentTechnique)"
-                        >
+                        <v-btn icon small color="primary" center="center"
+                          @click="download_document(item.lienDocumentTechnique, item.nomDocumentTechnique)">
                           <v-icon>mdi-download</v-icon>
                         </v-btn>
                       </td>
@@ -47,23 +37,15 @@
 
                 <!-- Other Documents -->
                 <v-card-subtitle class="pt-4">Other Documents</v-card-subtitle>
-                <v-data-table
-                  :headers="other_documents_headers"
-                  :items="other_documents"
-                  class="elevation-1 rounded-lg"
-                  hide-default-footer
-                >
+                <v-data-table :headers="other_documents_headers" :items="other_documents" class="elevation-1 rounded-lg"
+                  hide-default-footer>
                   <template v-slot:item="{ item }">
                     <tr>
                       <td>{{ item.type }}</td>
                       <td>{{ item.nomDocument }}</td>
                       <td>
-                        <v-btn
-                          icon
-                          small
-                          color="primary"
-                          @click="download_document(item.lienDocument, item.nomDocument)"
-                        >
+                        <v-btn icon small color="primary"
+                          @click="download_document(item.lienDocument, item.nomDocument)">
                           <v-icon>mdi-download</v-icon>
                         </v-btn>
                       </td>
@@ -78,26 +60,17 @@
           <v-col cols="6">
             <!-- Image Section -->
             <v-card elevation="1" class="rounded-lg pa-2 mb-4">
-              <v-img
-                :src="equipment.lienImageEquipement"
-                aspect-ratio="4/3"
-                class="rounded-lg"
-                style="max-height: 30vh;"
-                alt="Equipment Image"
-              ></v-img>
+              <v-img :src="equipment.lienImageEquipement" aspect-ratio="4/3" class="rounded-lg"
+                style="max-height: 30vh;" alt="Equipment Image"></v-img>
             </v-card>
-            
+
             <!-- Consumables Section -->
             <v-card elevation="1" class="rounded-lg pa-2 mb-4">
               <v-card-title class="font-weight-bold text-uppercase text-primary">
                 Consumables
               </v-card-title>
-              <v-data-table
-                :items="equipment.liste_consommables"
-                :headers="consumables_headers"
-                class="elevation-1 rounded-lg"
-                hide-default-footer
-              ></v-data-table>
+              <v-data-table :items="equipment.liste_consommables" :headers="consumables_headers"
+                class="elevation-1 rounded-lg" hide-default-footer></v-data-table>
             </v-card>
 
             <!-- Maintenance History -->
@@ -105,12 +78,8 @@
               <v-card-title class="font-weight-bold text-uppercase text-primary">
                 Interventions
               </v-card-title>
-              <v-data-table
-                :items="equipment.liste_interventions"
-                :headers="interventions_headers"
-                class="elevation-1 rounded-lg"
-                hide-default-footer
-              >
+              <v-data-table :items="equipment.liste_interventions" :headers="interventions_headers"
+                class="elevation-1 rounded-lg" hide-default-footer>
                 <template v-slot:item.dateAssignation="{ item }">
                   {{ format_date(item.dateAssignation) }}
                 </template>
@@ -131,30 +100,47 @@
           </v-col>
         </v-row>
       </v-container>
-      <v-progress-circular
-        v-else
-        indeterminate
-        color="primary"
-        size="64"
-      ></v-progress-circular>
+      <v-progress-circular v-else indeterminate color="primary" size="64"></v-progress-circular>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import api, { BASE_URL } from '@/services/api';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL, BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'EditEquipment',
   setup() {
     const router = useRouter();
-    return { router };
+    const route = useRoute();
+    const api = useApi(API_BASE_URL);
+    const equipment = computed(() => api.data.value || {});
+    const is_loading = computed(() => api.loading.value);
+
+    const fetch_equipment_data = async () => {
+      try {
+        await api.get(`equipement/${route.params.reference}/affichage/`);
+      } catch (error) {
+        console.error("Error fetching equipment data:", error);
+      }
+    };
+
+    onMounted(() => {
+      fetch_equipment_data();
+    });
+
+    return {
+      router,
+      equipment,
+      is_loading,
+      fetch_equipment_data
+    };
   },
   data() {
     return {
-      is_loading: true,
-      equipment: {},
       technical_documents_headers: [
         { title: "Technical Document", value: "nomDocumentTechnique", align: "start" },
         { title: "Download", value: "action", align: "center", sortable: false }
@@ -175,12 +161,12 @@ export default {
       ]
     };
   },
-  
+
   computed: {
     equipment_details() {
       if (!this.equipment) return {};
-      const { 
-        reference, designation, dateMiseEnService, prixAchat, 
+      const {
+        reference, designation, dateMiseEnService, prixAchat,
         preventifGlissant, joursIntervalleMaintenance
       } = this.equipment;
       const location = this.equipment.lieu ? this.equipment.lieu.nomLieu : '';
@@ -188,9 +174,9 @@ export default {
       const supplier = this.equipment.fournisseur ? this.equipment.fournisseur.nomFournisseur : '';
       const manufacturer = this.equipment.fabricant ? this.equipment.fabricant.nomFabricant : '';
       const status = this.equipment.dernier_statut ? this.equipment.dernier_statut.statutEquipement : '';
-      
-      return { 
-        reference, designation, dateMiseEnService, prixAchat, 
+
+      return {
+        reference, designation, dateMiseEnService, prixAchat,
         preventifGlissant, joursIntervalleMaintenance,
         location, model, supplier, manufacturer, status
       };
@@ -211,16 +197,6 @@ export default {
   },
 
   methods: {
-    async fetch_equipment_data() {
-      try {
-        const response = await api.getEquipementAffichage(this.$route.params.reference);
-        this.equipment = response.data;
-        this.is_loading = false;
-      } catch (error) {
-        console.error("Error fetching equipment data:", error);
-        this.is_loading = false;
-      }
-    },
     format_date(dateString) {
       if (!dateString) return '';
       const date = new Date(dateString);
@@ -233,7 +209,7 @@ export default {
         hour12: false
       }).replace(',', '');
     },
-    
+
     format_label(key) {
       const labels = {
         reference: 'Reference',

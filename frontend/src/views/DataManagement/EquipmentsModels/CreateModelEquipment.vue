@@ -45,14 +45,17 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
 import { ref, computed, reactive, onMounted, toRefs } from 'vue';
 import { useRouter } from 'vue-router';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'CreateModelEquipment',
   setup() {
     const router = useRouter();
+    const createApi = useApi(API_BASE_URL);
+    const manufacturersApi = useApi(API_BASE_URL);
     const state = reactive({
       form_data: {
         nomModeleEquipement: "",
@@ -68,8 +71,8 @@ export default {
       form_data.append('fabricant', state.form_data.fabricant);
 
       try {
-        const response = await api.postModeleEquipement(form_data);
-        if (response.status === 201) {
+        const response = await createApi.post('modele-equipements/', form_data);
+        if (response) {
           go_back();
         } else {
           state.error_message = 'Erreur lors de la création du modèle d\'équipement.';
@@ -82,8 +85,8 @@ export default {
 
     const fetch_data = async () => {
       try {
-        const [manufacturers_res] = await Promise.all([api.getFabricants()]);
-        state.manufacturers = manufacturers_res.data;
+        await manufacturersApi.get('fabricants/');
+        state.manufacturers = manufacturersApi.data.value;
       } catch (error) {
         console.error('Error loading data:', error);
         state.error_message = 'Erreur lors du chargement des fabricants.';

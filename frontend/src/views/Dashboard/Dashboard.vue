@@ -12,26 +12,16 @@
                 <v-spacer></v-spacer>
               </v-card-title>
               <v-divider></v-divider>
-              <v-data-table
-                :headers="failures_headers"
-                :items="failures"
-                :items-per-page="5"
-                :page.sync="failures_page"
-                item-value="id"
-                class="elevation-1 rounded-lg"
-                hide-default-footer
-                @click:row="(event, {item}) => open_show_failure(item.id)"
-              >
+              <v-data-table :headers="failures_headers" :items="failures" :items-per-page="5" :page.sync="failures_page"
+                item-value="id" class="elevation-1 rounded-lg" hide-default-footer
+                @click:row="(event, { item }) => open_show_failure(item.id)">
                 <template v-slot:item.niveau="{ item }">
                   <v-chip :color="get_level_color(item.niveau)" dark>
                     {{ item.niveau }}
                   </v-chip>
                 </template>
               </v-data-table>
-              <v-pagination
-                v-model="failures_page"
-                :length="Math.ceil(failures.length / 5)"
-              ></v-pagination>
+              <v-pagination v-model="failures_page" :length="Math.ceil(failures.length / 5)"></v-pagination>
             </v-card>
           </v-col>
 
@@ -42,20 +32,10 @@
                 <v-spacer></v-spacer>
               </v-card-title>
               <v-divider></v-divider>
-              <v-data-table
-                :headers="interventions_headers"
-                :items="interventions"
-                :items-per-page="5"
-                :page.sync="interventions_page"
-                item-value="id"
-                class="elevation-1 rounded-lg"
-                hide-default-footer
-                @click:row="(event, {item}) => open_show_intervention(item.id)"
-              ></v-data-table>
-              <v-pagination
-                v-model="interventions_page"
-                :length="Math.ceil(interventions.length / 5)"
-              ></v-pagination>
+              <v-data-table :headers="interventions_headers" :items="interventions" :items-per-page="5"
+                :page.sync="interventions_page" item-value="id" class="elevation-1 rounded-lg" hide-default-footer
+                @click:row="(event, { item }) => open_show_intervention(item.id)"></v-data-table>
+              <v-pagination v-model="interventions_page" :length="Math.ceil(interventions.length / 5)"></v-pagination>
             </v-card>
           </v-col>
         </v-row>
@@ -89,10 +69,12 @@
 
 <script>
 import { useRouter } from 'vue-router';
+import { useApi } from '@/composables/useApi';
+import { getFailureLevelColor } from '@/utils/helpers';
 import NavigationDrawer from '@/components/NavigationBar.vue';
 import TopNavBar from "@/components/TopBar.vue";
 import '@/assets/css/global.css';
-import api from '@/services/api';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   components: {
@@ -102,6 +84,8 @@ export default {
 
   setup() {
     const router = useRouter();
+    const failuresApi = useApi(API_BASE_URL);
+    const interventionsApi = useApi(API_BASE_URL);
 
     const open_show_failure = (id) => {
       router.push({ name: 'FailureDetail', params: { id: id } });
@@ -113,7 +97,9 @@ export default {
 
     return {
       open_show_failure,
-      open_show_intervention
+      open_show_intervention,
+      failuresApi,
+      interventionsApi
     };
   },
 
@@ -157,8 +143,8 @@ export default {
 
     async fetch_failures() {
       try {
-        const response = await api.getDefaillances();
-        this.failures = response.data.filter(defaillance => defaillance.dateTraitementDefaillance === null);
+        const response = await this.failuresApi.get('defaillances/');
+        this.failures = response.filter(defaillance => defaillance.dateTraitementDefaillance === null);
         this.total_failures = this.failures.length;
 
         // Calculate level distribution
@@ -176,21 +162,12 @@ export default {
       }
     },
 
-    get_level_color(niveau) {
-      switch (niveau) {
-        case 'Critique':
-          return 'red';
-        case 'Majeur':
-          return 'orange';
-        default:
-          return 'green';
-      }
-    },
+    get_level_color: getFailureLevelColor,
 
     async fetch_interventions() {
       try {
-        const response = await api.getInterventions();
-        this.interventions = response.data
+        const response = await this.interventionsApi.get('interventions/');
+        this.interventions = response
           .filter(intervention => intervention.dateCloture === null) // Filtre les interventions non clôturées
           .map(intervention => ({
             ...intervention,

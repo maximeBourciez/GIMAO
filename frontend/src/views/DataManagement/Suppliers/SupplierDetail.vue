@@ -56,30 +56,28 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   setup() {
     const router = useRouter();
     const route = useRoute();
-    const supplier = ref(null);
+    const api = useApi(API_BASE_URL);
+    const supplier = computed(() => api.data.value);
     const error_message = ref('');
-    const is_loading = ref(true);
+    const is_loading = computed(() => api.loading.value);
     const show_delete_confirmation = ref(false);
 
     const get_supplier = async () => {
-      is_loading.value = true;
       error_message.value = '';
       try {
-        const response = await api.getFournisseur(route.params.id);
-        supplier.value = response.data;
+        await api.get(`fournisseurs/${route.params.id}/`);
       } catch (error) {
         console.error('Error fetching supplier:', error);
         error_message.value = 'Erreur lors de la récupération du fournisseur.';
-      } finally {
-        is_loading.value = false;
       }
     };
 

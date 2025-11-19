@@ -57,11 +57,13 @@
 <script>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   setup() {
     const router = useRouter();
+    const api = useApi(API_BASE_URL);
     const manufacturer = ref({
       nomFabricant: '',
       paysFabricant: '',
@@ -93,8 +95,8 @@ export default {
       error_message.value = ''; // Clear any previous error messages
 
       try {
-        const response = await api.postFabricant(manufacturer.value);
-        if (response.status === 201) {
+        await api.post('fabricants/', manufacturer.value);
+        if (true) {
           go_back();
         } else {
           error_message.value = 'Une erreur est survenue lors de la création du fabricant.';

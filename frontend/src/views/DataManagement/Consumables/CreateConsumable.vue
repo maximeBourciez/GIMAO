@@ -57,11 +57,14 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   setup() {
     const router = useRouter();
+    const api = useApi(API_BASE_URL);
+    const fabricantsApi = useApi(API_BASE_URL);
     const consumable = ref({
       designation: '',
       lienImageConsommable: null,
@@ -69,7 +72,7 @@ export default {
     });
     const fabricants = ref([]);
     const error_message = ref('');
-    const is_loading = ref(false);
+    const is_loading = computed(() => fabricantsApi.loading.value);
 
     const is_form_valid = computed(() => {
       return consumable.value.designation &&
@@ -78,16 +81,13 @@ export default {
     });
 
     const get_manufacturers = async () => {
-      is_loading.value = true;
       error_message.value = '';
       try {
-        const response = await api.getFabricants();
-        fabricants.value = response.data;
+        const response = await fabricantsApi.get('fabricants/');
+        fabricants.value = response;
       } catch (error) {
         console.error('Error fetching fabricants:', error);
         error_message.value = 'Erreur lors de la récupération des fabricants.';
-      } finally {
-        is_loading.value = false;
       }
     };
 
@@ -105,7 +105,7 @@ export default {
           formData.append('lienImageConsommable', consumable.value.lienImageConsommable);
         }
 
-        await api.postConsommable(formData);
+        await api.post('consommables/', formData);
 
         go_back();
       } catch (error) {

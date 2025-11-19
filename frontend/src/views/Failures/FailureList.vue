@@ -1,95 +1,54 @@
 <template>
-  <v-container>
-    <v-data-table
-      :headers="table_headers"
-      :items="failures"
-      :items-per-page="10"
-      class="elevation-1"
-      @click:row="(event, {item}) => open_failure_details(item.id)"
-    >
-      <template v-slot:item.traite="{ item }">
-        <v-chip :color="item.dateTraitementDefaillance ? 'green' : 'red'" dark>
-          {{ item.dateTraitementDefaillance ? 'Oui' : 'Non' }}
-        </v-chip>
-      </template>
-      <template v-slot:item.niveau="{ item }">
-        <v-chip :color="get_level_color(item.niveau)" dark>
-          {{ item.niveau }}
-        </v-chip>
-      </template>
-    </v-data-table>
-  </v-container>
+  <BaseListView title="Liste des Défaillances" :headers="tableHeaders" :items="failures" :loading="loading"
+    :error-message="errorMessage" create-button-text="Nouvelle Défaillance"
+    no-data-text="Aucune défaillance enregistrée" no-data-icon="mdi-alert-circle-outline" @create="handleCreate"
+    @row-click="handleRowClick" @clear-error="errorMessage = ''">
+    <!-- Colonne Traité -->
+    <template #item.traite="{ item }">
+      <v-chip :color="item.dateTraitementDefaillance ? 'green' : 'red'" dark>
+        {{ item.dateTraitementDefaillance ? 'Oui' : 'Non' }}
+      </v-chip>
+    </template>
+
+    <!-- Colonne Niveau -->
+    <template #item.niveau="{ item }">
+      <v-chip :color="getFailureLevelColor(item.niveau)" dark>
+        {{ item.niveau }}
+      </v-chip>
+    </template>
+  </BaseListView>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue';
+<script setup>
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import BaseListView from '@/components/common/BaseListView.vue';
+import { useApi } from '@/composables/useApi';
+import { getFailureLevelColor } from '@/utils/helpers';
+import { TABLE_HEADERS, API_BASE_URL } from '@/utils/constants';
 
-export default {
-  name: 'FailureList',
-  setup() {
-    const router = useRouter();
-    const failures = ref([]);
-    const table_headers = [
-      { 
-        title: 'Commentaire', 
-        align: 'start',  
-        sortable: true, 
-        value: 'commentaireDefaillance' 
-      },
-      { 
-        title: 'Traitée', 
-        align: 'center', 
-        sortable: true, 
-        value: 'traite' 
-      },
-      { 
-        title: 'Niveau', 
-        align: 'center', 
-        sortable: true, 
-        value: 'niveau' 
-      },
-      { 
-        title: 'Équipement', 
-        align: 'center', 
-        sortable: false, 
-        value: 'equipement' 
-      },
-    ];
+const router = useRouter();
+const api = useApi(API_BASE_URL);
 
-    const fetch_failures = async () => {
-      try {
-        const response = await api.getDefaillances();
-        failures.value = response.data;
-      } catch (error) {
-        console.error("Error while fetching failures:", error);
-      }
-    };
+const failures = computed(() => api.data.value || []);
+const loading = computed(() => api.loading.value);
+const errorMessage = ref('');
 
-    const open_failure_details = (id) => {
-      router.push({ name: 'FailureDetail', params: { id: id } });
-    };
+const tableHeaders = TABLE_HEADERS.FAILURES;
 
-    const get_level_color = (niveau) => {
-      switch (niveau) {
-        case 'Critique':
-          return 'red';
-        case 'Majeur':
-          return 'orange';
-        default:
-          return 'green';
-      }
-    };
+const handleCreate = () => {
+  router.push({ name: 'CreateFailure' });
+};
 
-    onMounted(fetch_failures);
+const handleRowClick = (item) => {
+  router.push({ name: 'FailureDetail', params: { id: item.id } });
+};
 
-    return {
-      failures,
-      table_headers,
-      get_level_color,
-      open_failure_details,
-    };
-  },
-}
+onMounted(async () => {
+  try {
+    await api.get('defaillances/');
+  } catch (error) {
+    errorMessage.value = 'Erreur lors du chargement des défaillances';
+  }
+});
 </script>

@@ -41,15 +41,37 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'ModelEquipmentList',
-  data() {
+  setup() {
+    const router = useRouter();
+    const modelsApi = useApi(API_BASE_URL);
+    const manufacturersApi = useApi(API_BASE_URL);
+    const model_equipments = computed(() => modelsApi.data.value || []);
+    const manufacturers = computed(() => manufacturersApi.data.value || []);
+    const search_query = ref('');
+    
+    const go_to_model_equipment_details = (id) => {
+      router.push(`/ModelEquipmentDetail/${id}`);
+    };
+    
+    onMounted(async () => {
+      await Promise.all([
+        modelsApi.get('modele-equipements/'),
+        manufacturersApi.get('fabricants/')
+      ]);
+    });
+    
     return {
-      model_equipments: [],
-      manufacturers: [],
-      search_query: ''
+      model_equipments,
+      manufacturers,
+      search_query,
+      go_to_model_equipment_details
     };
   },
   computed: {
@@ -72,30 +94,6 @@ export default {
         model_equipement.nomModeleEquipement.toLowerCase().includes(searchLower)
       );
     },
-  },
-  methods: {
-    async fetch_model_equipments() {
-      try {
-        const response = await api.getModeleEquipements();
-        this.model_equipments = response.data;
-      } catch (error) {
-        console.error('Error fetching model equipments:', error);
-      }
-    },
-    async fetch_manufacturers() {
-      try {
-        const response = await api.getFabricants();
-        this.manufacturers = response.data;
-      } catch (error) {
-        console.error('Error fetching manufacturer:', error);
-      }
-    },
-    go_to_model_equipment_details(id) {
-      this.$router.push(`/ModelEquipmentDetail/${id}`);
-    }
-  },
-  async created() {
-    await Promise.all([this.fetch_model_equipments(),this.fetch_manufacturers()]);
   }
 }
 </script>

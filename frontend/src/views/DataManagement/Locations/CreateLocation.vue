@@ -74,10 +74,11 @@
 
 
 <script>
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
 import { ref, computed, reactive, onMounted, toRefs } from 'vue';
 import { useRouter } from 'vue-router';
 import { VTreeView } from 'vuetify/labs/components';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   name: 'CreateLocation',
@@ -86,6 +87,8 @@ export default {
   },
   setup() {
     const router = useRouter();
+    const createApi = useApi(API_BASE_URL);
+    const locationsApi = useApi(API_BASE_URL);
     const state = reactive({
       form_data: {
         location_name: "",
@@ -142,8 +145,8 @@ export default {
       }
 
       try {
-        const responseLieu = await api.postLieu(form_data);
-        if (responseLieu.status === 201) {
+        const responseLieu = await createApi.post('lieux/', form_data);
+        if (responseLieu) {
           go_back();
         } else {
           state.error_message = 'Une erreur est survenue lors de la création du lieu.';
@@ -156,8 +159,8 @@ export default {
 
     const fetch_data = async () => {
       try {
-        const [locationRES] = await Promise.all([api.getLieuxHierarchy()]);
-        state.locations = locationRES.data;
+        await locationsApi.get('lieux-hierarchy/');
+        state.locations = locationsApi.data.value;
       } catch (error) {
         console.error('Error loading data:', error);
       }

@@ -38,7 +38,12 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
+
+const api = useApi(API_BASE_URL);
 
 export default {
   name: 'SupplierList',
@@ -64,8 +69,8 @@ export default {
   methods: {
     async fetch_suppliers() {
       try {
-        const response = await api.getFournisseurs();
-        this.suppliers = response.data;
+        const response = await api.get('fournisseurs/');
+        this.suppliers = response;
       } catch (error) {
         console.error('Erreur lors de la récupération des fournisseurs:', error);
       }

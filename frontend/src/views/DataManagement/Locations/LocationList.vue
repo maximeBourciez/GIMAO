@@ -24,9 +24,10 @@
 </template>
 
 <script>
-import { ref, onMounted, reactive, toRefs } from 'vue';
+import { ref, onMounted, computed, reactive, toRefs } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 import LocationExplorer from '@/components/LocationExplorer.vue';
 
 export default {
@@ -36,15 +37,15 @@ export default {
   },
   setup() {
     const router = useRouter();
+    const api = useApi(API_BASE_URL);
     const state = reactive({
-      locations: [],
+      locations: computed(() => api.data.value || []),
       selected_location: null,
     });
 
     const fetch_data = async () => {
       try {
-        const { data } = await api.getLieuxHierarchy();
-        state.locations = data;
+        await api.get('lieux-hierarchy/');
       } catch (error) {
         console.error('Error fetching data:', error);
       }

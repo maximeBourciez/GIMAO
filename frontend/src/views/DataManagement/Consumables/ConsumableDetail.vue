@@ -46,16 +46,19 @@
 <script>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import api from '@/services/api';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   setup() {
     const router = useRouter();
     const route = useRoute();
-    const consumable = ref(null);
-    const fabricant = ref(null);
+    const consumableApi = useApi(API_BASE_URL);
+    const fabricantApi = useApi(API_BASE_URL);
+    const consumable = computed(() => consumableApi.data.value);
+    const fabricant = computed(() => fabricantApi.data.value);
     const error_message = ref('');
-    const is_loading = ref(true);
+    const is_loading = computed(() => consumableApi.loading.value || fabricantApi.loading.value);
     const show_delete_confirmation = ref(false);
 
     const manufacturer_name = computed(() => {
@@ -63,26 +66,21 @@ export default {
     });
 
     const get_consumable = async () => {
-      is_loading.value = true;
       error_message.value = '';
       try {
-        const response = await api.getConsommable(route.params.id);
-        consumable.value = response.data;
-        if (consumable.value.fabricant) {
-          await get_manufacturer(consumable.value.fabricant);
+        const response = await consumableApi.get(`consommables/${route.params.id}/`);
+        if (response.fabricant) {
+          await get_manufacturer(response.fabricant);
         }
       } catch (error) {
         console.error('Error fetching consommable:', error);
         error_message.value = 'Erreur lors de la récupération du consommable.';
-      } finally {
-        is_loading.value = false;
       }
     };
 
     const get_manufacturer = async (id) => {
       try {
-        const response = await api.getFabricant(id);
-        fabricant.value = response.data;
+        await fabricantApi.get(`fabricants/${id}/`);
       } catch (error) {
         console.error('Error fetching fabricant:', error);
         error_message.value = 'Erreur lors de la récupération du fabricant.';
