@@ -1,6 +1,6 @@
-Django==3.2
-djangorestframework==3.12.4
-mysqlclient==2.0.3
+Django>=4.2,<5.0
+djangorestframework>=3.14.0
+mysqlclient>=2.2.0
 Pillow
-django-cors-headers==3.14.0
-python-dotenv==0.19.2
+django-cors-headers>=4.0.0
+python-dotenv>=1.0.0

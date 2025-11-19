@@ -1,10 +1,8 @@
 from rest_framework import serializers
 from equipement.models import Equipement, InformationStatut, Constituer
-from gimao.models import (
-    Lieu, ModeleEquipement, Fournisseur, Fabricant, Defaillance,
-    Intervention, Constituer as GimaoConstituer, Correspondre,
-    DocumentDefaillance, DocumentIntervention
-)
+from gestionDonnee.models import Lieu, ModeleEquipement, Fournisseur, Fabricant, Correspondre
+from demandeIntervention.models import Defaillance, DocumentDefaillance
+from bonTravail.models import Intervention, DocumentIntervention
 
 
 class EquipementSerializer(serializers.ModelSerializer):

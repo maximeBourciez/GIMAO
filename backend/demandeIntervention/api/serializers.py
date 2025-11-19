@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from demandeIntervention.models import Defaillance, DocumentDefaillance
 from equipement.api.serializers import EquipementAvecDernierStatutSerializer
-from gimao.models import Intervention, DocumentIntervention
+from bonTravail.models import Intervention, DocumentIntervention
 
 
 class DefaillanceSerializer(serializers.ModelSerializer):

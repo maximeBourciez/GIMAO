@@ -13,7 +13,9 @@ from equipement.api.serializers import (
     EquipementAvecDernierStatutSerializer,
     EquipementAffichageSerializer,
 )
-from gimao.models import Defaillance, Consommable, DocumentTechnique, Lieu
+from demandeIntervention.models import Defaillance
+from stock.models import Consommable
+from gestionDonnee.models import DocumentTechnique, Lieu
 
 
 # ViewSets de base

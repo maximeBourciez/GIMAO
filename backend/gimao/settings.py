@@ -22,16 +22,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'gimao',
     'corsheaders',
-    # Applications métier
     'equipement',
-    'dashboard',
-    'bonTravail',
     'demandeIntervention',
+    'bonTravail',
     'gestionCompte',
     'gestionDonnee',
     'stock',
+    'dashboard',
     'technicien',
 ]
 
