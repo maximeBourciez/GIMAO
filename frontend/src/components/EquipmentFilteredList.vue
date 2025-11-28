@@ -52,9 +52,9 @@
       <v-col cols="12" md="8" lg="9">
         <BaseListView :title="title" :headers="tableHeaders" :items="filteredEquipments"
           :loading="loading" :error-message="errorMessage" :show-search="showSearch"
-          :create-button-text="createButtonText" :show-create-button="showCreateButton"
+          :show-create-button="false"
           :no-data-text="noDataText" no-data-icon="mdi-package-variant-closed" 
-          @create="$emit('create')" @row-click="$emit('row-click', $event)"
+          @row-click="$emit('row-click', $event)"
           @clear-error="errorMessage = ''">
           <!-- Colonne Statut avec chip coloré -->
           <template #item.statut.statutEquipement="{ item }">
@@ -63,6 +63,20 @@
             </v-chip>
           </template>
         </BaseListView>
+
+        <!-- Bouton flottant en bas à droite -->
+        <v-btn v-if="showCreateButton"
+          color="primary"
+          size="large"
+          icon
+          class="floating-add-button"
+          elevation="4"
+          @click="$emit('create')">
+          <v-icon size="large">mdi-plus</v-icon>
+          <v-tooltip activator="parent" location="left">
+            {{ createButtonText }}
+          </v-tooltip>
+        </v-btn>
       </v-col>
     </v-row>
   </v-container>
@@ -278,5 +292,17 @@ onMounted(() => {
 
 .v-icon {
   transition: transform 0.3s ease;
+}
+
+.floating-add-button {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+}
+
+.floating-add-button:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
 }
 </style>
