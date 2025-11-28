@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid>
+  <v-container fluid :style="containerStyle">
     <v-row>
       <!-- Sidebar gauche avec filtres -->
       <v-col cols="12" md="4" lg="3">
@@ -114,6 +114,14 @@ const props = defineProps({
   additionalHeaders: {
     type: Array,
     default: () => []
+  },
+  height: {
+    type: String,
+    default: null
+  },
+  maxHeight: {
+    type: String,
+    default: null
   }
 });
 
@@ -229,6 +237,19 @@ const filteredEquipments = computed(() => {
       );
     return locationMatch && typeMatch;
   });
+});
+
+const containerStyle = computed(() => {
+  const styles = {};
+  if (props.height) {
+    styles.height = props.height;
+    styles.overflow = 'auto';
+  }
+  if (props.maxHeight) {
+    styles.maxHeight = props.maxHeight;
+    styles.overflow = 'auto';
+  }
+  return styles;
 });
 
 // Exposer des méthodes publiques si nécessaire
