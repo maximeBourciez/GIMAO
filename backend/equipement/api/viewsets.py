@@ -1,13 +1,13 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from django.db.models import Prefetch
 
-from equipement.models import Equipement, InformationStatut, Constituer
+from equipement.models import Equipement, StatutEquipement, Constituer
 from equipement.api.serializers import (
     EquipementSerializer,
-    InformationStatutSerializer,
+    StatutEquipementSerializer,
     ConstituerSerializer,
     EquipementDetailSerializer,
     EquipementAvecDernierStatutSerializer,
@@ -18,16 +18,15 @@ from stock.models import Consommable
 from gestionDonnee.models import DocumentTechnique, Lieu
 
 
-# ViewSets de base
 class EquipementViewSet(viewsets.ModelViewSet):
     queryset = Equipement.objects.all()
     serializer_class = EquipementSerializer
     lookup_field = 'reference'
 
 
-class InformationStatutViewSet(viewsets.ModelViewSet):
-    queryset = InformationStatut.objects.all()
-    serializer_class = InformationStatutSerializer
+class StatutEquipementViewSet(viewsets.ModelViewSet):
+    queryset = StatutEquipement.objects.all()
+    serializer_class = StatutEquipementSerializer
 
 
 class ConstituerViewSet(viewsets.ModelViewSet):
@@ -35,7 +34,6 @@ class ConstituerViewSet(viewsets.ModelViewSet):
     serializer_class = ConstituerSerializer
 
 
-# ViewSets d'affichage avancé
 class EquipementAvecDernierStatutViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Equipement.objects.all()
     serializer_class = EquipementAvecDernierStatutSerializer
@@ -43,9 +41,11 @@ class EquipementAvecDernierStatutViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Equipement.objects.prefetch_related(
-            Prefetch('informationstatut_set',
-                     queryset=InformationStatut.objects.order_by('-dateChangement'),
-                     to_attr='statuts')
+            Prefetch(
+                'StatutEquipement_set',
+                queryset=StatutEquipement.objects.order_by('-dateChangement'),
+                to_attr='statuts'
+            )
         )
 
 
@@ -58,20 +58,18 @@ class EquipementDetailViewSet(viewsets.ModelViewSet):
         return super().get_queryset().prefetch_related(
             'createurEquipement',
             'fournisseur',
-            Prefetch('informationstatut_set',
-                     queryset=InformationStatut.objects.order_by('-dateChangement'),
-                     to_attr='statuts')
+            Prefetch(
+                'StatutEquipement_set',
+                queryset=StatutEquipement.objects.order_by('-dateChangement'),
+                to_attr='statuts'
+            )
         )
 
 
 class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Equipement.objects.all()
+    serializer_class = EquipementAffichageSerializer
     lookup_field = 'reference'
-
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return EquipementAffichageSerializer
-        return EquipementAffichageSerializer
 
     def get_queryset(self):
         if self.action == 'retrieve':
@@ -85,10 +83,11 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
             )
         return Equipement.objects.all()
 
+    # Méthodes internes pour préfetch
     def _prefetch_statuts(self):
         return Prefetch(
-            'informationstatut_set',
-            queryset=InformationStatut.objects.order_by('-dateChangement'),
+            'StatutEquipement_set',
+            queryset=StatutEquipement.objects.order_by('-dateChangement'),
             to_attr='statuts'
         )
 
