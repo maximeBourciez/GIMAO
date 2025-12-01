@@ -21,6 +21,7 @@ class Consommable(models.Model):
     designation = models.CharField(max_length=50)
     lienImageConsommable = models.ImageField(upload_to='images/consomable', null=False)
     magasin = models.ForeignKey(Magasin, on_delete=models.CASCADE)
+    seuilStockFaible = models.IntegerField(validators=[MinValueValidator(0)], help_text="Seuil en dessous duquel le stock est considéré comme faible")
     documents = models.ManyToManyField('donnees.Document', blank=True, help_text="Documents associés au consommable")
 
     def __str__(self):
