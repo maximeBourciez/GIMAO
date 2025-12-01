@@ -99,22 +99,3 @@ class Log(models.Model):
 
     def __str__(self):
         return f"{self.type} sur {self.nomTable} ({self.date})"
-
-
-class Avoir(models.Model):
-    """
-    Représente une relation d'appartenance entre un utilisateur et une entité.
-    """
-    utilisateur = models.ForeignKey(
-        Utilisateur,
-        on_delete=models.CASCADE,
-        related_name="avoirs",
-        help_text="Utilisateur concerné par la relation"
-    )
-    roles = models.ManyToManyField(
-        Role,
-        help_text="Rôles attribués à l'utilisateur pour cette entité"
-    )
-
-    def __str__(self):
-        return f"{self.utilisateur.nomUtilisateur} - Rôles: {', '.join(role.nomRole for role in self.roles.all())}"
