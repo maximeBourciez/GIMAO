@@ -66,7 +66,7 @@ class PorterSur(models.Model):
     date_reference_prix = models.DateField()
     
     class Meta:
-        db_table = 'porter_sur'
+        db_table = 'gimao_porter_sur'
         verbose_name = 'Fourniture de consommable'
         verbose_name_plural = 'Fournitures de consommables'
         unique_together = ['consommable', 'fournisseur', 'fabricant']
