@@ -1,71 +1,73 @@
-<template>
-  <v-container fluid>
-    <v-row>
-      <!-- Sidebar gauche avec filtres -->
-      <v-col cols="12" md="4" lg="3">
-        <!-- Card: Structure des Lieux -->
-        <v-card elevation="1" class="rounded-lg pa-2 mb-4">
-          <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
-            Structure des Lieux
-          </v-card-title>
-          <v-divider></v-divider>
-          <div class="pa-2">
-            <p v-if="!locations || locations.length === 0" class="text-caption">
-              Pas de données disponibles.
-            </p>
-            <v-treeview v-else v-model:selected="selectedTreeNodes" :items="locations" item-title="nomLieu"
-              item-value="id" select-strategy="selectionType" selectable dense @update:selected="onSelectLocation">
-              <template v-slot:prepend="{ item, open }">
-                <v-icon v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
-                  @click.stop="toggleNode(item)" :class="{ 'rotate-icon': open }">
-                  {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
-                </v-icon>
-                <span v-else class="tree-icon-placeholder"></span>
-              </template>
-              <template v-slot:label="{ item }">
-                <span class="text-caption ml-2">{{ item.typeLieu }}</span>
-              </template>
-            </v-treeview>
-          </div>
-        </v-card>
+  <template>
+    <v-container fluid>
+      <v-row>
+        <!-- Sidebar gauche avec filtres -->
+        <v-col cols="12" md="4" lg="3">
+          <!-- Card: Structure des Lieux -->
+          <v-card elevation="1" class="rounded-lg pa-2 mb-4">
+            <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
+              Structure des Lieux
+            </v-card-title>
+            <v-divider></v-divider>
+            <div class="pa-2">
+              <p v-if="!locations || locations.length === 0" class="text-caption">
+                Pas de données disponibles.
+              </p>
+              <VTreeview v-else v-model:selected="selectedTreeNodes" :items="locations" item-title="nomLieu"
+                item-children="children" item-value="id" select-strategy="selectionType" selectable dense
+                @update:selected="onSelectLocation">
+                <template v-slot:prepend="{ item, open }">
+                  <v-icon v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
+                    @click.stop="toggleNode(item)" :class="{ 'rotate-icon': open }">
+                    {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
+                  </v-icon>
+                  <span v-else class="tree-icon-placeholder"></span>
+                </template>
+                <template v-slot:label="{ item }">
+                  <span class="text-caption ml-2">{{ item.nomLieu }}</span>
+                </template>
+              </VTreeview>
+            </div>
+          </v-card>
 
-        <!-- Card: Types d'équipements -->
-        <v-card elevation="1" class="rounded-lg pa-2">
-          <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
-            Types des équipements
-          </v-card-title>
-          <v-divider></v-divider>
-          <v-list dense>
-            <v-list-item link @click="handleEquipmentTypeSelected(null)"
-              :class="{ 'selected-item': selectedTypeEquipments.length === 0 }">
-              <v-list-item-title>Tous</v-list-item-title>
-            </v-list-item>
-            <v-list-item v-for="(model, index) in equipmentModels" :key="index" link
-              @click="handleEquipmentTypeSelected(model)" :class="{ 'selected-item': isEquipmentTypeSelected(model) }">
-              <v-list-item-title>{{ model.nomModeleEquipement }}</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-card>
-      </v-col>
+          <!-- Card: Types d'équipements -->
+          <v-card elevation="1" class="rounded-lg pa-2">
+            <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
+              Types des équipements
+            </v-card-title>
+            <v-divider></v-divider>
+            <v-list dense>
+              <v-list-item link @click="handleEquipmentTypeSelected(null)"
+                :class="{ 'selected-item': selectedTypeEquipments.length === 0 }">
+                <v-list-item-title>Tous</v-list-item-title>
+              </v-list-item>
+              <v-list-item v-for="(model, index) in equipmentModels" :key="index" link
+                @click="handleEquipmentTypeSelected(model)"
+                :class="{ 'selected-item': isEquipmentTypeSelected(model) }">
+                <v-list-item-title>{{ model.nom }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-card>
+        </v-col>
 
-      <!-- Colonne principale avec BaseListView -->
-      <v-col cols="12" md="8" lg="9">
-        <BaseListView title="Liste des Équipements" :headers="tableHeaders" :items="filteredEquipments"
-          :loading="loading" :error-message="errorMessage" :show-search="false"
-          create-button-text="Ajouter un équipement" no-data-text="Aucun équipement trouvé avec ces filtres"
-          no-data-icon="mdi-package-variant-closed" @create="handleCreate" @row-click="handleRowClick"
-          @clear-error="errorMessage = ''">
-          <!-- Colonne Statut avec chip coloré -->
-          <template #item.statut.statutEquipement="{ item }">
-            <v-chip :color="getStatusColor(item.statut.statutEquipement)" text-color="white" size="small">
-              {{ item.statut.statutEquipement }}
-            </v-chip>
-          </template>
-        </BaseListView>
-      </v-col>
-    </v-row>
-  </v-container>
-</template>
+        <!-- Colonne principale avec BaseListView -->
+        <v-col cols="12" md="8" lg="9">
+          <BaseListView title="Liste des Équipements" :headers="tableHeaders" :items="filteredEquipments"
+            :loading="loading" :error-message="errorMessage" :show-search="false"
+            create-button-text="Ajouter un équipement" no-data-text="Aucun équipement trouvé avec ces filtres"
+            no-data-icon="mdi-package-variant-closed" @create="handleCreate" @row-click="handleRowClick"
+            @clear-error="errorMessage = ''">
+            <!-- Colonne Statut avec chip coloré -->
+            <template #item.statut.statut="{ item }">
+              <v-chip :color="getStatusColor(item.statut.statut)" text-color="white" size="small">
+                {{ item.statut.statut }}
+              </v-chip>
+            </template>
+          </BaseListView>
+        </v-col>
+      </v-row>
+    </v-container>
+  </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
@@ -75,6 +77,9 @@ import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor } from '@/utils/helpers';
 import { API_BASE_URL } from '@/utils/constants';
+import { VTreeview } from 'vuetify/labs/VTreeview'
+
+
 
 const router = useRouter();
 const equipmentsApi = useApi(API_BASE_URL);
@@ -95,11 +100,11 @@ const loading = computed(() =>
 );
 
 const tableHeaders = [
-  { title: 'Désignation', key: 'modeleEquipement.nomModeleEquipement', sortable: true, align: 'center' },
+  { title: 'Désignation', key: 'designation', sortable: true, align: 'center' },
   { title: 'Lieu', key: 'lieu.nomLieu', sortable: true, align: 'center' },
   {
     title: 'Statut',
-    key: 'statut.statutEquipement',
+    key: 'statut.statut',
     sortable: true,
     align: 'center',
     sort: (a, b) => {
@@ -197,6 +202,10 @@ const handleRowClick = (item) => {
 onMounted(() => {
   fetchData();
 });
+components: {
+  VTreeview
+}
+
 </script>
 
 <style scoped>

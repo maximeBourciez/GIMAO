@@ -25,5 +25,5 @@ urlpatterns = [
     path('', include(router.urls)),
     
     # Routes spécifiques pour les affichages détaillés
-    path('lieux-hierarchy/', LieuViewSet.as_view({'get': 'list'}), name='lieu-hierarchy-list'),
+    path('lieux-hierarchy/', LieuViewSet.as_view({'get': 'hierarchy'})),
 ]

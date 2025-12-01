@@ -39,14 +39,24 @@ class LieuViewSet(viewsets.ModelViewSet):
             return LieuDetailSerializer
         return LieuSerializer
 
-    @action(detail=True, methods=['get'])
-    def hierarchie(self, request, pk=None):
+    @action(detail=False, methods=['get'])
+    def hierarchy(self, request):
         """
-        Retourne la hiérarchie complète d'un lieu (parents et enfants)
+        Retourne une hiérarchie complète : racines + enfants récursifs
         """
-        lieu = self.get_object()
-        serializer = LieuDetailSerializer(lieu)
-        return Response(serializer.data)
+        def build_tree(lieu):
+            children = Lieu.objects.filter(lieuParent=lieu)
+            return {
+                "id": lieu.id,
+                "nomLieu": lieu.nomLieu,
+                "children": [build_tree(child) for child in children]
+            }
+
+        racines = Lieu.objects.filter(lieuParent__isnull=True)
+        data = [build_tree(lieu) for lieu in racines]
+
+        return Response(data)
+
 
     @action(detail=False, methods=['get'])
     def racines(self, request):
