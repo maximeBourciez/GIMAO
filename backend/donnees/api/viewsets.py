@@ -1,0 +1,153 @@
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.db.models import Prefetch
+
+from donnees.models import Lieu, TypeDocument, Document, Fabricant, Fournisseur, Adresse
+from donnees.api.serializers import (
+    LieuSerializer,
+    LieuDetailSerializer,
+    TypeDocumentSerializer,
+    DocumentSerializer,
+    DocumentSimpleSerializer,
+    FabricantSerializer,
+    FabricantSimpleSerializer,
+    FournisseurSerializer,
+    FournisseurSimpleSerializer,
+    AdresseSerializer
+)
+
+
+class AdresseViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les adresses.
+    """
+    queryset = Adresse.objects.all()
+    serializer_class = AdresseSerializer
+
+
+class LieuViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les lieux.
+    """
+    queryset = Lieu.objects.all()
+    serializer_class = LieuSerializer
+
+    def get_serializer_class(self):
+        """Utilise le serializer détaillé pour retrieve"""
+        if self.action == 'retrieve':
+            return LieuDetailSerializer
+        return LieuSerializer
+
+    @action(detail=True, methods=['get'])
+    def hierarchie(self, request, pk=None):
+        """
+        Retourne la hiérarchie complète d'un lieu (parents et enfants)
+        """
+        lieu = self.get_object()
+        serializer = LieuDetailSerializer(lieu)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def racines(self, request):
+        """
+        Retourne tous les lieux racines (sans parent)
+        """
+        lieux_racines = Lieu.objects.filter(lieuParent__isnull=True)
+        serializer = self.get_serializer(lieux_racines, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def enfants(self, request, pk=None):
+        """
+        Retourne tous les enfants directs d'un lieu
+        """
+        lieu = self.get_object()
+        enfants = Lieu.objects.filter(lieuParent=lieu)
+        serializer = self.get_serializer(enfants, many=True)
+        return Response(serializer.data)
+
+
+class TypeDocumentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les types de documents.
+    """
+    queryset = TypeDocument.objects.all()
+    serializer_class = TypeDocumentSerializer
+
+
+class DocumentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les documents.
+    """
+    queryset = Document.objects.select_related('typeDocument')
+    serializer_class = DocumentSerializer
+
+    def get_serializer_class(self):
+        """Utilise le serializer simple pour list"""
+        if self.action == 'list':
+            return DocumentSimpleSerializer
+        return DocumentSerializer
+
+    @action(detail=False, methods=['get'])
+    def par_type(self, request):
+        """
+        Filtre les documents par type
+        Query param: type_id
+        """
+        type_id = request.query_params.get('type_id')
+        if not type_id:
+            return Response(
+                {'error': 'Le paramètre type_id est requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        documents = self.queryset.filter(typeDocument_id=type_id)
+        serializer = self.get_serializer(documents, many=True)
+        return Response(serializer.data)
+
+
+class FabricantViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les fabricants.
+    """
+    queryset = Fabricant.objects.select_related('adresse')
+    serializer_class = FabricantSerializer
+
+    def get_serializer_class(self):
+        """Utilise le serializer simple pour list"""
+        if self.action == 'list':
+            return FabricantSimpleSerializer
+        return FabricantSerializer
+
+    @action(detail=False, methods=['get'])
+    def avec_sav(self, request):
+        """
+        Retourne les fabricants qui proposent un service après-vente
+        """
+        fabricants = self.queryset.filter(serviceApresVente=True)
+        serializer = self.get_serializer(fabricants, many=True)
+        return Response(serializer.data)
+
+
+class FournisseurViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les fournisseurs.
+    """
+    queryset = Fournisseur.objects.select_related('adresse')
+    serializer_class = FournisseurSerializer
+
+    def get_serializer_class(self):
+        """Utilise le serializer simple pour list"""
+        if self.action == 'list':
+            return FournisseurSimpleSerializer
+        return FournisseurSerializer
+
+    @action(detail=False, methods=['get'])
+    def avec_sav(self, request):
+        """
+        Retourne les fournisseurs qui proposent un service après-vente
+        """
+        fournisseurs = self.queryset.filter(serviceApresVente=True)
+        serializer = self.get_serializer(fournisseurs, many=True)
+        return Response(serializer.data)

@@ -1,30 +1,8 @@
 from django.db import models
 from stock.models import Consommable
-
-class Fabricant(models.Model):
-    """
-    Représente un fabricant d'équipements.
-    """
-    nom = models.CharField(max_length=100, help_text="Nom du fabricant")
-    email = models.EmailField(max_length=191, blank=True, null=True, help_text="Adresse email du fabricant")
-    numTelephone = models.CharField(max_length=20, blank=True, null=True, help_text="Numéro de téléphone du fabricant")
-    serviceApresVente = models.BooleanField(default=False, help_text="Indique si le fabricant propose un service après-vente")
-
-    def __str__(self):
-        return self.nom
+from donnees.models import Lieu, Document, Fabricant, Fournisseur
 
 
-class Fournisseur(models.Model):
-    """
-    Représente un fournisseur d'équipements.
-    """
-    nom = models.CharField(max_length=100, help_text="Nom du fournisseur")
-    email = models.EmailField(max_length=191, blank=True, null=True, help_text="Adresse email du fournisseur")
-    numTelephone = models.CharField(max_length=20, blank=True, null=True, help_text="Numéro de téléphone du fournisseur")
-    serviceApresVente = models.BooleanField(default=False, help_text="Indique si le fournisseur propose un service après-vente")
-
-    def __str__(self):
-        return self.nom
 
 
 class ModeleEquipement(models.Model):
@@ -61,11 +39,14 @@ class Equipement(models.Model):
     prixAchat = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Prix d'achat de l'équipement")
     lienImage = models.CharField(max_length=255, blank=True, null=True, help_text="Lien vers une image de l'équipement")
     preventifGlissant = models.BooleanField(default=False, help_text="Indique si l'entretien préventif est glissant")
-    joursIntervalleMaintenance = models.PositiveSmallIntegerField(default=0, help_text="Intervalle en jours pour la maintenance préventive")
     createurEquipementId = models.IntegerField(help_text="ID de l'utilisateur ayant créé l'équipement")
-    lieuId = models.IntegerField(help_text="ID du lieu où se trouve l'équipement")
+    lieu = models.ForeignKey(Lieu, on_delete=models.PROTECT, related_name="equipements", help_text="Lieu où se trouve l'équipement")
+    documents = models.ManyToManyField(Document, blank=True, help_text="Documents associés à l'équipement")
     modele = models.ForeignKey(ModeleEquipement, on_delete=models.PROTECT, related_name="equipements", help_text="Modèle de l'équipement")
     famille = models.ForeignKey(FamilleEquipement, null=True, blank=True, on_delete=models.SET_NULL, related_name="equipements", help_text="Famille de l'équipement")
+    x = models.FloatField(null=True, blank=True, help_text="Coordonnée X de l'équipement dans le lieu")
+    y = models.FloatField(null=True, blank=True, help_text="Coordonnée Y del'équipement dans le lieu")
+    lieu = models.ForeignKey(Lieu, on_delete=models.PROTECT, related_name="equipements", help_text="Lieu où se trouve l'équipement")
 
     def __str__(self):
         return f"{self.designation} ({self.numSerie})"
@@ -111,3 +92,5 @@ class Constituer(models.Model):
 
     def __str__(self):
         return f"Equipement {self.equipement.id} - Consommable {self.consommable.id}"
+    
+    

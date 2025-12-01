@@ -5,17 +5,10 @@ from rest_framework.exceptions import NotFound
 from django.db.models import Prefetch
 
 from equipement.models import Equipement, StatutEquipement, Constituer
-from equipement.api.serializers import (
-    EquipementSerializer,
-    StatutEquipementSerializer,
-    ConstituerSerializer,
-    EquipementDetailSerializer,
-    EquipementAvecDernierStatutSerializer,
-    EquipementAffichageSerializer,
-)
-from demandeIntervention.models import Defaillance
+from equipement.api.serializers import *
+from maintenance.models import DemandeIntervention
 from stock.models import Consommable
-from gestionDonnee.models import DocumentTechnique, Lieu
+from donnees.models import Lieu, Document, TypeDocument
 
 
 class EquipementViewSet(viewsets.ModelViewSet):
@@ -48,23 +41,22 @@ class EquipementAvecDernierStatutViewSet(viewsets.ReadOnlyModelViewSet):
             )
         )
 
+class ModeleEquipementViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ModeleEquipement.objects.all()
+    serializer_class = ModeleEquipementSerializer
 
 class EquipementDetailViewSet(viewsets.ModelViewSet):
-    queryset = Equipement.objects.select_related('lieu', 'modeleEquipement')
+    queryset = Equipement.objects.select_related('lieu', 'modele')  # ✅ 'modele' pas 'modeleEquipement'
     serializer_class = EquipementDetailSerializer
     lookup_field = 'reference'
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related(
-            'createurEquipement',
-            'fournisseur',
             Prefetch(
-                'StatutEquipement_set',
-                queryset=StatutEquipement.objects.order_by('-dateChangement'),
-                to_attr='statuts'
+                'statuts',  # ✅ Utilise le related_name, pas 'StatutEquipement_set'
+                queryset=StatutEquipement.objects.order_by('-dateChangement')
             )
         )
-
 
 class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Equipement.objects.all()
@@ -94,7 +86,7 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
     def _prefetch_defaillances(self):
         return Prefetch(
             'defaillance_set',
-            queryset=Defaillance.objects.prefetch_related(
+            queryset=DemandeIntervention.objects.prefetch_related(
                 'intervention_set',
                 'documentdefaillance_set',
                 'intervention_set__documentintervention_set'
@@ -110,7 +102,7 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
     def _prefetch_documents_techniques(self):
         return Prefetch(
             'modeleEquipement__correspondre_set__documentTechnique',
-            queryset=DocumentTechnique.objects.all()
+            queryset=Document.objects.all()
         )
 
     def get_object(self):

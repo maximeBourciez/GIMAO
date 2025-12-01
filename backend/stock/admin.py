@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import *
+
+admin.site.register(Magasin)
+admin.site.register(Consommable)
+admin.site.register(EstCompatible)
+admin.site.register(PorterSur)
