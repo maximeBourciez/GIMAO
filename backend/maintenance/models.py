@@ -27,7 +27,7 @@ class DemandeIntervention(models.Model):
     )
     
     class Meta:
-        db_table = 'demande_intervention'
+        db_table = 'gimao_demande_intervention'
         verbose_name = 'Demande d\'intervention'
         verbose_name_plural = 'Demandes d\'intervention'
         ordering = ['-date_commencement']
@@ -95,6 +95,11 @@ class BonTravail(models.Model):
     
     def __str__(self):
         return f"{self.nom} - {self.statut}"
+    
+    class Meta:
+        db_table = 'gimao_bon_travail'
+        verbose_name = 'Bon de travail'
+        verbose_name_plural = 'Bons de travail'
 
 
 class TypePlanMaintenance(models.Model):
@@ -108,6 +113,11 @@ class TypePlanMaintenance(models.Model):
     
     def __str__(self):
         return self.libelle
+    
+    class Meta:
+        db_table = 'gimao_type_plan_maintenance'
+        verbose_name = 'Type de plan de maintenance'
+        verbose_name_plural = 'Types de plan de maintenance'
 
 
 class PlanMaintenance(models.Model):
@@ -146,7 +156,7 @@ class PlanMaintenance(models.Model):
     )
     
     class Meta:
-        db_table = 'plan_maintenance'
+        db_table = 'gimao_plan_maintenance'
         verbose_name = 'Plan de maintenance'
         verbose_name_plural = 'Plans de maintenance'
     
@@ -174,7 +184,7 @@ class PlanMaintenanceConsommable(models.Model):
     )
     
     class Meta:
-        db_table = 'plan_maintenance_consommable'
+        db_table = 'gimao_plan_maintenance_consommable'
         unique_together = ['plan_maintenance', 'consommable']
         verbose_name = 'Consommable nécessaire'
         verbose_name_plural = 'Consommables nécessaires'

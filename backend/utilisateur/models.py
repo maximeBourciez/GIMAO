@@ -14,6 +14,12 @@ class Role(models.Model):
 
     def __str__(self):
         return self.nomRole
+    
+    class Meta:
+        db_table = 'gimao_role'
+        verbose_name = 'Rôle'
+        verbose_name_plural = 'Rôles'
+        ordering = ['rang']
 
 
 class Utilisateur(models.Model):
@@ -64,6 +70,12 @@ class Utilisateur(models.Model):
 
     def __str__(self):
         return f"{self.prenom} {self.nomFamille} ({self.nomUtilisateur})"
+    
+    class Meta:
+        db_table = 'gimao_utilisateur'
+        verbose_name = 'Utilisateur'
+        verbose_name_plural = 'Utilisateurs'
+        ordering = ['nomFamille', 'prenom']
 
 
 class Log(models.Model):
@@ -99,3 +111,9 @@ class Log(models.Model):
 
     def __str__(self):
         return f"{self.type} sur {self.nomTable} ({self.date})"
+    
+    class Meta:
+        db_table = 'gimao_log'
+        verbose_name = 'Log'
+        verbose_name_plural = 'Logs'
+        ordering = ['-date']

@@ -22,6 +22,8 @@ class Lieu(models.Model):
 
     class Meta:
         db_table = 'gimao_lieu'
+        verbose_name = 'Lieu'
+        verbose_name_plural = 'Lieux'
         
 
 
@@ -33,6 +35,8 @@ class TypeDocument(models.Model):
 
     class Meta:
         db_table = 'gimao_type_document'
+        verbose_name = 'Type de document'
+        verbose_name_plural = 'Types de document'
 
 class Document(models.Model):
     nomDocument = models.CharField(max_length=100, help_text="Nom du document.")
@@ -48,6 +52,8 @@ class Document(models.Model):
 
     class Meta:
         db_table = 'gimao_document'
+        verbose_name = 'Document'
+        verbose_name_plural = 'Documents'
         
         
 class Fabricant(models.Model):
@@ -62,6 +68,12 @@ class Fabricant(models.Model):
 
     def __str__(self):
         return self.nom
+    
+    class Meta:
+        db_table = 'gimao_fabricant'
+        verbose_name = 'Fabricant'
+        verbose_name_plural = 'Fabricants'
+        
 
 
 class Fournisseur(models.Model):
@@ -77,6 +89,12 @@ class Fournisseur(models.Model):
     def __str__(self):
         return self.nom
     
+    class Meta:
+        db_table = 'gimao_fournisseur'
+        verbose_name = 'Fournisseur'
+        verbose_name_plural = 'Fournisseurs'   
+
+
 class Adresse(models.Model):
     """
     Représente une adresse physique.
@@ -90,3 +108,8 @@ class Adresse(models.Model):
     
     def __str__(self):
         return f"{self.rue}, {self.ville}, {self.code_postal}, {self.pays}"
+    
+    class Meta:
+        db_table = 'gimao_adresse'
+        verbose_name = 'Adresse'
+        verbose_name_plural = 'Adresses'

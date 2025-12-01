@@ -14,6 +14,11 @@ class ModeleEquipement(models.Model):
 
     def __str__(self):
         return f"{self.nom} ({self.fabricant.nom})"
+    
+    class Meta:
+        db_table = 'gimao_modele_equipement'
+        verbose_name = 'Modèle d\'équipement'
+        verbose_name_plural = 'Modèles d\'équipements'
 
 
 class FamilleEquipement(models.Model):
@@ -25,6 +30,11 @@ class FamilleEquipement(models.Model):
 
     def __str__(self):
         return self.nom
+    
+    class Meta:
+        db_table = 'gimao_famille_equipement'
+        verbose_name = 'Famille d\'équipement'
+        verbose_name_plural = 'Familles d\'équipements'
 
 
 class Equipement(models.Model):
@@ -50,6 +60,11 @@ class Equipement(models.Model):
 
     def __str__(self):
         return f"{self.designation} ({self.numSerie})"
+    
+    class Meta:
+        db_table = 'gimao_equipement'
+        verbose_name = 'Équipement'
+        verbose_name_plural = 'Équipements'
 
 
 class StatutEquipement(models.Model):
@@ -62,6 +77,12 @@ class StatutEquipement(models.Model):
 
     def __str__(self):
         return f"{self.statut} ({self.dateChangement})"
+    
+    class Meta:
+        db_table = 'gimao_statut_equipement'
+        verbose_name = 'Statut d\'équipement'
+        verbose_name_plural = 'Statuts d\'équipements'
+        ordering = ['-dateChangement']
 
 
 class Compteur(models.Model):
@@ -81,6 +102,11 @@ class Compteur(models.Model):
 
     def __str__(self):
         return f"Compteur {self.id} - {self.equipement.designation}"
+    
+    class Meta:
+        db_table = 'gimao_compteur'
+        verbose_name = 'Compteur'
+        verbose_name_plural = 'Compteurs'
 
 
 class Constituer(models.Model):
@@ -93,4 +119,7 @@ class Constituer(models.Model):
     def __str__(self):
         return f"Equipement {self.equipement.id} - Consommable {self.consommable.id}"
     
-    
+    class Meta:
+        db_table = 'gimao_constituer'
+        verbose_name = 'Constituer'
+        verbose_name_plural = 'Constituer'

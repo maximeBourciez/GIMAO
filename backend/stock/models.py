@@ -13,6 +13,8 @@ class Magasin(models.Model):
 
     class Meta:
         db_table = 'gimao_magasin'
+        verbose_name = 'Magasin'
+        verbose_name_plural = 'Magasins'
 
 
 class Consommable(models.Model):
@@ -26,6 +28,8 @@ class Consommable(models.Model):
 
     class Meta:
         db_table = 'gimao_consommable'
+        verbose_name = 'Consommable'
+        verbose_name_plural = 'Consommables'
 
 class PorterSur(models.Model):
     """
