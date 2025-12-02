@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from stock.models import Consommable, StockConsommable, EstCompatible
+from stock.models import *
 from stock.api.serializers import (
     ConsommableSerializer,
     StockConsommableSerializer,
@@ -15,7 +15,7 @@ class ConsommableViewSet(viewsets.ModelViewSet):
 
 class StockConsommableViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des stocks de consommables"""
-    queryset = StockConsommable.objects.all()
+    queryset = Magasin.objects.all()
     serializer_class = StockConsommableSerializer
 
 

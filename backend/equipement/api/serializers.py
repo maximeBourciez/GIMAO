@@ -1,9 +1,9 @@
 from rest_framework import serializers
-from equipement.models import Equipement, InformationStatut, Constituer
-from gestionDonnee.models import Lieu, ModeleEquipement, Fournisseur, Fabricant, Correspondre
-from demandeIntervention.models import Defaillance, DocumentDefaillance
-from bonTravail.models import Intervention, DocumentIntervention
+from equipement.models import Equipement, StatutEquipement, Constituer
 
+from donnees.models import Lieu
+from equipement.models import ModeleEquipement, Fournisseur
+from equipement.models import Equipement, StatutEquipement, Constituer
 
 class EquipementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,9 +11,9 @@ class EquipementSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class InformationStatutSerializer(serializers.ModelSerializer):
+class StatutEquipementSerializer(serializers.ModelSerializer):
     class Meta:
-        model = InformationStatut
+        model = StatutEquipement
         fields = '__all__'
 
 
@@ -44,20 +44,36 @@ class FournisseurSerializer(serializers.ModelSerializer):
 
 class EquipementDetailSerializer(serializers.ModelSerializer):
     lieu = LieuSerializer(read_only=True)
-    modeleEquipement = ModeleEquipementSerializer(read_only=True)
+    modele = ModeleEquipementSerializer(read_only=True)  # ✅ modele, pas modeleEquipement
     statut = serializers.SerializerMethodField()
-
+    
     class Meta:
         model = Equipement
-        fields = ['reference', 'dateCreation', 'designation', 'dateMiseEnService',
-                  'prixAchat', 'lienImageEquipement', 'preventifGlissant',
-                  'joursIntervalleMaintenance', 'createurEquipement',
-                  'lieu', 'modeleEquipement', 'fournisseur', 'statut']
-
+        fields = [
+            'reference', 
+            'numSerie', 
+            'dateCreation', 
+            'designation', 
+            'dateMiseEnService',
+            'prixAchat', 
+            'lienImage', 
+            'preventifGlissant',
+            'createurEquipementId',  
+            'lieu', 
+            'modele', 
+            'statut',
+            'x',
+            'y'
+        ]
+    
     def get_statut(self, obj):
-        dernier_statut = obj.informationstatut_set.order_by('-dateChangement').first()
-        if dernier_statut:
-            return InformationStatutSerializer(dernier_statut).data
+        """Retourne le statut le plus récent"""
+        statut_recent = obj.statuts.order_by('-dateChangement').first() 
+        if statut_recent:
+            return {
+                'statut': statut_recent.statut,
+                'dateChangement': statut_recent.dateChangement
+            }
         return None
 
 
@@ -72,14 +88,14 @@ class EquipementAvecDernierStatutSerializer(serializers.ModelSerializer):
                   'lieu', 'dernier_statut']
 
     def get_dernier_statut(self, obj):
-        dernier_statut = obj.informationstatut_set.order_by('-dateChangement').first()
+        dernier_statut = obj.StatutEquipement_set.order_by('-dateChangement').first()
         if dernier_statut:
             return {
                 'id': dernier_statut.id,
                 'statutEquipement': dernier_statut.statutEquipement,
                 'dateChangement': dernier_statut.dateChangement,
                 'equipement': dernier_statut.equipement.reference,
-                'informationStatutParent': dernier_statut.informationStatutParent.id if dernier_statut.informationStatutParent else None,
+                'StatutEquipementParent': dernier_statut.StatutEquipementParent.id if dernier_statut.StatutEquipementParent else None,
                 'ModificateurStatut': dernier_statut.ModificateurStatut.username if dernier_statut.ModificateurStatut else None
             }
         return None
@@ -126,14 +142,14 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         return None
 
     def get_dernier_statut(self, obj):
-        dernier_statut = obj.informationstatut_set.order_by('-dateChangement').first()
+        dernier_statut = obj.StatutEquipement_set.order_by('-dateChangement').first()
         if dernier_statut:
             return {
                 'id': dernier_statut.id,
                 'statutEquipement': dernier_statut.statutEquipement,
                 'dateChangement': dernier_statut.dateChangement,
                 'equipement': dernier_statut.equipement.reference,
-                'informationStatutParent': dernier_statut.informationStatutParent.id if dernier_statut.informationStatutParent else None,
+                'StatutEquipementParent': dernier_statut.StatutEquipementParent.id if dernier_statut.StatutEquipementParent else None,
                 'ModificateurStatut': dernier_statut.ModificateurStatut.username if dernier_statut.ModificateurStatut else None
             }
         return None

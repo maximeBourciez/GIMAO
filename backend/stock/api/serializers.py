@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from stock.models import Consommable, StockConsommable, EstCompatible
+from stock.models import *
 
 
 class ConsommableSerializer(serializers.ModelSerializer):
@@ -10,7 +10,7 @@ class ConsommableSerializer(serializers.ModelSerializer):
 
 class StockConsommableSerializer(serializers.ModelSerializer):
     class Meta:
-        model = StockConsommable
+        model = Magasin
         fields = '__all__'
 
 

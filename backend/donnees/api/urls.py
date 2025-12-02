@@ -1,0 +1,29 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .viewsets import (
+    AdresseViewSet,
+    LieuViewSet,
+    TypeDocumentViewSet,
+    DocumentViewSet,
+    FabricantViewSet,
+    FournisseurViewSet,
+)
+
+# Créer le router
+router = DefaultRouter()
+
+# Enregistrer les ViewSets
+router.register(r'adresses', AdresseViewSet, basename='adresse')
+router.register(r'lieux', LieuViewSet, basename='lieu')
+router.register(r'types-documents', TypeDocumentViewSet, basename='type-document')
+router.register(r'documents', DocumentViewSet, basename='document')
+router.register(r'fabricants', FabricantViewSet, basename='fabricant')
+router.register(r'fournisseurs', FournisseurViewSet, basename='fournisseur')
+
+# URLs
+urlpatterns = [
+    path('', include(router.urls)),
+    
+    # Routes spécifiques pour les affichages détaillés
+    path('lieux-hierarchy/', LieuViewSet.as_view({'get': 'hierarchy'})),
+]
