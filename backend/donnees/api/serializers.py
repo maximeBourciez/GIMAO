@@ -132,6 +132,7 @@ class DocumentSimpleSerializer(serializers.ModelSerializer):
             'cheminAcces',
             'typeDocument'
         ]
+        ref_name = 'DonneesDocumentSimple'
 
 
 class FabricantSerializer(serializers.ModelSerializer):
@@ -171,6 +172,7 @@ class FabricantSimpleSerializer(serializers.ModelSerializer):
             'serviceApresVente',
             'adresse'
         ]
+        ref_name = 'DonneesFabricantSimple'
 
 
 class FournisseurSerializer(serializers.ModelSerializer):
@@ -210,3 +212,4 @@ class FournisseurSimpleSerializer(serializers.ModelSerializer):
             'serviceApresVente',
             'adresse'
         ]
+        ref_name = 'DonneesFournisseurSimple'
