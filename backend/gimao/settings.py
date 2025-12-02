@@ -21,9 +21,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_extensions',
     'rest_framework',
     'corsheaders',
+    'drf_yasg',
     'utilisateur',
     'donnees',
     'stock',
@@ -79,9 +79,6 @@ DATABASES = {
             'charset': 'utf8mb4',
             'init_command': (
                 "SET sql_mode='STRICT_TRANS_TABLES';"
-                "SET innodb_large_prefix=1;"
-                "SET innodb_file_format=Barracuda;"
-                "SET innodb_file_per_table=1;"
             ),
         },
     }

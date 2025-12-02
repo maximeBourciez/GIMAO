@@ -18,7 +18,8 @@ class UtilisateurSimpleSerializer(serializers.ModelSerializer):
     """Serializer simple pour Utilisateur"""
     class Meta:
         model = Utilisateur
-        fields = ['id', 'username', 'email', 'prenom', 'nom']
+        fields = ['id', 'nomUtilisateur', 'email', 'prenom', 'nomFamille']
+        ref_name = 'MaintenanceUtilisateurSimple'
 
 
 class EquipementSimpleSerializer(serializers.ModelSerializer):
@@ -26,6 +27,7 @@ class EquipementSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Equipement
         fields = ['id', 'reference', 'designation', 'numSerie']
+        ref_name = 'MaintenanceEquipementSimple'
 
 
 class ConsommableSimpleSerializer(serializers.ModelSerializer):
@@ -33,6 +35,7 @@ class ConsommableSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Consommable
         fields = ['id', 'designation']
+        ref_name = 'MaintenanceConsommableSimple'
 
 
 class DocumentSimpleSerializer(serializers.ModelSerializer):
@@ -40,6 +43,7 @@ class DocumentSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = ['id', 'nomDocument', 'cheminAcces']
+        ref_name = 'MaintenanceDocumentSimple'
 
 
 class CompteurSimpleSerializer(serializers.ModelSerializer):
@@ -47,6 +51,7 @@ class CompteurSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Compteur
         fields = ['id', 'valeurCourante', 'valeurEcheance', 'estPrincipal']
+        ref_name = 'MaintenanceCompteurSimple'
 
 
 # ==================== DEMANDE INTERVENTION ====================
