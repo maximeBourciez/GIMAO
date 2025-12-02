@@ -46,14 +46,14 @@ class ModeleEquipementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ModeleEquipementSerializer
 
 class EquipementDetailViewSet(viewsets.ModelViewSet):
-    queryset = Equipement.objects.select_related('lieu', 'modele')  # ✅ 'modele' pas 'modeleEquipement'
+    queryset = Equipement.objects.select_related('lieu', 'modele')  
     serializer_class = EquipementDetailSerializer
     lookup_field = 'reference'
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related(
             Prefetch(
-                'statuts',  # ✅ Utilise le related_name, pas 'StatutEquipement_set'
+                'statuts',  
                 queryset=StatutEquipement.objects.order_by('-dateChangement')
             )
         )
@@ -61,7 +61,7 @@ class EquipementDetailViewSet(viewsets.ModelViewSet):
 class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Equipement.objects.all()
     serializer_class = EquipementAffichageSerializer
-    lookup_field = 'reference'
+    lookup_field = 'id'
 
     def get_queryset(self):
         if self.action == 'retrieve':
@@ -103,7 +103,7 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
         return Prefetch(
             'documents',
             queryset=Document.objects.all(),
-            to_attr='documents_list'
+            to_attr='documents_prefetches'
         )
 
     def _prefetch_compteurs(self):
@@ -114,10 +114,10 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
     def get_object(self):
-        reference = self.kwargs.get('reference')
+        id = self.kwargs.get('id')
         queryset = self.get_queryset()
         try:
-            obj = queryset.get(reference=reference)
+            obj = queryset.get(id=id    )
             self.check_object_permissions(self.request, obj)
             # Récupérer le dernier statut
             if hasattr(obj, 'statuts_list') and obj.statuts_list:
@@ -126,4 +126,4 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
                 obj.dernier_statut = None
             return obj
         except Equipement.DoesNotExist:
-            raise NotFound(f"Aucun équipement trouvé avec la référence {reference}")
+            raise NotFound(f"Aucun équipement trouvé avec l'id {id}")

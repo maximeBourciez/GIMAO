@@ -2,6 +2,7 @@ from rest_framework import serializers
 from equipement.models import Equipement, StatutEquipement, Constituer
 
 from donnees.models import Lieu
+from donnees.api.serializers import DocumentSerializer
 from equipement.models import ModeleEquipement, Fournisseur
 from equipement.models import *
 from maintenance.models import DemandeIntervention, BonTravail
@@ -104,18 +105,15 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
     liste_interventions = serializers.SerializerMethodField()
     liste_consommables = serializers.SerializerMethodField()
 
-    liste_documents = serializers.SerializerMethodField()
-
     class Meta:
         model = Equipement
-        fields = [
+        fields = [ 'id',
             'numSerie', 'reference', 'dateCreation', 'designation',
             'dateMiseEnService', 'prixAchat', 'lienImage', 'preventifGlissant',
             'createurEquipementId', 'x', 'y',
             'lieu', 'modele', 'famille', 'fabricant',
             'dernier_statut', 'compteurs', 'documents',
-            'liste_defaillances', 'liste_interventions', 'liste_consommables',
-            'liste_documents'
+            'liste_defaillances', 'liste_interventions', 'liste_consommables'
         ]
 
     def get_fabricant(self, obj):
@@ -170,20 +168,18 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         ]
 
     def get_documents(self, obj):
-        if hasattr(obj, 'documents_list'):
-            documents = obj.documents_list
+        """
+        Récupère tous les documents liés à l'équipement.
+        Utilise la relation ManyToMany avec préfetch.
+        """
+        # Si les documents sont préfetchés
+        if hasattr(obj, 'documents_prefetches'):
+            documents = obj.documents_prefetches
         else:
+            # Fallback : charger les documents
             documents = obj.documents.all()
         
-        return [
-            {
-                "id": doc.id,
-                "nomDocument": doc.nomDocument,
-                "lienDocument": doc.lienDocument.url if doc.lienDocument else None,
-                "typeDocument": doc.typeDocument,
-            }
-            for doc in documents
-        ]
+        return DocumentSerializer(documents, many=True).data
 
     def get_liste_defaillances(self, obj):
         if hasattr(obj, 'demandeintervention_set'):
@@ -270,5 +266,16 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         return consommables_list
 
     def get_liste_documents(self, obj):
-        # Les documents techniques sont dans la relation many-to-many 'documents'
-        return self.get_documents(obj)  # Utilise la même méthode que get_documents
+        return self.get_documents(obj)  
+
+
+class DocumentEquipementSerializer(serializers.ModelSerializer):
+    document_details = DocumentSerializer(source='document', read_only=True)
+    uploader_username = serializers.CharField(source='uploader.username', read_only=True)
+    
+    class Meta:
+        model = DocumentEquipement
+        fields = [
+            'id', 'document', 'document_details', 'date_ajout', 
+            'type_document', 'commentaire', 'uploader', 'uploader_username', 'est_public'
+        ]

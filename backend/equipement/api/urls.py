@@ -22,7 +22,7 @@ urlpatterns = [
     
     # Routes spécifiques pour les affichages détaillés
     path('equipements-detail/', EquipementDetailViewSet.as_view({'get': 'list'}), name='equipement-detail-list'),
-    path('equipements-detail/<str:reference>/', EquipementDetailViewSet.as_view({'get': 'retrieve'}), name='equipement-detail'),
-    path('equipement/<str:reference>/avec-statut/', EquipementAvecDernierStatutViewSet.as_view({'get': 'retrieve'}), name='equipement-avec-statut'),
-    path('equipement/<str:reference>/affichage/', EquipementAffichageViewSet.as_view({'get': 'retrieve'}), name='equipement-affichage'),
+    path('equipements-detail/<str:id>/', EquipementDetailViewSet.as_view({'get': 'retrieve'}), name='equipement-detail'),
+    path('equipement/<str:id>/avec-statut/', EquipementAvecDernierStatutViewSet.as_view({'get': 'retrieve'}), name='equipement-avec-statut'),
+    path('equipement/<str:id>/affichage/', EquipementAffichageViewSet.as_view({'get': 'retrieve'}), name='equipement-affichage'),
 ]

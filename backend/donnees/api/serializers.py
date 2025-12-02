@@ -96,12 +96,7 @@ class DocumentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Document
-        fields = [
-            'id',
-            'nomDocument',
-            'cheminAcces',
-            'typeDocument'
-        ]
+        fields = '__all__'
 
 
 class DocumentSimpleSerializer(serializers.ModelSerializer):

@@ -196,7 +196,7 @@ const handleCreate = () => {
 };
 
 const handleRowClick = (item) => {
-  router.push({ name: 'EquipmentDetail', params: { reference: item.reference } });
+  router.push({ name: 'EquipmentDetail', params: { id: item.id } });
 };
 
 onMounted(() => {
