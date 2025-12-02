@@ -9,8 +9,8 @@
           <h3 class="text-h6 mb-4 text-primary">Description de l'équipement</h3>
 
           <div v-for="(value, key) in equipmentDetails" :key="key" class="detail-field">
-            <label class="detail-label">{{ formatLabel(key) }}</label>
-            <div class="detail-value">
+            <label class="detail-label" v-if="key !== 'id'">{{ formatLabel(key) }}</label>
+            <div class="detail-value" v-if="key !== 'id'">
               <v-chip v-if="key === 'statut'" :color="getStatusColor(value)" dark size="small">
                 {{ value }}
               </v-chip>
@@ -90,13 +90,13 @@
             <v-card-title class="text-h6">Consommables</v-card-title>
             <v-divider></v-divider>
             <v-card-text>
-              <v-data-table v-if="data.liste_consommables && data.liste_consommables.length > 0" 
-                :items="data.liste_consommables" 
+              <v-data-table v-if="data.consommables && data.consommables.length > 0" 
+                :items="data.consommables" 
                 :headers="consumableHeaders" 
                 class="elevation-1" 
                 hide-default-footer>
                 <template #item.fabricant="{ item }">
-                  {{ item.fabricant?.nomFabricant || 'Non spécifié' }}
+                  {{ item.fabricant || 'Non spécifié' }}
                 </template>
                 <template #item.designation="{ item }">
                   {{ item.designation || 'Sans nom' }}
@@ -221,6 +221,8 @@ const equipmentDetails = computed(() => {
     reference, designation, dateMiseEnService, prixAchat,
     preventifGlissant, joursIntervalleMaintenance
   } = equipement.value;
+
+  console.log('Equipement value:', equipement.value);
   const lieu = equipement.value.lieu?.nomLieu || '';
   const modele = equipement.value.modele?.nom || '';
   const fournisseur = equipement.value.fournisseur?.nomFournisseur || '';
@@ -238,28 +240,10 @@ const fetchEquipmentData = async () => {
   errorMessage.value = '';
   try {
     await api.get(`equipement/${route.params.id}/affichage/`);
-    // Debug: afficher la structure des données reçues
-    console.log('Données équipement reçues:', api.data.value);
-    console.log('Documents techniques:', api.data.value?.liste_documents_techniques);
-    console.log('Documents défaillance:', api.data.value?.liste_documents_defaillance);
-    console.log('Documents intervention:', api.data.value?.liste_documents_intervention);
   } catch (error) {
     console.error("Erreur lors de la récupération des données de l'équipement:", error);
     errorMessage.value = "Erreur lors du chargement de l'équipement";
   }
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).replace(',', '');
 };
 
 const formatLabel = (key) => {
@@ -279,24 +263,65 @@ const formatLabel = (key) => {
   return labels[key] || key;
 };
 
+// Détecte un ISO 8601 de type complet (ex: 2025-12-02T22:15:30Z ou 2025-12-02T22:15:30+01:00)
+const isoDateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/;
+
+// Formatage de date (tu peux adapter les options)
+const formatDate = (isoString) => {
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString; // fallback
+  return new Intl.DateTimeFormat('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).format(d);
+};
+
 const formatValue = (value) => {
   if (value === null || value === undefined) return '-';
+
   if (typeof value === 'boolean') {
     return value ? 'Oui' : 'Non';
   }
+
   if (typeof value === 'number') {
     return value.toLocaleString('fr-FR');
   }
-  if (typeof value === 'string' && value.includes('T')) {
-    // C'est probablement une date ISO
-    try {
-      return formatDate(value);
-    } catch {
-      return value;
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+
+    // Si la chaîne correspond strictement au pattern ISO datetime, on la formate.
+    if (isoDateTimeRegex.test(trimmed)) {
+      
+      const ts = Date.parse(trimmed);
+      if (!isNaN(ts)) {
+        return formatDate(trimmed);
+      }
+      return trimmed;
     }
+
+    // Reconnaissance d'une date ISO sans time (YYYY-MM-DD)
+    const isoDateOnly = /^\d{4}-\d{2}-\d{2}$/;
+    if (isoDateOnly.test(trimmed)) {
+      const ts = Date.parse(trimmed);
+      if (!isNaN(ts)) {
+        return new Intl.DateTimeFormat('fr-FR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
+      }
+      return trimmed;
+    }
+
+    // Aucun format date reconnu -> on renvoie la chaîne telle quelle 
+    return trimmed === '' ? '-' : trimmed;
   }
-  return value || '-';
+
+  // Par défaut
+  return String(value) || '-';
 };
+
 
 const viewIntervention = (intervention) => {
   if (intervention && intervention.id) {
