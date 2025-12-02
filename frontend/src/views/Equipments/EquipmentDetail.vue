@@ -26,11 +26,8 @@
             <!-- Documents techniques -->
             <v-card-text>
               <h4 class="mb-2">Documents techniques</h4>
-              <v-data-table v-if="technicalDocuments.length > 0" 
-                :headers="technicalDocumentsHeaders" 
-                :items="technicalDocuments"
-                class="elevation-1 mb-4" 
-                hide-default-footer>
+              <v-data-table v-if="technicalDocuments.length > 0" :headers="technicalDocumentsHeaders"
+                :items="technicalDocuments" class="elevation-1 mb-4" hide-default-footer>
                 <template #item.action="{ item }">
                   <v-btn v-if="item.lienDocumentTechnique" icon size="small" color="primary"
                     @click="downloadDocument(item.lienDocumentTechnique, item.nomDocumentTechnique)">
@@ -45,8 +42,8 @@
             <!-- Autres documents (défaillances et interventions) -->
             <v-card-text v-if="othersDocuments.length > 0">
               <h4 class="mb-2">Documents associés</h4>
-              <v-data-table :headers="othersDocumentsHeaders" :items="othersDocuments"
-                class="elevation-1 mb-4" hide-default-footer>
+              <v-data-table :headers="othersDocumentsHeaders" :items="othersDocuments" class="elevation-1 mb-4"
+                hide-default-footer>
                 <template #item.action="{ item }">
                   <v-btn v-if="item.lienDocument" icon size="small" color="primary"
                     @click="downloadDocument(item.lienDocument, item.nomDocument)">
@@ -63,7 +60,7 @@
         <v-col cols="12" md="6">
           <!-- Section image -->
           <v-card elevation="2" class="mb-4">
-            <v-img v-if="data.lienImage" :src="data.lienImage" aspect-ratio="4/3" class="rounded-lg" 
+            <v-img v-if="data.lienImage" :src="data.lienImage" aspect-ratio="4/3" class="rounded-lg"
               style="max-height: 30vh; object-fit: cover;" alt="Image de l'équipement">
               <template v-slot:placeholder>
                 <v-row class="fill-height ma-0" align="center" justify="center">
@@ -86,32 +83,65 @@
           </v-card>
 
           <!-- Section compteurs -->
-          <v-card elevation="2" class="mb-4">
-            <v-card-title class="text-h6">Compteurs</v-card-title>
-            <v-divider></v-divider>
-            <v-card-text>
-              
-              <v-data-table v-if="data.compteurs && data.compteurs.length > 0" 
-                :items="data.compteurs" 
-                :headers="counterHeaders" 
-                class="elevation-1" 
-                hide-default-footer>
-              </v-data-table>
-              <p v-else class="text-caption text-grey">Aucun compteur disponible</p>
+          <div>
+            <v-card elevation="2" class="mb-4">
+              <v-card-title class="text-h6">Compteurs</v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
 
-            </v-card-text>
-          </v-card>
+                <v-data-table v-if="data.compteurs && data.compteurs.length > 0" :items="data.compteurs"
+                  :headers="counterHeaders" class="elevation-1" hide-default-footer>
+                </v-data-table>
+                <p v-else class="text-caption text-grey">Aucun compteur disponible</p>
+
+              </v-card-text>
+            </v-card>
+            <div class="justify-end d-flex">
+              <v-btn text color="primary align-self-end" class="mt-2"
+                @click="router.push({ name: 'CreateCounter', query: { equipementId: data.id } })">
+                Ajouter un compteur
+              </v-btn>
+            </div>
+          </div>
+
+
+          <!-- Historique des interventions -->
+          <div>
+            <v-card elevation="2">
+              <v-card-title class="text-h6">Interventions</v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
+                <v-data-table v-if="data.bons_travail && data.bons_travail.length > 0" :items="data.bons_travail"
+                  :headers="interventionsHeaders" class="elevation-1" hide-default-footer>
+                  <template #item.dateAssignation="{ item }">
+                    {{ formatDate(item.dateAssignation) }}
+                  </template>
+                  <template #item.action="{ item }">
+                    <v-btn icon size="small" @click="viewIntervention(item)">
+                      <v-icon>mdi-eye</v-icon>
+                    </v-btn>
+                  </template>
+                </v-data-table>
+                <p v-else class="text-caption text-grey">Aucune intervention enregistrée</p>
+              </v-card-text>
+            </v-card>
+
+            <div class="justify-end d-flex">
+              <v-btn text color="primary" class="mt-2"
+                @click="router.push({ name: 'CreateFailure', query: { equipementId: data.id } })">
+                Ajouter une DI
+              </v-btn>
+            </div>
+          </div>
+
 
           <!-- Section consommables -->
           <v-card elevation="2" class="mb-4">
             <v-card-title class="text-h6">Consommables</v-card-title>
             <v-divider></v-divider>
             <v-card-text>
-              <v-data-table v-if="data.consommables && data.consommables.length > 0" 
-                :items="data.consommables" 
-                :headers="consumableHeaders" 
-                class="elevation-1" 
-                hide-default-footer>
+              <v-data-table v-if="data.consommables && data.consommables.length > 0" :items="data.consommables"
+                :headers="consumableHeaders" class="elevation-1" hide-default-footer>
                 <template #item.fabricant="{ item }">
                   {{ item.fabricant || 'Non spécifié' }}
                 </template>
@@ -120,29 +150,6 @@
                 </template>
               </v-data-table>
               <p v-else class="text-caption text-grey">Aucun consommable associé</p>
-            </v-card-text>
-          </v-card>
-
-          <!-- Historique des interventions -->
-          <v-card elevation="2">
-            <v-card-title class="text-h6">Interventions</v-card-title>
-            <v-divider></v-divider>
-            <v-card-text>
-              <v-data-table v-if="data.liste_interventions && data.liste_interventions.length > 0" 
-                :items="data.liste_interventions" 
-                :headers="interventionsHeaders" 
-                class="elevation-1" 
-                hide-default-footer>
-                <template #item.dateAssignation="{ item }">
-                  {{ formatDate(item.dateAssignation) }}
-                </template>
-                <template #item.action="{ item }">
-                  <v-btn icon size="small" @click="viewIntervention(item)">
-                    <v-icon>mdi-eye</v-icon>
-                  </v-btn>
-                </template>
-              </v-data-table>
-              <p v-else class="text-caption text-grey">Aucune intervention enregistrée</p>
             </v-card-text>
           </v-card>
         </v-col>
@@ -185,8 +192,8 @@ const consumableHeaders = [
 ];
 
 const interventionsHeaders = [
-  { title: 'Nom', key: 'nomIntervention' },
-  { title: "Date d'assignation", key: 'dateAssignation' },
+  { title: 'Nom', key: 'nom' },
+  { title: "Date d'assignation", key: 'date_fin' },
   { title: 'Visualiser', key: 'action', align: 'start' }
 ];
 
@@ -205,7 +212,7 @@ const technicalDocuments = computed(() => {
 // Autres documents (défaillances et interventions)
 const othersDocuments = computed(() => {
   const documents = [];
-  
+
   // Documents de défaillance
   (equipement.value.liste_documents_defaillance || []).forEach(doc => {
     documents.push({
@@ -215,7 +222,7 @@ const othersDocuments = computed(() => {
       source: 'defaillance'
     });
   });
-  
+
   // Documents d'intervention
   (equipement.value.liste_documents_intervention || []).forEach(doc => {
     documents.push({
@@ -225,7 +232,7 @@ const othersDocuments = computed(() => {
       source: 'intervention'
     });
   });
-  
+
   // Documents généraux de l'équipement
   (equipement.value.documents || []).forEach(doc => {
     documents.push({
@@ -235,13 +242,13 @@ const othersDocuments = computed(() => {
       source: 'equipement'
     });
   });
-  
+
   return documents;
 });
 
 const equipmentDetails = computed(() => {
   if (!equipement.value) return {};
-  const {id,
+  const { id,
     reference, designation, dateMiseEnService, prixAchat,
     preventifGlissant, joursIntervalleMaintenance
   } = equipement.value;
@@ -253,7 +260,8 @@ const equipmentDetails = computed(() => {
   const fabricant = equipement.value.fabricant?.nomFabricant || '';
   const statut = equipement.value.dernier_statut?.statut || '';
 
-  return {id,
+  return {
+    id,
     reference, designation, dateMiseEnService, prixAchat,
     preventifGlissant, joursIntervalleMaintenance,
     lieu, modele, fournisseur, fabricant, statut
@@ -320,7 +328,7 @@ const formatValue = (value) => {
 
     // Si la chaîne correspond strictement au pattern ISO datetime, on la formate.
     if (isoDateTimeRegex.test(trimmed)) {
-      
+
       const ts = Date.parse(trimmed);
       if (!isNaN(ts)) {
         return formatDate(trimmed);
@@ -377,12 +385,12 @@ const downloadDocument = async (lien, nomFichier) => {
     if (lien.includes('/media/')) {
       cleanedLink = lien.split('/media/')[1];
     }
-    
+
     // S'assurer que cleanedLink n'a pas de slash au début
     if (cleanedLink.startsWith('/')) {
       cleanedLink = cleanedLink.substring(1);
     }
-    
+
     const fullUrl = `${BASE_URL}/media/${cleanedLink}`;
     console.log('Téléchargement depuis:', fullUrl);
 

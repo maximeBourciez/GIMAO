@@ -42,8 +42,8 @@ class BonTravail(models.Model):
         ('EN_ATTENTE', 'En attente'),
         ('EN_COURS', 'En cours'),
         ('TERMINE', 'Terminé'),
-        ('ANNULE', 'Annulé'),
-        ('REFUSE', 'Refusé'),
+        ('EN_RETARD', 'En retard'),
+        ('CLOTURE', 'Clôturé'),
     ]
     
     TYPE_CHOICES = [
@@ -85,6 +85,13 @@ class BonTravail(models.Model):
         null=True,
         blank=True,
         related_name='bons_travail_responsable'
+    )
+    equipement = models.ForeignKey(
+        Equipement,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bons_travail'
     )
     
     class Meta:
