@@ -88,6 +88,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         return [
             {
                 'id': c.id,
+                'nomCompteur': c.nomCompteur,
                 'valeurCourante': c.valeurCourante,
                 'valeurEcheance': c.valeurEcheance,
                 'prochaineMaintenance': c.prochaineMaintenance,

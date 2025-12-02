@@ -85,6 +85,23 @@
             </v-card-actions>
           </v-card>
 
+          <!-- Section compteurs -->
+          <v-card elevation="2" class="mb-4">
+            <v-card-title class="text-h6">Compteurs</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text>
+              
+              <v-data-table v-if="data.compteurs && data.compteurs.length > 0" 
+                :items="data.compteurs" 
+                :headers="counterHeaders" 
+                class="elevation-1" 
+                hide-default-footer>
+              </v-data-table>
+              <p v-else class="text-caption text-grey">Aucun compteur disponible</p>
+
+            </v-card-text>
+          </v-card>
+
           <!-- Section consommables -->
           <v-card elevation="2" class="mb-4">
             <v-card-title class="text-h6">Consommables</v-card-title>
@@ -172,6 +189,13 @@ const interventionsHeaders = [
   { title: "Date d'assignation", key: 'dateAssignation' },
   { title: 'Visualiser', key: 'action', align: 'start' }
 ];
+
+const counterHeaders = [
+  { title: "ID", key: 'id' },
+  { title: 'Nom du compteur', key: 'nomCompteur' },
+  { title: 'Valeur courante', key: 'valeurCourante' },
+  { title: "Prochaine intervention", key: 'valeurEcheance' }
+]
 
 // Documents techniques (corrigé)
 const technicalDocuments = computed(() => {

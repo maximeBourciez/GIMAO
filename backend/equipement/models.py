@@ -94,6 +94,7 @@ class Compteur(models.Model):
     Représente un compteur ou indicateur lié à un équipement pour la maintenance.
     """
     equipement = models.ForeignKey(Equipement, on_delete=models.CASCADE, related_name="compteurs", help_text="Équipement associé au compteur")
+    nomCompteur = models.CharField(max_length=100, null=False, default="Compteur sans nom", help_text="Nom du compteur")
     valeurCourante = models.FloatField(help_text="Valeur actuelle du compteur")
     valeurEcheance = models.FloatField(help_text="Valeur à l'échéance pour déclencher la maintenance")
     prochaineMaintenance = models.FloatField(help_text="Valeur prévue pour la prochaine maintenance")
