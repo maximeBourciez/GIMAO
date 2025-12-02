@@ -7,15 +7,7 @@ class AdresseSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Adresse
-        fields = [
-            'id',
-            'numero',
-            'rue',
-            'ville',
-            'code_postal',
-            'pays',
-            'complement'
-        ]
+        fields = '__all__'
 
 
 class LieuSerializer(serializers.ModelSerializer):
@@ -28,15 +20,7 @@ class LieuSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Lieu
-        fields = [
-            'id',
-            'nomLieu',
-            'typeLieu',
-            'lienPlan',
-            'lieuParent',
-            'x',
-            'y'
-        ]
+        fields = '__all__'
 
 
 class LieuDetailSerializer(serializers.ModelSerializer):
@@ -98,7 +82,7 @@ class TypeDocumentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = TypeDocument
-        fields = ['id', 'nomTypeDocument']
+        fields = '__all__'
 
 
 class DocumentSerializer(serializers.ModelSerializer):
@@ -112,13 +96,7 @@ class DocumentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Document
-        fields = [
-            'id',
-            'nomDocument',
-            'cheminAcces',
-            'typeDocument',
-            'typeDocument_id'
-        ]
+        fields = '__all__'
 
 
 class DocumentSimpleSerializer(serializers.ModelSerializer):

@@ -230,7 +230,7 @@ const routes = [
   },
 
   {
-    path: '/EquipmentDetail/:reference',
+    path: '/EquipmentDetail/:id',
     name: 'EquipmentDetail',
     component: EquipmentDetail,
     props: true, 
