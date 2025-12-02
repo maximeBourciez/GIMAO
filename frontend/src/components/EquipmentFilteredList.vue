@@ -13,8 +13,9 @@
             <p v-if="!locations || locations.length === 0" class="text-caption">
               Pas de données disponibles.
             </p>
-            <v-treeview v-else v-model:selected="selectedTreeNodes" :items="locations" item-title="nomLieu"
-              item-value="id" select-strategy="selectionType" selectable dense @update:selected="onSelectLocation">
+            <VTreeview v-else v-model:selected="selectedTreeNodes" :items="locations" item-title="nomLieu"
+              item-children="children" item-value="id" select-strategy="selectionType" selectable dense
+              @update:selected="onSelectLocation">
               <template v-slot:prepend="{ item, open }">
                 <v-icon v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
                   @click.stop="toggleNode(item)" :class="{ 'rotate-icon': open }">
@@ -23,9 +24,9 @@
                 <span v-else class="tree-icon-placeholder"></span>
               </template>
               <template v-slot:label="{ item }">
-                <span class="text-caption ml-2">{{ item.typeLieu }}</span>
+                <span class="text-caption ml-2">{{ item.nomLieu }}</span>
               </template>
-            </v-treeview>
+            </VTreeview>
           </div>
         </v-card>
 
@@ -42,7 +43,7 @@
             </v-list-item>
             <v-list-item v-for="(model, index) in equipmentModels" :key="index" link
               @click="handleEquipmentTypeSelected(model)" :class="{ 'selected-item': isEquipmentTypeSelected(model) }">
-              <v-list-item-title>{{ model.nomModeleEquipement }}</v-list-item-title>
+              <v-list-item-title>{{ model.nom }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-card>
@@ -50,27 +51,20 @@
 
       <!-- Colonne principale avec BaseListView -->
       <v-col cols="12" md="8" lg="9">
-        <BaseListView :title="title" :headers="tableHeaders" :items="filteredEquipments"
-          :loading="loading" :error-message="errorMessage" :show-search="showSearch"
-          :show-create-button="false"
-          :no-data-text="noDataText" no-data-icon="mdi-package-variant-closed" 
-          @row-click="$emit('row-click', $event)"
+        <BaseListView :title="title" :headers="tableHeaders" :items="filteredEquipments" :loading="loading"
+          :error-message="errorMessage" :show-search="showSearch" :show-create-button="false" :no-data-text="noDataText"
+          no-data-icon="mdi-package-variant-closed" @row-click="$emit('row-click', $event)"
           @clear-error="errorMessage = ''">
           <!-- Colonne Statut avec chip coloré -->
-          <template #item.statut.statutEquipement="{ item }">
-            <v-chip :color="getStatusColor(item.statut.statutEquipement)" text-color="white" size="small">
-              {{ item.statut.statutEquipement }}
+          <template #item.statut.statut="{ item }">
+            <v-chip :color="getStatusColor(item.statut.statut)" text-color="white" size="small">
+              {{ item.statut.statut }}
             </v-chip>
           </template>
         </BaseListView>
 
         <!-- Bouton flottant en bas à droite -->
-        <v-btn v-if="showCreateButton"
-          color="primary"
-          size="large"
-          icon
-          class="floating-add-button"
-          elevation="4"
+        <v-btn v-if="showCreateButton" color="primary" size="large" icon class="floating-add-button" elevation="4"
           @click="$emit('create')">
           <v-icon size="large">mdi-plus</v-icon>
           <v-tooltip activator="parent" location="left">
@@ -84,7 +78,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { VTreeView } from 'vuetify/labs/components';
+import { VTreeview } from 'vuetify/labs/VTreeview';
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor } from '@/utils/helpers';
@@ -145,11 +139,11 @@ const loading = computed(() =>
 );
 
 const defaultHeaders = [
-  { title: 'Désignation', key: 'modeleEquipement.nomModeleEquipement', sortable: true, align: 'center' },
+  { title: 'Désignation', key: 'designation', sortable: true, align: 'center' },
   { title: 'Lieu', key: 'lieu.nomLieu', sortable: true, align: 'center' },
   {
     title: 'Statut',
-    key: 'statut.statutEquipement',
+    key: 'statut.statut',
     sortable: true,
     align: 'center',
     sort: (a, b) => {
@@ -164,7 +158,7 @@ const tableHeaders = computed(() => [...defaultHeaders, ...props.additionalHeade
 const fetchData = async () => {
   try {
     await Promise.all([
-      equipmentsApi.get('equipements-detail/'),
+      equipmentsApi.get('equipements/'),
       locationsApi.get('lieux-hierarchy/'),
       modelsApi.get('modele-equipements/')
     ]);
@@ -261,6 +255,10 @@ defineExpose({
 onMounted(() => {
   fetchData();
 });
+
+components: {
+  VTreeview
+}
 </script>
 
 <style scoped>

@@ -1,10 +1,33 @@
 from rest_framework import serializers
-from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEquipement, Compteur, FamilleEquipement, DocumentEquipement
+from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEquipement, Compteur, FamilleEquipement
 from donnees.api.serializers import LieuSerializer
 from donnees.models import Document
 from maintenance.models import DemandeIntervention, BonTravail
 
 class EquipementSerializer(serializers.ModelSerializer):
+    # Fetcg le dernier statut de l'équipement
+    statut = serializers.SerializerMethodField() 
+    lieu = LieuSerializer(read_only=True)  
+    
+    def get_statut(self, obj):
+        statut = obj.statuts.order_by('-dateChangement').first()
+        if statut:
+            return {
+                'id': statut.id,
+                'statut': statut.statut,
+                'dateChangement': statut.dateChangement
+            }
+        return None
+    
+    def get_lieu(self, obj):
+        if obj.lieu:
+            return {
+                'id': obj.lieu.id,
+                'nomLieu': obj.lieu.nomLieu,
+                'typeLieu': obj.lieu.typeLieu
+            }
+        return None
+    
     class Meta:
         model = Equipement
         fields = '__all__'
@@ -78,7 +101,9 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             {
                 'id': d.id,
                 'nomDocument': d.nomDocument if hasattr(d, 'nomDocument') else '',
-                'cheminAcces': d.cheminAcces if hasattr(d, 'cheminAcces') else ''
+                'cheminAcces': d.cheminAcces if hasattr(d, 'cheminAcces') else '',
+                'typeDocument': d.typeDocument.nomTypeDocument if hasattr(d, 'typeDocument') else ''
+
             }
             for d in obj.documents.all()
         ]
@@ -88,7 +113,8 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         return [
             {
                 'id': r.consommable.id,
-                'designation': r.consommable.designation
+                'designation': r.consommable.designation,
+                'fabricant': r.consommable.fabricant.nom if r.consommable.fabricant else None,
             }
             for r in relations
         ]
