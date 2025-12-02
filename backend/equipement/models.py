@@ -51,7 +51,11 @@ class Equipement(models.Model):
     preventifGlissant = models.BooleanField(default=False, help_text="Indique si l'entretien préventif est glissant")
     createurEquipementId = models.IntegerField(help_text="ID de l'utilisateur ayant créé l'équipement")
     lieu = models.ForeignKey(Lieu, on_delete=models.PROTECT, related_name="equipements", help_text="Lieu où se trouve l'équipement")
-    documents = models.ManyToManyField(Document, blank=True, help_text="Documents associés à l'équipement")
+    documents = models.ManyToManyField( Document, 
+                                        through='DocumentEquipement', 
+                                        blank=True, 
+                                        help_text="Documents associés à l'équipement"
+                                    )   
     modele = models.ForeignKey(ModeleEquipement, on_delete=models.PROTECT, related_name="equipements", help_text="Modèle de l'équipement")
     famille = models.ForeignKey(FamilleEquipement, null=True, blank=True, on_delete=models.SET_NULL, related_name="equipements", help_text="Famille de l'équipement")
     x = models.FloatField(null=True, blank=True, help_text="Coordonnée X de l'équipement dans le lieu")
@@ -123,3 +127,19 @@ class Constituer(models.Model):
         db_table = 'gimao_constituer'
         verbose_name = 'Constituer'
         verbose_name_plural = 'Constituer'
+        
+        
+class DocumentEquipement(models.Model):
+    """
+    Relation many-to-many entre Equipement et Document (de l'app donnees).
+    """
+    equipement = models.ForeignKey(Equipement, on_delete=models.CASCADE, help_text="Équipement associé")
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, help_text="Document associé")
+
+    def __str__(self):
+        return f"Equipement {self.equipement.id} - Document {self.document.id}"
+    
+    class Meta:
+        db_table = 'gimao_document_equipement'
+        verbose_name = 'Lien Document-Equipement'
+        verbose_name_plural = 'Liens Documents-Equipements'

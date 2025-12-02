@@ -23,7 +23,8 @@ class Consommable(models.Model):
     magasin = models.ForeignKey(Magasin, on_delete=models.CASCADE)
     seuilStockFaible = models.IntegerField(validators=[MinValueValidator(0)], blank=True, null=True, help_text="Seuil en dessous duquel le stock est considéré comme faible")
     documents = models.ManyToManyField('donnees.Document', blank=True, help_text="Documents associés au consommable")
-
+    fabricant = models.ForeignKey('donnees.Fabricant', on_delete=models.CASCADE, null=True, blank=True, related_name='fabricant', help_text="Fabricant du consommable")
+    fournisseur = models.ForeignKey('donnees.Fournisseur', on_delete=models.CASCADE, null=True, blank=True, related_name='fournisseur', help_text="Fournisseur principal du consommable")
     def __str__(self):
         return self.designation
 

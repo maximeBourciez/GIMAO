@@ -18,7 +18,6 @@
             </div>
           </div>
 
-
           <!-- Section documentation -->
           <v-card elevation="2" class="mt-4">
             <v-card-title class="text-h6">Documentation</v-card-title>
@@ -27,25 +26,33 @@
             <!-- Documents techniques -->
             <v-card-text>
               <h4 class="mb-2">Documents techniques</h4>
-              <v-data-table :headers="technicalDocumentsHeaders" :items="data.liste_documents_techniques || []"
-                class="elevation-1 mb-4" hide-default-footer>
+              <v-data-table v-if="technicalDocuments.length > 0" 
+                :headers="technicalDocumentsHeaders" 
+                :items="technicalDocuments"
+                class="elevation-1 mb-4" 
+                hide-default-footer>
                 <template #item.action="{ item }">
-                  <v-btn icon size="small" color="primary"
+                  <v-btn v-if="item.lienDocumentTechnique" icon size="small" color="primary"
                     @click="downloadDocument(item.lienDocumentTechnique, item.nomDocumentTechnique)">
                     <v-icon>mdi-download</v-icon>
                   </v-btn>
+                  <span v-else class="text-caption text-grey">Non disponible</span>
                 </template>
               </v-data-table>
+              <p v-else class="text-caption text-grey">Aucun document technique disponible</p>
+            </v-card-text>
 
-              <!-- Autres documents -->
-              <h4 class="mb-2 mt-4">Autres documents</h4>
-              <v-data-table :headers="othersDocumentsHeaders" :items="othersDocuments" class="elevation-1"
-                hide-default-footer>
+            <!-- Autres documents (défaillances et interventions) -->
+            <v-card-text v-if="othersDocuments.length > 0">
+              <h4 class="mb-2">Documents associés</h4>
+              <v-data-table :headers="othersDocumentsHeaders" :items="othersDocuments"
+                class="elevation-1 mb-4" hide-default-footer>
                 <template #item.action="{ item }">
-                  <v-btn icon size="small" color="primary"
+                  <v-btn v-if="item.lienDocument" icon size="small" color="primary"
                     @click="downloadDocument(item.lienDocument, item.nomDocument)">
                     <v-icon>mdi-download</v-icon>
                   </v-btn>
+                  <span v-else class="text-caption text-grey">Non disponible</span>
                 </template>
               </v-data-table>
             </v-card-text>
@@ -56,8 +63,17 @@
         <v-col cols="12" md="6">
           <!-- Section image -->
           <v-card elevation="2" class="mb-4">
-            <v-img :src="data.lienImageEquipement" aspect-ratio="4/3" class="rounded-lg" style="max-height: 30vh;"
-              alt="Image de l'équipement"></v-img>
+            <v-img v-if="data.lienImage" :src="data.lienImage" aspect-ratio="4/3" class="rounded-lg" 
+              style="max-height: 30vh; object-fit: cover;" alt="Image de l'équipement">
+              <template v-slot:placeholder>
+                <v-row class="fill-height ma-0" align="center" justify="center">
+                  <v-icon size="64" color="grey-lighten-2">mdi-image-off</v-icon>
+                </v-row>
+              </template>
+            </v-img>
+            <div v-else class="d-flex align-center justify-center pa-8">
+              <v-icon size="64" color="grey-lighten-2">mdi-image-off</v-icon>
+            </div>
           </v-card>
 
           <!-- Boutons d'action -->
@@ -74,8 +90,19 @@
             <v-card-title class="text-h6">Consommables</v-card-title>
             <v-divider></v-divider>
             <v-card-text>
-              <v-data-table :items="data.liste_consommables || []" :headers="consumableHeaders" class="elevation-1"
-                hide-default-footer></v-data-table>
+              <v-data-table v-if="data.liste_consommables && data.liste_consommables.length > 0" 
+                :items="data.liste_consommables" 
+                :headers="consumableHeaders" 
+                class="elevation-1" 
+                hide-default-footer>
+                <template #item.fabricant="{ item }">
+                  {{ item.fabricant?.nomFabricant || 'Non spécifié' }}
+                </template>
+                <template #item.designation="{ item }">
+                  {{ item.designation || 'Sans nom' }}
+                </template>
+              </v-data-table>
+              <p v-else class="text-caption text-grey">Aucun consommable associé</p>
             </v-card-text>
           </v-card>
 
@@ -84,7 +111,10 @@
             <v-card-title class="text-h6">Interventions</v-card-title>
             <v-divider></v-divider>
             <v-card-text>
-              <v-data-table :items="data.liste_interventions || []" :headers="interventionsHeaders" class="elevation-1"
+              <v-data-table v-if="data.liste_interventions && data.liste_interventions.length > 0" 
+                :items="data.liste_interventions" 
+                :headers="interventionsHeaders" 
+                class="elevation-1" 
                 hide-default-footer>
                 <template #item.dateAssignation="{ item }">
                   {{ formatDate(item.dateAssignation) }}
@@ -95,6 +125,7 @@
                   </v-btn>
                 </template>
               </v-data-table>
+              <p v-else class="text-caption text-grey">Aucune intervention enregistrée</p>
             </v-card-text>
           </v-card>
         </v-col>
@@ -133,7 +164,7 @@ const othersDocumentsHeaders = [
 
 const consumableHeaders = [
   { title: 'Désignation', key: 'designation' },
-  { title: 'Fabricant', key: 'fabricant.nomFabricant' }
+  { title: 'Fabricant', key: 'fabricant' }
 ];
 
 const interventionsHeaders = [
@@ -142,43 +173,76 @@ const interventionsHeaders = [
   { title: 'Visualiser', key: 'action', align: 'start' }
 ];
 
+// Documents techniques (corrigé)
+const technicalDocuments = computed(() => {
+  return equipement.value.liste_documents_techniques || [];
+});
+
+// Autres documents (défaillances et interventions)
+const othersDocuments = computed(() => {
+  const documents = [];
+  
+  // Documents de défaillance
+  (equipement.value.liste_documents_defaillance || []).forEach(doc => {
+    documents.push({
+      type: 'Défaillance',
+      nomDocument: doc.nomDocumentDefaillance || 'Document sans nom',
+      lienDocument: doc.lienDocumentDefaillance,
+      source: 'defaillance'
+    });
+  });
+  
+  // Documents d'intervention
+  (equipement.value.liste_documents_intervention || []).forEach(doc => {
+    documents.push({
+      type: 'Intervention',
+      nomDocument: doc.nomDocumentIntervention || 'Document sans nom',
+      lienDocument: doc.lienDocumentIntervention,
+      source: 'intervention'
+    });
+  });
+  
+  // Documents généraux de l'équipement
+  (equipement.value.documents || []).forEach(doc => {
+    documents.push({
+      type: 'Équipement',
+      nomDocument: doc.nomDocument || 'Document sans nom',
+      lienDocument: doc.lienDocument,
+      source: 'equipement'
+    });
+  });
+  
+  return documents;
+});
+
 const equipmentDetails = computed(() => {
   if (!equipement.value) return {};
-  const {
+  const {id,
     reference, designation, dateMiseEnService, prixAchat,
     preventifGlissant, joursIntervalleMaintenance
   } = equipement.value;
   const lieu = equipement.value.lieu?.nomLieu || '';
-  const modele = equipement.value.modeleEquipement?.nomModeleEquipement || '';
+  const modele = equipement.value.modele?.nom || '';
   const fournisseur = equipement.value.fournisseur?.nomFournisseur || '';
   const fabricant = equipement.value.fabricant?.nomFabricant || '';
-  const statut = equipement.value.dernier_statut?.statutEquipement || '';
+  const statut = equipement.value.dernier_statut?.statut || '';
 
-  return {
+  return {id,
     reference, designation, dateMiseEnService, prixAchat,
     preventifGlissant, joursIntervalleMaintenance,
     lieu, modele, fournisseur, fabricant, statut
   };
 });
 
-const othersDocuments = computed(() => {
-  const documentsFailure = (equipement.value.liste_documents_defaillance || []).map(doc => ({
-    type: 'Demande de BT',
-    nomDocument: doc.nomDocumentDefaillance,
-    lienDocument: doc.lienDocumentDefaillance
-  }));
-  const documentsIntervention = (equipement.value.liste_documents_intervention || []).map(doc => ({
-    type: 'Intervention',
-    nomDocument: doc.nomDocumentIntervention,
-    lienDocument: doc.lienDocumentIntervention
-  }));
-  return [...documentsFailure, ...documentsIntervention];
-});
-
 const fetchEquipmentData = async () => {
   errorMessage.value = '';
   try {
-    await api.get(`equipement/${route.params.reference}/affichage/`);
+    await api.get(`equipement/${route.params.id}/affichage/`);
+    // Debug: afficher la structure des données reçues
+    console.log('Données équipement reçues:', api.data.value);
+    console.log('Documents techniques:', api.data.value?.liste_documents_techniques);
+    console.log('Documents défaillance:', api.data.value?.liste_documents_defaillance);
+    console.log('Documents intervention:', api.data.value?.liste_documents_intervention);
   } catch (error) {
     console.error("Erreur lors de la récupération des données de l'équipement:", error);
     errorMessage.value = "Erreur lors du chargement de l'équipement";
@@ -216,33 +280,62 @@ const formatLabel = (key) => {
 };
 
 const formatValue = (value) => {
+  if (value === null || value === undefined) return '-';
   if (typeof value === 'boolean') {
     return value ? 'Oui' : 'Non';
   }
   if (typeof value === 'number') {
-    return value.toLocaleString();
+    return value.toLocaleString('fr-FR');
+  }
+  if (typeof value === 'string' && value.includes('T')) {
+    // C'est probablement une date ISO
+    try {
+      return formatDate(value);
+    } catch {
+      return value;
+    }
   }
   return value || '-';
 };
 
 const viewIntervention = (intervention) => {
-  router.push({
-    name: 'InterventionDetail',
-    params: { id: intervention.id }
-  });
+  if (intervention && intervention.id) {
+    router.push({
+      name: 'InterventionDetail',
+      params: { id: intervention.id }
+    });
+  }
 };
 
 const signalFailure = () => {
-  router.push({
-    name: 'CreateFailure',
-    params: { equipementReference: equipement.value.reference }
-  });
+  if (equipement.value.reference) {
+    router.push({
+      name: 'CreateFailure',
+      params: { equipementId: equipement.value.id }
+    });
+  }
 };
 
 const downloadDocument = async (lien, nomFichier) => {
+  if (!lien) {
+    errorMessage.value = 'Aucun lien de document disponible';
+    return;
+  }
+
   try {
-    const cleanedLink = lien.startsWith('/media/') ? lien : `/media/${lien.split('/media/').pop()}`;
-    const fullUrl = `${BASE_URL}${cleanedLink}`;
+    // Nettoyer le lien
+    let cleanedLink = lien;
+    if (lien.includes('/media/')) {
+      cleanedLink = lien.split('/media/')[1];
+    }
+    
+    // S'assurer que cleanedLink n'a pas de slash au début
+    if (cleanedLink.startsWith('/')) {
+      cleanedLink = cleanedLink.substring(1);
+    }
+    
+    const fullUrl = `${BASE_URL}/media/${cleanedLink}`;
+    console.log('Téléchargement depuis:', fullUrl);
 
     const response = await fetch(fullUrl);
     if (!response.ok) {
@@ -254,12 +347,14 @@ const downloadDocument = async (lien, nomFichier) => {
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    a.download = nomFichier;
+    a.download = nomFichier || 'document';
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
 
     successMessage.value = 'Document téléchargé avec succès';
+    setTimeout(() => successMessage.value = '', 3000);
   } catch (error) {
     console.error('Erreur lors du téléchargement:', error);
     errorMessage.value = 'Erreur lors du téléchargement du fichier';
