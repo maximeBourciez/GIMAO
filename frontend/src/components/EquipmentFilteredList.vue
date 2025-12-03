@@ -14,7 +14,7 @@
               Pas de données disponibles.
             </p>
             <VTreeview v-else v-model:selected="selectedTreeNodes" :items="locations" item-title="nomLieu"
-              item-children="children" item-value="id" select-strategy="selectionType" selectable dense
+              item-children="children" item-value="id" select-strategy="independent" selectable dense
               @update:selected="onSelectLocation">
               <template v-slot:prepend="{ item, open }">
                 <v-icon v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
@@ -186,7 +186,9 @@ const onSelectLocation = (items) => {
       const selectedItem = findItem(locations.value, id);
       return selectedItem?.nomLieu;
     }).filter(Boolean);
+    console.log('Selected Locations:', selectedLocation.value);
   } else {
+    console.log('No Locations Selected');
     selectedLocation.value = [];
   }
 };
@@ -204,7 +206,7 @@ const handleEquipmentTypeSelected = (model) => {
     selectedTypeEquipments.value = [];
   } else {
     const index = selectedTypeEquipments.value.findIndex(
-      m => m.nomModeleEquipement === model.nomModeleEquipement
+      m => m.nom === model.nom
     );
     if (index > -1) {
       selectedTypeEquipments.value.splice(index, 1);
@@ -216,7 +218,7 @@ const handleEquipmentTypeSelected = (model) => {
 
 const isEquipmentTypeSelected = (model) => {
   return selectedTypeEquipments.value.some(
-    m => m.nomModeleEquipement === model.nomModeleEquipement
+    m => m.nom === model.nom
   );
 };
 
@@ -227,7 +229,7 @@ const filteredEquipments = computed(() => {
       selectedLocation.value.includes(e.lieu.nomLieu);
     const typeMatch = selectedTypeEquipments.value.length === 0 ||
       selectedTypeEquipments.value.some(m =>
-        m.nomModeleEquipement === e.modeleEquipement.nomModeleEquipement
+        m.nom === e.modele.nom
       );
     return locationMatch && typeMatch;
   });
