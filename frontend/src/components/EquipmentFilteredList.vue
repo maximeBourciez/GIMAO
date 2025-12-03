@@ -183,13 +183,44 @@ const findItem = (items, id) => {
   return null;
 };
 
+// Fonction pour obtenir tous les IDs descendants d'un lieu
+const getAllDescendantIds = (item) => {
+  let ids = [item.id];
+  if (item.children && item.children.length > 0) {
+    item.children.forEach(child => {
+      ids = ids.concat(getAllDescendantIds(child));
+    });
+  }
+  return ids;
+};
+
+// Fonction pour obtenir tous les noms de lieux descendants
+const getAllDescendantNames = (item) => {
+  let names = [item.nomLieu];
+  if (item.children && item.children.length > 0) {
+    item.children.forEach(child => {
+      names = names.concat(getAllDescendantNames(child));
+    });
+  }
+  return names;
+};
+
+// Modifier onSelectLocation
 const onSelectLocation = (items) => {
   if (items.length > 0) {
-    selectedLocation.value = items.map(id => {
+    const allLocationNames = [];
+    
+    items.forEach(id => {
       const selectedItem = findItem(locations.value, id);
-      return selectedItem?.nomLieu;
-    }).filter(Boolean);
-    console.log('Selected Locations:', selectedLocation.value);
+      if (selectedItem) {
+        // Ajouter le lieu et tous ses descendants
+        allLocationNames.push(...getAllDescendantNames(selectedItem));
+      }
+    });
+    
+    // Supprimer les doublons
+    selectedLocation.value = [...new Set(allLocationNames)];
+    console.log('Selected Locations (with descendants):', selectedLocation.value);
   } else {
     console.log('No Locations Selected');
     selectedLocation.value = [];
