@@ -13,8 +13,9 @@
             <p v-if="!locations || locations.length === 0" class="text-caption">
               Pas de données disponibles.
             </p>
-            <v-treeview v-else v-model:selected="selectedTreeNodes" :items="locations" item-title="nomLieu"
-              item-value="id" select-strategy="selectionType" selectable dense @update:selected="onSelectLocation">
+            <VTreeview v-else v-model:selected="selectedTreeNodes" :items="locations" item-title="nomLieu"
+              item-children="children" item-value="id" select-strategy="independent" selectable dense
+              @update:selected="onSelectLocation">
               <template v-slot:prepend="{ item, open }">
                 <v-icon v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
                   @click.stop="toggleNode(item)" :class="{ 'rotate-icon': open }">
@@ -23,9 +24,9 @@
                 <span v-else class="tree-icon-placeholder"></span>
               </template>
               <template v-slot:label="{ item }">
-                <span class="text-caption ml-2">{{ item.typeLieu }}</span>
+                <span class="text-caption ml-2">{{ item.nomLieu }}</span>
               </template>
-            </v-treeview>
+            </VTreeview>
           </div>
         </v-card>
 
@@ -42,7 +43,7 @@
             </v-list-item>
             <v-list-item v-for="(model, index) in equipmentModels" :key="index" link
               @click="handleEquipmentTypeSelected(model)" :class="{ 'selected-item': isEquipmentTypeSelected(model) }">
-              <v-list-item-title>{{ model.nomModeleEquipement }}</v-list-item-title>
+              <v-list-item-title>{{ model.nom }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-card>
@@ -50,27 +51,21 @@
 
       <!-- Colonne principale avec BaseListView -->
       <v-col cols="12" md="8" lg="9">
-        <BaseListView :title="title" :headers="tableHeaders" :items="filteredEquipments"
-          :loading="loading" :error-message="errorMessage" :show-search="showSearch"
-          :show-create-button="false"
-          :no-data-text="noDataText" no-data-icon="mdi-package-variant-closed" 
-          @row-click="$emit('row-click', $event)"
+        <BaseListView :title="title" :headers="tableHeaders" :items="filteredEquipments" :loading="loading"
+          :error-message="errorMessage" :show-search="showSearch" :show-create-button="false" :no-data-text="noDataText"
+          no-data-icon="mdi-package-variant-closed" @row-click="$emit('row-click', $event)"
           @clear-error="errorMessage = ''">
           <!-- Colonne Statut avec chip coloré -->
-          <template #item.statut.statutEquipement="{ item }">
-            <v-chip :color="getStatusColor(item.statut.statutEquipement)" text-color="white" size="small">
-              {{ item.statut.statutEquipement }}
+          <template #item.statut.statut="{ item }">
+            <v-chip :color="getStatusColor(item.statut.statut)" text-color="black" size="small" variant="flat">
+              {{ item.statut.statut }}
             </v-chip>
+
           </template>
         </BaseListView>
 
         <!-- Bouton flottant en bas à droite -->
-        <v-btn v-if="showCreateButton"
-          color="primary"
-          size="large"
-          icon
-          class="floating-add-button"
-          elevation="4"
+        <v-btn v-if="showCreateButton" color="primary" size="large" icon class="floating-add-button" elevation="4"
           @click="$emit('create')">
           <v-icon size="large">mdi-plus</v-icon>
           <v-tooltip activator="parent" location="left">
@@ -84,7 +79,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { VTreeView } from 'vuetify/labs/components';
+import { VTreeview } from 'vuetify/labs/VTreeview';
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor } from '@/utils/helpers';
@@ -145,11 +140,13 @@ const loading = computed(() =>
 );
 
 const defaultHeaders = [
-  { title: 'Désignation', key: 'modeleEquipement.nomModeleEquipement', sortable: true, align: 'center' },
+  { title: 'Référence', key: 'reference', sortable: true, align: 'center' },
+  { title: 'Désignation', key: 'designation', sortable: true, align: 'center' },
   { title: 'Lieu', key: 'lieu.nomLieu', sortable: true, align: 'center' },
+  { title: 'Modèle', key: 'modele', sortable: true, align: 'center' },
   {
     title: 'Statut',
-    key: 'statut.statutEquipement',
+    key: 'statut.statut',
     sortable: true,
     align: 'center',
     sort: (a, b) => {
@@ -164,7 +161,7 @@ const tableHeaders = computed(() => [...defaultHeaders, ...props.additionalHeade
 const fetchData = async () => {
   try {
     await Promise.all([
-      equipmentsApi.get('equipements-detail/'),
+      equipmentsApi.get('equipements/'),
       locationsApi.get('lieux-hierarchy/'),
       modelsApi.get('modele-equipements/')
     ]);
@@ -186,13 +183,46 @@ const findItem = (items, id) => {
   return null;
 };
 
+// Fonction pour obtenir tous les IDs descendants d'un lieu
+const getAllDescendantIds = (item) => {
+  let ids = [item.id];
+  if (item.children && item.children.length > 0) {
+    item.children.forEach(child => {
+      ids = ids.concat(getAllDescendantIds(child));
+    });
+  }
+  return ids;
+};
+
+// Fonction pour obtenir tous les noms de lieux descendants
+const getAllDescendantNames = (item) => {
+  let names = [item.nomLieu];
+  if (item.children && item.children.length > 0) {
+    item.children.forEach(child => {
+      names = names.concat(getAllDescendantNames(child));
+    });
+  }
+  return names;
+};
+
+// Modifier onSelectLocation
 const onSelectLocation = (items) => {
   if (items.length > 0) {
-    selectedLocation.value = items.map(id => {
+    const allLocationNames = [];
+    
+    items.forEach(id => {
       const selectedItem = findItem(locations.value, id);
-      return selectedItem?.nomLieu;
-    }).filter(Boolean);
+      if (selectedItem) {
+        // Ajouter le lieu et tous ses descendants
+        allLocationNames.push(...getAllDescendantNames(selectedItem));
+      }
+    });
+    
+    // Supprimer les doublons
+    selectedLocation.value = [...new Set(allLocationNames)];
+    console.log('Selected Locations (with descendants):', selectedLocation.value);
   } else {
+    console.log('No Locations Selected');
     selectedLocation.value = [];
   }
 };
@@ -210,19 +240,21 @@ const handleEquipmentTypeSelected = (model) => {
     selectedTypeEquipments.value = [];
   } else {
     const index = selectedTypeEquipments.value.findIndex(
-      m => m.nomModeleEquipement === model.nomModeleEquipement
+      m => m.nom === model.nom
     );
     if (index > -1) {
       selectedTypeEquipments.value.splice(index, 1);
     } else {
       selectedTypeEquipments.value.push(model);
     }
+    console.log('Selected Equipment Types:', selectedTypeEquipments.value);
+  console.log('Sample equipment modele:', equipments.value[0]?.modele);
   }
 };
 
 const isEquipmentTypeSelected = (model) => {
   return selectedTypeEquipments.value.some(
-    m => m.nomModeleEquipement === model.nomModeleEquipement
+    m => m.nom === model.nom
   );
 };
 
@@ -233,7 +265,7 @@ const filteredEquipments = computed(() => {
       selectedLocation.value.includes(e.lieu.nomLieu);
     const typeMatch = selectedTypeEquipments.value.length === 0 ||
       selectedTypeEquipments.value.some(m =>
-        m.nomModeleEquipement === e.modeleEquipement.nomModeleEquipement
+        m.nom === e.modele
       );
     return locationMatch && typeMatch;
   });
@@ -261,6 +293,10 @@ defineExpose({
 onMounted(() => {
   fetchData();
 });
+
+components: {
+  VTreeview
+}
 </script>
 
 <style scoped>

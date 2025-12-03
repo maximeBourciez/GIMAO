@@ -9,8 +9,8 @@
           <h3 class="text-h6 mb-4 text-primary">Description de l'équipement</h3>
 
           <div v-for="(value, key) in equipmentDetails" :key="key" class="detail-field">
-            <label class="detail-label">{{ formatLabel(key) }}</label>
-            <div class="detail-value">
+            <label class="detail-label" v-if="key !== 'id'">{{ formatLabel(key) }}</label>
+            <div class="detail-value" v-if="key !== 'id'">
               <v-chip v-if="key === 'statut'" :color="getStatusColor(value)" dark size="small">
                 {{ value }}
               </v-chip>
@@ -26,11 +26,8 @@
             <!-- Documents techniques -->
             <v-card-text>
               <h4 class="mb-2">Documents techniques</h4>
-              <v-data-table v-if="technicalDocuments.length > 0" 
-                :headers="technicalDocumentsHeaders" 
-                :items="technicalDocuments"
-                class="elevation-1 mb-4" 
-                hide-default-footer>
+              <v-data-table v-if="technicalDocuments.length > 0" :headers="technicalDocumentsHeaders"
+                :items="technicalDocuments" class="elevation-1 mb-4" hide-default-footer>
                 <template #item.action="{ item }">
                   <v-btn v-if="item.lienDocumentTechnique" icon size="small" color="primary"
                     @click="downloadDocument(item.lienDocumentTechnique, item.nomDocumentTechnique)">
@@ -45,8 +42,8 @@
             <!-- Autres documents (défaillances et interventions) -->
             <v-card-text v-if="othersDocuments.length > 0">
               <h4 class="mb-2">Documents associés</h4>
-              <v-data-table :headers="othersDocumentsHeaders" :items="othersDocuments"
-                class="elevation-1 mb-4" hide-default-footer>
+              <v-data-table :headers="othersDocumentsHeaders" :items="othersDocuments" class="elevation-1 mb-4"
+                hide-default-footer>
                 <template #item.action="{ item }">
                   <v-btn v-if="item.lienDocument" icon size="small" color="primary"
                     @click="downloadDocument(item.lienDocument, item.nomDocument)">
@@ -63,7 +60,7 @@
         <v-col cols="12" md="6">
           <!-- Section image -->
           <v-card elevation="2" class="mb-4">
-            <v-img v-if="data.lienImage" :src="data.lienImage" aspect-ratio="4/3" class="rounded-lg" 
+            <v-img v-if="data.lienImage" :src="data.lienImage" aspect-ratio="4/3" class="rounded-lg"
               style="max-height: 30vh; object-fit: cover;" alt="Image de l'équipement">
               <template v-slot:placeholder>
                 <v-row class="fill-height ma-0" align="center" justify="center">
@@ -85,47 +82,74 @@
             </v-card-actions>
           </v-card>
 
+          <!-- Section compteurs -->
+          <div>
+            <v-card elevation="2" class="mb-4">
+              <v-card-title class="text-h6">Compteurs</v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
+
+                <v-data-table v-if="data.compteurs && data.compteurs.length > 0" :items="data.compteurs"
+                  :headers="counterHeaders" class="elevation-1" hide-default-footer>
+                </v-data-table>
+                <p v-else class="text-caption text-grey">Aucun compteur disponible</p>
+
+              </v-card-text>
+            </v-card>
+            <div class="justify-end d-flex">
+              <v-btn text color="primary align-self-end" class="mt-2"
+                @click="router.push({ name: 'CreateCounter', query: { equipementId: data.id } })">
+                Ajouter un compteur
+              </v-btn>
+            </div>
+          </div>
+
+
+          <!-- Historique des interventions -->
+          <div>
+            <v-card elevation="2">
+              <v-card-title class="text-h6">Interventions</v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
+                <v-data-table v-if="data.bons_travail && data.bons_travail.length > 0" :items="data.bons_travail"
+                  :headers="interventionsHeaders" class="elevation-1" hide-default-footer>
+                  <template #item.dateAssignation="{ item }">
+                    {{ formatDate(item.dateAssignation) }}
+                  </template>
+                  <template #item.action="{ item }">
+                    <v-btn icon size="small" @click="viewIntervention(item)">
+                      <v-icon>mdi-eye</v-icon>
+                    </v-btn>
+                  </template>
+                </v-data-table>
+                <p v-else class="text-caption text-grey">Aucune intervention enregistrée</p>
+              </v-card-text>
+            </v-card>
+
+            <div class="justify-end d-flex">
+              <v-btn text color="primary" class="mt-2"
+                @click="router.push({ name: 'CreateFailure', query: { equipementId: data.id } })">
+                Ajouter une DI
+              </v-btn>
+            </div>
+          </div>
+
+
           <!-- Section consommables -->
           <v-card elevation="2" class="mb-4">
             <v-card-title class="text-h6">Consommables</v-card-title>
             <v-divider></v-divider>
             <v-card-text>
-              <v-data-table v-if="data.liste_consommables && data.liste_consommables.length > 0" 
-                :items="data.liste_consommables" 
-                :headers="consumableHeaders" 
-                class="elevation-1" 
-                hide-default-footer>
+              <v-data-table v-if="data.consommables && data.consommables.length > 0" :items="data.consommables"
+                :headers="consumableHeaders" class="elevation-1" hide-default-footer>
                 <template #item.fabricant="{ item }">
-                  {{ item.fabricant?.nomFabricant || 'Non spécifié' }}
+                  {{ item.fabricant || 'Non spécifié' }}
                 </template>
                 <template #item.designation="{ item }">
                   {{ item.designation || 'Sans nom' }}
                 </template>
               </v-data-table>
               <p v-else class="text-caption text-grey">Aucun consommable associé</p>
-            </v-card-text>
-          </v-card>
-
-          <!-- Historique des interventions -->
-          <v-card elevation="2">
-            <v-card-title class="text-h6">Interventions</v-card-title>
-            <v-divider></v-divider>
-            <v-card-text>
-              <v-data-table v-if="data.liste_interventions && data.liste_interventions.length > 0" 
-                :items="data.liste_interventions" 
-                :headers="interventionsHeaders" 
-                class="elevation-1" 
-                hide-default-footer>
-                <template #item.dateAssignation="{ item }">
-                  {{ formatDate(item.dateAssignation) }}
-                </template>
-                <template #item.action="{ item }">
-                  <v-btn icon size="small" @click="viewIntervention(item)">
-                    <v-icon>mdi-eye</v-icon>
-                  </v-btn>
-                </template>
-              </v-data-table>
-              <p v-else class="text-caption text-grey">Aucune intervention enregistrée</p>
             </v-card-text>
           </v-card>
         </v-col>
@@ -168,10 +192,17 @@ const consumableHeaders = [
 ];
 
 const interventionsHeaders = [
-  { title: 'Nom', key: 'nomIntervention' },
-  { title: "Date d'assignation", key: 'dateAssignation' },
+  { title: 'Nom', key: 'nom' },
+  { title: "Date d'assignation", key: 'date_fin' },
   { title: 'Visualiser', key: 'action', align: 'start' }
 ];
+
+const counterHeaders = [
+  { title: "ID", key: 'id' },
+  { title: 'Nom du compteur', key: 'nomCompteur' },
+  { title: 'Valeur courante', key: 'valeurCourante' },
+  { title: "Prochaine intervention", key: 'valeurEcheance' }
+]
 
 // Documents techniques (corrigé)
 const technicalDocuments = computed(() => {
@@ -181,7 +212,7 @@ const technicalDocuments = computed(() => {
 // Autres documents (défaillances et interventions)
 const othersDocuments = computed(() => {
   const documents = [];
-  
+
   // Documents de défaillance
   (equipement.value.liste_documents_defaillance || []).forEach(doc => {
     documents.push({
@@ -191,7 +222,7 @@ const othersDocuments = computed(() => {
       source: 'defaillance'
     });
   });
-  
+
   // Documents d'intervention
   (equipement.value.liste_documents_intervention || []).forEach(doc => {
     documents.push({
@@ -201,7 +232,7 @@ const othersDocuments = computed(() => {
       source: 'intervention'
     });
   });
-  
+
   // Documents généraux de l'équipement
   (equipement.value.documents || []).forEach(doc => {
     documents.push({
@@ -211,23 +242,26 @@ const othersDocuments = computed(() => {
       source: 'equipement'
     });
   });
-  
+
   return documents;
 });
 
 const equipmentDetails = computed(() => {
   if (!equipement.value) return {};
-  const {id,
+  const { id,
     reference, designation, dateMiseEnService, prixAchat,
     preventifGlissant, joursIntervalleMaintenance
   } = equipement.value;
+
+  console.log('Equipement value:', equipement.value);
   const lieu = equipement.value.lieu?.nomLieu || '';
   const modele = equipement.value.modele?.nom || '';
-  const fournisseur = equipement.value.fournisseur?.nomFournisseur || '';
-  const fabricant = equipement.value.fabricant?.nomFabricant || '';
+  const fournisseur = equipement.value.fournisseur || '';
+  const fabricant = equipement.value.fabricant || '';
   const statut = equipement.value.dernier_statut?.statut || '';
 
-  return {id,
+  return {
+    id,
     reference, designation, dateMiseEnService, prixAchat,
     preventifGlissant, joursIntervalleMaintenance,
     lieu, modele, fournisseur, fabricant, statut
@@ -238,28 +272,10 @@ const fetchEquipmentData = async () => {
   errorMessage.value = '';
   try {
     await api.get(`equipement/${route.params.id}/affichage/`);
-    // Debug: afficher la structure des données reçues
-    console.log('Données équipement reçues:', api.data.value);
-    console.log('Documents techniques:', api.data.value?.liste_documents_techniques);
-    console.log('Documents défaillance:', api.data.value?.liste_documents_defaillance);
-    console.log('Documents intervention:', api.data.value?.liste_documents_intervention);
   } catch (error) {
     console.error("Erreur lors de la récupération des données de l'équipement:", error);
     errorMessage.value = "Erreur lors du chargement de l'équipement";
   }
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).replace(',', '');
 };
 
 const formatLabel = (key) => {
@@ -279,24 +295,65 @@ const formatLabel = (key) => {
   return labels[key] || key;
 };
 
+// Détecte un ISO 8601 de type complet (ex: 2025-12-02T22:15:30Z ou 2025-12-02T22:15:30+01:00)
+const isoDateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/;
+
+// Formatage de date (tu peux adapter les options)
+const formatDate = (isoString) => {
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString; // fallback
+  return new Intl.DateTimeFormat('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).format(d);
+};
+
 const formatValue = (value) => {
   if (value === null || value === undefined) return '-';
+
   if (typeof value === 'boolean') {
     return value ? 'Oui' : 'Non';
   }
+
   if (typeof value === 'number') {
     return value.toLocaleString('fr-FR');
   }
-  if (typeof value === 'string' && value.includes('T')) {
-    // C'est probablement une date ISO
-    try {
-      return formatDate(value);
-    } catch {
-      return value;
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+
+    // Si la chaîne correspond strictement au pattern ISO datetime, on la formate.
+    if (isoDateTimeRegex.test(trimmed)) {
+
+      const ts = Date.parse(trimmed);
+      if (!isNaN(ts)) {
+        return formatDate(trimmed);
+      }
+      return trimmed;
     }
+
+    // Reconnaissance d'une date ISO sans time (YYYY-MM-DD)
+    const isoDateOnly = /^\d{4}-\d{2}-\d{2}$/;
+    if (isoDateOnly.test(trimmed)) {
+      const ts = Date.parse(trimmed);
+      if (!isNaN(ts)) {
+        return new Intl.DateTimeFormat('fr-FR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
+      }
+      return trimmed;
+    }
+
+    // Aucun format date reconnu -> on renvoie la chaîne telle quelle 
+    return trimmed === '' ? '-' : trimmed;
   }
-  return value || '-';
+
+  // Par défaut
+  return String(value) || '-';
 };
+
 
 const viewIntervention = (intervention) => {
   if (intervention && intervention.id) {
@@ -328,12 +385,12 @@ const downloadDocument = async (lien, nomFichier) => {
     if (lien.includes('/media/')) {
       cleanedLink = lien.split('/media/')[1];
     }
-    
+
     // S'assurer que cleanedLink n'a pas de slash au début
     if (cleanedLink.startsWith('/')) {
       cleanedLink = cleanedLink.substring(1);
     }
-    
+
     const fullUrl = `${BASE_URL}/media/${cleanedLink}`;
     console.log('Téléchargement depuis:', fullUrl);
 

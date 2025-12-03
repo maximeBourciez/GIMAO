@@ -56,7 +56,9 @@ class Equipement(models.Model):
                                         blank=True, 
                                         help_text="Documents associés à l'équipement"
                                     )   
-    modele = models.ForeignKey(ModeleEquipement, on_delete=models.PROTECT, related_name="equipements", help_text="Modèle de l'équipement")
+    fabricant = models.ForeignKey(Fabricant, on_delete=models.PROTECT, null=True, blank=True, related_name="equipements", help_text="Fabricant de l'équipement")
+    fournisseur = models.ForeignKey(Fournisseur, on_delete=models.PROTECT, null=True, blank=True, related_name="equipements", help_text="Fournisseur de l'équipement")
+    modele = models.ForeignKey(ModeleEquipement, on_delete=models.PROTECT, null=True, blank=True, related_name="equipements", help_text="Modèle de l'équipement")
     famille = models.ForeignKey(FamilleEquipement, null=True, blank=True, on_delete=models.SET_NULL, related_name="equipements", help_text="Famille de l'équipement")
     x = models.FloatField(null=True, blank=True, help_text="Coordonnée X de l'équipement dans le lieu")
     y = models.FloatField(null=True, blank=True, help_text="Coordonnée Y del'équipement dans le lieu")
@@ -94,6 +96,7 @@ class Compteur(models.Model):
     Représente un compteur ou indicateur lié à un équipement pour la maintenance.
     """
     equipement = models.ForeignKey(Equipement, on_delete=models.CASCADE, related_name="compteurs", help_text="Équipement associé au compteur")
+    nomCompteur = models.CharField(max_length=100, null=False, default="Compteur sans nom", help_text="Nom du compteur")
     valeurCourante = models.FloatField(help_text="Valeur actuelle du compteur")
     valeurEcheance = models.FloatField(help_text="Valeur à l'échéance pour déclencher la maintenance")
     prochaineMaintenance = models.FloatField(help_text="Valeur prévue pour la prochaine maintenance")
