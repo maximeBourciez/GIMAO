@@ -42,13 +42,15 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
     documents = serializers.SerializerMethodField()
     consommables = serializers.SerializerMethodField()
     bons_travail = serializers.SerializerMethodField()
+    fabricant = serializers.CharField(source='fabricant.nom', read_only=True)
+    fournisseur = serializers.CharField(source='fournisseur.nom', read_only=True)
 
     class Meta:
         model = Equipement
         fields = [
             'id', 'numSerie', 'reference', 'dateCreation', 'designation',
             'dateMiseEnService', 'prixAchat', 'lienImage', 'preventifGlissant',
-            'createurEquipementId', 'x', 'y',
+            'createurEquipementId', 'x', 'y', 'fabricant', 'fournisseur',
             'lieu', 'modele', 'famille', 'dernier_statut',
             'compteurs', 'documents', 'consommables', 'bons_travail'
         ]

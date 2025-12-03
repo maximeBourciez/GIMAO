@@ -256,8 +256,8 @@ const equipmentDetails = computed(() => {
   console.log('Equipement value:', equipement.value);
   const lieu = equipement.value.lieu?.nomLieu || '';
   const modele = equipement.value.modele?.nom || '';
-  const fournisseur = equipement.value.fournisseur?.nomFournisseur || '';
-  const fabricant = equipement.value.fabricant?.nomFabricant || '';
+  const fournisseur = equipement.value.fournisseur || '';
+  const fabricant = equipement.value.fabricant || '';
   const statut = equipement.value.dernier_statut?.statut || '';
 
   return {
