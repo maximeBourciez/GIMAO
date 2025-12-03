@@ -1,38 +1,30 @@
 <template>
   <v-container :fluid="fluid">
     <!-- Header avec titre et actions -->
-    <v-row v-if="title || showCreateButton || $slots.actions" class="mb-4">
-      <v-col>
-        <div class="d-flex align-center justify-space-between">
-          <div>
-            <h1 v-if="title" :class="titleClass">{{ title }}</h1>
-            <p v-if="subtitle" :class="subtitleClass">{{ subtitle }}</p>
-          </div>
-          <div class="d-flex gap-2">
-            <slot name="actions">
-              <v-btn v-if="showCreateButton" :color="createButtonColor" :prepend-icon="createButtonIcon"
-                @click="$emit('create')">
-                {{ createButtonText }}
-              </v-btn>
-            </slot>
-          </div>
-        </div>
+    <v-row class="mb-4" align="center" justify="space-between">
+      <!-- Titre -->
+      <v-col cols="12" md="6">
+        <h1 v-if="title" :class="titleClass">{{ title }}</h1>
+        <p v-if="subtitle" :class="subtitleClass">{{ subtitle }}</p>
+      </v-col>
+
+      <!-- Barre de recherche -->
+      <v-col cols="12" md="6" class="mt-2">
+        <v-text-field v-if="showSearch" v-model="searchQuery" :label="searchLabel" :placeholder="searchPlaceholder"
+          prepend-inner-icon="mdi-magnify" clearable variant="outlined" density="compact" hide-details
+          @input="handleSearch"></v-text-field>
+      </v-col>
+
+      <!-- Actions -->
+      <v-col cols="12" md="auto" class="d-flex justify-end">
+        <slot name="actions">
+          <v-btn v-if="showCreateButton" :color="createButtonColor" :prepend-icon="createButtonIcon"
+            @click="$emit('create')">
+            {{ createButtonText }}
+          </v-btn>
+        </slot>
       </v-col>
     </v-row>
-
-    <!-- Barre de recherche et filtres -->
-    <div class="justify-end">
-      <v-row v-if="showSearch || $slots.filters" class="mb-4">
-        <v-col v-if="showSearch" :cols="searchCols" :md="searchMd">
-          <v-text-field v-model="searchQuery" :label="searchLabel" :placeholder="searchPlaceholder"
-            prepend-inner-icon="mdi-magnify" clearable variant="outlined" density="compact" hide-details
-            @input="handleSearch"></v-text-field>
-        </v-col>
-        <v-col v-if="$slots.filters">
-          <slot name="filters" :search-query="searchQuery"></slot>
-        </v-col>
-      </v-row>
-    </div>
 
 
     <!-- Alerts -->
