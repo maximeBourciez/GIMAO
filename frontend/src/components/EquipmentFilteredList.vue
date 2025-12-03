@@ -52,9 +52,9 @@
       <!-- Colonne principale avec BaseListView -->
       <v-col cols="12" md="8" lg="9">
         <BaseListView :title="title" :headers="tableHeaders" :items="filteredEquipments" :loading="loading"
-          :error-message="errorMessage" :show-search="showSearch" :show-create-button="false" :no-data-text="noDataText"
-          no-data-icon="mdi-package-variant-closed" @row-click="$emit('row-click', $event)"
-          @clear-error="errorMessage = ''">
+          @search="searchQuery = $event" :error-message="errorMessage" :show-search="showSearch.default"
+          :show-create-button="false" :no-data-text="noDataText" no-data-icon="mdi-package-variant-closed"
+          @row-click="$emit('row-click', $event)" @clear-error="errorMessage = ''" :internal-search="true">
           <!-- Colonne Statut avec chip coloré -->
           <template #item.statut.statut="{ item }">
             <v-chip :color="getStatusColor(item.statut.statut)" text-color="black" size="small" variant="flat">
@@ -92,7 +92,7 @@ const props = defineProps({
   },
   showSearch: {
     type: Boolean,
-    default: false
+    default: true
   },
   showCreateButton: {
     type: Boolean,
@@ -209,7 +209,7 @@ const getAllDescendantNames = (item) => {
 const onSelectLocation = (items) => {
   if (items.length > 0) {
     const allLocationNames = [];
-    
+
     items.forEach(id => {
       const selectedItem = findItem(locations.value, id);
       if (selectedItem) {
@@ -217,7 +217,7 @@ const onSelectLocation = (items) => {
         allLocationNames.push(...getAllDescendantNames(selectedItem));
       }
     });
-    
+
     // Supprimer les doublons
     selectedLocation.value = [...new Set(allLocationNames)];
     console.log('Selected Locations (with descendants):', selectedLocation.value);
@@ -248,7 +248,7 @@ const handleEquipmentTypeSelected = (model) => {
       selectedTypeEquipments.value.push(model);
     }
     console.log('Selected Equipment Types:', selectedTypeEquipments.value);
-  console.log('Sample equipment modele:', equipments.value[0]?.modele);
+    console.log('Sample equipment modele:', equipments.value[0]?.modele);
   }
 };
 

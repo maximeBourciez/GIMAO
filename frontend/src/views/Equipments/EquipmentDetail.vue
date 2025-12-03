@@ -5,7 +5,7 @@
     <template #default="{ data }">
       <v-row v-if="data">
         <!-- Section gauche : Détails de l'équipement -->
-        <v-col cols="12" md="6">
+        <v-col cols="12" md="4">
           <h3 class="text-h6 mb-4 text-primary">Description de l'équipement</h3>
 
           <div v-for="(value, key) in equipmentDetails" :key="key" class="detail-field">
@@ -57,7 +57,7 @@
         </v-col>
 
         <!-- Section droite : Image, consommables, interventions et actions -->
-        <v-col cols="12" md="6">
+        <v-col cols="12" md="8">
           <!-- Section image -->
           <v-card elevation="2" class="mb-4">
             <v-img v-if="data.lienImage" :src="data.lienImage" aspect-ratio="4/3" class="rounded-lg"
