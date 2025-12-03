@@ -11,17 +11,15 @@ export const DEFAULT_ITEMS_PER_PAGE = 10;
 // ============================================
 
 export const EQUIPMENT_STATUS = {
-  FUNCTIONING: "En fonctionnement",
-  STOPPED: "À l'arrêt",
-  DEGRADED: "Dégradé",
-  SCRAPPED: "Rebuté",
+  FUNCTIONING: "Fonctionnel",
+  STOPPED: "A l'arrêt",
+  DEGRADED: "Dégradé"
 };
 
 export const EQUIPMENT_STATUS_COLORS = {
   [EQUIPMENT_STATUS.FUNCTIONING]: "green",
   [EQUIPMENT_STATUS.STOPPED]: "red",
-  [EQUIPMENT_STATUS.DEGRADED]: "orange",
-  [EQUIPMENT_STATUS.SCRAPPED]: "grey",
+  [EQUIPMENT_STATUS.DEGRADED]: "orange"
 };
 
 // ============================================

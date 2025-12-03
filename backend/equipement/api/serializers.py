@@ -7,6 +7,7 @@ from maintenance.models import DemandeIntervention, BonTravail
 class EquipementSerializer(serializers.ModelSerializer):
     # Fetcg le dernier statut de l'équipement
     statut = serializers.SerializerMethodField() 
+    modele = serializers.CharField(source='modele.nom', read_only=True)
     lieu = LieuSerializer(read_only=True)  
     
     def get_statut(self, obj):

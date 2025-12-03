@@ -57,9 +57,10 @@
           @clear-error="errorMessage = ''">
           <!-- Colonne Statut avec chip coloré -->
           <template #item.statut.statut="{ item }">
-            <v-chip :color="getStatusColor(item.statut.statut)" text-color="white" size="small">
+            <v-chip :color="getStatusColor(item.statut.statut)" text-color="black" size="small" variant="flat">
               {{ item.statut.statut }}
             </v-chip>
+
           </template>
         </BaseListView>
 
@@ -139,8 +140,10 @@ const loading = computed(() =>
 );
 
 const defaultHeaders = [
+  { title: 'Référence', key: 'reference', sortable: true, align: 'center' },
   { title: 'Désignation', key: 'designation', sortable: true, align: 'center' },
   { title: 'Lieu', key: 'lieu.nomLieu', sortable: true, align: 'center' },
+  { title: 'Modèle', key: 'modele', sortable: true, align: 'center' },
   {
     title: 'Statut',
     key: 'statut.statut',
@@ -213,6 +216,8 @@ const handleEquipmentTypeSelected = (model) => {
     } else {
       selectedTypeEquipments.value.push(model);
     }
+    console.log('Selected Equipment Types:', selectedTypeEquipments.value);
+  console.log('Sample equipment modele:', equipments.value[0]?.modele);
   }
 };
 
@@ -229,7 +234,7 @@ const filteredEquipments = computed(() => {
       selectedLocation.value.includes(e.lieu.nomLieu);
     const typeMatch = selectedTypeEquipments.value.length === 0 ||
       selectedTypeEquipments.value.some(m =>
-        m.nom === e.modele.nom
+        m.nom === e.modele
       );
     return locationMatch && typeMatch;
   });
