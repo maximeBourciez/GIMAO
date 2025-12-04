@@ -8,7 +8,8 @@
           <template #default="{ formData }">
             <v-row>
               <v-col cols="12" md="6">
-                <v-text-field v-model="formData.numSerie" label="Numéro de série" type="text" outlined dense></v-text-field>
+                <v-text-field v-model="formData.numSerie" label="Numéro de série" type="text" outlined
+                  dense></v-text-field>
               </v-col>
 
               <v-col cols="12" md="6">
@@ -42,12 +43,12 @@
               </v-col>
 
               <v-col cols="12" md="6">
-                <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom"
-                  item-value="id" label="Modèle de l'équipement" outlined dense></v-select>
+                <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom" item-value="id"
+                  label="Modèle de l'équipement" outlined dense></v-select>
               </v-col>
 
               <v-col cols="12" md="6">
-                <v-select v-model="formData.fournisseur" :items="fournisseurs" item-title="nom" item-value="id" 
+                <v-select v-model="formData.fournisseur" :items="fournisseurs" item-title="nom" item-value="id"
                   label="Fournisseur" outlined dense></v-select>
               </v-col>
 
@@ -57,28 +58,8 @@
               </v-col>
 
               <v-col cols="12">
-                <v-divider class="my-4"></v-divider>
-                <h3 class="mb-3">Sélectionner un lieu</h3>
-                <p v-if="!locations || locations.length === 0" class="text-caption">
-                  Pas de données disponibles.
-                </p>
-                <VTreeview v-else :items="locations" item-key="id" :open-on-click="false" item-text="nomLieu" rounded
-                  hoverable activatable dense  :open.sync="openNodes">
-                  <template v-slot:prepend="{ item, open }">
-                    <v-icon v-if="item.children && item.children.length > 0"
-                      @click.stop="toggleNode(item)" :class="{ 'rotate-icon': open }">
-                      {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
-                    </v-icon>
-                    <span v-else class="tree-icon-placeholder"></span>
-                    <span @click="selectLocation(item)">{{ item.nomLieu }}</span>
-                  </template>
-                  <template v-slot:label="{ item }">
-                    <span class="text-caption ml-2">{{ item.typeLieu }}</span>
-                  </template>
-                </VTreeview>
-                <v-chip v-if="formData.lieu" color="primary" class="mt-2" closable @click:close="formData.lieu = null">
-                  Lieu sélectionné: {{ formData.lieu.nomLieu }}
-                </v-chip>
+                <LocationTreeView :items="locations" v-model:selected="formData.lieu" />
+
               </v-col>
 
               <v-col cols="12">
@@ -103,6 +84,7 @@ import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
+import LocationTreeView from '@/components/LieuxTreeview.vue';
 
 const router = useRouter();
 const api = useApi(API_BASE_URL);
@@ -269,7 +251,7 @@ onMounted(() => {
   fetchData();
 });
 
-components:{
+components: {
   VTreeview
 }
 
