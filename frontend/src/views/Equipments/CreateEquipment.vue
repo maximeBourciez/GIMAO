@@ -119,12 +119,15 @@ const selectedConsumables = ref([]);
 const openNodes = ref(new Set());
 
 const validation = useFormValidation(formData, {
+  numSerie: [v => !!v || 'Le numéro de série est requis'],
   reference: [v => !!v || 'La référence est requise'],
-  designation: [v => !!v || 'La désignation est requise']
+  designation: [v => !!v || 'La désignation est requise'],
+  dateMiseEnService: [v => !!v || 'La date de mise en service est requise'],
+  modeleEquipement: [v => !!v || 'Le modèle d\'équipement est requis'],
 });
 
 const validateForm = () => {
-  return validation.checkRequiredFields(['reference', 'designation']);
+  return validation.checkRequiredFields(['numSerie', 'reference', 'designation', 'dateMiseEnService', 'modeleEquipement']);
 };
 
 const selectLocation = (item) => {
@@ -256,6 +259,7 @@ components: {
 }
 
 </script>
+
 
 <style scoped>
 .rotate-icon {

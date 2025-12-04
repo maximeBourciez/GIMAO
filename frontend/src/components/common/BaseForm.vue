@@ -272,6 +272,8 @@ const formData = computed({
 });
 
 const handleSubmit = () => {
+  console.log('Submitting form with data:', formData.value);
+
   if (formRef.value) {
     formRef.value.validate();
   }
