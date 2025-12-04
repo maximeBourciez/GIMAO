@@ -8,6 +8,10 @@
           <template #default="{ formData }">
             <v-row>
               <v-col cols="12" md="6">
+                <v-text-field v-model="formData.numSerie" label="Numéro de série" type="text" outlined dense></v-text-field>
+              </v-col>
+
+              <v-col cols="12" md="6">
                 <v-text-field v-model="formData.reference" label="Référence" outlined dense required
                   :rules="[v => !!v || 'La référence est requise']"></v-text-field>
               </v-col>
@@ -33,23 +37,23 @@
               </v-col>
 
               <v-col cols="12" md="6">
-                <v-text-field v-model="formData.joursIntervalleMaintenance" label="Intervalle de maintenance (jours)"
-                  type="number" outlined dense></v-text-field>
-              </v-col>
-
-              <v-col cols="12" md="6">
                 <v-switch v-model="formData.preventifGlissant" label="Intervention Préventive Glissante" color="primary"
                   inset></v-switch>
               </v-col>
 
               <v-col cols="12" md="6">
-                <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nomModeleEquipement"
+                <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom"
                   item-value="id" label="Modèle de l'équipement" outlined dense></v-select>
               </v-col>
 
               <v-col cols="12" md="6">
-                <v-select v-model="formData.fournisseur" :items="suppliers" item-title="nomFournisseur" item-value="id"
+                <v-select v-model="formData.fournisseur" :items="fournisseurs" item-title="nom" item-value="id" 
                   label="Fournisseur" outlined dense></v-select>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-select v-model="formData.fabricant" :items="fabricants" item-title="nom" item-value="id"
+                  label="Fabricant" outlined dense></v-select>
               </v-col>
 
               <v-col cols="12">
@@ -58,10 +62,10 @@
                 <p v-if="!locations || locations.length === 0" class="text-caption">
                   Pas de données disponibles.
                 </p>
-                <v-treeview v-else :items="locations" item-key="id" :open-on-click="false" item-text="nomLieu" rounded
-                  hoverable activatable dense>
+                <VTreeview v-else :items="locations" item-key="id" :open-on-click="false" item-text="nomLieu" rounded
+                  hoverable activatable dense  :open.sync="openNodes">
                   <template v-slot:prepend="{ item, open }">
-                    <v-icon v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
+                    <v-icon v-if="item.children && item.children.length > 0"
                       @click.stop="toggleNode(item)" :class="{ 'rotate-icon': open }">
                       {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
                     </v-icon>
@@ -71,7 +75,7 @@
                   <template v-slot:label="{ item }">
                     <span class="text-caption ml-2">{{ item.typeLieu }}</span>
                   </template>
-                </v-treeview>
+                </VTreeview>
                 <v-chip v-if="formData.lieu" color="primary" class="mt-2" closable @click:close="formData.lieu = null">
                   Lieu sélectionné: {{ formData.lieu.nomLieu }}
                 </v-chip>
@@ -94,7 +98,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { VTreeView } from 'vuetify/labs/components';
+import { VTreeview } from 'vuetify/labs/VTreeview';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { useFormValidation } from '@/composables/useFormValidation';
@@ -107,6 +111,7 @@ const loading = ref(false);
 const loadingData = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
+
 
 const formData = ref({
   reference: '',
@@ -125,7 +130,8 @@ const formData = ref({
 
 const locations = ref([]);
 const equipmentModels = ref([]);
-const suppliers = ref([]);
+const fournisseurs = ref([]);
+const fabricants = ref([]);
 const consumables = ref([]);
 const selectedConsumables = ref([]);
 const openNodes = ref(new Set());
@@ -169,20 +175,24 @@ const fetchData = async () => {
   try {
     const locationsApi = useApi(API_BASE_URL);
     const modelsApi = useApi(API_BASE_URL);
-    const suppliersApi = useApi(API_BASE_URL);
+    const fournisseurApi = useApi(API_BASE_URL);
+    const fabricantApi = useApi(API_BASE_URL);
     const consumablesApi = useApi(API_BASE_URL);
 
     await Promise.all([
       locationsApi.get('lieux-hierarchy/'),
       modelsApi.get('modele-equipements/'),
-      suppliersApi.get('fournisseurs/'),
+      fabricantApi.get('fabricants/'),
+      fournisseurApi.get('fournisseurs/'),
       consumablesApi.get('consommables/')
     ]);
 
     locations.value = locationsApi.data.value;
     equipmentModels.value = modelsApi.data.value;
-    suppliers.value = suppliersApi.data.value;
+    fournisseurs.value = fournisseurApi.data.value;
+    fabricants.value = fabricantApi.data.value;
     consumables.value = consumablesApi.data.value;
+
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error);
     errorMessage.value = 'Erreur lors du chargement des données. Veuillez réessayer.';
@@ -258,6 +268,11 @@ const handleSubmit = async () => {
 onMounted(() => {
   fetchData();
 });
+
+components:{
+  VTreeview
+}
+
 </script>
 
 <style scoped>
