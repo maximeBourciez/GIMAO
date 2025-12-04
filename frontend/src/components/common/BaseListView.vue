@@ -1,82 +1,46 @@
 <template>
   <v-container :fluid="fluid">
     <!-- Header avec titre et actions -->
-    <v-row v-if="title || showCreateButton || $slots.actions" class="mb-4">
-      <v-col>
-        <div class="d-flex align-center justify-space-between">
-          <div>
-            <h1 v-if="title" :class="titleClass">{{ title }}</h1>
-            <p v-if="subtitle" :class="subtitleClass">{{ subtitle }}</p>
-          </div>
-          <div class="d-flex gap-2">
-            <slot name="actions">
-              <v-btn
-                v-if="showCreateButton"
-                :color="createButtonColor"
-                :prepend-icon="createButtonIcon"
-                @click="$emit('create')"
-              >
-                {{ createButtonText }}
-              </v-btn>
-            </slot>
-          </div>
-        </div>
+    <v-row class="mb-4" align="center" justify="space-between">
+      <!-- Titre -->
+      <v-col cols="12" md="6">
+        <h1 v-if="title" :class="titleClass">{{ title }}</h1>
+        <p v-if="subtitle" :class="subtitleClass">{{ subtitle }}</p>
+      </v-col>
+
+      <!-- Barre de recherche -->
+      <v-col cols="12" md="6" class="mt-2">
+        <v-text-field v-if="showSearch" v-model="searchQuery" :label="searchLabel" :placeholder="searchPlaceholder"
+          prepend-inner-icon="mdi-magnify" clearable variant="outlined" density="compact" hide-details
+          @input="handleSearch"></v-text-field>
+      </v-col>
+
+      <!-- Actions -->
+      <v-col cols="12" md="auto" class="d-flex justify-end">
+        <slot name="actions">
+          <v-btn v-if="showCreateButton" :color="createButtonColor" :prepend-icon="createButtonIcon"
+            @click="$emit('create')">
+            {{ createButtonText }}
+          </v-btn>
+        </slot>
       </v-col>
     </v-row>
 
-    <!-- Barre de recherche et filtres -->
-    <v-row v-if="showSearch || $slots.filters" class="mb-4">
-      <v-col v-if="showSearch" :cols="searchCols" :md="searchMd">
-        <v-text-field
-          v-model="searchQuery"
-          :label="searchLabel"
-          :placeholder="searchPlaceholder"
-          prepend-inner-icon="mdi-magnify"
-          clearable
-          outlined
-          dense
-          hide-details
-          @input="handleSearch"
-        ></v-text-field>
-      </v-col>
-      <v-col v-if="$slots.filters">
-        <slot name="filters" :search-query="searchQuery"></slot>
-      </v-col>
-    </v-row>
 
     <!-- Alerts -->
-    <FormAlert
-      v-if="errorMessage"
-      :message="errorMessage"
-      type="error"
-      dismissible
-      class="mb-4"
-      @close="$emit('clear-error')"
-    />
+    <FormAlert v-if="errorMessage" :message="errorMessage" type="error" dismissible class="mb-4"
+      @close="$emit('clear-error')" />
 
-    <FormAlert
-      v-if="loading && loadingMessage"
-      :message="loadingMessage"
-      type="info"
-      class="mb-4"
-    />
+    <FormAlert v-if="loading && loadingMessage" :message="loadingMessage" type="info" class="mb-4" />
 
     <!-- Slot avant le tableau pour contenu personnalisé -->
     <slot name="before-table"></slot>
 
     <!-- Tableau de données -->
     <v-card :elevation="elevation" :class="cardClass">
-      <v-data-table
-        :headers="headers"
-        :items="computedItems"
-        :loading="loading"
-        :items-per-page="itemsPerPage"
-        :items-per-page-options="itemsPerPageOptions"
-        :search="internalSearch ? searchQuery : undefined"
-        :sort-by="sortBy"
-        :class="tableClass"
-        @click:row="handleRowClick"
-      >
+      <v-data-table :headers="headers" :items="computedItems" :loading="loading" :items-per-page="itemsPerPage"
+        :items-per-page-options="itemsPerPageOptions" :search="internalSearch ? searchQuery : undefined"
+        :sort-by="sortBy" :class="tableClass" @click:row="handleRowClick">
         <!-- Pass through all item slots -->
         <template v-for="(_, slot) in $slots" v-slot:[slot]="scope">
           <slot :name="slot" v-bind="scope"></slot>
