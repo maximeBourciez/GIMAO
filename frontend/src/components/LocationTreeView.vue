@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-divider class="my-4"></v-divider>
     <h3 class="mb-3">Sélectionner un lieu</h3>
 
     <p v-if="!items || items.length === 0" class="text-caption">

@@ -38,11 +38,6 @@
               </v-col>
 
               <v-col cols="12" md="6">
-                <v-switch v-model="formData.preventifGlissant" label="Intervention Préventive Glissante" color="primary"
-                  inset></v-switch>
-              </v-col>
-
-              <v-col cols="12" md="6">
                 <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom" item-value="id"
                   label="Modèle de l'équipement" outlined dense></v-select>
               </v-col>
@@ -57,22 +52,65 @@
                   label="Fabricant" outlined dense></v-select>
               </v-col>
 
-              <v-col cols="12">
+              <v-col cols="6">
                 <LocationTreeView :items="locations" v-model:selected="formData.lieu" />
-
               </v-col>
 
               <v-col cols="12">
                 <v-divider class="my-4"></v-divider>
                 <h3 class="mb-3">Consommables Associés</h3>
-                <v-select v-model="selectedConsumables" :items="consumables" item-title="designation" item-value="id"
+                <v-select v-model="formData.consommables" :items="consumables" item-title="designation" item-value="id"
                   label="Sélectionner les consommables" multiple chips outlined dense></v-select>
+              </v-col>
+
+              <v-divider class="my-4"></v-divider>
+
+              <v-col cols="12">
+                <v-row cols="12" align="center" justify="space-between">
+                  <h3 class="mb-3">Compteurs Associés</h3>
+                  <v-btn color="primary" class="mr-4 my-1" @click="handleCounterAdd">
+                    Ajouter un Compteur
+                  </v-btn>
+                </v-row>
+                <v-data-table :items="formData.compteurs" :headers="counterTableHeaders" class="elevation-1">
+                  <template #item.nom="{ item }">
+                    {{ item.nom }}
+                  </template>
+                  <template #item.intervalle="{ item }">
+                    {{ item.intervalle }}
+                  </template>
+                  <template #item.unite="{ item }">
+                    {{ item.unite }}
+                  </template>
+                </v-data-table>
               </v-col>
             </v-row>
           </template>
         </BaseForm>
       </v-container>
     </v-main>
+
+    <v-dialog v-model="showCounterDialog" max-width="500px">
+      <v-card>
+        <v-card-title>Ajouter un compteur</v-card-title>
+
+        <v-card-text>
+          <v-text-field v-model="newCounter.nom" label="Nom du compteur" outlined dense></v-text-field>
+
+          <v-text-field v-model="newCounter.intervalle" type="number" label="Intervalle" outlined dense></v-text-field>
+
+          <v-text-field v-model="newCounter.unite" label="Unité" outlined dense></v-text-field>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer></v-spacer>
+
+          <v-btn text @click="showCounterDialog = false">Annuler</v-btn>
+          <v-btn color="primary" @click="saveNewCounter">Ajouter</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </v-app>
 </template>
 
@@ -84,7 +122,7 @@ import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
-import LocationTreeView from '@/components/LieuxTreeview.vue';
+import LocationTreeView from '@/components/LocationTreeView.vue';
 
 const router = useRouter();
 const api = useApi(API_BASE_URL);
@@ -102,12 +140,15 @@ const formData = ref({
   dateMiseEnService: new Date().toISOString().substr(0, 10),
   prixAchat: null,
   lienImageEquipement: null,
-  preventifGlissant: false,
-  joursIntervalleMaintenance: null,
   createurEquipement: 1,
   lieu: null,
   modeleEquipement: null,
-  fournisseur: null
+  fournisseur: null,
+  fabricant: null,
+  consommables: [],
+  compteurs: [
+    { nom: 'Vidange', intervalle: '10000', unite: 'Km' }
+  ]
 });
 
 const locations = ref([]);
@@ -117,6 +158,13 @@ const fabricants = ref([]);
 const consumables = ref([]);
 const selectedConsumables = ref([]);
 const openNodes = ref(new Set());
+const showCounterDialog = ref(false);
+
+const newCounter = ref({
+  nom: '',
+  intervalle: '',
+  unite: ''
+});
 
 const validation = useFormValidation(formData, {
   numSerie: [v => !!v || 'Le numéro de série est requis'],
@@ -248,6 +296,27 @@ const handleSubmit = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const counterTableHeaders = [
+  { title: 'Nom du compteur', value: 'nom' },
+  { title: 'Intervalle de maintenance', value: 'intervalle' },
+  { title: 'Unité', value: 'unite' }
+];
+
+const handleCounterAdd = () => {
+  newCounter.value = { nom: '', intervalle: '', unite: '' };
+  showCounterDialog.value = true;
+};
+
+const saveNewCounter = () => {
+  if (!newCounter.value.nom || !newCounter.value.intervalle || !newCounter.value.unite) {
+    return; // tu peux mettre un message d'erreur si tu veux
+  }
+
+  formData.value.compteurs.push({ ...newCounter.value });
+
+  showCounterDialog.value = false;
 };
 
 onMounted(() => {
