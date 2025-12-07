@@ -66,7 +66,7 @@
               <v-divider class="my-4"></v-divider>
 
               <v-col cols="12">
-                <v-row cols="12" align="center" justify="space-between">
+                <v-row cols="12" class="mb-2" align="center" justify="space-between">
                   <h3 class="mb-3">Compteurs Associés</h3>
                   <v-btn color="primary" class="mr-4 my-1" @click="handleCounterAdd">
                     Ajouter un Compteur
@@ -81,6 +81,14 @@
                   </template>
                   <template #item.unite="{ item }">
                     {{ item.unite }}
+                  </template>
+                  <template #item.actions="{ item }">
+                    <v-btn icon color="red" @click="formData.compteurs = formData.compteurs.filter(c => c !== item)">
+                      <v-icon>mdi-delete</v-icon>
+                    </v-btn>
+                    <v-btn icon color="blue" @click="console.log('Modifier le compteur', item)">
+                      <v-icon>mdi-pencil</v-icon>
+                    </v-btn>
                   </template>
                 </v-data-table>
               </v-col>
@@ -301,7 +309,8 @@ const handleSubmit = async () => {
 const counterTableHeaders = [
   { title: 'Nom du compteur', value: 'nom' },
   { title: 'Intervalle de maintenance', value: 'intervalle' },
-  { title: 'Unité', value: 'unite' }
+  { title: 'Unité', value: 'unite' },
+  { title: 'Actions', value: 'actions', sortable: false }
 ];
 
 const handleCounterAdd = () => {
