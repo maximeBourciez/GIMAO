@@ -1,7 +1,7 @@
 from django.db import models
 from stock.models import Consommable
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
-
+from utilisateur.models import Utilisateur
 
 
 
@@ -49,7 +49,13 @@ class Equipement(models.Model):
     prixAchat = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Prix d'achat de l'équipement")
     lienImage = models.CharField(max_length=255, blank=True, null=True, help_text="Lien vers une image de l'équipement")
     preventifGlissant = models.BooleanField(default=False, help_text="Indique si l'entretien préventif est glissant")
-    createurEquipementId = models.IntegerField(help_text="ID de l'utilisateur ayant créé l'équipement")
+    createurEquipement = models.ForeignKey(
+        Utilisateur,
+        on_delete=models.PROTECT,
+        default=None,
+        related_name="equipements_crees",
+        help_text="Utilisateur ayant créé l'équipement"
+    )
     lieu = models.ForeignKey(Lieu, on_delete=models.PROTECT, related_name="equipements", help_text="Lieu où se trouve l'équipement")
     documents = models.ManyToManyField( Document, 
                                         through='DocumentEquipement', 
@@ -98,9 +104,9 @@ class Compteur(models.Model):
     equipement = models.ForeignKey(Equipement, on_delete=models.CASCADE, related_name="compteurs", help_text="Équipement associé au compteur")
     nomCompteur = models.CharField(max_length=100, null=False, default="Compteur sans nom", help_text="Nom du compteur")
     valeurCourante = models.FloatField(help_text="Valeur actuelle du compteur")
-    valeurEcheance = models.FloatField(help_text="Valeur à l'échéance pour déclencher la maintenance")
     prochaineMaintenance = models.FloatField(help_text="Valeur prévue pour la prochaine maintenance")
     ecartInterventions = models.FloatField(help_text="Écart moyen entre interventions")
+    unite = models.CharField(max_length=50, help_text="Unité de mesure du compteur", default="jours")
     estGlissant = models.BooleanField(default=False, help_text="Indique si ce compteur est glissant")
     descriptifMaintenance = models.CharField(max_length=255, blank=True, null=True, help_text="Description de la maintenance liée")
     necessiteHabilitationElectrique = models.BooleanField(default=False, help_text="Nécessite une habilitation électrique")

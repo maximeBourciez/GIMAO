@@ -47,9 +47,14 @@
                   label="Fournisseur" outlined dense></v-select>
               </v-col>
 
-              <v-col cols="12" md="6">
+              <v-col cols="6" md="6">
                 <v-select v-model="formData.fabricant" :items="fabricants" item-title="nom" item-value="id"
                   label="Fabricant" outlined dense></v-select>
+              </v-col>
+
+              <v-col cols="6" md="6">
+                <v-select v-model="formData.famille" :items="familles" item-title="nom" item-value="id"
+                  label="Famille d'équipement" outlined dense></v-select>
               </v-col>
 
               <v-col cols="6">
@@ -116,11 +121,11 @@
 
           <h4>Plan de maintenance associé (optionnel)</h4>
 
-          <v-select v-model="currentCounter.planMaintenance.nom" :items="existingPMs" item-title="nom" item-value="nom"
+          <v-select v-model="currentCounter.planMaintenance.nom" :items="existingPMs" v-if="existingPMs.length > 0" item-title="nom" item-value="nom"
             label="Sélectionner un plan de maintenance" outlined dense clearable
             @update:model-value="applyExistingPM" />
 
-          <div v-if="currentCounter.planMaintenance.nom">
+          <div>
             <v-text-field v-model="currentCounter.planMaintenance.nom" label="Nom du plan de maintenance" outlined
               dense></v-text-field>
 
@@ -194,19 +199,65 @@ const editingCounterIndex = ref(-1);
 const pmDocuments = ref([]);
 
 const formData = ref({
-  reference: '',
-  designation: '',
-  dateCreation: new Date().toISOString(),
-  dateMiseEnService: new Date().toISOString().substr(0, 10),
-  prixAchat: null,
-  lienImageEquipement: null,
-  createurEquipement: 1,
-  lieu: null,
-  modeleEquipement: null,
-  fournisseur: null,
-  fabricant: null,
-  consommables: [],
-  compteurs: []
+  "reference": "Référence de test",
+  "designation": "Désignation test",
+  "dateCreation": "2025-12-12T22:00:31.543Z",
+  "dateMiseEnService": "2025-12-12",
+  "prixAchat": "2500",
+  "lienImageEquipement": "[object File]",
+  "createurEquipement": 2,
+  "lieu": {
+    "id": 2,
+    "nomLieu": "Atelier principal",
+    "children": [
+      {
+        "id": 4,
+        "nomLieu": "Zone de production A",
+        "children": []
+      },
+      {
+        "id": 5,
+        "nomLieu": "Zone de production B",
+        "children": []
+      }
+    ]
+  },
+  "modeleEquipement": 3,
+  "fournisseur": 2,
+  "fabricant": 2,
+  "famille": 2,
+  "consommables": [
+    2,
+    1,
+    3
+  ],
+  "compteurs": [
+    {
+      "nom": "Compteur tets",
+      "intervalle": "5",
+      "unite": "jours",
+      "planMaintenance": {
+        "nom": "PM Test",
+        "consommables": [
+          {
+            "consommable": 5,
+            "quantite": 1
+          },
+          {
+            "consommable": 7,
+            "quantite": 5
+          }
+        ],
+        "documents": [
+          {
+            "titre": "epoustouflan.jpg",
+            "file": {}
+          }
+        ]
+      }
+    }
+  ],
+  "numSerie": "SN589874"
 });
 
 const locations = ref([]);
@@ -214,6 +265,7 @@ const equipmentModels = ref([]);
 const fournisseurs = ref([]);
 const fabricants = ref([]);
 const consumables = ref([]);
+const familles = ref([]);
 const openNodes = ref(new Set());
 const showCounterDialog = ref(false);
 const existingPMs = ref([
@@ -300,13 +352,15 @@ const fetchData = async () => {
     const fournisseurApi = useApi(API_BASE_URL);
     const fabricantApi = useApi(API_BASE_URL);
     const consumablesApi = useApi(API_BASE_URL);
+    const famillesApi = useApi(API_BASE_URL);
 
     await Promise.all([
       locationsApi.get('lieux-hierarchy/'),
       modelsApi.get('modele-equipements/'),
       fabricantApi.get('fabricants/'),
       fournisseurApi.get('fournisseurs/'),
-      consumablesApi.get('consommables/')
+      consumablesApi.get('consommables/'),
+      famillesApi.get('famille-equipements/')
     ]);
 
     locations.value = locationsApi.data.value;
@@ -314,6 +368,7 @@ const fetchData = async () => {
     fournisseurs.value = fournisseurApi.data.value;
     fabricants.value = fabricantApi.data.value;
     consumables.value = consumablesApi.data.value;
+    familles.value = famillesApi.data.value;
 
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error);

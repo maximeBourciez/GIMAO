@@ -273,14 +273,14 @@ const formData = computed({
 
 const handleSubmit = () => {
   console.log('Submitting form with data:', formData.value);
-/*
+
   if (formRef.value) {
     formRef.value.validate();
   }
   
   if (formValid.value && props.customValidation()) {
     emit('submit', formData.value);
-  }*/
+  }
 };
 
 const handleCancel = () => {

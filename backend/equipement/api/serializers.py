@@ -168,3 +168,25 @@ class FamilleEquipementSerializer(serializers.ModelSerializer):
     class Meta:
         model = FamilleEquipement
         fields = '__all__'
+
+
+class EquipementCreateSerializer(serializers.ModelSerializer):
+    createurEquipement = serializers.IntegerField()
+    lieu = serializers.IntegerField()
+    modeleEquipement = serializers.IntegerField()
+    fournisseur = serializers.IntegerField()
+    fabricant = serializers.IntegerField()
+
+    consommables = serializers.ListField(child=serializers.IntegerField(), required=False)
+    compteurs = serializers.JSONField(required=False)
+
+    lienImageEquipement = serializers.ImageField(required=False)
+
+    class Meta:
+        model = Equipement
+        fields = [
+            'reference', 'designation', 'dateCreation', 'dateMiseEnService',
+            'prixAchat', 'createurEquipement', 'lieu', 'modeleEquipement',
+            'fournisseur', 'fabricant', 'consommables', 'numSerie',
+            'compteurs', 'lienImageEquipement'
+        ]
