@@ -23,6 +23,9 @@ from equipement.api.serializers import (
     EquipementCreateSerializer
 )
 
+from maintenance.models import PlanMaintenance, PlanMaintenanceConsommable
+from donnees.models import Lieu, Document
+
 
 class EquipementViewSet(viewsets.ModelViewSet):
     queryset = Equipement.objects.all()
