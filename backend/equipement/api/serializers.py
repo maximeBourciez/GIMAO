@@ -94,7 +94,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
                 'id': c.id,
                 'nomCompteur': c.nomCompteur,
                 'valeurCourante': c.valeurCourante,
-                'valeurEcheance': c.valeurEcheance,
+                'ecartInterventions': c.ecartInterventions,
                 'prochaineMaintenance': c.prochaineMaintenance,
                 'estPrincipal': c.estPrincipal
             }

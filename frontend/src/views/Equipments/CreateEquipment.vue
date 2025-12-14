@@ -86,6 +86,16 @@
                   <template #item.unite="{ item }">
                     {{ item.unite }}
                   </template>
+                  <template #item.options="{ item }">
+                    <div>
+                      <div>
+                        {{ item.estGlissant && item.estPrincipal ? 'Glissant et Principal' :
+                          item.estGlissant ? 'Glissant' :
+                            item.estPrincipal ? 'Principal' :
+                              'Aucune' }}
+                      </div>
+                    </div>
+                  </template>
                   <template #item.actions="{ item }">
                     <v-btn icon color="red" @click="handleCounterDelete(item)">
                       <v-icon>mdi-delete</v-icon>
@@ -107,75 +117,87 @@
         <v-card-title>{{ isEditMode ? 'Modifier un compteur' : 'Ajouter un compteur' }}</v-card-title>
 
         <v-card-text>
-          <v-col cols="12">
-            <v-text-field v-model="currentCounter.nom" label="Nom du compteur" outlined dense
-              :rules="[v => !!v?.trim() || 'Le nom du compteur est requis']"></v-text-field>
-          </v-col>
-
-          <v-row>
-            <v-col cols="6" md="6">
-              <v-text-field v-model="currentCounter.intervalle" type="number" label="Intervalle" outlined dense
-                :rules="[v => v > 0 || 'L\'intervalle doit être un nombre positif']"></v-text-field>
-            </v-col>
-
-            <v-col cols="6" md="6">
-              <v-text-field v-model="currentCounter.unite" label="Unité" outlined dense
-                :rules="[v => !!v?.trim() || 'L\'unité est requise']"></v-text-field>
-            </v-col>
-          </v-row>
-
-          <v-row>
-            <v-col cols="6" md="6">
-              <v-text-field v-model.number="currentCounter.valeurActuelle" label="Valeur actuelle (défaut 0)"
-                type="number" outlined dense
-                :color="!currentCounter.valeurActuelle && currentCounter.valeurActuelle !== 0 ? 'warning' : 'primary'"
-                :messages="!currentCounter.valeurActuelle && currentCounter.valeurActuelle !== 0 ? '⚠️ Si vous ne renseignez pas la valeur actuelle, elle sera considérée comme 0' : ''"
-                persistent-hint></v-text-field>
-            </v-col>
-
-            <v-col cols="6" md="6">
-              <v-text-field v-model="currentCounter.derniereIntervention" label="Dernière intervention (défaut 0)"
-                :color="!currentCounter.derniereIntervention && currentCounter.derniereIntervention !== 0 ? 'warning' : 'primary'"
-                :messages="!currentCounter.derniereIntervention && currentCounter.derniereIntervention !== 0 ? '⚠️ Si vous ne renseignez pas la dernière intervention, elle sera considérée comme 0' : ''"
-                outlined dense></v-text-field>
-            </v-col>
-          </v-row>
-
-
-
-          <v-divider class="my-4"></v-divider>
-
-          <h4>Plan de maintenance associé (optionnel)</h4>
-
-          <v-select v-model="currentCounter.planMaintenance.nom" :items="existingPMs" v-if="existingPMs.length > 0"
-            item-title="nom" item-value="nom" label="Sélectionner un plan de maintenance" outlined dense clearable
-            @update:model-value="applyExistingPM" />
-
-          <div>
-            <v-text-field v-model="currentCounter.planMaintenance.nom" label="Nom du plan de maintenance" outlined dense
-              :rules="[v => !!v || 'Le nom du plan de maintenance est requis', v => v?.trim().length > 0 || 'Le nom ne peut pas être vide']"></v-text-field>
-
-            <v-row class="mt-4">
-              <v-col cols="12">
-                <h4>Consommables du plan de maintenance</h4>
-
-                <v-btn color="primary" class="my-2" @click="addPMConsumable">
-                  Ajouter un consommable
-                </v-btn>
+          <!-- Informations générales -->
+          <v-sheet class="pa-4 mb-4" elevation="1" rounded>
+            <h4 class="mb-3">Informations générales</h4>
+            <v-row dense>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="currentCounter.nom" label="Nom du compteur" outlined dense
+                  :rules="[v => !!v?.trim() || 'Le nom du compteur est requis']"></v-text-field>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="currentCounter.description" label="Description (optionnel)" outlined
+                  dense></v-text-field>
               </v-col>
             </v-row>
+            <v-row dense>
+              <v-col cols="6">
+                <v-text-field v-model="currentCounter.intervalle" type="number" label="Intervalle" outlined dense
+                  :rules="[v => v > 0 || 'L\'intervalle doit être positif']"></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field v-model="currentCounter.unite" label="Unité" outlined dense
+                  :rules="[v => !!v?.trim() || 'L\'unité est requise']"></v-text-field>
+              </v-col>
+            </v-row>
+          </v-sheet>
 
-            <v-row v-for="(c, index) in currentCounter.planMaintenance.consommables" :key="index" class="mb-3">
+          <!-- Options avancées -->
+          <v-sheet class="pa-4 mb-4" elevation="1" rounded>
+            <h4 class="mb-3">Options du compteur</h4>
+            <v-row dense>
+              <v-col cols="6">
+                <v-text-field v-model.number="currentCounter.valeurActuelle" label="Valeur actuelle" type="number"
+                  outlined dense></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field v-model="currentCounter.derniereIntervention" label="Dernière intervention" outlined
+                  dense></v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense justify="space-around">
+              <v-checkbox v-model="currentCounter.estGlissant" label="Compteur glissant" dense outlined
+                color="primary"></v-checkbox>
+              <v-checkbox v-model="currentCounter.estPrincipal" label="Compteur principal" dense outlined
+                color="primary"></v-checkbox>
+            </v-row>
+            <v-row dense>
+              <v-col>
+                <p class="mb-2">La maintenance nécessite :</p>
+                <v-row justify="space-around" dense>
+                  <v-checkbox v-model="currentCounter.habElec" label="Une habilitation électrique" dense outlined
+                    color="primary"></v-checkbox>
+                  <v-checkbox v-model="currentCounter.permisFeu" label="Un permis feu" dense outlined
+                    color="primary"></v-checkbox>
+                </v-row>
+
+              </v-col>
+            </v-row>
+          </v-sheet>
+
+          <!-- Plan de maintenance -->
+          <v-sheet class="pa-4 mb-4" elevation="1" rounded>
+            <h4 class="mb-3">Plan de maintenance associé</h4>
+            <v-select v-if="existingPMs.length" v-model="currentCounter.planMaintenance.nom" :items="existingPMs"
+              item-title="nom" item-value="nom" label="Sélectionner un plan existant" outlined dense clearable
+              @update:model-value="applyExistingPM" />
+            <v-text-field v-model="currentCounter.planMaintenance.nom" label="Nom du plan de maintenance" outlined dense
+              :rules="[v => !!v || 'Le nom est requis']"></v-text-field>
+          </v-sheet>
+
+          <!-- Consommables -->
+          <v-sheet class="pa-4 mb-4" elevation="1" rounded>
+            <h4 class="mb-3">Consommables du plan</h4>
+            <v-btn color="primary" class="mb-3" @click="addPMConsumable">Ajouter un consommable</v-btn>
+            <v-row v-for="(c, index) in currentCounter.planMaintenance.consommables" :key="index" class="mb-3" dense>
               <v-col cols="6">
                 <v-select v-model="c.consommable" :items="consumables" item-title="designation" item-value="id"
                   label="Consommable" outlined dense></v-select>
               </v-col>
-
               <v-col cols="3">
                 <v-text-field v-model.number="c.quantite" type="number" min="1" label="Quantité" outlined
                   dense></v-text-field>
               </v-col>
-
               <v-col cols="3" class="d-flex align-center">
                 <v-btn icon color="red" @click="removePMConsumable(index)">
                   <v-icon>mdi-delete</v-icon>
@@ -183,24 +205,19 @@
               </v-col>
             </v-row>
 
-            <v-row class="mt-4">
-              <v-col cols="12">
-                <v-file-input v-model="pmDocuments" label="Documents du PM" multiple outlined dense accept="*"
-                  @update:model-value="handlePMDocuments" />
-              </v-col>
-            </v-row>
-          </div>
+            <v-col cols="12"> <v-file-input v-model="pmDocuments" label="Documents du PM" multiple outlined dense
+                accept="*" @update:model-value="handlePMDocuments" /> </v-col>
+          </v-sheet>
         </v-card-text>
 
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="closeCounterDialog">Annuler</v-btn>
-          <v-btn color="primary" @click="saveCurrentCounter">
-            {{ isEditMode ? 'Modifier' : 'Ajouter' }}
-          </v-btn>
+          <v-btn color="primary" @click="saveCurrentCounter">{{ isEditMode ? 'Modifier' : 'Ajouter' }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
   </v-app>
 </template>
 
@@ -302,10 +319,15 @@ const existingPMs = ref([
 
 const getEmptyCounter = () => ({
   nom: '',
+  description: '',
   intervalle: '',
   unite: '',
   valeurActuelle: null,
   derniereIntervention: null,
+  estGlissant: false,
+  estPrincipal: false,
+  habElec: false,
+  permisFeu: false,
   planMaintenance: {
     nom: '',
     consommables: [],
@@ -509,6 +531,7 @@ const counterTableHeaders = [
   { title: 'Nom du compteur', value: 'nom' },
   { title: 'Intervalle de maintenance', value: 'intervalle' },
   { title: 'Unité', value: 'unite' },
+  { title: 'Options', value: 'options', sortable: false },
   { title: 'Actions', value: 'actions', sortable: false }
 ];
 
@@ -527,8 +550,15 @@ const handleCounterEdit = (counter) => {
 
   currentCounter.value = {
     nom: counter.nom,
+    description: counter.description,
     intervalle: counter.intervalle,
     unite: counter.unite,
+    valeurActuelle: counter.valeurActuelle,
+    derniereIntervention: counter.derniereIntervention,
+    estGlissant: counter.estGlissant,
+    estPrincipal: counter.estPrincipal,
+    habElec: counter.habElec,
+    permisFeu: counter.permisFeu,
     planMaintenance: {
       nom: counter.planMaintenance?.nom || '',
       consommables: JSON.parse(JSON.stringify(counter.planMaintenance?.consommables || [])),

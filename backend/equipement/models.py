@@ -68,7 +68,6 @@ class Equipement(models.Model):
     famille = models.ForeignKey(FamilleEquipement, null=True, blank=True, on_delete=models.SET_NULL, related_name="equipements", help_text="Famille de l'équipement")
     x = models.FloatField(null=True, blank=True, help_text="Coordonnée X de l'équipement dans le lieu")
     y = models.FloatField(null=True, blank=True, help_text="Coordonnée Y del'équipement dans le lieu")
-    lieu = models.ForeignKey(Lieu, on_delete=models.PROTECT, related_name="equipements", help_text="Lieu où se trouve l'équipement")
 
     def __str__(self):
         return f"{self.designation} ({self.numSerie})"
