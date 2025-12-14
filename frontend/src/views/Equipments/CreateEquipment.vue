@@ -13,8 +13,7 @@
               </v-col>
 
               <v-col cols="12" md="6">
-                <v-text-field v-model="formData.reference" label="Référence" outlined dense required
-                  :rules="[v => !!v || 'La référence est requise']"></v-text-field>
+                <v-text-field v-model="formData.reference" label="Référence" outlined dense required></v-text-field>
               </v-col>
 
               <v-col cols="12" md="6">
@@ -108,26 +107,53 @@
         <v-card-title>{{ isEditMode ? 'Modifier un compteur' : 'Ajouter un compteur' }}</v-card-title>
 
         <v-card-text>
-          <v-text-field v-model="currentCounter.nom" label="Nom du compteur" outlined dense
-            :rules="[v => !!v?.trim() || 'Le nom est requis']"></v-text-field>
+          <v-col cols="12">
+            <v-text-field v-model="currentCounter.nom" label="Nom du compteur" outlined dense
+              :rules="[v => !!v?.trim() || 'Le nom du compteur est requis']"></v-text-field>
+          </v-col>
 
-          <v-text-field v-model="currentCounter.intervalle" type="number" label="Intervalle" outlined dense
-            :rules="[v => !!v?.trim() || 'L\'intervalle est requis']"></v-text-field>
+          <v-row>
+            <v-col cols="6" md="6">
+              <v-text-field v-model="currentCounter.intervalle" type="number" label="Intervalle" outlined dense
+                :rules="[v => v > 0 || 'L\'intervalle doit être un nombre positif']"></v-text-field>
+            </v-col>
 
-          <v-text-field v-model="currentCounter.unite" label="Unité" outlined dense
-            :rules="[v => !!v?.trim() || 'L\'unité est requise']"></v-text-field>
+            <v-col cols="6" md="6">
+              <v-text-field v-model="currentCounter.unite" label="Unité" outlined dense
+                :rules="[v => !!v?.trim() || 'L\'unité est requise']"></v-text-field>
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col cols="6" md="6">
+              <v-text-field v-model.number="currentCounter.valeurActuelle" label="Valeur actuelle (défaut 0)"
+                type="number" outlined dense
+                :color="!currentCounter.valeurActuelle && currentCounter.valeurActuelle !== 0 ? 'warning' : 'primary'"
+                :messages="!currentCounter.valeurActuelle && currentCounter.valeurActuelle !== 0 ? '⚠️ Si vous ne renseignez pas la valeur actuelle, elle sera considérée comme 0' : ''"
+                persistent-hint></v-text-field>
+            </v-col>
+
+            <v-col cols="6" md="6">
+              <v-text-field v-model="currentCounter.derniereIntervention" label="Dernière intervention (défaut 0)"
+                :color="!currentCounter.derniereIntervention && currentCounter.derniereIntervention !== 0 ? 'warning' : 'primary'"
+                :messages="!currentCounter.derniereIntervention && currentCounter.derniereIntervention !== 0 ? '⚠️ Si vous ne renseignez pas la dernière intervention, elle sera considérée comme 0' : ''"
+                outlined dense></v-text-field>
+            </v-col>
+          </v-row>
+
+
 
           <v-divider class="my-4"></v-divider>
 
           <h4>Plan de maintenance associé (optionnel)</h4>
 
-          <v-select v-model="currentCounter.planMaintenance.nom" :items="existingPMs" v-if="existingPMs.length > 0" item-title="nom" item-value="nom"
-            label="Sélectionner un plan de maintenance" outlined dense clearable
+          <v-select v-model="currentCounter.planMaintenance.nom" :items="existingPMs" v-if="existingPMs.length > 0"
+            item-title="nom" item-value="nom" label="Sélectionner un plan de maintenance" outlined dense clearable
             @update:model-value="applyExistingPM" />
 
           <div>
-            <v-text-field v-model="currentCounter.planMaintenance.nom" label="Nom du plan de maintenance" outlined
-              dense></v-text-field>
+            <v-text-field v-model="currentCounter.planMaintenance.nom" label="Nom du plan de maintenance" outlined dense
+              :rules="[v => !!v || 'Le nom du plan de maintenance est requis', v => v?.trim().length > 0 || 'Le nom ne peut pas être vide']"></v-text-field>
 
             <v-row class="mt-4">
               <v-col cols="12">
@@ -267,18 +293,19 @@ const fabricants = ref([]);
 const consumables = ref([]);
 const familles = ref([]);
 const openNodes = ref(new Set());
-const showCounterDialog = ref(false);
+const showCounterDialog = ref(true);
 const existingPMs = ref([
   { nom: 'Plan de maintenance vidange', consommables: [{ id: 1, quantite: 1 }, { id: 2, quantite: 2 }], documents: [] },
   { nom: 'Plan de maintenance révision', consommables: [], documents: [] },
   { nom: 'Plan de maintenance complet', consommables: [], documents: [] }
 ]);
 
-// DÉPLACER getEmptyCounter AVANT son utilisation
 const getEmptyCounter = () => ({
   nom: '',
   intervalle: '',
   unite: '',
+  valeurActuelle: null,
+  derniereIntervention: null,
   planMaintenance: {
     nom: '',
     consommables: [],
@@ -286,7 +313,6 @@ const getEmptyCounter = () => ({
   }
 });
 
-// Initialiser currentCounter après la déclaration de getEmptyCounter
 const currentCounter = ref(getEmptyCounter());
 
 const addPMConsumable = () => {
@@ -315,23 +341,31 @@ const validation = useFormValidation(formData, {
   reference: [v => !!v || 'La référence est requise'],
   designation: [v => !!v || 'La désignation est requise'],
   modeleEquipement: [v => !!v || 'Le modèle d\'équipement est requis'],
+  currentCounter: {
+    nom: [v => !!v?.trim() || 'Le nom du compteur est requis'],
+    intervalle: [v => !!v?.trim() || 'L\'intervalle du compteur est requis'],
+    unite: [v => !!v?.trim() || 'L\'unité du compteur est requise'],
+    planMaintenance: {
+      nom: [v => !!v?.trim() || 'Le nom du plan de maintenance est requis']
+    }
+  }
 });
 
 const validateForm = () => {
   const requiredFields = ['reference', 'designation', 'modeleEquipement'];
   let isValid = true;
-  
+
   requiredFields.forEach(field => {
     if (!formData.value[field]) {
       isValid = false;
     }
   });
-  
+
   if (formData.value.compteurs.length === 0) {
     errorMessage.value = 'Au moins un compteur est requis';
     isValid = false;
   }
-  
+
   return isValid;
 };
 
@@ -396,6 +430,8 @@ const handleSubmit = async () => {
       nom: counter.nom,
       intervalle: counter.intervalle,
       unite: counter.unite,
+      valeurCourante: counter.valeurActuelle || 0,
+      derniereIntervention: counter.derniereIntervention || 0,
       planMaintenance: counter.planMaintenance.nom ? {
         nom: counter.planMaintenance.nom,
         consommables: counter.planMaintenance.consommables,
@@ -404,7 +440,7 @@ const handleSubmit = async () => {
     }));
 
     const form_data = new FormData();
-    
+
     // Ajouter les champs de base
     for (const key in formData.value) {
       if (formData.value[key] !== null && key !== 'lienImageEquipement' && key !== 'compteurs') {
@@ -488,7 +524,7 @@ const handleCounterEdit = (counter) => {
   const index = formData.value.compteurs.findIndex(c => c === counter);
   editingCounterIndex.value = index;
   isEditMode.value = true;
-  
+
   currentCounter.value = {
     nom: counter.nom,
     intervalle: counter.intervalle,
@@ -499,7 +535,7 @@ const handleCounterEdit = (counter) => {
       documents: JSON.parse(JSON.stringify(counter.planMaintenance?.documents || []))
     }
   };
-  
+
   // Mettre à jour les fichiers pour l'affichage
   pmDocuments.value = currentCounter.value.planMaintenance.documents
     .filter(doc => doc.file)
@@ -523,7 +559,7 @@ const applyExistingPM = (nom) => {
     consommables: pm.consommables ? JSON.parse(JSON.stringify(pm.consommables)) : [],
     documents: pm.documents ? JSON.parse(JSON.stringify(pm.documents)) : []
   };
-  
+
   // Mettre à jour les fichiers pour l'affichage
   pmDocuments.value = currentCounter.value.planMaintenance.documents
     .filter(doc => doc.file)
@@ -532,15 +568,15 @@ const applyExistingPM = (nom) => {
 
 const saveCurrentCounter = () => {
   // Validation
-  if (!currentCounter.value.nom?.trim() || 
-      !currentCounter.value.intervalle?.trim() || 
-      !currentCounter.value.unite?.trim()) {
+  if (!currentCounter.value.nom?.trim() ||
+    !currentCounter.value.intervalle?.trim() ||
+    !currentCounter.value.unite?.trim()) {
     errorMessage.value = 'Veuillez remplir tous les champs obligatoires du compteur';
     return;
   }
 
   const counterToSave = JSON.parse(JSON.stringify(currentCounter.value));
-  
+
   // S'assurer que les consommables ont le bon format
   if (counterToSave.planMaintenance.consommables) {
     counterToSave.planMaintenance.consommables = counterToSave.planMaintenance.consommables
@@ -558,10 +594,10 @@ const saveCurrentCounter = () => {
   } else {
     // AJOUT
     formData.value.compteurs.push(counterToSave);
-    
+
     // Ajouter le PM à la liste existante s'il n'existe pas déjà
-    if (counterToSave.planMaintenance.nom && 
-        !existingPMs.value.some(pm => pm.nom === counterToSave.planMaintenance.nom)) {
+    if (counterToSave.planMaintenance.nom &&
+      !existingPMs.value.some(pm => pm.nom === counterToSave.planMaintenance.nom)) {
       existingPMs.value.push({
         nom: counterToSave.planMaintenance.nom,
         consommables: [...counterToSave.planMaintenance.consommables],
@@ -576,9 +612,9 @@ const saveCurrentCounter = () => {
 const updateExistingPM = (counterToSave) => {
   const pmNom = counterToSave.planMaintenance.nom;
   if (!pmNom) return;
-  
+
   const existingPMIndex = existingPMs.value.findIndex(pm => pm.nom === pmNom);
-  
+
   if (existingPMIndex >= 0) {
     // Mettre à jour le PM existant
     existingPMs.value[existingPMIndex] = {
