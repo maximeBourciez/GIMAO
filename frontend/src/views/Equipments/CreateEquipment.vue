@@ -96,6 +96,12 @@
                       </div>
                     </div>
                   </template>
+                  <template #item.planMaintenance="{ item }">
+                    <div>
+                      <v-icon left small>mdi-wrench</v-icon>
+                      {{ item.planMaintenance?.nom.slice(0,20) || 'Aucun plan associé' }}
+                    </div>
+                  </template>
                   <template #item.actions="{ item }">
                     <v-btn icon color="red" @click="handleCounterDelete(item)">
                       <v-icon>mdi-delete</v-icon>
@@ -253,55 +259,96 @@ const formData = ref({
     "id": 2,
     "nomLieu": "Atelier principal",
     "children": [
-      {
-        "id": 4,
-        "nomLieu": "Zone de production A",
-        "children": []
-      },
-      {
-        "id": 5,
-        "nomLieu": "Zone de production B",
-        "children": []
-      }
+      { "id": 4, "nomLieu": "Zone de production A", "children": [] },
+      { "id": 5, "nomLieu": "Zone de production B", "children": [] }
     ]
   },
   "modeleEquipement": 3,
   "fournisseur": 2,
   "fabricant": 2,
   "famille": 2,
-  "consommables": [
-    2,
-    1,
-    3
-  ],
+  "consommables": [2, 1, 3],
+  "numSerie": "SN589874",
+
   "compteurs": [
     {
-      "nom": "Compteur tets",
-      "intervalle": "5",
-      "unite": "jours",
+      "nom": "Compteur heures moteur",
+      "description": "Suivi des heures de fonctionnement",
+      "intervalle": "250",
+      "unite": "heures",
+      "valeurActuelle": 120,
+      "derniereIntervention": "2025-11-20",
+      "estGlissant": true,
+      "estPrincipal": true,
+      "habElec": false,
+      "permisFeu": false,
       "planMaintenance": {
-        "nom": "PM Test",
+        "nom": "Maintenance moteur",
         "consommables": [
-          {
-            "consommable": 5,
-            "quantite": 1
-          },
-          {
-            "consommable": 7,
-            "quantite": 5
-          }
+          { "consommable": 1, "quantite": 1 },
+          { "consommable": 2, "quantite": 2 }
         ],
         "documents": [
           {
-            "titre": "epoustouflan.jpg",
+            "titre": "Procedure_maintenance_moteur.pdf",
+            "file": {}
+          }
+        ]
+      }
+    },
+
+    {
+      "nom": "Compteur jours de nettoyage",
+      "description": "Planification du nettoyage complet",
+      "intervalle": "30",
+      "unite": "jours",
+      "valeurActuelle": 10,
+      "derniereIntervention": "2025-12-01",
+      "estGlissant": false,
+      "estPrincipal": false,
+      "habElec": false,
+      "permisFeu": false,
+      "planMaintenance": {
+        "nom": "Nettoyage complet",
+        "consommables": [
+          { "consommable": 3, "quantite": 1 }
+        ],
+        "documents": [
+          {
+            "titre": "Fiche_nettoyage.pdf",
+            "file": {}
+          }
+        ]
+      }
+    },
+
+    {
+      "nom": "Compteur sécurité électrique",
+      "description": "Contrôle périodique des équipements électriques",
+      "intervalle": "180",
+      "unite": "jours",
+      "valeurActuelle": 60,
+      "derniereIntervention": "2025-10-15",
+      "estGlissant": true,
+      "estPrincipal": false,
+      "habElec": true,
+      "permisFeu": true,
+      "planMaintenance": {
+        "nom": "Contrôle électrique",
+        "consommables": [
+          { "consommable": 5, "quantite": 1 }
+        ],
+        "documents": [
+          {
+            "titre": "Rapport_controle_elec.pdf",
             "file": {}
           }
         ]
       }
     }
-  ],
-  "numSerie": "SN589874"
-});
+  ]
+}
+);
 
 const locations = ref([]);
 const equipmentModels = ref([]);
@@ -312,7 +359,7 @@ const familles = ref([]);
 const openNodes = ref(new Set());
 const showCounterDialog = ref(true);
 const existingPMs = ref([
-  { nom: 'Plan de maintenance vidange', consommables: [{ id: 1, quantite: 1 }, { id: 2, quantite: 2 }], documents: [] },
+  { nom: 'Plan de maintenance vidange', consommables: [{ consommable: 1, quantite: 1 }, { consommable: 2, quantite: 2 }], documents: [] },
   { nom: 'Plan de maintenance révision', consommables: [], documents: [] },
   { nom: 'Plan de maintenance complet', consommables: [], documents: [] }
 ]);
@@ -531,6 +578,9 @@ const counterTableHeaders = [
   { title: 'Nom du compteur', value: 'nom' },
   { title: 'Intervalle de maintenance', value: 'intervalle' },
   { title: 'Unité', value: 'unite' },
+  { title: 'Valeur actuelle', value: 'valeurActuelle' },
+  { title: 'Dernière intervention', value: 'derniereIntervention' },
+  { title: 'Plan de maintenance', value: 'planMaintenance' },
   { title: 'Options', value: 'options', sortable: false },
   { title: 'Actions', value: 'actions', sortable: false }
 ];
