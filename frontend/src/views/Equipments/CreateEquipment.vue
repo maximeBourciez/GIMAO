@@ -99,15 +99,15 @@
                   <template #item.planMaintenance="{ item }">
                     <div>
                       <v-icon left small>mdi-wrench</v-icon>
-                      {{ item.planMaintenance?.nom.slice(0,20) || 'Aucun plan associé' }}
+                      {{ item.planMaintenance?.nom.slice(0, 20) || 'Aucun plan associé' }}
                     </div>
                   </template>
                   <template #item.actions="{ item }">
-                    <v-btn icon color="red" @click="handleCounterDelete(item)">
-                      <v-icon>mdi-delete</v-icon>
+                    <v-btn icon color="red" @click="handleCounterDelete(item)" size="30">
+                      <v-icon size="14">mdi-delete</v-icon>
                     </v-btn>
-                    <v-btn icon color="blue" @click="handleCounterEdit(item)">
-                      <v-icon>mdi-pencil</v-icon>
+                    <v-btn icon color="blue" @click="handleCounterEdit(item)" size="30">
+                      <v-icon size="14">mdi-pencil</v-icon>
                     </v-btn>
                   </template>
                 </v-data-table>
@@ -181,12 +181,23 @@
             </v-row>
           </v-sheet>
 
+          <v-divider class="my-4"></v-divider>
+
           <!-- Plan de maintenance -->
           <v-sheet class="pa-4 mb-4" elevation="1" rounded>
             <h4 class="mb-3">Plan de maintenance associé</h4>
-            <v-select v-if="existingPMs.length" v-model="currentCounter.planMaintenance.nom" :items="existingPMs"
-              item-title="nom" item-value="nom" label="Sélectionner un plan existant" outlined dense clearable
-              @update:model-value="applyExistingPM" />
+            <v-row>
+              <v-col cols="8">
+                <v-select v-if="existingPMs.length" v-model="currentCounter.planMaintenance.nom" :items="existingPMs"
+                  item-title="nom" item-value="nom" label="Sélectionner un plan existant" outlined dense clearable
+                  @update:model-value="applyExistingPM" />
+              </v-col>
+              <v-col cols="4">
+                <v-select v-model="currentCounter.planMaintenance.type" :items="typesPM" item-title="libelle"
+                  item-value="id" label="Type de plan de maintenance" outlined dense></v-select>
+              </v-col>
+            </v-row>
+
             <v-text-field v-model="currentCounter.planMaintenance.nom" label="Nom du plan de maintenance" outlined dense
               :rules="[v => !!v || 'Le nom est requis']"></v-text-field>
           </v-sheet>
@@ -194,7 +205,6 @@
           <!-- Consommables -->
           <v-sheet class="pa-4 mb-4" elevation="1" rounded>
             <h4 class="mb-3">Consommables du plan</h4>
-            <v-btn color="primary" class="mb-3" @click="addPMConsumable">Ajouter un consommable</v-btn>
             <v-row v-for="(c, index) in currentCounter.planMaintenance.consommables" :key="index" class="mb-3" dense>
               <v-col cols="6">
                 <v-select v-model="c.consommable" :items="consumables" item-title="designation" item-value="id"
@@ -210,9 +220,26 @@
                 </v-btn>
               </v-col>
             </v-row>
+            <v-btn color="primary" class="mb-3" @click="addPMConsumable">Ajouter un consommable</v-btn>
+          </v-sheet>
 
-            <v-col cols="12"> <v-file-input v-model="pmDocuments" label="Documents du PM" multiple outlined dense
-                accept="*" @update:model-value="handlePMDocuments" /> </v-col>
+          <!-- Documents -->
+          <v-sheet class="pa-4 mb-4" elevation="1" rounded>
+            <h4 class="mb-3 mt-4">Documents du plan</h4>
+            <v-row v-for="(doc, index) in currentCounter.planMaintenance.documents" :key="index" class="mb-3" dense>
+              <v-col cols="4">
+                <v-text-field v-model="doc.titre" label="Nom du document" outlined dense></v-text-field>
+              </v-col>
+              <v-col cols="4">
+                <v-file-input v-model="doc.file" label="Fichier" outlined dense accept="*"></v-file-input>
+              </v-col>
+              <v-col cols="4">
+                <v-select v-model="doc.type" :items="typesDocuments" item-title="nomTypeDocument"
+                  item-value="id" label="Type de document" outlined dense></v-select>
+              </v-col>
+            </v-row>
+            <v-btn color="primary" class="mb-3" @click="addPMDocument">Ajouter un document</v-btn>
+
           </v-sheet>
         </v-card-text>
 
@@ -277,22 +304,20 @@ const formData = ref({
       "intervalle": "250",
       "unite": "heures",
       "valeurActuelle": 120,
-      "derniereIntervention": "2025-11-20",
+      "derniereIntervention": "0",
       "estGlissant": true,
       "estPrincipal": true,
       "habElec": false,
       "permisFeu": false,
       "planMaintenance": {
         "nom": "Maintenance moteur",
+        "type": 3,
         "consommables": [
           { "consommable": 1, "quantite": 1 },
           { "consommable": 2, "quantite": 2 }
         ],
         "documents": [
-          {
-            "titre": "Procedure_maintenance_moteur.pdf",
-            "file": {}
-          }
+          {"titre":"Rapport_controle_elec.pdf","file":{},"type":3}
         ]
       }
     },
@@ -303,21 +328,19 @@ const formData = ref({
       "intervalle": "30",
       "unite": "jours",
       "valeurActuelle": 10,
-      "derniereIntervention": "2025-12-01",
+      "derniereIntervention": "0",
       "estGlissant": false,
       "estPrincipal": false,
       "habElec": false,
       "permisFeu": false,
       "planMaintenance": {
         "nom": "Nettoyage complet",
+        "type": 2,
         "consommables": [
           { "consommable": 3, "quantite": 1 }
         ],
         "documents": [
-          {
-            "titre": "Fiche_nettoyage.pdf",
-            "file": {}
-          }
+          {"titre":"Rapport_controle_elec.pdf","file":{},"type":3}
         ]
       }
     },
@@ -328,21 +351,19 @@ const formData = ref({
       "intervalle": "180",
       "unite": "jours",
       "valeurActuelle": 60,
-      "derniereIntervention": "2025-10-15",
+      "derniereIntervention": "0",
       "estGlissant": true,
       "estPrincipal": false,
       "habElec": true,
       "permisFeu": true,
       "planMaintenance": {
         "nom": "Contrôle électrique",
+        "type": 2,
         "consommables": [
           { "consommable": 5, "quantite": 1 }
         ],
         "documents": [
-          {
-            "titre": "Rapport_controle_elec.pdf",
-            "file": {}
-          }
+          {"titre":"Rapport_controle_elec.pdf","file":{},"type":3}
         ]
       }
     }
@@ -356,12 +377,14 @@ const fournisseurs = ref([]);
 const fabricants = ref([]);
 const consumables = ref([]);
 const familles = ref([]);
+const typesPM = ref([]);
+const typesDocuments = ref([]);
 const openNodes = ref(new Set());
-const showCounterDialog = ref(true);
+const showCounterDialog = ref(false);
 const existingPMs = ref([
-  { nom: 'Plan de maintenance vidange', consommables: [{ consommable: 1, quantite: 1 }, { consommable: 2, quantite: 2 }], documents: [] },
-  { nom: 'Plan de maintenance révision', consommables: [], documents: [] },
-  { nom: 'Plan de maintenance complet', consommables: [], documents: [] }
+  { nom: 'Plan de maintenance vidange', consommables: [{ consommable: 1, quantite: 1 }, { consommable: 2, quantite: 2 }], documents: [], type: 2 },
+  { nom: 'Plan de maintenance révision', consommables: [], documents: [], type: 3 },
+  { nom: 'Plan de maintenance complet', consommables: [], documents: [], type: 2 }
 ]);
 
 const getEmptyCounter = () => ({
@@ -445,6 +468,19 @@ const handleFileUpload = (event) => {
   }
 };
 
+const handlePmDocumentUpload = (event) => {
+  const files = event.target.files ? event.target.files : event;
+  if (files && files.length > 0) {
+    const newDocuments = Array.from(files).map(file => ({
+      titre: file.name,
+      file: file,
+      typeDocument: null
+    }));
+    currentCounter.value.planMaintenance.documents.push(...newDocuments);
+  }
+};
+
+
 const fetchData = async () => {
   loadingData.value = true;
   errorMessage.value = '';
@@ -456,6 +492,8 @@ const fetchData = async () => {
     const fabricantApi = useApi(API_BASE_URL);
     const consumablesApi = useApi(API_BASE_URL);
     const famillesApi = useApi(API_BASE_URL);
+    const typesPMApi = useApi(API_BASE_URL);
+    const typesDocumentsApi = useApi(API_BASE_URL);
 
     await Promise.all([
       locationsApi.get('lieux-hierarchy/'),
@@ -463,7 +501,9 @@ const fetchData = async () => {
       fabricantApi.get('fabricants/'),
       fournisseurApi.get('fournisseurs/'),
       consumablesApi.get('consommables/'),
-      famillesApi.get('famille-equipements/')
+      famillesApi.get('famille-equipements/'),
+      typesPMApi.get('types-plan-maintenance/'),
+      typesDocumentsApi.get('types-documents/')
     ]);
 
     locations.value = locationsApi.data.value;
@@ -472,6 +512,8 @@ const fetchData = async () => {
     fabricants.value = fabricantApi.data.value;
     consumables.value = consumablesApi.data.value;
     familles.value = famillesApi.data.value;
+    typesPM.value = typesPMApi.data.value;
+    typesDocuments.value = typesDocumentsApi.data.value;
 
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error);
@@ -503,11 +545,11 @@ const handleSubmit = async () => {
       derniereIntervention: counter.derniereIntervention || 0,
       planMaintenance: counter.planMaintenance.nom ? {
         nom: counter.planMaintenance.nom,
+        type: counter.planMaintenance.type || null,
         consommables: counter.planMaintenance.consommables,
         documents: counter.planMaintenance.documents
       } : null
     }));
-
     const form_data = new FormData();
 
     // Ajouter les champs de base
@@ -611,6 +653,7 @@ const handleCounterEdit = (counter) => {
     permisFeu: counter.permisFeu,
     planMaintenance: {
       nom: counter.planMaintenance?.nom || '',
+      type: counter.planMaintenance?.type || null,
       consommables: JSON.parse(JSON.stringify(counter.planMaintenance?.consommables || [])),
       documents: JSON.parse(JSON.stringify(counter.planMaintenance?.documents || []))
     }
@@ -624,6 +667,19 @@ const handleCounterEdit = (counter) => {
   showCounterDialog.value = true;
 };
 
+const addPMDocument = () => {
+  const docs = currentCounter.value.planMaintenance.documents;
+  // Vérifie si le dernier document est vide
+  if (!docs.length || docs[docs.length - 1].titre) {
+    docs.push({
+      titre: '',
+      file: null,
+      type: null
+    });
+  }
+};
+
+
 const handleCounterDelete = (counter) => {
   if (confirm('Êtes-vous sûr de vouloir supprimer ce compteur ?')) {
     formData.value.compteurs = formData.value.compteurs.filter(c => c !== counter);
@@ -636,6 +692,7 @@ const applyExistingPM = (nom) => {
 
   currentCounter.value.planMaintenance = {
     nom: pm.nom,
+    type: pm.type || null,
     consommables: pm.consommables ? JSON.parse(JSON.stringify(pm.consommables)) : [],
     documents: pm.documents ? JSON.parse(JSON.stringify(pm.documents)) : []
   };
@@ -666,6 +723,8 @@ const saveCurrentCounter = () => {
         quantite: c.quantite || 1
       }));
   }
+  counterToSave.planMaintenance.documents = counterToSave.planMaintenance.documents.filter(doc => doc.titre || doc.file);
+
 
   if (editingCounterIndex.value >= 0 && editingCounterIndex.value < formData.value.compteurs.length) {
     // MODIFICATION
@@ -699,6 +758,7 @@ const updateExistingPM = (counterToSave) => {
     // Mettre à jour le PM existant
     existingPMs.value[existingPMIndex] = {
       nom: pmNom,
+      type: counterToSave.planMaintenance.type || null,
       consommables: [...counterToSave.planMaintenance.consommables],
       documents: [...counterToSave.planMaintenance.documents]
     };
@@ -706,6 +766,7 @@ const updateExistingPM = (counterToSave) => {
     // Ajouter comme nouveau PM
     existingPMs.value.push({
       nom: pmNom,
+      type: counterToSave.planMaintenance.type || null,
       consommables: [...counterToSave.planMaintenance.consommables],
       documents: [...counterToSave.planMaintenance.documents]
     });

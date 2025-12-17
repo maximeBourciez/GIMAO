@@ -56,9 +56,9 @@
           :show-create-button="false" :no-data-text="noDataText" no-data-icon="mdi-package-variant-closed"
           @row-click="$emit('row-click', $event)" @clear-error="errorMessage = ''" :internal-search="true">
           <!-- Colonne Statut avec chip coloré -->
-          <template #item.statut.statut="{ item }">
-            <v-chip :color="getStatusColor(item.statut.statut)" text-color="black" size="small" variant="flat">
-              {{ item.statut.statut }}
+          <template #item.statut?.statut="{ item }">
+            <v-chip :color="getStatusColor(item.statut?.statut)" text-color="black" size="small" variant="flat">
+              {{ item.statut?.statut }}
             </v-chip>
 
           </template>

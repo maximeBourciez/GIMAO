@@ -1,5 +1,8 @@
 import json
-from rest_framework import viewsets
+
+
+from rest_framework import viewsets, status
+from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from django.db.models import Prefetch
 from django.db import transaction
@@ -23,7 +26,7 @@ from equipement.api.serializers import (
     EquipementCreateSerializer
 )
 
-from maintenance.models import PlanMaintenance, PlanMaintenanceConsommable
+from maintenance.models import PlanMaintenance, PlanMaintenanceConsommable, PlanMaintenanceDocument
 from donnees.models import Lieu, Document
 
 
@@ -104,8 +107,15 @@ class EquipementViewSet(viewsets.ModelViewSet):
             compteur = Compteur.objects.create(
                 equipement=equipement,
                 nomCompteur=cp["nom"],
-                intervalle=cp["intervalle"],
+                descriptifMaintenance=cp.get("description", ""),
+                valeurCourante=cp["valeurCourante"],
+                prochaineMaintenance= cp["derniereIntervention"] + cp["intervalle"],
+                ecartInterventions=cp["intervalle"],
                 unite=cp["unite"],
+                estPrincipal=cp.get("estPrincipal", False),
+                estGlissant=cp.get("estGlissant", False),
+                necessiteHabilitationElectrique=cp.get("necessiteHabilitationElectrique", False),
+                necessitePermisFeu=cp.get("necessitePermisFeu", False)
             )
 
             # Plan de maintenance ?
@@ -113,23 +123,30 @@ class EquipementViewSet(viewsets.ModelViewSet):
             if pm:
                 plan = PlanMaintenance.objects.create(
                     compteur=compteur,
-                    nom=pm["nom"]
+                    nom=pm["nom"],
+                    type_plan_maintenance_id=pm["type"],
+                    equipement=equipement
                 )
 
                 # Consommables du plan
                 for cpm in pm.get("consommables", []):
                     PlanMaintenanceConsommable.objects.create(
-                        plan=plan,
+                        plan_maintenance=plan,
                         consommable_id=cpm["consommable"],
-                        quantite=cpm["quantite"]
+                        quantite_necessaire=cpm["quantite"]
                     )
 
                 # Documents
                 for doc in pm.get("documents", []):
-                    Document.objects.create(
-                        planMaintenance=plan,
+                    docu = Document.objects.create(
                         nomDocument=doc["titre"],
-                        fichier=doc["file"]
+                        cheminAcces=doc["file"],
+                        typeDocument_id=doc["type"]
+                    )
+                    
+                    PlanMaintenanceDocument.objects.create(
+                        plan_maintenance=plan,
+                        document = docu
                     )
 
         return Response(
