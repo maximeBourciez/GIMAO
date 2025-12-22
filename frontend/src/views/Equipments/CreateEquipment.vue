@@ -4,7 +4,7 @@
       <v-container>
         <BaseForm v-model="formData" title="Créer un Équipement" :loading="loading" :error-message="errorMessage"
           :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
-          :custom-validation="validateForm" submit-button-text="Créer un Équipement" @submit="handleSubmit">
+          :custom-validation="validateForm" submit-button-text="Créer un Équipement" :handleSubmit="handleSubmit">
           <template #default="{ formData }">
             <v-row>
               <v-col cols="12" md="6">
@@ -231,7 +231,7 @@
                 <v-text-field v-model="doc.titre" label="Nom du document" outlined dense></v-text-field>
               </v-col>
               <v-col cols="4">
-                <v-file-input v-model="doc.file" label="Fichier" outlined dense accept="*"></v-file-input>
+                <v-file-input v-model="doc.file" label="Fichier" outlined dense accept="*" @change="handlePmDocumentUpload($event, index)"></v-file-input>
               </v-col>
               <v-col cols="4">
                 <v-select v-model="doc.type" :items="typesDocuments" item-title="nomTypeDocument"
@@ -468,15 +468,28 @@ const handleFileUpload = (event) => {
   }
 };
 
-const handlePmDocumentUpload = (event) => {
+const handlePmDocumentUpload = (event, index) => {
+  console.log('📄 Changement de fichier pour document', index, ':', files);
+  
   const files = event.target.files ? event.target.files : event;
   if (files && files.length > 0) {
-    const newDocuments = Array.from(files).map(file => ({
-      titre: file.name,
-      file: file,
-      typeDocument: null
-    }));
-    currentCounter.value.planMaintenance.documents.push(...newDocuments);
+    const file = Array.isArray(files) ? files[0] : files;
+    
+    if (file instanceof File) {
+      // Mettre à jour le fichier uniquement
+      currentCounter.value.planMaintenance.documents[index].file = file;
+      
+      console.log('✅ Fichier ajouté:', {
+        index,
+        titre: currentCounter.value.planMaintenance.documents[index].titre,
+        fileName: file.name,
+        fileSize: file.size,
+        type: currentCounter.value.planMaintenance.documents[index].type
+      });
+    }
+  } else {
+    currentCounter.value.planMaintenance.documents[index].file = null;
+    console.log('🗑️ Fichier supprimé pour document', index);
   }
 };
 
@@ -524,6 +537,8 @@ const fetchData = async () => {
 };
 
 const handleSubmit = async () => {
+console.log('📤 Soumission du formulaire avec les données:', formData.value);
+
   loading.value = true;
   errorMessage.value = '';
 
