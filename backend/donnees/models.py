@@ -40,7 +40,7 @@ class TypeDocument(models.Model):
 
 class Document(models.Model):
     nomDocument = models.CharField(max_length=100, help_text="Nom du document.")
-    cheminAcces = models.CharField(max_length=200, help_text="Chemin d'accès au document.")
+    cheminAcces = models.FileField(upload_to='documents/', help_text="Chemin d'accès au fichier du document.")
     typeDocument = models.ForeignKey(
         TypeDocument,
         on_delete=models.CASCADE,

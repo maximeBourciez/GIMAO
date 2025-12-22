@@ -47,7 +47,7 @@ class Equipement(models.Model):
     designation = models.CharField(max_length=100, help_text="Nom ou désignation de l'équipement")
     dateMiseEnService = models.DateTimeField(null=True, blank=True, help_text="Date de mise en service de l'équipement")
     prixAchat = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Prix d'achat de l'équipement")
-    lienImage = models.CharField(max_length=255, blank=True, null=True, help_text="Lien vers une image de l'équipement")
+    lienImage = models.FileField(upload_to='equipement_images/', null=True, blank=True, help_text="Image de l'équipement")
     preventifGlissant = models.BooleanField(default=False, help_text="Indique si l'entretien préventif est glissant")
     createurEquipement = models.ForeignKey(
         Utilisateur,

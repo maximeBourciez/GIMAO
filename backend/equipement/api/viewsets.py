@@ -1,9 +1,6 @@
 import json
-
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
-from django.db.models import Prefetch
 from django.db import transaction
 
 # Models
@@ -39,11 +36,21 @@ class EquipementViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        print("DATA BRUTES :", request.data)
+        print("=" * 80)
+        print("📦 DONNÉES BRUTES REÇUES")
+        print("=" * 80)
+        print("POST data:", dict(request.data))
+        print("\n📁 FICHIERS REÇUS:")
+        for key in request.FILES.keys():
+            print(f"  - {key}: {request.FILES[key].name}")
+        print("=" * 80)
 
-        # ⚠️ IMPORTANT
-        # request.data est un QueryDict + fichiers → on copie SANS le transformer en dict
-        data = request.data.copy()
+        data = dict(request.data)
+        
+        # Extraire les valeurs uniques des listes (QueryDict met tout en liste)
+        for key, value in data.items():
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
 
         # -------------------------
         # Normalisation des champs simples
@@ -52,33 +59,21 @@ class EquipementViewSet(viewsets.ModelViewSet):
         # lieu : objet -> id
         if "lieu" in data:
             lieu_value = data["lieu"]
-            # Si c'est une chaîne JSON, on la parse
             if isinstance(lieu_value, str):
                 try:
                     lieu_obj = json.loads(lieu_value)
                     data["lieu"] = lieu_obj["id"]
                 except (TypeError, ValueError, KeyError):
-                    pass  # déjà un id ou format invalide
-            # Si c'est un dict, on extrait l'id
+                    pass
             elif isinstance(lieu_value, dict):
                 data["lieu"] = lieu_value["id"]
-            # Sinon c'est déjà un id (int)
 
         # Champs JSON envoyés en string
         for field in ["consommables", "compteurs"]:
             if field in data and isinstance(data[field], str):
                 data[field] = json.loads(data[field])
 
-        # Gestion du fichier image
-        # Si le fichier n'est pas valide, on le retire
-        if "lienImageEquipement" in data:
-            file_value = data["lienImageEquipement"]
-            # Si c'est une chaîne '[object File]' ou vide, on le retire
-            if isinstance(file_value, str) and (file_value == '[object File]' or not file_value):
-                data.pop("lienImageEquipement")
-            # Sinon, request.FILES devrait contenir le vrai fichier
-
-        print("DATA NORMALISÉES :", data)
+        print("\n✅ DONNÉES NORMALISÉES:", data)
 
         # -------------------------
         # Validation serializer
@@ -112,7 +107,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
             fournisseur=fournisseur,
             fabricant=fabricant,
             numSerie=data.get("numSerie", ""),
-            lienImage=data.get("lienImageEquipement")  # UploadedFile OK ou None
+            lienImage=data.get("lienImageEquipement")
         )
 
         # -------------------------
@@ -127,7 +122,9 @@ class EquipementViewSet(viewsets.ModelViewSet):
         # -------------------------
         # Compteurs & plans de maintenance
         # -------------------------
-        for cp in data.get("compteurs", []):
+        for compteur_index, cp in enumerate(data.get("compteurs", [])):
+            print(f"\n🔧 Traitement compteur #{compteur_index}: {cp.get('nom')}")
+            
             compteur = Compteur.objects.create(
                 equipement=equipement,
                 nomCompteur=cp["nom"],
@@ -146,8 +143,10 @@ class EquipementViewSet(viewsets.ModelViewSet):
 
             pm = cp.get("planMaintenance")
             if not pm:
+                print(f"  ⚠️  Pas de plan de maintenance pour ce compteur")
                 continue
 
+            print(f"  📋 Création du plan: {pm['nom']}")
             plan = PlanMaintenance.objects.create(
                 compteur=compteur,
                 equipement=equipement,
@@ -162,25 +161,40 @@ class EquipementViewSet(viewsets.ModelViewSet):
                     consommable_id=cpm["consommable"],
                     quantite_necessaire=cpm["quantite"]
                 )
+                print(f"    ✓ Consommable ajouté: ID {cpm['consommable']} x{cpm['quantite']}")
 
-            # Documents
-            for doc in pm.get("documents", []):
-                # Vérifier si le fichier est valide
-                doc_file = doc.get("file")
-                if not doc_file or (isinstance(doc_file, dict) and not doc_file):
-                    # Fichier invalide, on saute ce document
+            # -------------------------
+            # Documents du plan
+            # -------------------------
+            print(f"  📄 Traitement des documents...")
+            for doc_index, doc in enumerate(pm.get("documents", [])):
+                # Cherche le fichier avec le nouveau format
+                file_key = f"compteur_{compteur_index}_document_{doc_index}"
+                uploaded_file = request.FILES.get(file_key)
+
+                if not uploaded_file:
+                    print(f"    ⚠️  Document #{doc_index}: Aucun fichier trouvé pour la clé '{file_key}'")
                     continue
 
+                print(f"    ✓ Document #{doc_index}: {uploaded_file.name} ({uploaded_file.size} bytes)")
+
+                # Créer le document
                 document = Document.objects.create(
-                    nomDocument=doc["titre"],
-                    cheminAcces=doc_file,
-                    typeDocument_id=doc["type"]
+                    nomDocument=doc.get("titre", uploaded_file.name),
+                    cheminAcces=uploaded_file,
+                    typeDocument_id=doc.get("type")
                 )
 
+                # Lier au plan de maintenance
                 PlanMaintenanceDocument.objects.create(
                     plan_maintenance=plan,
                     document=document
                 )
+                print(f"      → Document créé avec succès (ID: {document.id})")
+
+        print("\n" + "=" * 80)
+        print("✅ ÉQUIPEMENT CRÉÉ AVEC SUCCÈS")
+        print("=" * 80)
 
         return Response(
             EquipementSerializer(equipement).data,

@@ -103,12 +103,16 @@
                     </div>
                   </template>
                   <template #item.actions="{ item }">
-                    <v-btn icon color="red" @click="handleCounterDelete(item)" size="30">
-                      <v-icon size="14">mdi-delete</v-icon>
-                    </v-btn>
-                    <v-btn icon color="blue" @click="handleCounterEdit(item)" size="30">
-                      <v-icon size="14">mdi-pencil</v-icon>
-                    </v-btn>
+                    <v-row>
+                      <v-btn icon color="blue" @click="handleCounterEdit(item)" size="30" class="mr-2">
+                        <v-icon size="14">mdi-pencil</v-icon>
+                      </v-btn>
+                      <v-btn icon color="red" @click="handleCounterDelete(item)" size="30">
+                        <v-icon size="14">mdi-delete</v-icon>
+                      </v-btn>
+
+                    </v-row>
+
                   </template>
                 </v-data-table>
               </v-col>
@@ -231,11 +235,12 @@
                 <v-text-field v-model="doc.titre" label="Nom du document" outlined dense></v-text-field>
               </v-col>
               <v-col cols="4">
-                <v-file-input v-model="doc.file" label="Fichier" outlined dense accept="*" @change="handlePmDocumentUpload($event, index)"></v-file-input>
+                <v-file-input label="Fichier" outlined dense accept="*" v-model="doc.file"
+                  @change="handlePmDocumentUpload($event, index)"></v-file-input>
               </v-col>
               <v-col cols="4">
-                <v-select v-model="doc.type" :items="typesDocuments" item-title="nomTypeDocument"
-                  item-value="id" label="Type de document" outlined dense></v-select>
+                <v-select v-model="doc.type" :items="typesDocuments" item-title="nomTypeDocument" item-value="id"
+                  label="Type de document" outlined dense></v-select>
               </v-col>
             </v-row>
             <v-btn color="primary" class="mb-3" @click="addPMDocument">Ajouter un document</v-btn>
@@ -280,7 +285,7 @@ const formData = ref({
   "dateCreation": "2025-12-12T22:00:31.543Z",
   "dateMiseEnService": "2025-12-12",
   "prixAchat": "2500",
-  "lienImageEquipement": "[object File]",
+  "lienImageEquipement": null,
   "createurEquipement": 2,
   "lieu": {
     "id": 2,
@@ -317,56 +322,10 @@ const formData = ref({
           { "consommable": 2, "quantite": 2 }
         ],
         "documents": [
-          {"titre":"Rapport_controle_elec.pdf","file":{},"type":3}
+          { "titre": "Rapport_controle_elec.pdf", "file": {}, "type": 3 }
         ]
       }
     },
-
-    {
-      "nom": "Compteur jours de nettoyage",
-      "description": "Planification du nettoyage complet",
-      "intervalle": "30",
-      "unite": "jours",
-      "valeurActuelle": 10,
-      "derniereIntervention": "0",
-      "estGlissant": false,
-      "estPrincipal": false,
-      "habElec": false,
-      "permisFeu": false,
-      "planMaintenance": {
-        "nom": "Nettoyage complet",
-        "type": 2,
-        "consommables": [
-          { "consommable": 3, "quantite": 1 }
-        ],
-        "documents": [
-          {"titre":"Rapport_controle_elec.pdf","file":{},"type":3}
-        ]
-      }
-    },
-
-    {
-      "nom": "Compteur sécurité électrique",
-      "description": "Contrôle périodique des équipements électriques",
-      "intervalle": "180",
-      "unite": "jours",
-      "valeurActuelle": 60,
-      "derniereIntervention": "0",
-      "estGlissant": true,
-      "estPrincipal": false,
-      "habElec": true,
-      "permisFeu": true,
-      "planMaintenance": {
-        "nom": "Contrôle électrique",
-        "type": 2,
-        "consommables": [
-          { "consommable": 5, "quantite": 1 }
-        ],
-        "documents": [
-          {"titre":"Rapport_controle_elec.pdf","file":{},"type":3}
-        ]
-      }
-    }
   ]
 }
 );
@@ -400,8 +359,10 @@ const getEmptyCounter = () => ({
   permisFeu: false,
   planMaintenance: {
     nom: '',
-    consommables: [],
-    documents: []
+    consommables: [''],
+    documents: [
+      { titre: '', file: null, type: null }
+    ]
   }
 });
 
@@ -416,17 +377,6 @@ const addPMConsumable = () => {
 
 const removePMConsumable = (index) => {
   currentCounter.value.planMaintenance.consommables.splice(index, 1);
-};
-
-const handlePMDocuments = (files) => {
-  if (files) {
-    currentCounter.value.planMaintenance.documents = Array.from(files).map(file => ({
-      titre: file.name,
-      file: file
-    }));
-  } else {
-    currentCounter.value.planMaintenance.documents = [];
-  }
 };
 
 const validation = useFormValidation(formData, {
@@ -469,16 +419,19 @@ const handleFileUpload = (event) => {
 };
 
 const handlePmDocumentUpload = (event, index) => {
-  console.log('📄 Changement de fichier pour document', index, ':', files);
-  
+  console.log('📄 Gestion du téléchargement du document pour l\'index:', index);
   const files = event.target.files ? event.target.files : event;
+  console.log('📂 Fichiers reçus:', files, ' - length :', files.length);
   if (files && files.length > 0) {
-    const file = Array.isArray(files) ? files[0] : files;
-    
+    const file = files[0];
+
+    console.log('📑 Fichier sélectionné:', file);
+
     if (file instanceof File) {
-      // Mettre à jour le fichier uniquement
       currentCounter.value.planMaintenance.documents[index].file = file;
-      
+
+      console.log('📋 Mise à jour du document à l\'index', index, 'avec le fichier:', file);
+
       console.log('✅ Fichier ajouté:', {
         index,
         titre: currentCounter.value.planMaintenance.documents[index].titre,
@@ -537,95 +490,110 @@ const fetchData = async () => {
 };
 
 const handleSubmit = async () => {
-console.log('📤 Soumission du formulaire avec les données:', formData.value);
+  if (!validateForm()) return;
 
   loading.value = true;
   errorMessage.value = '';
 
   try {
-    // Validation supplémentaire
-    if (!validateForm()) {
-      loading.value = false;
-      return;
-    }
+    const fd = new FormData();
 
-    formData.value.dateCreation = new Date().toISOString();
-
-    // Préparer les données des compteurs pour l'API
-    const compteursData = formData.value.compteurs.map(counter => ({
-      nom: counter.nom,
-      intervalle: counter.intervalle,
-      unite: counter.unite,
-      valeurCourante: counter.valeurActuelle || 0,
-      derniereIntervention: counter.derniereIntervention || 0,
-      planMaintenance: counter.planMaintenance.nom ? {
-        nom: counter.planMaintenance.nom,
-        type: counter.planMaintenance.type || null,
-        consommables: counter.planMaintenance.consommables,
-        documents: counter.planMaintenance.documents
-      } : null
-    }));
-    const form_data = new FormData();
-
-    // Ajouter les champs de base
+    // -------------------------
+    // Ajouter les champs simples
+    // -------------------------
     for (const key in formData.value) {
-      if (formData.value[key] !== null && key !== 'lienImageEquipement' && key !== 'compteurs') {
-        if (key === 'lieu') {
-          form_data.append(key, formData.value.lieu?.id?.toString() || '');
-        } else if (key === 'consommables') {
-          // Ajouter les consommables comme JSON
-          form_data.append(key, JSON.stringify(formData.value[key]));
-        } else {
-          form_data.append(key, formData.value[key]);
+      if (key === 'lieu') {
+        // Lieu : envoyer seulement l'ID
+        fd.append('lieu', formData.value.lieu?.id ?? '');
+        
+      } else if (key === 'consommables') {
+        // Consommables : JSON
+        fd.append(key, JSON.stringify(formData.value[key]));
+        
+      } else if (key === 'compteurs') {
+        // Compteurs : JSON sans les fichiers
+        const compteursData = formData.value.compteurs.map(c => ({
+          ...c,
+          planMaintenance: {
+            ...c.planMaintenance,
+            // Documents sans les fichiers (juste métadonnées)
+            documents: c.planMaintenance.documents.map(d => ({
+              titre: d.titre,
+              type: d.type
+            }))
+          }
+        }));
+        fd.append(key, JSON.stringify(compteursData));
+        
+      } else if (key === 'lienImageEquipement') {
+        // Image de l'équipement
+        if (formData.value[key] instanceof File) {
+          fd.append('lienImageEquipement', formData.value[key]);
         }
+        
+      } else if (formData.value[key] !== null && formData.value[key] !== undefined) {
+        // Autres champs simples
+        fd.append(key, formData.value[key]);
       }
     }
 
-    // Ajouter l'image
-    if (formData.value.lienImageEquipement instanceof File) {
-      form_data.append('lienImageEquipement', formData.value.lienImageEquipement);
+    // -------------------------
+    // Ajouter les fichiers des documents des plans de maintenance
+    // -------------------------
+    console.log('📤 Ajout des fichiers des documents...');
+    
+    formData.value.compteurs.forEach((compteur, compteurIndex) => {
+      compteur.planMaintenance.documents.forEach((doc, docIndex) => {
+        if (doc.file instanceof File) {
+          // ✅ Format correct pour correspondre au backend
+          const fileKey = `compteur_${compteurIndex}_document_${docIndex}`;
+          fd.append(fileKey, doc.file);
+          
+          console.log(`  ✓ Fichier ajouté: ${fileKey} = ${doc.file.name} (${doc.file.size} bytes)`);
+        }
+      });
+    });
+
+    // -------------------------
+    // Debug : afficher le contenu du FormData
+    // -------------------------
+    console.log('\n📦 Contenu du FormData à envoyer:');
+    for (let [key, value] of fd.entries()) {
+      if (value instanceof File) {
+        console.log(`  ${key}: [FILE] ${value.name} (${value.size} bytes)`);
+      } else {
+        console.log(`  ${key}:`, value);
+      }
     }
 
-    // Ajouter les compteurs
-    form_data.append('compteurs', JSON.stringify(compteursData));
-
-    const response = await api.post('equipements/', form_data, {
+    // -------------------------
+    // Envoyer la requête
+    // -------------------------
+    console.log('\n🚀 Envoi de la requête...');
+    
+    await api.post('equipements/', fd, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
-    if (response) {
-      const equipement_id = response.reference || response.id;
+    console.log('✅ Requête réussie !');
+    successMessage.value = 'Équipement créé avec succès';
+    
+    setTimeout(() => router.back(), 1500);
 
-      // Créer le statut de l'équipement
-      const information_statut_data = {
-        statutEquipement: 'En fonctionnement',
-        dateChangement: new Date().toISOString(),
-        equipement: equipement_id,
-        informationStatutParent: null,
-        ModificateurStatut: 1
-      };
-
-      await api.post('information-statuts/', information_statut_data, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      // Associer les consommables
-      for (const consumable_id of formData.value.consommables) {
-        await api.post('constituer/', {
-          equipement: equipement_id,
-          consommable: consumable_id
-        });
-      }
-
-      successMessage.value = 'Équipement créé avec succès !';
-
-      setTimeout(() => {
-        router.go(-1);
-      }, 1500);
+  } catch (e) {
+    console.error('❌ Erreur lors de la création:', e);
+    console.error('Détails:', e.response?.data);
+    
+    errorMessage.value = 'Erreur lors de la création de l\'équipement';
+    
+    if (e.response?.data) {
+      // Afficher les erreurs de validation si disponibles
+      const errors = Object.entries(e.response.data)
+        .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+        .join('\n');
+      errorMessage.value += `\n${errors}`;
     }
-  } catch (error) {
-    console.error('Erreur lors de la création de l\'équipement:', error);
-    errorMessage.value = error.response?.data?.message || 'Erreur lors de la création de l\'équipement. Veuillez réessayer.';
+    
   } finally {
     loading.value = false;
   }
@@ -651,33 +619,21 @@ const handleCounterAdd = () => {
 };
 
 const handleCounterEdit = (counter) => {
-  const index = formData.value.compteurs.findIndex(c => c === counter);
-  editingCounterIndex.value = index;
+  editingCounterIndex.value = formData.value.compteurs.indexOf(counter);
   isEditMode.value = true;
 
   currentCounter.value = {
-    nom: counter.nom,
-    description: counter.description,
-    intervalle: counter.intervalle,
-    unite: counter.unite,
-    valeurActuelle: counter.valeurActuelle,
-    derniereIntervention: counter.derniereIntervention,
-    estGlissant: counter.estGlissant,
-    estPrincipal: counter.estPrincipal,
-    habElec: counter.habElec,
-    permisFeu: counter.permisFeu,
+    ...counter,
     planMaintenance: {
-      nom: counter.planMaintenance?.nom || '',
-      type: counter.planMaintenance?.type || null,
-      consommables: JSON.parse(JSON.stringify(counter.planMaintenance?.consommables || [])),
-      documents: JSON.parse(JSON.stringify(counter.planMaintenance?.documents || []))
+      ...counter.planMaintenance,
+      consommables: counter.planMaintenance?.consommables
+        ? counter.planMaintenance.consommables.map(c => ({ ...c }))
+        : [],
+      documents: counter.planMaintenance?.documents
+        ? counter.planMaintenance.documents.map(d => ({ ...d }))
+        : []
     }
   };
-
-  // Mettre à jour les fichiers pour l'affichage
-  pmDocuments.value = currentCounter.value.planMaintenance.documents
-    .filter(doc => doc.file)
-    .map(doc => doc.file);
 
   showCounterDialog.value = true;
 };
@@ -727,7 +683,22 @@ const saveCurrentCounter = () => {
     return;
   }
 
-  const counterToSave = JSON.parse(JSON.stringify(currentCounter.value));
+  const counterToSave = {
+    ...currentCounter.value,
+    planMaintenance: {
+      ...currentCounter.value.planMaintenance,
+      consommables: currentCounter.value.planMaintenance.consommables
+        .filter(c => c.consommable)
+        .map(c => ({ ...c })),
+      documents: currentCounter.value.planMaintenance.documents
+        .filter(d => d.titre || d.file)
+        .map(d => ({
+          titre: d.titre,
+          type: d.type,
+          file: d.file
+        }))
+    }
+  };
 
   // S'assurer que les consommables ont le bon format
   if (counterToSave.planMaintenance.consommables) {
@@ -761,6 +732,8 @@ const saveCurrentCounter = () => {
   }
 
   closeCounterDialog();
+
+  console.log('✅ Compteur sauvegardé:', counterToSave);
 };
 
 const updateExistingPM = (counterToSave) => {

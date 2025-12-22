@@ -9,7 +9,7 @@ node_modules/
 
 
 # Fichier de stockage des images et des différents types de fichiers complémentaires 
-backend/media
+backend/media/*/*
 
 # Variables d'environnement de Django
 backend/.env
