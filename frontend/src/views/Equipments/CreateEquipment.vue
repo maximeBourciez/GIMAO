@@ -279,56 +279,7 @@ const isEditMode = ref(false);
 const editingCounterIndex = ref(-1);
 const pmDocuments = ref([]);
 
-const formData = ref({
-  "reference": "Référence de test",
-  "designation": "Désignation test",
-  "dateCreation": "2025-12-12T22:00:31.543Z",
-  "dateMiseEnService": "2025-12-12",
-  "prixAchat": "2500",
-  "lienImageEquipement": null,
-  "createurEquipement": 2,
-  "lieu": {
-    "id": 2,
-    "nomLieu": "Atelier principal",
-    "children": [
-      { "id": 4, "nomLieu": "Zone de production A", "children": [] },
-      { "id": 5, "nomLieu": "Zone de production B", "children": [] }
-    ]
-  },
-  "modeleEquipement": 3,
-  "fournisseur": 2,
-  "fabricant": 2,
-  "famille": 2,
-  "consommables": [2, 1, 3],
-  "numSerie": "SN589874",
-
-  "compteurs": [
-    {
-      "nom": "Compteur heures moteur",
-      "description": "Suivi des heures de fonctionnement",
-      "intervalle": "250",
-      "unite": "heures",
-      "valeurActuelle": 120,
-      "derniereIntervention": "0",
-      "estGlissant": true,
-      "estPrincipal": true,
-      "habElec": false,
-      "permisFeu": false,
-      "planMaintenance": {
-        "nom": "Maintenance moteur",
-        "type": 3,
-        "consommables": [
-          { "consommable": 1, "quantite": 1 },
-          { "consommable": 2, "quantite": 2 }
-        ],
-        "documents": [
-          { "titre": "Rapport_controle_elec.pdf", "file": {}, "type": 3 }
-        ]
-      }
-    },
-  ]
-}
-);
+const formData = ref({});
 
 const locations = ref([]);
 const equipmentModels = ref([]);
