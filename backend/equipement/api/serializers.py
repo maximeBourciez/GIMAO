@@ -96,6 +96,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
                 'valeurCourante': c.valeurCourante,
                 'ecartInterventions': c.ecartInterventions,
                 'prochaineMaintenance': c.prochaineMaintenance,
+                'unite': c.unite,
                 'estPrincipal': c.estPrincipal
             }
             for c in obj.compteurs.all()
