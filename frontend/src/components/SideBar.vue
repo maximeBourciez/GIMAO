@@ -32,28 +32,25 @@
         </v-list>
 
         <!-- Bouton réduire / agrandir -->
-        <!-- Bouton réduire / agrandir -->
-        <div class="menu-toggle-wrapper">
-            <v-btn variant="tonal" color="primary" class="menu-toggle-btn" @click="toggleMini">
-                <v-icon>
-                    {{ isMini ? 'mdi-menu-open' : 'mdi-menu' }}
-                </v-icon>
-
-                <span v-if="!isMini" class="ml-2">
-                    Réduire le menu
-                </span>
-                <span v-if="isHovered && isMini" class="ml-2">
-                    {{ isMini ? 'Agrandir le menu' : 'Réduire le menu' }}
-                </span>
-            </v-btn>
-        </div>
-
-
 
 
 
         <!-- User / Logout -->
         <template #append>
+            <div class="menu-toggle-wrapper">
+                <v-btn variant="tonal" color="primary" class="menu-toggle-btn" @click="toggleMini">
+                    <v-icon>
+                        {{ isMini ? 'mdi-menu-open' : 'mdi-menu' }}
+                    </v-icon>
+
+                    <span v-if="!isMini" class="ml-2">
+                        Réduire le menu
+                    </span>
+                    <span v-if="isHovered && isMini" class="ml-2">
+                        {{ isMini ? 'Agrandir le menu' : 'Réduire le menu' }}
+                    </span>
+                </v-btn>
+            </div>
             <v-divider />
 
             <v-list dense>
@@ -222,7 +219,8 @@ export default {
 
 .menu-toggle-btn {
     width: 100%;
-    max-width: 240px; /* ne dépasse jamais */
+    max-width: 240px;
+    /* ne dépasse jamais */
     font-weight: 600;
 }
 
@@ -232,5 +230,4 @@ export default {
     min-width: 48px;
     padding: 0;
 }
-
 </style>
