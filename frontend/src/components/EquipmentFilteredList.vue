@@ -24,7 +24,7 @@
                 <span v-else class="tree-icon-placeholder"></span>
               </template>
               <template v-slot:label="{ item }">
-                <span class="text-caption ml-2">{{ item.nomLieu }}</span>
+                <span class="text-caption ml-2 tree-label" :title="item.nomLieu">{{ item.nomLieu }}</span>
               </template>
             </VTreeview>
           </div>
@@ -147,8 +147,8 @@ const loading = computed(() =>
 const defaultHeaders = [
   { title: 'Référence', key: 'reference', sortable: true, align: 'center' },
   { title: 'Désignation', key: 'designation', sortable: true, align: 'center' },
-  { title: 'Lieu', key: 'lieu.nomLieu', sortable: true, align: 'center' },
-  { title: 'Modèle', key: 'modele', sortable: true, align: 'center' },
+  { title: 'Lieu', key: 'lieu.nomLieu', sortable: false, align: 'center' },
+  { title: 'Modèle', key: 'modele', sortable: false, align: 'center' },
   {
     title: 'Statut',
     key: 'statut.statut',
@@ -367,4 +367,18 @@ components: {
   transform: scale(1.1);
   transition: transform 0.2s ease;
 }
+
+.v-list-item__prepend i,
+.tree-icon-placeholder {
+  display: none !important;
+}
+
+.tree-label {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+}
+
 </style>
