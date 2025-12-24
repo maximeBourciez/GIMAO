@@ -1,7 +1,18 @@
 <template>
   <v-app>
-    <NavigationDrawer :items="menuItems" />
-    <TopNavBar :pageTitle="GIMAO" />
+    <!-- Desktop Sidebar -->
+    <Sidebar v-if="!isMobile" />
+    
+    <!-- Mobile TopBar (avec menu hamburger) -->
+    <TopBar v-if="isMobile" />
+    
+    <!-- Desktop TopBar (juste le titre, pas de hamburger) -->
+    <v-app-bar v-if="!isMobile" app color="white" elevation="1">
+      <v-toolbar-title class="font-weight-bold ml-4">
+        {{ pageTitle }}
+      </v-toolbar-title>
+    </v-app-bar>
+    
     <v-main>
       <router-view />
     </v-main>
@@ -9,61 +20,60 @@
 </template>
 
 <script>
-import NavigationDrawer from '@/components/NavigationBar.vue';
-import TopNavBar from "@/components/TopBar.vue";
+import Sidebar from "@/components/SideBar.vue";
+import TopBar from "@/components/TopBar.vue";
 
 export default {
   name: 'App',
   components: {
-    NavigationDrawer,
-    TopNavBar,
+    Sidebar,
+    TopBar,
   },
   
   data() {
     return {
-      currentPageTitle: '',
-      menuItems: [
-        { name: 'Tableau de bord', icon: require('@/assets/images/Graphe.svg'), routeName: 'Dashboard' },
-        { name: 'Equipements', icon: require('@/assets/images/Outils.svg'), routeName: 'Equipements' },
-        { name: 'InterventionList', icon: require('@/assets/images/Maintenance.svg'), routeName: 'InterventionList' },
-        { name: 'Techniciens', icon: require('@/assets/images/Techniciens.svg'), routeName: 'Techniciens' },
-      ],
+      isMobile: false,
     };
   },
   
-  watch: {
-    $route: {
-      immediate: true,
-      handler(to) {
-        this.currentPageTitle = to.meta.title || 'GIMAO';
-      }
+  computed: {
+    pageTitle() {
+      return this.$route.meta?.title || 'GIMAO';
+    }
+  },
+  
+  mounted() {
+    this.checkIfMobile();
+    window.addEventListener('resize', this.checkIfMobile);
+  },
+  
+  beforeUnmount() {
+    window.removeEventListener('resize', this.checkIfMobile);
+  },
+  
+  methods: {
+    checkIfMobile() {
+      this.isMobile = window.innerWidth < 960; // Breakpoint md de Vuetify
     }
   }
 };
 </script>
 
-<style scoped>
+<style>
 .text-primary {
   color: #05004E;
 }
-
 .text-dark {
   color: #3C3C3C;
 }
-
 .v-card {
   background-color: #FFFFFF;
 }
-
 .v-btn {
   background-color: #F1F5FF;
   border-radius: 50%;
 }
-
 h1 {
   color: #05004E;
 }
 </style>
-
-<title>GIMAO</title>
-<link rel="shortcut icon" href="<%= BASE_URL %>favicon.ico">
