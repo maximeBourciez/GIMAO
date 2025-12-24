@@ -82,7 +82,14 @@ class StatutEquipement(models.Model):
     """
     Historique des statuts d'un équipement.
     """
-    statut = models.CharField(max_length=50, help_text="Statut de l'équipement")
+    STATUTS_CHOICES = [
+        ('EN_FONCTIONNEMENT', 'En fonctionnement'),
+        ('DEGRADE', 'Dégradé'),
+        ('A_LARRET', 'A l\'arrêt'),
+        ('HORS_SERVICE', 'Hors service'),
+    ]
+
+    statut = models.CharField(max_length=50, choices=STATUTS_CHOICES, help_text="Statut de l'équipement")
     dateChangement = models.DateTimeField(auto_now_add=True, help_text="Date du changement de statut")
     equipement = models.ForeignKey(Equipement, on_delete=models.CASCADE, related_name="statuts", help_text="Équipement concerné")
 

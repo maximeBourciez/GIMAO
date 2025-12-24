@@ -249,11 +249,9 @@ const othersDocuments = computed(() => {
 const equipmentDetails = computed(() => {
   if (!equipement.value) return {};
   const { id,
-    reference, designation, dateMiseEnService, prixAchat,
-    preventifGlissant, joursIntervalleMaintenance
+    reference, designation, dateMiseEnService, prixAchat
   } = equipement.value;
 
-  console.log('Equipement value:', equipement.value);
   const lieu = equipement.value.lieu?.nomLieu || '';
   const modele = equipement.value.modele?.nom || '';
   const fournisseur = equipement.value.fournisseur || '';

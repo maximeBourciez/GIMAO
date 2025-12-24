@@ -11,16 +11,20 @@ export const DEFAULT_ITEMS_PER_PAGE = 10;
 // ============================================
 
 export const EQUIPMENT_STATUS = {
-    FUNCTIONING: "Fonctionnel",
-    STOPPED: "A l'arrêt",
-    DEGRADED: "Dégradé",
+  EN_FONCTIONNEMENT: "En fonctionnement",
+  A_LARRET: "À l'arrêt",
+  DEGRADE: "Dégradé",
+  HORS_SERVICE: "Hors service",
 };
 
+
 export const EQUIPMENT_STATUS_COLORS = {
-    [EQUIPMENT_STATUS.FUNCTIONING]: "green",
-    [EQUIPMENT_STATUS.STOPPED]: "red",
-    [EQUIPMENT_STATUS.DEGRADED]: "orange",
+  EN_FONCTIONNEMENT: "green",
+  A_LARRET: "red",
+  DEGRADE: "orange",
+  HORS_SERVICE: "grey",
 };
+
 
 // ============================================
 // NIVEAUX DE DÉFAILLANCE

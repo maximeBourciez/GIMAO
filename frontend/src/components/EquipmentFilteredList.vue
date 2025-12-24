@@ -56,12 +56,17 @@
           :show-create-button="false" :no-data-text="noDataText" no-data-icon="mdi-package-variant-closed"
           @row-click="$emit('row-click', $event)" @clear-error="errorMessage = ''" :internal-search="true">
           <!-- Colonne Statut avec chip coloré -->
-          <template #item.statut?.statut="{ item }">
-            <v-chip :color="getStatusColor(item.statut?.statut)" text-color="black" size="small" variant="flat">
-              {{ item.statut?.statut }}
+          <template #item.statut.statut="{ item }">
+            <v-chip v-if="item.statut && item.statut.statut" :color="getStatusColor(item.statut.statut)" variant="tonal"
+              size="small">
+              {{ getStatusLabel(item.statut.statut) }}
             </v-chip>
 
+            <v-chip v-else color="grey" variant="outlined" size="small">
+              Non renseigné
+            </v-chip>
           </template>
+
         </BaseListView>
 
         <!-- Bouton flottant en bas à droite -->
@@ -82,7 +87,7 @@ import { ref, computed, onMounted } from 'vue';
 import { VTreeview } from 'vuetify/labs/VTreeview';
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
-import { getStatusColor } from '@/utils/helpers';
+import { getStatusColor, getStatusLabel } from '@/utils/helpers';
 import { API_BASE_URL } from '@/utils/constants';
 
 const props = defineProps({
@@ -150,7 +155,7 @@ const defaultHeaders = [
     sortable: true,
     align: 'center',
     sort: (a, b) => {
-      const order = ['Rebuté', 'En fonctionnement', 'Dégradé', 'À l\'arrêt'];
+      const order = ['EN_FONCTIONNEMENT', 'DEGRADE', 'A_LARRET', 'HORS_SERVICE'];
       return order.indexOf(a) - order.indexOf(b);
     }
   }

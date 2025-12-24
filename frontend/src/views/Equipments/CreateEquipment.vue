@@ -289,7 +289,6 @@ const consumables = ref([]);
 const familles = ref([]);
 const typesPM = ref([]);
 const typesDocuments = ref([]);
-const openNodes = ref(new Set());
 const showCounterDialog = ref(false);
 const existingPMs = ref([
   { nom: 'Plan de maintenance vidange', consommables: [{ consommable: 1, quantite: 1 }, { consommable: 2, quantite: 2 }], documents: [], type: 2 },

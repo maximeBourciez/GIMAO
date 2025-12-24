@@ -161,22 +161,17 @@ class EquipementViewSet(viewsets.ModelViewSet):
                     consommable_id=cpm["consommable"],
                     quantite_necessaire=cpm["quantite"]
                 )
-                print(f"    ✓ Consommable ajouté: ID {cpm['consommable']} x{cpm['quantite']}")
 
             # -------------------------
             # Documents du plan
             # -------------------------
-            print(f"  📄 Traitement des documents...")
             for doc_index, doc in enumerate(pm.get("documents", [])):
                 # Cherche le fichier avec le nouveau format
                 file_key = f"compteur_{compteur_index}_document_{doc_index}"
                 uploaded_file = request.FILES.get(file_key)
 
                 if not uploaded_file:
-                    print(f"    ⚠️  Document #{doc_index}: Aucun fichier trouvé pour la clé '{file_key}'")
                     continue
-
-                print(f"    ✓ Document #{doc_index}: {uploaded_file.name} ({uploaded_file.size} bytes)")
 
                 # Créer le document
                 document = Document.objects.create(
@@ -190,11 +185,6 @@ class EquipementViewSet(viewsets.ModelViewSet):
                     plan_maintenance=plan,
                     document=document
                 )
-                print(f"      → Document créé avec succès (ID: {document.id})")
-
-        print("\n" + "=" * 80)
-        print("✅ ÉQUIPEMENT CRÉÉ AVEC SUCCÈS")
-        print("=" * 80)
 
         return Response(
             EquipementSerializer(equipement).data,
