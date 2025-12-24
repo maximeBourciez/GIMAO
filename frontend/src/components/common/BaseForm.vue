@@ -258,6 +258,12 @@ const props = defineProps({
   customDisabled: {
     type: Boolean,
     default: false
+  },
+
+  // Handling de la soumission
+  handleSubmit: {
+    type: Function,
+    default: false
   }
 });
 
@@ -272,6 +278,15 @@ const formData = computed({
 });
 
 const handleSubmit = () => {
+  // Si une fonction personnalisée est fournie, l'utiliser
+  if (props.handleSubmit && typeof props.handleSubmit === 'function') {
+    props.handleSubmit(formData.value);
+    return;
+  }
+  
+  // Sinon, utiliser le comportement par défaut
+  console.log('Submitting form with data:', formData.value);
+  
   if (formRef.value) {
     formRef.value.validate();
   }
