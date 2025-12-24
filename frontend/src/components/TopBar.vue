@@ -102,9 +102,7 @@ export default {
         { name: "EquipmentList", icon: "mdi-tools", title: "Équipements" },
         { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail" },
         { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions" },
-        { name: "Technicians", icon: "mdi-account-hard-hat", title: "Techniciens", disabled: true },
         { name: "AccountManagement", icon: "mdi-account-cog", title: "Gestion des comptes", disabled: true },
-        { name: "Orders", icon: "mdi-cart", title: "Commandes", disabled: true },
         { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", disabled: true },
         { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données" },
       ]
