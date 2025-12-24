@@ -50,7 +50,7 @@
       </v-col>
 
       <!-- Colonne principale avec BaseListView -->
-      <v-col cols="12" md="8" lg="9">
+      <v-col cols="12" md="8" lg="9" ref="tableContainer">
         <BaseListView :title="title" :headers="tableHeaders" :items="filteredEquipments" :loading="loading"
           @search="searchQuery = $event" :error-message="errorMessage" :show-search="showSearch.default"
           :show-create-button="false" :no-data-text="noDataText" no-data-icon="mdi-package-variant-closed"
@@ -83,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { VTreeview } from 'vuetify/labs/VTreeview';
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
@@ -144,24 +144,14 @@ const loading = computed(() =>
   equipmentsApi.loading.value || locationsApi.loading.value || modelsApi.loading.value
 );
 
-const defaultHeaders = [
-  { title: 'Référence', key: 'reference', sortable: true, align: 'center' },
-  { title: 'Désignation', key: 'designation', sortable: true, align: 'center' },
-  { title: 'Lieu', key: 'lieu.nomLieu', sortable: false, align: 'center' },
-  { title: 'Modèle', key: 'modele', sortable: false, align: 'center' },
-  {
-    title: 'Statut',
-    key: 'statut.statut',
-    sortable: true,
-    align: 'center',
-    sort: (a, b) => {
-      const order = ['EN_FONCTIONNEMENT', 'DEGRADE', 'A_LARRET', 'HORS_SERVICE'];
-      return order.indexOf(a) - order.indexOf(b);
-    }
-  }
-];
 
-const tableHeaders = computed(() => [...defaultHeaders, ...props.additionalHeaders]);
+
+const tableHeaders = computed(() => {
+  if (containerWidth.value < 700) {
+    return compactHeaders;
+  }
+  return fullHeaders;
+});
 
 const fetchData = async () => {
   try {
@@ -302,6 +292,52 @@ onMounted(() => {
 components: {
   VTreeview
 }
+
+const tableContainer = ref(null);
+const containerWidth = ref(0);
+
+let resizeObserver;
+
+onMounted(() => {
+  resizeObserver = new ResizeObserver(entries => {
+    const entry = entries[0];
+    containerWidth.value = Math.round(entry.contentRect.width);
+  });
+
+  if (tableContainer.value) {
+    resizeObserver.observe(tableContainer.value.$el ?? tableContainer.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+});
+
+const fullHeaders = [
+   { title: 'Référence', key: 'reference', sortable: true, align: 'center' },
+  { title: 'Désignation', key: 'designation', sortable: true, align: 'center' },
+  { title: 'Lieu', key: 'lieu.nomLieu', sortable: false, align: 'center' },
+  { title: 'Modèle', key: 'modele', sortable: false, align: 'center' },
+  {
+    title: 'Statut',
+    key: 'statut.statut',
+    sortable: true,
+    align: 'center',
+    sort: (a, b) => {
+      const order = ['EN_FONCTIONNEMENT', 'DEGRADE', 'A_LARRET', 'HORS_SERVICE'];
+      return order.indexOf(a) - order.indexOf(b);
+    }
+  }
+];
+
+const compactHeaders = [
+  { title: 'Réf.', key: 'reference', align: 'center' },
+  { title: 'Désignation', key: 'designation', align: 'center' },
+  { title: 'Statut', key: 'statut.statut', align: 'center' }
+];
+
+
+
 </script>
 
 <style scoped>
