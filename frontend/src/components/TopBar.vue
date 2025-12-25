@@ -150,6 +150,10 @@ export default {
 .active-item {
   background-color: #5d5fef;
   color: white;
+
+  &:hover {
+    background-color: #5d5fef !important;
+  }
 }
 
 .active-item .v-icon {
