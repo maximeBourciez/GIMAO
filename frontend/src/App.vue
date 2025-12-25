@@ -14,6 +14,7 @@
     </v-app-bar>
     
     <v-main>
+      <Breadcrumb />
       <router-view />
     </v-main>
   </v-app>
@@ -22,12 +23,14 @@
 <script>
 import Sidebar from "@/components/SideBar.vue";
 import TopBar from "@/components/TopBar.vue";
+import Breadcrumb from "@/components/Breadcrumb.vue";
 
 export default {
   name: 'App',
   components: {
     Sidebar,
     TopBar,
+    Breadcrumb
   },
   
   data() {
@@ -55,7 +58,8 @@ export default {
     checkIfMobile() {
       this.isMobile = window.innerWidth < 960; // Breakpoint md de Vuetify
     }
-  }
+  },
+
 };
 </script>
 

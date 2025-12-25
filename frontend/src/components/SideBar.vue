@@ -31,10 +31,6 @@
             </v-list-item>
         </v-list>
 
-        <!-- Bouton réduire / agrandir -->
-
-
-
         <!-- User / Logout -->
         <template #append>
             <div class="menu-toggle-wrapper">
