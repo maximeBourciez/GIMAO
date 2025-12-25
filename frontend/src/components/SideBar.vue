@@ -169,7 +169,7 @@ export default {
 }
 
 .active-item:hover {
-    background-color: #5d5fef;
+    background-color: #5d5fef !important;
 }
 
 /* =========================
