@@ -60,6 +60,11 @@
                 <LocationTreeView :items="locations" v-model:selected="formData.lieu" />
               </v-col>
 
+              <v-col cols="6">
+                <v-select v-model="formData.statut" :items="equipmentStatuses" item-title="label" item-value="value"
+                  label="Statut de l'équipement" outlined dense></v-select>
+              </v-col>
+
               <v-col cols="12">
                 <v-divider class="my-4"></v-divider>
                 <h3 class="mb-3">Consommables Associés</h3>
@@ -267,6 +272,7 @@ import { useApi } from '@/composables/useApi';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
+import { EQUIPMENT_STATUS } from '@/utils/constants.js';
 
 const router = useRouter();
 const api = useApi(API_BASE_URL);
@@ -279,7 +285,23 @@ const isEditMode = ref(false);
 const editingCounterIndex = ref(-1);
 const pmDocuments = ref([]);
 
-const formData = ref({});
+const formData = ref({
+  numSerie: '',
+  reference: '',
+  designation: '',
+  dateMiseEnService: '',
+  prixAchat: null,
+  lienImageEquipement: null,
+  modeleEquipement: null,
+  fournisseur: null,
+  fabricant: null,
+  famille: null,
+  lieu: null,
+  statut: null,
+  consommables: [],
+  compteurs: [],
+  createurEquipement: 3
+});
 
 const locations = ref([]);
 const equipmentModels = ref([]);
@@ -295,6 +317,14 @@ const existingPMs = ref([
   { nom: 'Plan de maintenance révision', consommables: [], documents: [], type: 3 },
   { nom: 'Plan de maintenance complet', consommables: [], documents: [], type: 2 }
 ]);
+
+const equipmentStatuses = computed(() => {
+  return Object.entries(EQUIPMENT_STATUS).map(([value, label]) => ({
+    value,
+    label
+  })) ;
+});
+
 
 const getEmptyCounter = () => ({
   nom: '',
@@ -371,24 +401,11 @@ const handleFileUpload = (event) => {
 const handlePmDocumentUpload = (event, index) => {
   console.log('📄 Gestion du téléchargement du document pour l\'index:', index);
   const files = event.target.files ? event.target.files : event;
-  console.log('📂 Fichiers reçus:', files, ' - length :', files.length);
   if (files && files.length > 0) {
     const file = files[0];
 
-    console.log('📑 Fichier sélectionné:', file);
-
     if (file instanceof File) {
       currentCounter.value.planMaintenance.documents[index].file = file;
-
-      console.log('📋 Mise à jour du document à l\'index', index, 'avec le fichier:', file);
-
-      console.log('✅ Fichier ajouté:', {
-        index,
-        titre: currentCounter.value.planMaintenance.documents[index].titre,
-        fileName: file.name,
-        fileSize: file.size,
-        type: currentCounter.value.planMaintenance.documents[index].type
-      });
     }
   } else {
     currentCounter.value.planMaintenance.documents[index].file = null;
@@ -455,11 +472,11 @@ const handleSubmit = async () => {
       if (key === 'lieu') {
         // Lieu : envoyer seulement l'ID
         fd.append('lieu', formData.value.lieu?.id ?? '');
-        
+
       } else if (key === 'consommables') {
         // Consommables : JSON
         fd.append(key, JSON.stringify(formData.value[key]));
-        
+
       } else if (key === 'compteurs') {
         // Compteurs : JSON sans les fichiers
         const compteursData = formData.value.compteurs.map(c => ({
@@ -474,13 +491,13 @@ const handleSubmit = async () => {
           }
         }));
         fd.append(key, JSON.stringify(compteursData));
-        
+
       } else if (key === 'lienImageEquipement') {
         // Image de l'équipement
         if (formData.value[key] instanceof File) {
           fd.append('lienImageEquipement', formData.value[key]);
         }
-        
+
       } else if (formData.value[key] !== null && formData.value[key] !== undefined) {
         // Autres champs simples
         fd.append(key, formData.value[key]);
@@ -491,14 +508,14 @@ const handleSubmit = async () => {
     // Ajouter les fichiers des documents des plans de maintenance
     // -------------------------
     console.log('📤 Ajout des fichiers des documents...');
-    
+
     formData.value.compteurs.forEach((compteur, compteurIndex) => {
       compteur.planMaintenance.documents.forEach((doc, docIndex) => {
         if (doc.file instanceof File) {
           // ✅ Format correct pour correspondre au backend
           const fileKey = `compteur_${compteurIndex}_document_${docIndex}`;
           fd.append(fileKey, doc.file);
-          
+
           console.log(`  ✓ Fichier ajouté: ${fileKey} = ${doc.file.name} (${doc.file.size} bytes)`);
         }
       });
@@ -520,22 +537,22 @@ const handleSubmit = async () => {
     // Envoyer la requête
     // -------------------------
     console.log('\n🚀 Envoi de la requête...');
-    
+
     await api.post('equipements/', fd, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
     console.log('✅ Requête réussie !');
     successMessage.value = 'Équipement créé avec succès';
-    
+
     setTimeout(() => router.back(), 1500);
 
   } catch (e) {
     console.error('❌ Erreur lors de la création:', e);
     console.error('Détails:', e.response?.data);
-    
+
     errorMessage.value = 'Erreur lors de la création de l\'équipement';
-    
+
     if (e.response?.data) {
       // Afficher les erreurs de validation si disponibles
       const errors = Object.entries(e.response.data)
@@ -543,7 +560,7 @@ const handleSubmit = async () => {
         .join('\n');
       errorMessage.value += `\n${errors}`;
     }
-    
+
   } finally {
     loading.value = false;
   }
@@ -727,6 +744,8 @@ const resetCounterDialog = () => {
 onMounted(() => {
   fetchData();
 });
+
+
 </script>
 
 <style scoped>

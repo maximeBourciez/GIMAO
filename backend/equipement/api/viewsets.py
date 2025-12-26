@@ -2,6 +2,7 @@ import json
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.db import transaction
+from django.utils import timezone
 
 # Models
 from maintenance.models import DemandeIntervention, BonTravail
@@ -97,7 +98,6 @@ class EquipementViewSet(viewsets.ModelViewSet):
         equipement = Equipement.objects.create(
             reference=data["reference"],
             designation=data["designation"],
-            dateCreation=data["dateCreation"],
             dateMiseEnService=data.get("dateMiseEnService"),
             prixAchat=data.get("prixAchat", 0),
             createurEquipement=user,
@@ -109,6 +109,17 @@ class EquipementViewSet(viewsets.ModelViewSet):
             numSerie=data.get("numSerie", ""),
             lienImage=data.get("lienImageEquipement")
         )
+
+        # -------------------------
+        # Statut de l'équipement
+        # -------------------------
+        statut = data.get("statut") 
+        if statut:
+            StatutEquipement.objects.create(
+                equipement=equipement,
+                statut=statut,
+                dateChangement=timezone.now()
+            )
 
         # -------------------------
         # Consommables
