@@ -38,22 +38,64 @@
 
               <v-col cols="12" md="6">
                 <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom" item-value="id"
-                  label="Modèle de l'équipement" outlined dense></v-select>
+                  label="Modèle de l'équipement" outlined dense>
+                  <template #append-item>
+                    <v-divider class="mt-2" />
+                    <v-list-item class="text-primary" @click="openModeleDialog">
+                      <v-list-item-title>
+                        <v-icon left size="18">mdi-plus</v-icon>
+                        Créer un modèle d'équipement
+                      </v-list-item-title>
+                    </v-list-item>
+                  </template>
+                </v-select>
               </v-col>
 
               <v-col cols="12" md="6">
                 <v-select v-model="formData.fournisseur" :items="fournisseurs" item-title="nom" item-value="id"
-                  label="Fournisseur" outlined dense></v-select>
+                  label="Fournisseur" outlined dense>
+
+                  <template #append-item>
+                    <v-divider class="mt-2" />
+                    <v-list-item class="text-primary" @click="openFournisseurDialog">
+                      <v-list-item-title>
+                        <v-icon left size="18">mdi-plus</v-icon>
+                        Créer un fournisseur
+                      </v-list-item-title>
+                    </v-list-item>
+                  </template>
+                </v-select>
               </v-col>
 
               <v-col cols="6" md="6">
                 <v-select v-model="formData.fabricant" :items="fabricants" item-title="nom" item-value="id"
-                  label="Fabricant" outlined dense></v-select>
+                  label="Fabricant" outlined dense>
+                  <template #append-item>
+                    <v-divider class="mt-2" />
+                    <v-list-item class="text-primary" @click="openFabricantDialog">
+                      <v-list-item-title>
+                        <v-icon left size="18">mdi-plus</v-icon>
+                        Créer un fabricant
+                      </v-list-item-title>
+                    </v-list-item>
+                  </template>
+                </v-select>
               </v-col>
+
 
               <v-col cols="6" md="6">
                 <v-select v-model="formData.famille" :items="familles" item-title="nom" item-value="id"
-                  label="Famille d'équipement" outlined dense></v-select>
+                  label="Famille d'équipement" outlined dense>
+                  <template #append-item>
+                    <v-divider class="mt-2" />
+                    <v-list-item class="text-primary" @click="openFamilleDialog">
+                      <v-list-item-title>
+                        <v-icon left size="18">mdi-plus</v-icon>
+                        Créer une famille d'équipement
+                      </v-list-item-title>
+                    </v-list-item>
+                  </template>
+                </v-select>
               </v-col>
 
               <v-col cols="6">
@@ -126,18 +168,26 @@
     </v-main>
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
-      <CounterForm 
-        v-model="currentCounter" 
-        :existingPMs="existingPMs" 
-        :typesPM="typesPM" 
-        :consumables="consumables"
-        :typesDocuments="typesDocuments" 
-        :isEditMode="isEditMode" 
-        @save="saveCurrentCounter"
-        @close="closeCounterDialog" 
-      />
+      <CounterForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
+        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter"
+        @close="closeCounterDialog" />
     </v-dialog>
 
+    <v-dialog v-model="showFabricantDialog" max-width="80%">
+      <FabricantForm @created="handleFabricantCreated" @close="closeFabricantDialog" />
+    </v-dialog>
+
+    <v-dialog v-model="showFournisseurDialog" max-width="80%">
+      <FournisseurForm @created="handleFournisseurCreated" @close="closeFournisseurDialog" />
+    </v-dialog>
+
+    <v-dialog v-model="showModeleDialog" max-width="80%">
+      <ModeleEquipementForm @created="handleModeleCreated" @close="closeModeleDialog" />
+    </v-dialog>
+
+    <v-dialog v-model="showFamilleDialog" max-width="50%" >
+      <FamilleEquipementForm :families="familles" @created="handleFamilleCreated" @close="closeFamilleDialog" />
+    </v-dialog>
   </v-app>
 </template>
 
@@ -150,6 +200,10 @@ import { API_BASE_URL } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 import { EQUIPMENT_STATUS } from '@/utils/constants.js';
 import CounterForm from '@/components/CounterForm.vue';
+import FabricantForm from '@/components/FabricantForm.vue';
+import FournisseurForm from '@/components/FournisseurForm.vue';
+import ModeleEquipementForm from '@/components/ModeleEquipementForm.vue';
+import FamilleEquipementForm from '@/components/FamilleEquipementForm.vue';
 
 const router = useRouter();
 const api = useApi(API_BASE_URL);
@@ -187,7 +241,14 @@ const consumables = ref([]);
 const familles = ref([]);
 const typesPM = ref([]);
 const typesDocuments = ref([]);
+
+// Modales
 const showCounterDialog = ref(false);
+const showFabricantDialog = ref(false);
+const showFournisseurDialog = ref(false);
+const showModeleDialog = ref(false);
+const showFamilleDialog = ref(false);
+
 const existingPMs = ref([
   { nom: 'Plan de maintenance vidange', consommables: [{ consommable: 1, quantite: 1 }, { consommable: 2, quantite: 2 }], documents: [], type: 2 },
   { nom: 'Plan de maintenance révision', consommables: [], documents: [], type: 3 },
@@ -403,7 +464,7 @@ const handleCounterDelete = (counter) => {
 
 const saveCurrentCounter = () => {
   // Validation déléguée au CounterForm, on suppose que les données sont valides ici
-  
+
   const counterToSave = {
     ...currentCounter.value,
     planMaintenance: {
@@ -466,6 +527,70 @@ const updateExistingPM = (counterToSave) => {
     });
   }
 };
+
+
+// -------------------------------
+// Modales Fabricant, Fournisseur, Modele, Famille Equipement
+// -------------------------------
+// Fabricant
+const openFabricantDialog = () => {
+  showFabricantDialog.value = true
+}
+
+const closeFabricantDialog = () => {
+  showFabricantDialog.value = false
+}
+
+const handleFabricantCreated = (newFabricant) => {
+  fabricants.value.push(newFabricant)
+  formData.value.fabricant = newFabricant.id
+}
+
+// Fournisseur
+const openFournisseurDialog = () => {
+  showFournisseurDialog.value = true
+}
+
+const closeFournisseurDialog = () => {
+  showFournisseurDialog.value = false
+}
+
+const handleFournisseurCreated = (newFournisseur) => {
+  fournisseurs.value.push(newFournisseur)
+  formData.value.fournisseur = newFournisseur.id
+}
+
+// Modèle Equipement
+const openModeleDialog = () => {
+  showModeleDialog.value = true;
+};
+
+const closeModeleDialog = () => {
+  showModeleDialog.value = false;
+};
+
+const handleModeleCreated = (newModele) => {
+  equipmentModels.value.push(newModele);
+  formData.value.modeleEquipement = newModele.id;
+};
+
+// Famille Equipement
+const openFamilleDialog = () => {
+  showFamilleDialog.value = true;
+};
+
+const closeFamilleDialog = () => {
+  showFamilleDialog.value = false;
+};
+
+const handleFamilleCreated = (newFamille) => {
+  console.log('Nouvelle famille créée:', newFamille);
+  familles.value.push(newFamille);
+  formData.value.famille = newFamille.id;
+};
+
+
+
 
 const closeCounterDialog = () => {
   showCounterDialog.value = false;
