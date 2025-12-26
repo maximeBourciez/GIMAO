@@ -48,7 +48,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import FabricantForm from '@/components/FabricantForm.vue'
+import FabricantForm from '@/components/Forms/FabricantForm.vue'
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 

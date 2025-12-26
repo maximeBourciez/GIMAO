@@ -199,11 +199,11 @@ import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 import { EQUIPMENT_STATUS } from '@/utils/constants.js';
-import CounterForm from '@/components/CounterForm.vue';
-import FabricantForm from '@/components/FabricantForm.vue';
-import FournisseurForm from '@/components/FournisseurForm.vue';
-import ModeleEquipementForm from '@/components/ModeleEquipementForm.vue';
-import FamilleEquipementForm from '@/components/FamilleEquipementForm.vue';
+import CounterForm from '@/components/Forms/CounterForm.vue';
+import FabricantForm from '@/components/Forms/FabricantForm.vue';
+import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
+import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
+import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue';
 
 const router = useRouter();
 const api = useApi(API_BASE_URL);
