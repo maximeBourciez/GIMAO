@@ -56,7 +56,6 @@ const submit = () => {
     const api = useApi(API_BASE_URL);
 
     api.post('famille-equipements/', family.value)
-        .then(response => JSON.stringify(response))
         .then(response => {
             console.log('Famille créée avec succès:', response);
             const newFamily = {

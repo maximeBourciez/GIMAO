@@ -1,26 +1,27 @@
 <template>
     <v-card>
         <v-card-title>
-            Ajouter un équipement
+            Ajouter un modèle d’équipement
         </v-card-title>
 
         <v-card-text>
             <v-row dense>
                 <!-- Nom -->
                 <v-col cols="12">
-                    <v-text-field v-model="equipment.nom" label="Nom de l’équipement *" outlined dense
-                        :error="submitted && !equipment.nom.trim()" />
+                    <v-text-field v-model="modele.nom" label="Nom du modèle *" outlined dense
+                        :error="submitted && !modele.nom.trim()" :rules="[v => !!v || 'Le nom du modèle est requis']" />
                 </v-col>
 
                 <!-- Fabricant -->
                 <v-col cols="12">
-                    <v-select v-model="equipment.fabricant" :items="fabricants" item-title="nom" item-value="id"
-                        label="Fabricant *" outlined dense clearable>
+                    <v-select v-model="modele.fabricant" :items="fabricants" item-title="nom" item-value="id"
+                        label="Fabricant *" outlined dense clearable :rules="[v => !!v || 'Le fabricant est requis']">
                         <template #append-item>
                             <v-divider />
                             <v-list-item class="text-primary" @click="showFabricantModal = true">
                                 <v-list-item-title>
-                                    ➕ Ajouter un fabricant
+                                    <v-icon left size="18">mdi-plus</v-icon>
+                                    Ajouter un fabricant
                                 </v-list-item-title>
                             </v-list-item>
                         </template>
@@ -48,6 +49,8 @@
 <script setup>
 import { ref } from 'vue'
 import FabricantForm from '@/components/FabricantForm.vue'
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 const props = defineProps({
     fabricants: {
@@ -61,18 +64,38 @@ const emit = defineEmits(['save', 'close'])
 const submitted = ref(false)
 const showFabricantModal = ref(false)
 
-const equipment = ref({
+const modele = ref({
     nom: '',
     fabricant: null
 })
 
+const validateForm = () => {
+    return modele.value.nom.trim() && modele.value.fabricant
+}
+
 const submit = () => {
-    submitted.value = true
+    if(!validateForm()) {
+        submitted.value = true
+        return
+    }
 
-    if (!equipment.value.nom.trim()) return
-    if (!equipment.value.fabricant) return
+    if (!modele.value.nom.trim()) return
+    if (!modele.value.fabricant) return
 
-    emit('save', equipment.value)
+    const api = useApi(API_BASE_URL);
+
+    api.post('modele-equipements/', modele.value)
+        .then(response => {
+            const modeleCreated = {
+                id: response.id,
+                nom: modele.value.nom
+            };
+            emit('created', modeleCreated);
+            emit('close');
+        })
+        .catch(error => {
+            console.error(error);
+        });
 }
 
 </script>

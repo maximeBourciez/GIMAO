@@ -76,14 +76,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 const props = defineProps({
     modelValue: Boolean
 })
 
-const emit = defineEmits(['update:modelValue', 'created'])
-
-const open = ref(props.modelValue)
+const emit = defineEmits(['created', 'close'])
 
 const fournisseur = ref({
     nom: '',
@@ -102,18 +102,29 @@ const adresse = ref({
 })
 
 const close = () => {
-    emit('update:modelValue', false)
+    emit('close')
 }
 
 const save = async () => {
     if (!fournisseur.value.nom.trim()) return
 
-    const payload = {
+    const api = useApi(API_BASE_URL);
+
+    api.post('fournisseurs/', {
         ...fournisseur.value,
         adresse: adresse.value
-    }
-
-    emit('created', payload)
-    close()
+    })
+    .then(response => {
+        console.log('Fournisseur créé avec succès:', response);
+        const newFournisseur = {
+            id: response.id,
+            nom: fournisseur.value.nom
+        };
+        emit('created', newFournisseur);
+        emit('close');
+    })
+    .catch(error => {
+        console.error(error);
+    });
 }
 </script>

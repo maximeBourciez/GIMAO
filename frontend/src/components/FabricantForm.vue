@@ -76,14 +76,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 const props = defineProps({
     modelValue: Boolean
 })
 
-const emit = defineEmits(['update:modelValue', 'created'])
-
-const open = ref(props.modelValue)
+const emit = defineEmits(['close', 'created'])
 
 const fabricant = ref({
     nom: '',
@@ -102,18 +102,28 @@ const adresse = ref({
 })
 
 const close = () => {
-    emit('update:modelValue', false)
+    emit('close')
 }
 
 const save = async () => {
     if (!fabricant.value.nom.trim()) return
 
-    const payload = {
+    const api = useApi(API_BASE_URL);
+
+    api.post('fabricants/', {
         ...fabricant.value,
         adresse: adresse.value
-    }
-
-    emit('created', payload)
-    close()
+    })
+        .then(response => {
+            const newFabricant = {
+                id: response.id,
+                nom: fabricant.value.nom
+            };
+            emit('created', newFabricant);
+            emit('close');
+        })
+        .catch(error => {
+            console.error(error);
+        });
 }
 </script>
