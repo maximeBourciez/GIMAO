@@ -8,7 +8,7 @@
             <v-row dense>
                 <v-col cols="12">
                     <v-text-field v-model="family.nom" label="Nom de la famille *" outlined dense
-                        :error="submitted && !family.nom.trim()" />
+                        :error="submitted && !family.nom.trim()" :error-messages="submitted && !family.nom.trim() ? 'Le nom de la famille est requis' : ''" />
                 </v-col>
 
                 <v-col cols="12">

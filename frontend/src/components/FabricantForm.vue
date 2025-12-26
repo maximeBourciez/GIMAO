@@ -11,17 +11,38 @@
 
                 <v-row dense>
                     <v-col cols="12" md="6">
-                        <v-text-field v-model="fabricant.nom" label="Nom du fabricant *" outlined dense />
+                        <v-text-field 
+                            v-model="fabricant.nom" 
+                            label="Nom du fabricant *" 
+                            outlined 
+                            dense 
+                            :error="submitted && !fabricant.nom.trim()" 
+                            :error-messages="submitted && !fabricant.nom.trim() ? 'Le nom du fabricant est requis' : ''" 
+                        />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                        <v-text-field v-model="fabricant.email" label="Email" outlined dense />
+                        <v-text-field 
+                            v-model="fabricant.email" 
+                            label="Email" 
+                            outlined 
+                            dense 
+                            :error="submitted && fabricant.email && !isValidEmail(fabricant.email)"
+                            :error-messages="submitted && fabricant.email && !isValidEmail(fabricant.email) ? 'Email invalide' : ''"
+                        />
                     </v-col>
                 </v-row>
 
                 <v-row dense>
                     <v-col cols="6">
-                        <v-text-field v-model="fabricant.numTelephone" label="Téléphone" outlined dense />
+                        <v-text-field 
+                            v-model="fabricant.numTelephone" 
+                            label="Téléphone" 
+                            outlined 
+                            dense 
+                            :error="submitted && fabricant.numTelephone && !isValidPhone(fabricant.numTelephone)"
+                            :error-messages="submitted && fabricant.numTelephone && !isValidPhone(fabricant.numTelephone) ? 'Téléphone invalide' : ''"
+                        />
                     </v-col>
 
                     <v-col cols="6" class="d-flex align-center">
@@ -36,27 +57,62 @@
 
                 <v-row dense>
                     <v-col cols="4">
-                        <v-text-field v-model="adresse.numero" label="N°" outlined dense />
+                        <v-text-field 
+                            v-model="adresse.numero" 
+                            label="N°" 
+                            outlined 
+                            dense 
+                            :error="submitted && adresse.numero && adresse.numero.trim().length < 1"
+                            :error-messages="submitted && adresse.numero && adresse.numero.trim().length < 1 ? 'Le numéro doit contenir au moins 1 caractère' : ''"
+                        />
                     </v-col>
 
                     <v-col cols="8">
-                        <v-text-field v-model="adresse.rue" label="Rue" outlined dense />
+                        <v-text-field 
+                            v-model="adresse.rue" 
+                            label="Rue" 
+                            outlined 
+                            dense 
+                            :error="submitted && adresse.rue && adresse.rue.trim().length < 2"
+                            :error-messages="submitted && adresse.rue && adresse.rue.trim().length < 2 ? 'La rue doit contenir au moins 2 caractères' : ''"
+                        />
                     </v-col>
                 </v-row>
 
                 <v-row dense>
                     <v-col cols="6">
-                        <v-text-field v-model="adresse.ville" label="Ville" outlined dense />
+                        <v-text-field 
+                            v-model="adresse.ville" 
+                            label="Ville" 
+                            outlined 
+                            dense 
+                            :error="submitted && adresse.ville && adresse.ville.trim().length < 2"
+                            :error-messages="submitted && adresse.ville && adresse.ville.trim().length < 2 ? 'La ville doit contenir au moins 2 caractères' : ''"
+                        />
                     </v-col>
 
                     <v-col cols="6">
-                        <v-text-field v-model="adresse.code_postal" label="Code postal" outlined dense />
+                        <v-text-field 
+                            v-model="adresse.code_postal" 
+                            label="Code postal" 
+                            outlined 
+                            dense 
+                            :error="submitted && adresse.code_postal && !isValidPostalCode(adresse.code_postal)"
+                            :error-messages="submitted && adresse.code_postal && !isValidPostalCode(adresse.code_postal) ? 'Code postal invalide' : ''"
+                        />
                     </v-col>
                 </v-row>
 
                 <v-row dense>
                     <v-col cols="12">
-                        <v-text-field v-model="adresse.pays" label="Pays" outlined dense />
+                        <v-text-field 
+                            v-model="adresse.pays" 
+                            label="Pays" 
+                            outlined 
+                            dense 
+                            :error="submitted && adresse.pays && adresse.pays.trim().length < 2"
+                            :error-messages="submitted && adresse.pays && adresse.pays.trim().length < 2 ? 'Le pays doit contenir au moins 2 caractères' : ''"
+                        />
                     </v-col>
                 </v-row>
 
@@ -79,11 +135,8 @@ import { ref } from 'vue'
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 
-const props = defineProps({
-    modelValue: Boolean
-})
-
 const emit = defineEmits(['close', 'created'])
+const submitted = ref(false)
 
 const fabricant = ref({
     nom: '',
@@ -101,12 +154,66 @@ const adresse = ref({
     complement: null
 })
 
+// Fonctions de validation
+const isValidEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+const isValidPhone = (phone) => {
+    return /^\+?[0-9\s\-()]{7,15}$/.test(phone)
+}
+
+const isValidPostalCode = (code) => {
+    return /^[0-9]{4,6}$/.test(code.replace(/\s/g, ''))
+}
+
 const close = () => {
     emit('close')
 }
 
+const validateForm = () => {
+    // Fabricant - nom obligatoire
+    if (!fabricant.value.nom.trim()) {
+        return false
+    }
+    
+    // Email optionnel mais doit être valide si renseigné
+    if (fabricant.value.email && !isValidEmail(fabricant.value.email)) {
+        return false
+    }
+    
+    // Téléphone optionnel mais doit être valide si renseigné
+    if (fabricant.value.numTelephone && !isValidPhone(fabricant.value.numTelephone)) {
+        return false
+    }
+
+    // Adresse - tous les champs sont optionnels mais doivent être valides si renseignés
+    if( adresse.value.numero && isNaN(adresse.value.numero)) {
+        return false
+    }
+    if (adresse.value.code_postal && !isValidPostalCode(adresse.value.code_postal)) {
+        return false
+    }
+    
+    if (adresse.value.pays && adresse.value.pays.trim().length < 2) {
+        return false
+    }
+    
+    if (adresse.value.ville && adresse.value.ville.trim().length < 2) {
+        return false
+    }
+    
+    if (adresse.value.rue && adresse.value.rue.trim().length < 2) {
+        return false
+    }
+    
+    return true
+}
+
 const save = async () => {
-    if (!fabricant.value.nom.trim()) return
+    submitted.value = true
+
+    if (!validateForm()) return
 
     const api = useApi(API_BASE_URL);
 
@@ -117,13 +224,13 @@ const save = async () => {
         .then(response => {
             const newFabricant = {
                 id: response.id,
-                nom: fabricant.value.nom
+                nom: response.nom  // Utilisez response.nom pour être cohérent
             };
             emit('created', newFabricant);
             emit('close');
         })
         .catch(error => {
-            console.error(error);
+            console.error('Erreur lors de la création du fabricant:', error);
         });
 }
 </script>

@@ -70,7 +70,13 @@ const modele = ref({
 })
 
 const validateForm = () => {
-    return modele.value.nom.trim() && modele.value.fabricant
+    if(!modele.value.nom.trim()) {
+        return false
+    }
+    if(!modele.value.fabricant) {
+        return false
+    }
+    return true
 }
 
 const submit = () => {

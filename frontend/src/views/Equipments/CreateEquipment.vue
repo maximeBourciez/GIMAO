@@ -284,7 +284,7 @@ const getEmptyCounter = () => ({
 const currentCounter = ref(getEmptyCounter());
 
 const validateForm = () => {
-  const requiredFields = ['reference', 'designation', 'modeleEquipement'];
+  const requiredFields = ['numSerie', 'reference', 'designation', 'modeleEquipement', 'lieu', 'statut'];
   let isValid = true;
 
   requiredFields.forEach(field => {
