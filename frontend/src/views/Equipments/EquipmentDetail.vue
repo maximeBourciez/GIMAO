@@ -354,7 +354,8 @@ const viewIntervention = (intervention) => {
   if (intervention && intervention.id) {
     router.push({
       name: 'InterventionDetail',
-      params: { id: intervention.id }
+      params: { id: intervention.id },
+      query: { from: 'equipment', equipmentId: equipement.value.id  }
     });
   }
 };

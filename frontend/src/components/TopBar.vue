@@ -1,92 +1,172 @@
 <template>
-  <v-app-bar app color="white" elevation="2" density="comfortable" class="px-6">
-    <!-- Logo and Title -->
-    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <v-col class="d-flex align-center justify-start">
-    </v-col>
-    <!-- Left-aligned Page Title -->
-    <div class="text-h5 font-weight-bold page_title">
-      {{ page_title }}
-    </div>
-
-    <v-spacer></v-spacer>
-
-    <!-- Action Buttons -->
-    <v-btn
-      color="primary"
-      class="mr-4 text-none"
-      density="comfortable"
-      @click="export_database"
+  <div>
+    <!-- App Bar -->
+    <v-app-bar app color="white" elevation="1">
+      <v-app-bar-nav-icon @click="drawer = !drawer" />
+      
+      <v-toolbar-title class="font-weight-bold">
+        {{ pageTitle }}
+      </v-toolbar-title>
+      
+      <v-spacer />
+      
+      <!-- User avatar -->
+      <v-avatar size="36" color="primary" class="mr-2">
+        <span class="text-white">{{ userInitials }}</span>
+      </v-avatar>
+    </v-app-bar>
+    
+    <!-- Navigation Drawer -->
+    <v-navigation-drawer
+      v-model="drawer"
+      temporary
+      app
+      width="280"
     >
-      <v-icon start>mdi-database-export</v-icon>
-      Exporter la base de données
-    </v-btn>
+      <v-list dense nav>
+        <!-- Logo -->
+        <v-list-item
+          lines="two"
+          @click="navigateTo('Dashboard')"
+          style="cursor: pointer"
+          class="d-flex flex-column align-center mb-4 py-4"
+        >
+          <v-img :src="logo" contain max-width="80" class="mb-2"/>
+          <v-list-item-title class="font-weight-bold text-center text-h6">
+            {{ appTitle }}
+          </v-list-item-title>
+        </v-list-item>
+        
+        <v-divider class="mb-2"></v-divider>
+        
+        <!-- Navigation items -->
+        <v-list-item
+          v-for="item in navigationItems"
+          :key="item.name"
+          @click="navigateTo(item.name, item.disabled)"
+          :class="[
+            { 'active-item': isActive(item.name) },
+            { 'disabled-item': item.disabled }
+          ]"
+          class="my-1"
+        >
+          <template v-slot:prepend>
+            <v-icon>{{ item.icon }}</v-icon>
+          </template>
+          <v-list-item-title v-html="item.title"></v-list-item-title>
+        </v-list-item>
+      </v-list>
 
-    <v-btn
-      color="primary"
-      class="mr-4 text-none"
-      density="comfortable"
-      @click="logout"
-    >
-      <v-icon start>mdi-logout</v-icon>
-      Déconnexion
-    </v-btn>
-
-    <!-- Profile Section -->
-    <v-avatar size="40" class="ml-4">
-      <v-img :src="user_avatar_url" :alt="user_name" cover class="border"></v-img>
-    </v-avatar>
-    <div class="ml-2 text-left">
-      <div class="font-weight-bold user_name">
-        {{ user_name }}
-      </div>
-      <div class="text-caption text-grey-darken-1">
-        {{ user_role }}
-      </div>
-    </div>
-  </v-app-bar>
+      <!-- User info at bottom -->
+      <template v-slot:append>
+        <v-divider></v-divider>
+        
+        <v-list dense>
+          <v-list-item class="py-2">
+            <template v-slot:prepend>
+              <v-avatar size="36" color="primary">
+                <span class="text-white">{{ userInitials }}</span>
+              </v-avatar>
+            </template>
+            <v-list-item-title>{{ user.name }}</v-list-item-title>
+            <v-list-item-subtitle>{{ user.role }}</v-list-item-subtitle>
+          </v-list-item>
+          
+          <v-list-item @click="logout" class="logout-item">
+            <template v-slot:prepend>
+              <v-icon>mdi-logout</v-icon>
+            </template>
+            <v-list-item-title>Déconnexion</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </template>
+    </v-navigation-drawer>
+  </div>
 </template>
 
 <script>
 export default {
   name: "TopBar",
-  props: {
-    page_title: {
-      type: String,
-      required: true
+  
+  data() {
+    return {
+      drawer: false,
+      appTitle: "GIMAO",
+      logo: require("@/assets/images/LogoGIMAO.png"),
+      user: {
+        name: "Jean Dupont",
+        role: "Administrateur"
+      },
+      navigationItems: [
+        { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord" },
+        { name: "EquipmentList", icon: "mdi-tools", title: "Équipements" },
+        { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail" },
+        { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions" },
+        { name: "AccountManagement", icon: "mdi-account-cog", title: "Gestion des comptes", disabled: true },
+        { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", disabled: true },
+        { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données" },
+      ]
+    };
+  },
+  
+  computed: {
+    pageTitle() {
+      return this.$route.meta?.title || this.appTitle;
     },
-    user_name: {
-      type: String,
-      default: "Admin"
-    },
-    user_role: {
-      type: String,
-      default: "Administrateur"
-    },
-    user_avatar_url: {
-      type: String,
-      default: "https://i.imghippo.com/files/SRJI2293jtI.png"
-    },
-    logo_url: {
-      type: String,
-      default: "https://i.imghippo.com/files/wCa5810fAA.png"
+    
+    userInitials() {
+      return this.user.name
+        .split(' ')
+        .map(word => word[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
     }
   },
+  
   methods: {
-    export_database() {
+    isActive(routeName) {
+      return this.$route.name === routeName;
     },
+    
+    navigateTo(routeName, disabled = false) {
+      if (!disabled) {
+        this.$router.push({ name: routeName });
+        this.drawer = false;
+      }
+    },
+    
     logout() {
+      // Logique de déconnexion
+      console.log('Déconnexion...');
+      this.drawer = false;
+      // this.$router.push({ name: 'Login' });
     }
   }
 };
 </script>
 
 <style scoped>
-.app_title, .page_title, .user_name {
-  color: #151d48;
+.active-item {
+  background-color: #5d5fef;
+  color: white;
+
+  &:hover {
+    background-color: #5d5fef !important;
+  }
 }
 
-.app_title {
-  font-family: 'Montserrat', sans-serif;
+.active-item .v-icon {
+  color: white;
+}
+
+.disabled-item {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.logout-item:hover {
+  background-color: #f5f5f5;
 }
 </style>
