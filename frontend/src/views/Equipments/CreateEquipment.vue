@@ -182,7 +182,7 @@
     </v-dialog>
 
     <v-dialog v-model="showModeleDialog" max-width="80%">
-      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="closeModeleDialog" />
+      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="closeModeleDialog" @fabricant-created="handleFabricantCreated" />
     </v-dialog>
 
     <v-dialog v-model="showFamilleDialog" max-width="50%" >

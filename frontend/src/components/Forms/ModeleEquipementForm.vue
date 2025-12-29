@@ -14,7 +14,7 @@
 
                 <!-- Fabricant -->
                 <v-col cols="12">
-                    <v-select v-model="modele.fabricant" :items="fabricants" item-title="nom" item-value="id"
+                    <v-select v-model="modele.fabricant" :items="fabricants" item-title="nom" return-object
                         label="Fabricant *" outlined dense clearable :rules="[v => !!v || 'Le fabricant est requis']">
                         <template #append-item>
                             <v-divider />
@@ -40,7 +40,7 @@
 
         <!-- Modale fabricant -->
         <v-dialog v-model="showFabricantModal" max-width="600">
-            <FabricantForm @save="onFabricantCreated" @close="showFabricantModal = false" />
+            <FabricantForm @created="onFabricantCreated" @close="showFabricantModal = false" />
         </v-dialog>
     </v-card>
 </template>
@@ -52,6 +52,7 @@ import FabricantForm from '@/components/Forms/FabricantForm.vue'
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 
+// Props 
 const props = defineProps({
     fabricants: {
         type: Array,
@@ -59,7 +60,9 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['save', 'close'])
+
+// Données
+const emit = defineEmits(['created', 'close', 'fabricant-created'])
 
 const submitted = ref(false)
 const showFabricantModal = ref(false)
@@ -69,6 +72,8 @@ const modele = ref({
     fabricant: null
 })
 
+
+// Validation du formulaire
 const validateForm = () => {
     if(!modele.value.nom.trim()) {
         return false
@@ -79,6 +84,7 @@ const validateForm = () => {
     return true
 }
 
+// Soumission du formulaire
 const submit = () => {
     if(!validateForm()) {
         submitted.value = true
@@ -90,7 +96,14 @@ const submit = () => {
 
     const api = useApi(API_BASE_URL);
 
-    api.post('modele-equipements/', modele.value)
+    const payload = {
+        nom: modele.value.nom,
+        fabricant: modele.value.fabricant.id
+    }
+
+    console.log('payload : ', payload);
+
+    api.post('modele-equipements/', payload)
         .then(response => {
             const modeleCreated = {
                 id: response.id,
@@ -103,5 +116,13 @@ const submit = () => {
             console.error(error);
         });
 }
+
+// Handler de la création de fabricant
+const onFabricantCreated = (newFab) => {
+    emit('fabricant-created', newFab)
+    modele.value.fabricant = newFab
+}
+
+
 
 </script>
