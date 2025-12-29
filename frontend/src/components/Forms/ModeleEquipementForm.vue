@@ -107,8 +107,10 @@ const submit = () => {
         .then(response => {
             const modeleCreated = {
                 id: response.id,
-                nom: modele.value.nom
+                nom: modele.value.nom,
+                fabricant: modele.value.fabricant.id
             };
+            console.log('Modele transmis : ', modeleCreated);
             emit('created', modeleCreated);
             emit('close');
         })

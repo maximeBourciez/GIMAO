@@ -570,8 +570,10 @@ const closeModeleDialog = () => {
 };
 
 const handleModeleCreated = (newModele) => {
+  console.log(JSON.stringify(newModele));
   equipmentModels.value.push(newModele);
   formData.value.modeleEquipement = newModele.id;
+  formData.value.fabricant = newModele.fabricant;
 };
 
 // Famille Equipement
