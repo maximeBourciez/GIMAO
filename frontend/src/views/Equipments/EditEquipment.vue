@@ -122,7 +122,7 @@ export default {
 
     const fetch_equipment_data = async () => {
       try {
-        await api.get(`equipement/${route.params.reference}/affichage/`);
+        await api.get(`equipement/${route.params.id}/affichage/`);
       } catch (error) {
         console.error("Error fetching equipment data:", error);
       }

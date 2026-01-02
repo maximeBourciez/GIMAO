@@ -169,7 +169,7 @@
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
       <CounterForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter"
+        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter" :editEquipMode="editEquipMode"
         @close="closeCounterDialog" />
     </v-dialog>
 
@@ -182,10 +182,11 @@
     </v-dialog>
 
     <v-dialog v-model="showModeleDialog" max-width="80%">
-      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="closeModeleDialog" @fabricant-created="handleFabricantCreated" />
+      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="closeModeleDialog"
+        @fabricant-created="handleFabricantCreated" />
     </v-dialog>
 
-    <v-dialog v-model="showFamilleDialog" max-width="50%" >
+    <v-dialog v-model="showFamilleDialog" max-width="50%">
       <FamilleEquipementForm :families="familles" @created="handleFamilleCreated" @close="closeFamilleDialog" />
     </v-dialog>
   </v-app>
@@ -193,10 +194,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 import { EQUIPMENT_STATUS } from '@/utils/constants.js';
 import CounterForm from '@/components/Forms/CounterForm.vue';
@@ -208,6 +209,12 @@ import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue'
 const router = useRouter();
 const api = useApi(API_BASE_URL);
 
+
+const route = useRoute()
+
+const equipmentId = computed(() => route.params.id || null)
+const editEquipMode = computed(() => !!equipmentId.value)
+
 const loading = ref(false);
 const loadingData = ref(false);
 const errorMessage = ref('');
@@ -215,7 +222,7 @@ const successMessage = ref('');
 const isEditMode = ref(false);
 const editingCounterIndex = ref(-1);
 
-const formData = ref({
+let formData = ref({
   numSerie: '',
   reference: '',
   designation: '',
@@ -267,7 +274,7 @@ const getEmptyCounter = () => ({
   description: '',
   intervalle: '',
   unite: '',
-  valeurActuelle: null,
+  valeurCourante: null,
   derniereIntervention: null,
   estGlissant: false,
   estPrincipal: false,
@@ -350,6 +357,44 @@ const fetchData = async () => {
   }
 };
 
+const fetchEquipment = async () => {
+  if (!editEquipMode.value) return
+
+  try {
+    loadingData.value = true
+    const res = await api.get(`equipement/${equipmentId.value}/affichage`)
+
+    console.log("J'ai !")
+
+    const eq = res
+
+    console.log("Etape 1");
+
+    formData.value = {
+      numSerie: eq.numSerie,
+      reference: eq.reference,
+      designation: eq.designation,
+      dateMiseEnService: eq.dateMiseEnService,
+      prixAchat: eq.prixAchat,
+      modeleEquipement: eq.modele?.id,
+      fournisseur: eq.fournisseur?.id,
+      fabricant: eq.fabricant?.id,
+      famille: eq.famille?.id,
+      lieu: eq.lieu,
+      statut: eq.dernier_statut.statut,
+      consommables: eq.consommables.map(c => c.id),
+      compteurs: eq.compteurs
+    }
+
+    console.log('Etape 2 : ', formData)
+
+  } catch (e) {
+    errorMessage.value = "Erreur lors du chargement de l'équipement: " + e
+  } finally {
+    loadingData.value = false
+  }
+}
+
 const handleSubmit = async () => {
   if (!validateForm()) return;
 
@@ -404,7 +449,7 @@ const handleSubmit = async () => {
     setTimeout(() => router.back(), 1500);
 
   } catch (e) {
-    console.error('❌ Erreur lors de la création:', e);
+    console.error('Erreur lors de la création:', e);
     errorMessage.value = 'Erreur lors de la création de l\'équipement';
 
     if (e.response?.data) {
@@ -422,7 +467,7 @@ const counterTableHeaders = [
   { title: 'Nom du compteur', value: 'nom' },
   { title: 'Intervalle de maintenance', value: 'intervalle' },
   { title: 'Unité', value: 'unite' },
-  { title: 'Valeur actuelle', value: 'valeurActuelle' },
+  { title: 'Valeur actuelle', value: 'valeurCourante' },
   { title: 'Dernière intervention', value: 'derniereIntervention' },
   { title: 'Plan de maintenance', value: 'planMaintenance' },
   { title: 'Options', value: 'options', sortable: false },
@@ -440,6 +485,8 @@ const handleCounterEdit = (counter) => {
   editingCounterIndex.value = formData.value.compteurs.indexOf(counter);
   isEditMode.value = true;
 
+  console.log("Compteur à modifier: ", counter);
+
   currentCounter.value = {
     ...counter,
     planMaintenance: {
@@ -455,6 +502,8 @@ const handleCounterEdit = (counter) => {
 
   showCounterDialog.value = true;
 };
+
+
 
 const handleCounterDelete = (counter) => {
   if (confirm('Êtes-vous sûr de vouloir supprimer ce compteur ?')) {
@@ -602,9 +651,10 @@ const closeCounterDialog = () => {
   errorMessage.value = '';
 };
 
-onMounted(() => {
-  fetchData();
-});
+onMounted(async () => {
+  await fetchData()
+  await fetchEquipment()
+})
 </script>
 
 <style scoped>

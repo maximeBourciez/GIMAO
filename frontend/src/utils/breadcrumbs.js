@@ -31,6 +31,23 @@ export const BREADCRUMBS = {
         },
     ],
 
+    EditEquipment: (route) => [
+        {
+            label: "Equipements",
+            to: { name: "EquipmentList" },
+        },
+        {
+            label: `Equipement #${route.query.equipmentId}`,
+            to: {
+                name: "EquipmentDetail",
+                params: { id: route.query.equipmentId },
+            },
+        },
+        {
+            label: "Modifier",
+        },
+    ],
+
     /***************************************
      * Bons de travail
      **************************************/

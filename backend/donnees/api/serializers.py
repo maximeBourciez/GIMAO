@@ -132,8 +132,7 @@ class FabricantSerializer(serializers.ModelSerializer):
             'email',
             'numTelephone',
             'serviceApresVente',
-            'adresse',
-            'adresse_id'
+            'adresse'
         ]
 
 
@@ -144,11 +143,7 @@ class FabricantSimpleSerializer(serializers.ModelSerializer):
         model = Fabricant
         fields = [
             'id',
-            'nom',
-            'email',
-            'numTelephone',
-            'serviceApresVente',
-            'adresse'
+            'nom'
         ]
         ref_name = 'DonneesFabricantSimple'
 
@@ -172,8 +167,7 @@ class FournisseurSerializer(serializers.ModelSerializer):
             'email',
             'numTelephone',
             'serviceApresVente',
-            'adresse',
-            'adresse_id'
+            'adresse'
         ]
 
 
@@ -184,10 +178,6 @@ class FournisseurSimpleSerializer(serializers.ModelSerializer):
         model = Fournisseur
         fields = [
             'id',
-            'nom',
-            'email',
-            'numTelephone',
-            'serviceApresVente',
-            'adresse'
+            'nom'
         ]
         ref_name = 'DonneesFournisseurSimple'

@@ -140,7 +140,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
                 equipement=equipement,
                 nomCompteur=cp["nom"],
                 descriptifMaintenance=cp.get("description", ""),
-                valeurCourante=cp["valeurActuelle"],
+                valeurCourante=cp["valeurCourante"],
                 ecartInterventions=cp["intervalle"],
                 unite=cp["unite"],
                 estPrincipal=cp.get("estPrincipal", False),
@@ -149,21 +149,23 @@ class EquipementViewSet(viewsets.ModelViewSet):
                 necessitePermisFeu=cp.get("permisFeu", False),
                 prochaineMaintenance=(
                     int(cp["derniereIntervention"]) + int(cp["intervalle"])
-                )
+                ),
+                derniereIntervention= cp.get("derniereIntervention", 0)
             )
 
             pm = cp.get("planMaintenance")
             if not pm:
-                print(f"  ⚠️  Pas de plan de maintenance pour ce compteur")
                 continue
 
-            print(f"  📋 Création du plan: {pm['nom']}")
             plan = PlanMaintenance.objects.create(
                 compteur=compteur,
                 equipement=equipement,
                 nom=pm["nom"],
                 type_plan_maintenance_id=pm["type"]
             )
+
+            # Associer le plan au compteur
+            compteur.planMaintenance = plan
 
             # Consommables du plan
             for cpm in pm.get("consommables", []):

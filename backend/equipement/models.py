@@ -109,15 +109,22 @@ class Compteur(models.Model):
     """
     equipement = models.ForeignKey(Equipement, on_delete=models.CASCADE, related_name="compteurs", help_text="Équipement associé au compteur")
     nomCompteur = models.CharField(max_length=100, null=False, default="Compteur sans nom", help_text="Nom du compteur")
+    descriptifMaintenance = models.CharField(max_length=255, blank=True, null=True, help_text="Description de la maintenance liée")
+
+    derniereIntervention = models.IntegerField(default=0, help_text="Valeur du compteur à la dernière intervention effectuée")
     valeurCourante = models.FloatField(help_text="Valeur actuelle du compteur")
     prochaineMaintenance = models.FloatField(help_text="Valeur prévue pour la prochaine maintenance")
     ecartInterventions = models.FloatField(help_text="Écart moyen entre interventions")
     unite = models.CharField(max_length=50, help_text="Unité de mesure du compteur", default="jours")
+
+    estPrincipal = models.BooleanField(default=False, help_text="Indique si ce compteur est le principal pour l'équipement")
     estGlissant = models.BooleanField(default=False, help_text="Indique si ce compteur est glissant")
-    descriptifMaintenance = models.CharField(max_length=255, blank=True, null=True, help_text="Description de la maintenance liée")
+
     necessiteHabilitationElectrique = models.BooleanField(default=False, help_text="Nécessite une habilitation électrique")
     necessitePermisFeu = models.BooleanField(default=False, help_text="Nécessite un permis feu")
-    estPrincipal = models.BooleanField(default=False, help_text="Indique si ce compteur est le principal pour l'équipement")
+
+    planMaintenance = models.ForeignKey('maintenance.PlanMaintenance', on_delete=models.PROTECT, null=True, blank=True,related_name='plan_maintenance_compteur')
+    
 
     def __str__(self):
         return f"Compteur {self.id} - {self.equipement.designation}"

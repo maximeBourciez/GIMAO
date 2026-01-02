@@ -12,7 +12,7 @@
             <label class="detail-label" v-if="key !== 'id'">{{ formatLabel(key) }}</label>
             <div class="detail-value" v-if="key !== 'id'">
               <v-chip v-if="key === 'statut'" :color="getStatusColor(value)" dark size="small">
-                {{ value || 'Inconnu' }}
+                {{ getStatusLabel(value) || 'Inconnu' }}
               </v-chip>
               <span v-else>{{ formatValue(value) }}</span>
             </div>
@@ -125,7 +125,7 @@
                   </template>
                   <template #item.statut="{ item }">
                     <v-chip :color="getStatusColor(item.statut)" dark size="small">
-                      {{  INTERVENTION_STATUS[item.statut] || item.statut }}
+                      {{ INTERVENTION_STATUS[item.statut] || item.statut }}
                     </v-chip>
                   </template>
                   <template #item.action="{ item }">
@@ -165,7 +165,7 @@
                 <template #item.designation="{ item }">
                   {{ item.designation || 'Sans nom' }}
                 </template>
-                
+
               </v-data-table>
               <p v-else class="text-caption text-grey">Aucun consommable associé</p>
             </v-card-text>
@@ -174,6 +174,15 @@
       </v-row>
     </template>
   </BaseDetailView>
+
+  <!-- Bouton flottant en bas à droite -->
+  <v-btn v-if="showEditButton" color="primary" size="large" icon class="floating-edit-button" elevation="4"
+    @click="editCurrentEquip()">
+    <v-icon size="large">mdi-pencil</v-icon>
+    <v-tooltip activator="parent" location="left">
+      {{ editButtonText }}
+    </v-tooltip>
+  </v-btn>
 </template>
 
 <script setup>
@@ -181,7 +190,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
-import { getStatusColor } from '@/utils/helpers';
+import { getStatusColor, getStatusLabel } from '@/utils/helpers';
 import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, TABLE_HEADERS } from '@/utils/constants';
 
 const router = useRouter();
@@ -192,6 +201,8 @@ const equipement = computed(() => api.data.value || {});
 const isLoading = computed(() => api.loading.value);
 const errorMessage = ref('');
 const successMessage = ref('');
+const showEditButton = ref(true);
+const editButtonText = ref('Modifier l\'équipement');
 
 const technicalDocumentsHeaders = [
   { title: 'Document technique', key: 'nomDocumentTechnique', align: 'start' },
@@ -254,8 +265,8 @@ const equipmentDetails = computed(() => {
 
   const lieu = equipement.value.lieu?.nomLieu || '';
   const modele = equipement.value.modele?.nom || '';
-  const fournisseur = equipement.value.fournisseur || '';
-  const fabricant = equipement.value.fabricant || '';
+  const fournisseur = equipement.value.fournisseur?.nom || '';
+  const fabricant = equipement.value.fabricant?.nom || '';
   const statut = equipement.value.dernier_statut?.statut || '';
 
   return {
@@ -355,7 +366,7 @@ const viewIntervention = (intervention) => {
     router.push({
       name: 'InterventionDetail',
       params: { id: intervention.id },
-      query: { from: 'equipment', equipmentId: equipement.value.id  }
+      query: { from: 'equipment', equipmentId: equipement.value.id }
     });
   }
 };
@@ -417,6 +428,14 @@ const downloadDocument = async (lien, nomFichier) => {
 onMounted(() => {
   fetchEquipmentData();
 });
+
+const editCurrentEquip = () => [
+  router.push({
+    name: 'EditEquipment',
+    params: { id: equipmentDetails.value.id },
+    query: { from: 'equipment', equipmentId: equipmentDetails.value.id}
+  })
+]
 </script>
 
 <style scoped>
@@ -444,4 +463,15 @@ onMounted(() => {
 .text-primary {
   color: #05004E;
 }
+
+/*****************
+  Bouton flottant
+*****************/
+.floating-edit-button {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+}
+
 </style>
