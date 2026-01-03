@@ -503,6 +503,16 @@ const detectChanges = () => {
         }
       });
 
+      // Vérifier le plan de maintenance
+      const oldPM = oc.planMaintenance || {};
+      const newPM = nc.planMaintenance || {};
+      ['nom', 'type', 'consommables', 'documents'].forEach(field => {
+        if (oldPM[field] !== newPM[field]) {
+          compteurDiff[`planMaintenance.${field}`] = { ancienne: oldPM[field], nouvelle: newPM[field] };
+          compteurChanged = true;
+        }
+      });
+
       if (compteurChanged) {
         compteurChanges.modifies.push({
           id: nc.id,
