@@ -123,7 +123,7 @@ class Compteur(models.Model):
     necessiteHabilitationElectrique = models.BooleanField(default=False, help_text="Nécessite une habilitation électrique")
     necessitePermisFeu = models.BooleanField(default=False, help_text="Nécessite un permis feu")
 
-    planMaintenance = models.ForeignKey('maintenance.PlanMaintenance', on_delete=models.PROTECT, null=True, blank=True,related_name='plan_maintenance_compteur')
+    planMaintenance = models.ForeignKey('maintenance.PlanMaintenance', on_delete=models.CASCADE, null=True, blank=True,related_name='plan_maintenance_compteur')
     
 
     def __str__(self):

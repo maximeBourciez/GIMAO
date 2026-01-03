@@ -247,7 +247,7 @@ const routes = [
   {
     path: '/EditEquipment/:id',
     name: 'EditEquipment',
-    component: CreateEquipment,
+    component: EditEquipment,
     meta: { title: 'Modifier Equipement' }
   },
 
