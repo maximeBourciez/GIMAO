@@ -116,14 +116,7 @@ class DocumentSimpleSerializer(serializers.ModelSerializer):
 class FabricantSerializer(serializers.ModelSerializer):
     """Serializer pour le modèle Fabricant"""
     adresse = AdresseSerializer(read_only=True)
-    adresse_id = serializers.PrimaryKeyRelatedField(
-        queryset=Adresse.objects.all(),
-        source='adresse',
-        write_only=True,
-        required=False,
-        allow_null=True
-    )
-    
+
     class Meta:
         model = Fabricant
         fields = [
@@ -151,13 +144,6 @@ class FabricantSimpleSerializer(serializers.ModelSerializer):
 class FournisseurSerializer(serializers.ModelSerializer):
     """Serializer pour le modèle Fournisseur"""
     adresse = AdresseSerializer(read_only=True)
-    adresse_id = serializers.PrimaryKeyRelatedField(
-        queryset=Adresse.objects.all(),
-        source='adresse',
-        write_only=True,
-        required=False,
-        allow_null=True
-    )
     
     class Meta:
         model = Fournisseur

@@ -99,7 +99,8 @@
               </v-col>
 
               <v-col cols="6">
-                <LocationTreeView :items="locations" v-model:selected="formData.lieu" />
+                <LocationTreeView :items="locations" v-model:selected="formData.lieu"
+                  @created="handleLocationCreated" />
               </v-col>
 
               <v-col cols="6">
@@ -169,8 +170,8 @@
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
       <CounterForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter" :editEquipMode="editEquipMode"
-        @close="closeCounterDialog" />
+        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter"
+        :editEquipMode="editEquipMode" @close="closeCounterDialog" />
     </v-dialog>
 
     <v-dialog v-model="showFabricantDialog" max-width="80%">
@@ -441,11 +442,20 @@ const handleSubmit = async () => {
       });
     });
 
-    await api.post('equipements/', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-
-    successMessage.value = 'Équipement créé avec succès';
+    // MODE EDITION : PUT 
+    if (editEquipMode.value) {
+      await api.put(`equipements/${equipmentId.value}/`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      successMessage.value = 'Équipement modifié avec succès';
+    }
+    // MODE CREATION : POST
+    else {
+      await api.post('equipements/', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      successMessage.value = 'Équipement créé avec succès';
+    }
     setTimeout(() => router.back(), 1500);
 
   } catch (e) {

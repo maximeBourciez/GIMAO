@@ -37,14 +37,6 @@ class EquipementViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        print("=" * 80)
-        print("📦 DONNÉES BRUTES REÇUES")
-        print("=" * 80)
-        print("POST data:", dict(request.data))
-        print("\n📁 FICHIERS REÇUS:")
-        for key in request.FILES.keys():
-            print(f"  - {key}: {request.FILES[key].name}")
-        print("=" * 80)
 
         data = dict(request.data)
         
@@ -203,6 +195,44 @@ class EquipementViewSet(viewsets.ModelViewSet):
             EquipementSerializer(equipement).data,
             status=status.HTTP_201_CREATED
         )
+
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        """
+        Méthode PUT pour mettre à jour un équipement.
+        """
+        old_equip = self.get_object()
+        data = dict(request.data)
+        
+        # Extraire les valeurs uniques des listes (QueryDict met tout en liste)
+        for key, value in data.items():
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+
+        # -------------------------
+        # Normalisation des champs simples
+        # -------------------------
+
+        # lieu : objet -> id
+        if "lieu" in data:
+            lieu_value = data["lieu"]
+            if isinstance(lieu_value, str):
+                try:
+                    lieu_obj = json.loads(lieu_value)
+                    data["lieu"] = lieu_obj["id"]
+                except (TypeError, ValueError, KeyError):
+                    pass
+            elif isinstance(lieu_value, dict):
+                data["lieu"] = lieu_value["id"]
+
+        # Champs JSON envoyés en string
+        for field in ["consommables", "compteurs"]:
+            if field in data and isinstance(data[field], str):
+                data[field] = json.loads(data[field])
+
+        print("\n✅ DONNÉES NORMALISÉES:", data)
+
 
 
 class StatutEquipementViewSet(viewsets.ModelViewSet):

@@ -60,7 +60,7 @@
           <v-col cols="6">
             <!-- Image Section -->
             <v-card elevation="1" class="rounded-lg pa-2 mb-4">
-              <v-img :src="equipment.lienImageEquipement" aspect-ratio="4/3" class="rounded-lg"
+              <v-img :src="equipment.lienImage" aspect-ratio="4/3" class="rounded-lg"
                 style="max-height: 30vh;" alt="Equipment Image"></v-img>
             </v-card>
 

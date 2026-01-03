@@ -181,7 +181,7 @@ export const TABLE_HEADERS = {
         },
         {
             title: "Nom du compteur",
-            value: "nomCompteur",
+            value: "nom",
             sortable: false,
             align: "center",
         },
