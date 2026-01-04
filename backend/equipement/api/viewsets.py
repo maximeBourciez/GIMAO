@@ -286,7 +286,13 @@ class EquipementViewSet(viewsets.ModelViewSet):
                     try:
                         lieu = Lieu.objects.get(id=nouveau)
                         equipement.lieu = lieu
-                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                        self._create_log_entry(
+                            type_action='modification',
+                            nom_table='equipement',
+                            id_cible={'equipement_id': equipement.id},
+                            champs_modifies={field: {'ancien': ancien, 'nouveau': nouveau}},
+                            utilisateur=utilisateur
+                        )
                     except Lieu.DoesNotExist:
                         pass
                 
@@ -300,7 +306,13 @@ class EquipementViewSet(viewsets.ModelViewSet):
                             statut=nouveau,
                             dateChangement=timezone.now()
                         )
-                        modifications_appliquees[field] = {'ancien': ancien_statut, 'nouveau': nouveau}
+                        self._create_log_entry(
+                            type_action='modification',
+                            nom_table='statut_equipement',
+                            id_cible={'equipement_id': equipement.id},
+                            champs_modifies={field: {'ancien': ancien, 'nouveau': nouveau}},
+                            utilisateur=utilisateur
+                        )
                 
                 elif field == 'modeleEquipement' and nouveau:
                     try:
@@ -354,6 +366,14 @@ class EquipementViewSet(viewsets.ModelViewSet):
                 # Supprimer
                 if retires:
                     equipement.constituer_set.filter(consommable_id__in=retires).delete()
+
+                    self._create_log_entry(
+                        type_action='suppression',
+                        nom_table='constituer',
+                        id_cible={'equipement_id': equipement.id},
+                        champs_modifies={'consommables_retires': retires},
+                        utilisateur=utilisateur
+                    )
                 
                 # Ajouter
                 for consommable_id in ajoutes:
@@ -362,10 +382,14 @@ class EquipementViewSet(viewsets.ModelViewSet):
                         consommable_id=consommable_id
                     )
                 
-                modifications_appliquees['consommables'] = {
-                    'ajoutes': ajoutes,
-                    'retires': retires
-                }
+                if(len(ajoutes) > 0):
+                    self._create_log_entry(
+                        type_action='ajout',
+                        nom_table='constituer',
+                        id_cible={'equipement_id': equipement.id},
+                        champs_modifies={'consommables_ajoutes': ajoutes},
+                        utilisateur=utilisateur
+                    )
 
         # 3. Compteurs
         if 'compteurs' in changes:
@@ -381,7 +405,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
                         # Supprimer le compteur
                         compteur.delete()
                         
-                        print(f"🗑️ Compteur supprimé: {nom_compteur} (ID: {compteur_id})")
+                        print(f" Compteur supprimé: {nom_compteur} (ID: {compteur_id})")
                         
                         # Log de suppression
                         self._create_log_entry(
@@ -393,7 +417,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
                         )
                         
                     except Compteur.DoesNotExist:
-                        print(f"⚠️ Compteur à supprimer introuvable: ID {compteur_id}")
+                        print(f" Compteur à supprimer introuvable: ID {compteur_id}")
             
             # Compteurs à modifier
             if 'modifies' in compteurs_data:
@@ -437,10 +461,13 @@ class EquipementViewSet(viewsets.ModelViewSet):
             
             # Sauvegarder la nouvelle image
             equipement.lienImage = uploaded_file
-            modifications_appliquees['lienImageEquipement'] = {
-                'ancien': str(equipement.lienImage) if equipement.lienImage else None,
-                'nouveau': uploaded_file.name
-            }
+            self._create_log_entry(
+                type_action='modification',
+                nom_table='equipement',
+                id_cible={'equipement_id': equipement.id},
+                champs_modifies={'lienImageEquipement': 'updated'},
+                utilisateur=utilisateur
+            )
 
         # Sauvegarder l'équipement si des modifications ont été faites
         if modifications_appliquees:
