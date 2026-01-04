@@ -16,45 +16,23 @@
 
         <v-row dense>
           <v-col cols="12" md="6">
-            <v-text-field
-              v-model="counter.nom"
-              label="Nom du compteur *"
-              outlined
-              dense
-              :error="!counter.nom?.trim()"
-            />
+            <v-text-field v-model="counter.nom" label="Nom du compteur *" outlined dense
+              :error="!counter.nom?.trim()" />
           </v-col>
 
           <v-col cols="12" md="6">
-            <v-text-field
-              v-model="counter.description"
-              label="Description (optionnel)"
-              outlined
-              dense
-            />
+            <v-text-field v-model="counter.description" label="Description (optionnel)" outlined dense />
           </v-col>
         </v-row>
 
         <v-row dense>
           <v-col cols="6">
-            <v-text-field
-              v-model="counter.intervalle"
-              type="number"
-              label="Intervalle *"
-              outlined
-              dense
-              :error="!counter.intervalle || counter.intervalle <= 0"
-            />
+            <v-text-field v-model="counter.intervalle" type="number" label="Intervalle *" outlined dense
+              :error="!counter.intervalle || counter.intervalle <= 0" />
           </v-col>
 
           <v-col cols="6">
-            <v-text-field
-              v-model="counter.unite"
-              label="Unité *"
-              outlined
-              dense
-              :error="!counter.unite?.trim()"
-            />
+            <v-text-field v-model="counter.unite" label="Unité *" outlined dense :error="!counter.unite?.trim()" />
           </v-col>
         </v-row>
       </v-sheet>
@@ -65,22 +43,12 @@
 
         <v-row dense>
           <v-col cols="6">
-            <v-text-field
-              v-model.number="counter.valeurActuelle"
-              label="Valeur actuelle"
-              type="number"
-              outlined
-              dense
-            />
+            <v-text-field v-model.number="counter.valeurCourante" label="Valeur actuelle" type="number" outlined
+              dense />
           </v-col>
 
           <v-col cols="6">
-            <v-text-field
-              v-model="counter.derniereIntervention"
-              label="Dernière intervention"
-              outlined
-              dense
-            />
+            <v-text-field v-model="counter.derniereIntervention" label="Dernière intervention" outlined dense />
           </v-col>
         </v-row>
 
@@ -106,72 +74,32 @@
 
         <v-row>
           <v-col cols="8">
-            <v-select
-              v-if="existingPMs.length"
-              v-model="counter.planMaintenance.nom"
-              :items="existingPMs"
-              item-title="nom"
-              item-value="nom"
-              label="Plan existant"
-              outlined
-              dense
-              clearable
-              @update:model-value="applyExistingPM"
-            />
+            <v-select v-if="existingPMs.length" v-model="counter.planMaintenance.nom" :items="existingPMs"
+              item-title="nom" item-value="nom" label="Plan existant" outlined dense clearable
+              @update:model-value="applyExistingPM" />
           </v-col>
 
           <v-col cols="4">
-            <v-select
-              v-model="counter.planMaintenance.type"
-              :items="typesPM"
-              item-title="libelle"
-              item-value="id"
-              label="Type"
-              outlined
-              dense
-            />
+            <v-select v-model="counter.planMaintenance.type" :items="typesPM" item-title="libelle" item-value="id"
+              label="Type" outlined dense />
           </v-col>
         </v-row>
 
-        <v-text-field
-          v-model="counter.planMaintenance.nom"
-          label="Nom du plan"
-          outlined
-          dense
-        />
+        <v-text-field v-model="counter.planMaintenance.nom" label="Nom du plan" outlined dense />
       </v-sheet>
 
       <!-- Consommables -->
       <v-sheet class="pa-4 mb-4" elevation="1" rounded>
         <h4 class="mb-3">Consommables</h4>
 
-        <v-row
-          v-for="(c, index) in counter.planMaintenance.consommables"
-          :key="index"
-          dense
-          class="mb-3"
-        >
+        <v-row v-for="(c, index) in counter.planMaintenance.consommables" :key="index" dense class="mb-3">
           <v-col cols="6">
-            <v-select
-              v-model="c.consommable"
-              :items="consumables"
-              item-title="designation"
-              item-value="id"
-              label="Consommable"
-              outlined
-              dense
-            />
+            <v-select v-model="c.consommable" :items="consumables" item-title="designation" item-value="id"
+              label="Consommable" outlined dense />
           </v-col>
 
           <v-col cols="3">
-            <v-text-field
-              v-model.number="c.quantite"
-              type="number"
-              min="1"
-              label="Quantité"
-              outlined
-              dense
-            />
+            <v-text-field v-model.number="c.quantite" type="number" min="1" label="Quantité" outlined dense />
           </v-col>
 
           <v-col cols="3" class="d-flex align-center">
@@ -190,35 +118,29 @@
       <v-sheet class="pa-4 mb-4" elevation="1" rounded>
         <h4 class="mb-3">Documents</h4>
 
-        <v-row
-          v-for="(doc, index) in counter.planMaintenance.documents"
-          :key="index"
-          dense
-          class="mb-3"
-        >
+        <v-row v-for="(doc, index) in counter.planMaintenance.documents" :key="index" dense class="mb-3">
           <v-col cols="4">
             <v-text-field v-model="doc.titre" label="Titre" outlined dense />
           </v-col>
 
-          <v-col cols="4">
-            <v-file-input
-              v-model="doc.file"
-              label="Fichier"
-              outlined
-              dense
-            />
-          </v-col>
+          <v-file-input v-model="doc.file" dense outlined show-size clearable label="Document"
+            :hint="existingFileName(doc)" persistent-hint>
+            <template #selection>
+              <span v-if="doc.file">
+                {{ doc.file.name }}
+              </span>
+              <span v-else-if="doc.path">
+                {{ getFileName(doc.path) }}
+              </span>
+              <span v-else>
+                Aucun fichier sélectionné
+              </span>
+            </template>
+          </v-file-input>
 
           <v-col cols="3">
-            <v-select
-              v-model="doc.type"
-              :items="typesDocuments"
-              item-title="nomTypeDocument"
-              item-value="id"
-              label="Type"
-              outlined
-              dense
-            />
+            <v-select v-model="doc.type" :items="typesDocuments" item-title="nomTypeDocument" item-value="id"
+              label="Type" outlined dense />
           </v-col>
 
           <v-col cols="1" class="d-flex align-center">
@@ -254,7 +176,7 @@ const props = defineProps({
   typesPM: Array,
   consumables: Array,
   typesDocuments: Array,
-  isEditMode: Boolean
+  isEditMode: Boolean,
 })
 
 const emit = defineEmits(['update:modelValue', 'save', 'close'])
@@ -297,23 +219,34 @@ const applyExistingPM = (nom) => {
 const handleSave = () => {
   // Validation
   localError.value = ''
-  
+
   if (!counter.value.nom?.trim()) {
     localError.value = 'Le nom du compteur est requis'
     return
   }
-  
+
   if (!counter.value.intervalle || counter.value.intervalle <= 0) {
     localError.value = 'L\'intervalle doit être supérieur à 0'
     return
   }
-  
+
   if (!counter.value.unite?.trim()) {
     localError.value = 'L\'unité est requise'
     return
   }
-  
+
   // Si tout est valide, émettre l'événement save
   emit('save')
 }
+
+const getFileName = (path) => {
+  return path?.split('/').pop() || '';
+};
+
+const existingFileName = (doc) => {
+  return !doc.file && doc.path
+    ? `Fichier existant : ${getFileName(doc.path)}`
+    : '';
+};
+
 </script>

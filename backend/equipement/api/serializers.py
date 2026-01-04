@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEquipement, Compteur, FamilleEquipement
-from donnees.api.serializers import LieuSerializer
-from donnees.models import Document
+from donnees.api.serializers import LieuSerializer, FabricantSimpleSerializer, FournisseurSimpleSerializer
 from maintenance.models import DemandeIntervention, BonTravail
 
 class EquipementSerializer(serializers.ModelSerializer):
@@ -32,114 +31,6 @@ class EquipementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Equipement
         fields = '__all__'
-
-class EquipementAffichageSerializer(serializers.ModelSerializer):
-    """Serializer pour l'affichage détaillé d'un équipement"""
-    lieu = LieuSerializer(read_only=True)
-    modele = serializers.SerializerMethodField()
-    famille = serializers.SerializerMethodField()
-    dernier_statut = serializers.SerializerMethodField()
-    compteurs = serializers.SerializerMethodField()
-    documents = serializers.SerializerMethodField()
-    consommables = serializers.SerializerMethodField()
-    bons_travail = serializers.SerializerMethodField()
-    fabricant = serializers.CharField(source='fabricant.nom', read_only=True)
-    fournisseur = serializers.CharField(source='fournisseur.nom', read_only=True)
-    createurEquipement = serializers.CharField(source='createurEquipement.nom', read_only=True)
-
-    class Meta:
-        model = Equipement
-        fields = [
-            'id', 'numSerie', 'reference', 'dateCreation', 'designation',
-            'dateMiseEnService', 'prixAchat', 'lienImage', 'preventifGlissant',
-            'createurEquipement', 'x', 'y', 'fabricant', 'fournisseur',
-            'lieu', 'modele', 'famille', 'dernier_statut',
-            'compteurs', 'documents', 'consommables', 'bons_travail'
-        ]
-
-    def get_modele(self, obj):
-        if obj.modele:
-            return {
-                'id': obj.modele.id,
-                'nom': obj.modele.nom,
-                'fabricant': {
-                    'id': obj.modele.fabricant.id,
-                    'nom': obj.modele.fabricant.nom,
-                    'email': obj.modele.fabricant.email
-                } if obj.modele.fabricant else None
-            }
-        return None
-
-    def get_famille(self, obj):
-        if obj.famille:
-            return {
-                'id': obj.famille.id,
-                'nom': obj.famille.nom
-            }
-        return None
-
-    def get_dernier_statut(self, obj):
-        statut = obj.statuts.order_by('-dateChangement').first()
-        if statut:
-            return {
-                'id': statut.id,
-                'statut': statut.statut,
-                'dateChangement': statut.dateChangement
-            }
-        return None
-
-    def get_compteurs(self, obj):
-        return [
-            {
-                'id': c.id,
-                'nomCompteur': c.nomCompteur,
-                'valeurCourante': c.valeurCourante,
-                'ecartInterventions': c.ecartInterventions,
-                'prochaineMaintenance': c.prochaineMaintenance,
-                'unite': c.unite,
-                'estPrincipal': c.estPrincipal
-            }
-            for c in obj.compteurs.all()
-        ]
-
-    def get_documents(self, obj):
-        return [
-            {
-                'id': d.id,
-                'nomDocument': d.nomDocument if hasattr(d, 'nomDocument') else '',
-                'cheminAcces': d.cheminAcces if hasattr(d, 'cheminAcces') else '',
-                'typeDocument': d.typeDocument.nomTypeDocument if hasattr(d, 'typeDocument') else ''
-
-            }
-            for d in obj.documents.all()
-        ]
-
-    def get_consommables(self, obj):
-        relations = Constituer.objects.filter(equipement=obj).select_related('consommable')
-        return [
-            {
-                'id': r.consommable.id,
-                'designation': r.consommable.designation,
-                'fabricant': r.consommable.fabricant.nom if r.consommable.fabricant else None,
-            }
-            for r in relations
-        ]
-
-    def get_bons_travail(self, obj):
-        bons = BonTravail.objects.filter(equipement=obj).select_related('responsable', 'demande_intervention')
-        return [
-            {
-                'id': bon.id,
-                'nom': bon.nom,
-                'diagnostic': bon.diagnostic,
-                'type': bon.type,
-                'statut': bon.statut,
-                'date_assignation': bon.date_assignation,
-                'date_fin': bon.date_fin,
-                'date_cloture': bon.date_cloture,
-            }
-            for bon in bons
-        ]
 
 
 class StatutEquipementSerializer(serializers.ModelSerializer):
@@ -192,3 +83,165 @@ class EquipementCreateSerializer(serializers.ModelSerializer):
             'fournisseur', 'fabricant', 'consommables', 'numSerie',
             'compteurs', 'lienImageEquipement'
         ]
+
+
+
+
+class EquipementAffichageSerializer(serializers.ModelSerializer):
+    """Serializer pour l'affichage détaillé d'un équipement"""
+    lieu = LieuSerializer(read_only=True)
+    modele = ModeleEquipementSerializer(read_only=True)
+    famille = serializers.SerializerMethodField()
+    dernier_statut = serializers.SerializerMethodField()
+    compteurs = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+    consommables = serializers.SerializerMethodField()
+    bons_travail = serializers.SerializerMethodField()
+    fabricant = FabricantSimpleSerializer(read_only=True)
+    fournisseur = FournisseurSimpleSerializer(read_only=True)
+    createurEquipement = serializers.CharField(source='createurEquipement.nom', read_only=True)
+    lienImage = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Equipement
+        fields = [
+            'id', 'numSerie', 'reference', 'dateCreation', 'designation',
+            'dateMiseEnService', 'prixAchat', 'lienImage', 'preventifGlissant',
+            'createurEquipement', 'x', 'y', 'fabricant', 'fournisseur',
+            'lieu', 'modele', 'famille', 'dernier_statut',
+            'compteurs', 'documents', 'consommables', 'bons_travail'
+        ]
+
+    def get_modele(self, obj):
+        if obj.modele:
+            return {
+                'id': obj.modele.id,
+                'nom': obj.modele.nom,
+                'fabricant': {
+                    'id': obj.modele.fabricant.id,
+                    'nom': obj.modele.fabricant.nom,
+                    'email': obj.modele.fabricant.email
+                } if obj.modele.fabricant else None
+            }
+        return None
+
+    def get_famille(self, obj):
+        if obj.famille:
+            return {
+                'id': obj.famille.id,
+                'nom': obj.famille.nom
+            }
+        return None
+
+    def get_dernier_statut(self, obj):
+        statut = obj.statuts.order_by('-dateChangement').first()
+        if statut:
+            return {
+                'id': statut.id,
+                'statut': statut.statut,
+                'dateChangement': statut.dateChangement
+            }
+        return None
+
+    def get_compteurs(self, obj):
+        compteurs_data = []
+        
+        for c in obj.compteurs.all():
+            plan_maintenance = None
+            
+            # Récupérer le plan de maintenance lié à ce compteur (s'il existe)
+            if c.planMaintenance:
+                # Récupérer les consommables avec leurs quantités
+                consommables = []
+                docs = []
+                relations_conso = c.planMaintenance.planmaintenanceconsommable_set.all().select_related('consommable')
+                relations_docs = c.planMaintenance.planmaintenancedocument_set.all().select_related('document')
+
+                # Récupération des consommables 
+                for rel_conso in relations_conso:
+                    consommables.append({
+                        'consommable': rel_conso.consommable.id,
+                        'quantite': rel_conso.quantite_necessaire
+                    })
+
+                # Récupération des infos des documents (pas du fichier)
+                for rel_doc in relations_docs:
+                    docs.append({
+                        'id': rel_doc.document.id,
+                        'titre': rel_doc.document.nomDocument,
+                        'path': rel_doc.document.cheminAcces.name,
+                        'type': rel_doc.document.typeDocument_id
+                    })
+                
+                plan_maintenance = {
+                    'id': c.planMaintenance.id,
+                    'nom': c.planMaintenance.nom,
+                    'type': c.planMaintenance.type_plan_maintenance_id,
+                    'consommables': consommables,
+                    'documents': docs
+                }
+            
+            compteur_dict = {
+                'id': c.id,
+                'nom': c.nomCompteur,
+                'valeurCourante': c.valeurCourante,
+                'intervalle': c.ecartInterventions,
+                'derniereIntervention': c.derniereIntervention,
+                'prochaineMaintenance': c.prochaineMaintenance,
+                'unite': c.unite,
+                'estPrincipal': c.estPrincipal,
+                'estGlissant': c.estGlissant,
+                'planMaintenance': plan_maintenance  
+            }
+            
+            compteurs_data.append(compteur_dict)
+        
+        return compteurs_data
+
+    def get_documents(self, obj):
+        return [
+            {
+                'id': d.id,
+                'nomDocument': d.nomDocument if hasattr(d, 'nomDocument') else '',
+                'cheminAcces': d.cheminAcces if hasattr(d, 'cheminAcces') else '',
+                'typeDocument': d.typeDocument.nomTypeDocument if hasattr(d, 'typeDocument') else ''
+
+            }
+            for d in obj.documents.all()
+        ]
+
+    def get_consommables(self, obj):
+        relations = Constituer.objects.filter(equipement=obj).select_related('consommable')
+        return [
+            {
+                'id': r.consommable.id,
+                'designation': r.consommable.designation,
+                'fabricant': r.consommable.fabricant.nom if r.consommable.fabricant else None,
+            }
+            for r in relations
+        ]
+
+    def get_bons_travail(self, obj):
+        bons = BonTravail.objects.filter(equipement=obj).select_related('responsable', 'demande_intervention')
+        return [
+            {
+                'id': bon.id,
+                'nom': bon.nom,
+                'diagnostic': bon.diagnostic,
+                'type': bon.type,
+                'statut': bon.statut,
+                'date_assignation': bon.date_assignation,
+                'date_fin': bon.date_fin,
+                'date_cloture': bon.date_cloture,
+            }
+            for bon in bons
+        ]
+    
+
+    def get_lienImage(self, obj):
+        """Retourne le nom du fichier ou l'URL complète"""
+        if obj.lienImage:
+            return obj.lienImage.name  
+        return None
+
+

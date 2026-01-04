@@ -135,7 +135,7 @@ class PlanMaintenance(models.Model):
     # Relations
     type_plan_maintenance = models.ForeignKey(
         TypePlanMaintenance,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='plans_maintenance'
     )
     compteur = models.ForeignKey(
@@ -179,7 +179,7 @@ class PlanMaintenanceConsommable(models.Model):
     """Table d'association entre PlanMaintenance et Consommable"""
     plan_maintenance = models.ForeignKey(
         PlanMaintenance,
-        on_delete=models.CASCADE
+        on_delete=models.PROTECT
     )
     consommable = models.ForeignKey(
         Consommable,

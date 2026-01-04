@@ -99,7 +99,8 @@
               </v-col>
 
               <v-col cols="6">
-                <LocationTreeView :items="locations" v-model:selected="formData.lieu" />
+                <LocationTreeView :items="locations" v-model:selected="formData.lieu"
+                  @created="handleLocationCreated" />
               </v-col>
 
               <v-col cols="6">
@@ -169,8 +170,7 @@
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
       <CounterForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter"
-        @close="closeCounterDialog" />
+        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter" @close="closeCounterDialog" />
     </v-dialog>
 
     <v-dialog v-model="showFabricantDialog" max-width="80%">
@@ -182,10 +182,11 @@
     </v-dialog>
 
     <v-dialog v-model="showModeleDialog" max-width="80%">
-      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="closeModeleDialog" />
+      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="closeModeleDialog"
+        @fabricant-created="handleFabricantCreated" />
     </v-dialog>
 
-    <v-dialog v-model="showFamilleDialog" max-width="50%" >
+    <v-dialog v-model="showFamilleDialog" max-width="50%">
       <FamilleEquipementForm :families="familles" @created="handleFamilleCreated" @close="closeFamilleDialog" />
     </v-dialog>
   </v-app>
@@ -196,7 +197,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 import { EQUIPMENT_STATUS } from '@/utils/constants.js';
 import CounterForm from '@/components/Forms/CounterForm.vue';
@@ -208,6 +209,8 @@ import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue'
 const router = useRouter();
 const api = useApi(API_BASE_URL);
 
+
+
 const loading = ref(false);
 const loadingData = ref(false);
 const errorMessage = ref('');
@@ -215,7 +218,7 @@ const successMessage = ref('');
 const isEditMode = ref(false);
 const editingCounterIndex = ref(-1);
 
-const formData = ref({
+let formData = ref({
   numSerie: '',
   reference: '',
   designation: '',
@@ -267,7 +270,7 @@ const getEmptyCounter = () => ({
   description: '',
   intervalle: '',
   unite: '',
-  valeurActuelle: null,
+  valeurCourante: null,
   derniereIntervention: null,
   estGlissant: false,
   estPrincipal: false,
@@ -399,12 +402,12 @@ const handleSubmit = async () => {
     await api.post('equipements/', fd, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-
     successMessage.value = 'Équipement créé avec succès';
+
     setTimeout(() => router.back(), 1500);
 
   } catch (e) {
-    console.error('❌ Erreur lors de la création:', e);
+    console.error('Erreur lors de la création:', e);
     errorMessage.value = 'Erreur lors de la création de l\'équipement';
 
     if (e.response?.data) {
@@ -422,7 +425,7 @@ const counterTableHeaders = [
   { title: 'Nom du compteur', value: 'nom' },
   { title: 'Intervalle de maintenance', value: 'intervalle' },
   { title: 'Unité', value: 'unite' },
-  { title: 'Valeur actuelle', value: 'valeurActuelle' },
+  { title: 'Valeur actuelle', value: 'valeurCourante' },
   { title: 'Dernière intervention', value: 'derniereIntervention' },
   { title: 'Plan de maintenance', value: 'planMaintenance' },
   { title: 'Options', value: 'options', sortable: false },
@@ -440,6 +443,8 @@ const handleCounterEdit = (counter) => {
   editingCounterIndex.value = formData.value.compteurs.indexOf(counter);
   isEditMode.value = true;
 
+  console.log("Compteur à modifier: ", counter);
+
   currentCounter.value = {
     ...counter,
     planMaintenance: {
@@ -455,6 +460,8 @@ const handleCounterEdit = (counter) => {
 
   showCounterDialog.value = true;
 };
+
+
 
 const handleCounterDelete = (counter) => {
   if (confirm('Êtes-vous sûr de vouloir supprimer ce compteur ?')) {
@@ -570,8 +577,10 @@ const closeModeleDialog = () => {
 };
 
 const handleModeleCreated = (newModele) => {
+  console.log(JSON.stringify(newModele));
   equipmentModels.value.push(newModele);
   formData.value.modeleEquipement = newModele.id;
+  formData.value.fabricant = newModele.fabricant;
 };
 
 // Famille Equipement
@@ -600,8 +609,8 @@ const closeCounterDialog = () => {
   errorMessage.value = '';
 };
 
-onMounted(() => {
-  fetchData();
+onMounted(async () => {
+  await fetchData()
 });
 </script>
 
