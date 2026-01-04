@@ -190,6 +190,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
                 'prochaineMaintenance': c.prochaineMaintenance,
                 'unite': c.unite,
                 'estPrincipal': c.estPrincipal,
+                'estGlissant': c.estGlissant,
                 'planMaintenance': plan_maintenance  
             }
             

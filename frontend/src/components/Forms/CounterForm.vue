@@ -127,7 +127,7 @@
             :hint="existingFileName(doc)" persistent-hint>
             <template #selection>
               <span v-if="doc.file">
-                {{ doc.file.name }} a
+                {{ doc.file.name }}
               </span>
               <span v-else-if="doc.path">
                 {{ getFileName(doc.path) }}
@@ -177,7 +177,6 @@ const props = defineProps({
   consumables: Array,
   typesDocuments: Array,
   isEditMode: Boolean,
-  editEquipMode: Boolean
 })
 
 const emit = defineEmits(['update:modelValue', 'save', 'close'])

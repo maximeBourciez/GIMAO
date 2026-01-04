@@ -205,6 +205,8 @@ class EquipementViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
+    
+    
     @transaction.atomic
     def update(self, request, *args, **kwargs):
         """
@@ -214,7 +216,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
         utilisateur = self._get_utilisateur(request)
         
         # -------------------------
-        # Récupération des changements
+        # Récupération des données
         # -------------------------
         data = dict(request.data)
         
@@ -222,6 +224,22 @@ class EquipementViewSet(viewsets.ModelViewSet):
         for key, value in data.items():
             if isinstance(value, list) and len(value) == 1:
                 data[key] = value[0]
+
+        # Récupérer les données JSON
+        json_data = data.get("data")
+        if not json_data:
+            return Response(
+                {"error": "Aucune donnée JSON fournie"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            equipement_data = json.loads(json_data)
+        except json.JSONDecodeError:
+            return Response(
+                {"error": "Format JSON invalide pour les données de l'équipement"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         # Récupérer les changements
         changes_data = data.get("changes")
@@ -239,89 +257,119 @@ class EquipementViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        print(f"\n📝 CHANGEMENTS REÇUS: {changes}")
+        print('📦 Données de la requête:')
+        print(f"  JSON: {equipement_data}")
+        print(f"  Changements: {changes}")
+        print(f"  Fichiers: {list(request.FILES.keys())}")
 
         # -------------------------
         # Traitement des modifications
         # -------------------------
         modifications_appliquees = {}
 
-        # 1. Champs simples de l'équipement
-        if 'prixAchat' in changes:
-            ancien = equipement.prixAchat
-            nouveau = changes['prixAchat']['nouvelle']
-            if str(ancien) != str(nouveau):
-                equipement.prixAchat = nouveau
-                modifications_appliquees['prixAchat'] = {
-                    'ancien': ancien,
-                    'nouveau': nouveau
-                }
+        # 1. Mise à jour des champs simples de l'équipement
+        simple_fields = ['numSerie', 'reference', 'designation', 'dateMiseEnService', 
+                        'prixAchat', 'modeleEquipement', 'fournisseur', 'fabricant', 
+                        'famille', 'lieu', 'statut']
+        
+        for field in simple_fields:
+            if field in changes:
+                modification = changes[field]
+                ancien = modification.get('ancienne')
+                nouveau = modification.get('nouvelle')
+                
+                if field == 'lieu' and isinstance(nouveau, dict):
+                    nouveau = nouveau.get('id')
+                
+                # Appliquer la modification
+                if field == 'lieu' and nouveau:
+                    try:
+                        lieu = Lieu.objects.get(id=nouveau)
+                        equipement.lieu = lieu
+                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                    except Lieu.DoesNotExist:
+                        pass
+                
+                elif field == 'statut' and nouveau:
+                    dernier_statut = equipement.statuts.order_by('-dateChangement').first()
+                    ancien_statut = dernier_statut.statut if dernier_statut else None
+                    
+                    if ancien_statut != nouveau:
+                        StatutEquipement.objects.create(
+                            equipement=equipement,
+                            statut=nouveau,
+                            dateChangement=timezone.now()
+                        )
+                        modifications_appliquees[field] = {'ancien': ancien_statut, 'nouveau': nouveau}
+                
+                elif field == 'modeleEquipement' and nouveau:
+                    try:
+                        modele = ModeleEquipement.objects.get(id=nouveau)
+                        equipement.modele = modele
+                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                    except ModeleEquipement.DoesNotExist:
+                        pass
+                
+                elif field == 'fabricant' and nouveau:
+                    try:
+                        fabricant = Fabricant.objects.get(id=nouveau)
+                        equipement.fabricant = fabricant
+                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                    except Fabricant.DoesNotExist:
+                        pass
+                
+                elif field == 'fournisseur' and nouveau:
+                    try:
+                        fournisseur = Fournisseur.objects.get(id=nouveau)
+                        equipement.fournisseur = fournisseur
+                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                    except Fournisseur.DoesNotExist:
+                        pass
+                
+                elif field == 'famille' and nouveau:
+                    try:
+                        famille = FamilleEquipement.objects.get(id=nouveau)
+                        equipement.famille = famille
+                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                    except FamilleEquipement.DoesNotExist:
+                        pass
+                
+                elif field in ['numSerie', 'reference', 'designation', 'dateMiseEnService', 'prixAchat']:
+                    ancien_val = getattr(equipement, field, None)
+                    if str(ancien_val) != str(nouveau):
+                        setattr(equipement, field, nouveau)
+                        modifications_appliquees[field] = {'ancien': ancien_val, 'nouveau': nouveau}
 
-        if 'fabricant' in changes:
-            ancien = equipement.fabricant_id
-            nouveau = changes['fabricant']['nouvelle']
-            if ancien != nouveau:
-                try:
-                    fabricant = Fabricant.objects.get(id=nouveau)
-                    equipement.fabricant = fabricant
-                    modifications_appliquees['fabricant'] = {
-                        'ancien': ancien,
-                        'nouveau': nouveau
-                    }
-                except Fabricant.DoesNotExist:
-                    pass
-
-        # 2. Statut
-        if 'statut' in changes:
-            dernier_statut = equipement.statuts.order_by('-dateChangement').first()
-            ancien_statut = dernier_statut.statut if dernier_statut else None
-            nouveau_statut = changes['statut']['nouvelle']
-            
-            if ancien_statut != nouveau_statut:
-                StatutEquipement.objects.create(
-                    equipement=equipement,
-                    statut=nouveau_statut,
-                    dateChangement=timezone.now()
-                )
-                modifications_appliquees['statut'] = {
-                    'ancien': ancien_statut,
-                    'nouveau': nouveau_statut
-                }
-
-        # 3. Consommables
+        # 2. Consommables
         if 'consommables' in changes:
+            modification = changes['consommables']
             old_consommables = set(equipement.constituer_set.values_list('consommable_id', flat=True))
-            new_consommables = set(changes['consommables']['nouvelle'])
+            new_consommables = set(modification.get('nouvelle', []))
             
-            if old_consommables != new_consommables:
+            # Détecter les ajouts et suppressions
+            ajoutes = modification.get('ajoutes', [])
+            retires = modification.get('retires', [])
+            
+            if ajoutes or retires:
                 # Supprimer
-                to_remove = old_consommables - new_consommables
-                if to_remove:
-                    equipement.constituer_set.filter(consommable_id__in=to_remove).delete()
+                if retires:
+                    equipement.constituer_set.filter(consommable_id__in=retires).delete()
                 
                 # Ajouter
-                to_add = new_consommables - old_consommables
-                for consommable_id in to_add:
+                for consommable_id in ajoutes:
                     Constituer.objects.create(
                         equipement=equipement,
                         consommable_id=consommable_id
                     )
                 
                 modifications_appliquees['consommables'] = {
-                    'ajoutes': list(to_add),
-                    'retires': list(to_remove)
+                    'ajoutes': ajoutes,
+                    'retires': retires
                 }
 
-        # 4. Compteurs
+        # 3. Compteurs
         if 'compteurs' in changes:
             compteurs_data = changes['compteurs']
-            
-            # Initialiser la structure pour les modifications de compteurs
-            compteur_modifications = {
-                'ajoutes': [],
-                'modifies': [],
-                'supprimes': []
-            }
             
             # Compteurs à supprimer
             if 'supprimes' in compteurs_data:
@@ -334,7 +382,8 @@ class EquipementViewSet(viewsets.ModelViewSet):
                         compteur.delete()
                         
                         print(f"🗑️ Compteur supprimé: {nom_compteur} (ID: {compteur_id})")
-
+                        
+                        # Log de suppression
                         self._create_log_entry(
                             type_action='suppression',
                             nom_table='compteur',
@@ -344,54 +393,59 @@ class EquipementViewSet(viewsets.ModelViewSet):
                         )
                         
                     except Compteur.DoesNotExist:
-                        print(f" Compteur à supprimer introuvable: ID {compteur_id}")
-            
-            # Compteurs à ajouter
-            if 'ajoutes' in compteurs_data:
-                for nouveau_compteur in compteurs_data['ajoutes']:
-                    try:
-                        compteur = self._create_compteur_from_data(equipement, nouveau_compteur, request)
-                        
-                        # Ajouter au log
-                        self._create_log_entry(
-                            type_action='création',
-                            nom_table='compteur',
-                            id_cible={'compteur_id': compteur.id},
-                            champs_modifies={'compteur_created': True, 'equipmentId': equipement.id},
-                            utilisateur=utilisateur
-                        )
-                        
-                        print(f" Compteur ajouté: {compteur.nomCompteur} (ID: {compteur.id})")
-                        
-                    except Exception as e:
-                        print(f" Erreur lors de l'ajout du compteur: {e}")
+                        print(f"⚠️ Compteur à supprimer introuvable: ID {compteur_id}")
             
             # Compteurs à modifier
             if 'modifies' in compteurs_data:
-                for compteur_modifie in compteurs_data['modifies']:
-                    if 'id' in compteur_modifie:
-                        try:
-                            compteur = Compteur.objects.get(id=compteur_modifie['id'], equipement=equipement)
-                            
-                            self._update_compteur_from_changes(compteur, compteur_modifie, request)
-                                
-                            print(f" Compteur modifié: {compteur.nomCompteur} (ID: {compteur.id})")
-                            
-                        except Compteur.DoesNotExist:
-                            print(f" Compteur à modifier introuvable: ID {compteur_modifie['id']}")
-                        except Exception as e:
-                            print(f" Erreur lors de la modification du compteur: {e}")
+                for compteur_mod in compteurs_data['modifies']:
+                    compteur_id = compteur_mod.get('id')
+                    if not compteur_id:
+                        continue
+                    
+                    try:
+                        compteur = Compteur.objects.get(id=compteur_id, equipement=equipement)
+                        modifications = compteur_mod.get('modifications', {})
+                        
+                        # Mettre à jour les champs du compteur
+                        self._update_compteur_from_changes(compteur, modifications, request)
+                        
+                        print(f"🔄 Compteur modifié: {compteur.nomCompteur} (ID: {compteur_id})")
+                        
+                        # Log de modification
+                        self._create_log_entry(
+                            type_action='modification',
+                            nom_table='compteur',
+                            id_cible={'compteur_id': compteur_id},
+                            champs_modifies={'modifications': modifications},
+                            utilisateur=utilisateur
+                        )
+                        
+                    except Compteur.DoesNotExist:
+                        print(f"⚠️ Compteur à modifier introuvable: ID {compteur_id}")
+                    except Exception as e:
+                        print(f"❌ Erreur lors de la modification du compteur {compteur_id}: {e}")
+
+        # 4. Gestion des fichiers d'image de l'équipement
+        if 'lienImageEquipement' in request.FILES:
+            uploaded_file = request.FILES['lienImageEquipement']
+            # Supprimer l'ancienne image si elle existe
+            if equipement.lienImage:
+                try:
+                    equipement.lienImage.delete(save=False)
+                except:
+                    pass
             
-            # Ajouter les modifications de compteurs au log global si il y a eu des changements
-            if any([compteur_modifications['ajoutes'], 
-                    compteur_modifications['modifies'], 
-                    compteur_modifications['supprimes']]):
-                
-                modifications_appliquees['compteurs'] = compteur_modifications
+            # Sauvegarder la nouvelle image
+            equipement.lienImage = uploaded_file
+            modifications_appliquees['lienImageEquipement'] = {
+                'ancien': str(equipement.lienImage) if equipement.lienImage else None,
+                'nouveau': uploaded_file.name
+            }
 
         # Sauvegarder l'équipement si des modifications ont été faites
         if modifications_appliquees:
             equipement.save()
+            print(f"✅ Équipement {equipement.id} sauvegardé avec modifications: {modifications_appliquees}")
 
         # -------------------------
         # Log des modifications
@@ -410,37 +464,10 @@ class EquipementViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
-    def _create_compteur_from_data(self, equipement, compteur_data, request):
-        """Crée un nouveau compteur à partir des données"""
-        compteur = Compteur.objects.create(
-            equipement=equipement,
-            nomCompteur=compteur_data['nom'],
-            descriptifMaintenance=compteur_data.get('description', ''),
-            valeurCourante=compteur_data['valeurCourante'],
-            ecartInterventions=compteur_data['intervalle'],
-            unite=compteur_data['unite'],
-            estPrincipal=compteur_data.get('estPrincipal', False),
-            estGlissant=compteur_data.get('estGlissant', False),
-            necessiteHabilitationElectrique=compteur_data.get('habElec', False),
-            necessitePermisFeu=compteur_data.get('permisFeu', False),
-            prochaineMaintenance=int(compteur_data.get('derniereIntervention', 0)) + int(compteur_data['intervalle']),
-            derniereIntervention=compteur_data.get('derniereIntervention', 0)
-        )
-        
-        # Gérer le plan de maintenance si présent
-        if 'planMaintenance' in compteur_data:
-            self._create_plan_maintenance(compteur, compteur_data['planMaintenance'], request)
-        
-        return compteur
-
     def _update_compteur_from_changes(self, compteur, modifications, request):
         """Met à jour un compteur existant"""
-
-        # Autoriser les structures {id, nom, modifications: {...}}
-        if isinstance(modifications, dict) and 'modifications' in modifications:
-            modifications = modifications.get('modifications') or {}
-
-        # Mise à jour des champs simples
+        print(f"🔧 Mise à jour du compteur {compteur.id} avec modifications: {modifications}")
+        
         field_mapping = {
             'nom': 'nomCompteur',
             'description': 'descriptifMaintenance',
@@ -454,123 +481,153 @@ class EquipementViewSet(viewsets.ModelViewSet):
             'permisFeu': 'necessitePermisFeu'
         }
         
+        # Mise à jour des champs simples
         for field, model_field in field_mapping.items():
-            if field in modifications and isinstance(modifications[field], dict):
-                valeur_dict = modifications[field]
-                nouvelle_valeur = valeur_dict.get('nouveau', valeur_dict.get('nouvelle'))
+            if field in modifications:
+                field_data = modifications[field]
+                nouvelle_valeur = field_data.get('nouvelle')
                 if nouvelle_valeur is not None:
-                    setattr(compteur, model_field, nouvelle_valeur)
+                    old_value = getattr(compteur, model_field)
+                    if str(old_value) != str(nouvelle_valeur):
+                        setattr(compteur, model_field, nouvelle_valeur)
+                        print(f"  📝 {field}: {old_value} -> {nouvelle_valeur}")
         
         # Mettre à jour la prochaine maintenance
-        if all(k in modifications for k in ['derniereIntervention', 'intervalle']):
-            derniere = modifications['derniereIntervention']
-            intervalle = modifications['intervalle']
-            if isinstance(derniere, dict) and isinstance(intervalle, dict):
-                der_val = derniere.get('nouveau', derniere.get('nouvelle'))
-                int_val = intervalle.get('nouveau', intervalle.get('nouvelle'))
-                if der_val is not None and int_val is not None:
-                    compteur.prochaineMaintenance = int(der_val) + int(int_val)
+        if 'derniereIntervention' in modifications and 'intervalle' in modifications:
+            derniere = modifications['derniereIntervention'].get('nouvelle')
+            intervalle = modifications['intervalle'].get('nouvelle')
+            if derniere is not None and intervalle is not None:
+                try:
+                    compteur.prochaineMaintenance = int(derniere) + int(intervalle)
+                    print(f"  📅 Prochaine maintenance: {compteur.prochaineMaintenance}")
+                except (ValueError, TypeError):
+                    pass
         
         compteur.save()
         
-        # Gérer le plan de maintenance si modifié
-        plan_maintenance_keys = ['planMaintenance.nom', 'planMaintenance.type', 'planMaintenance.consommables', 'planMaintenance.documents']
-        if any(key in modifications for key in plan_maintenance_keys):
-            self._update_plan_maintenance(compteur, modifications, request)
+        # Gérer le plan de maintenance si présent dans les modifications
+        plan_keys = [k for k in modifications.keys() if k.startswith('planMaintenance')]
+        if plan_keys:
+            print(f"  📋 Modification du plan de maintenance: {plan_keys}")
+            self._update_plan_maintenance_from_changes(compteur, modifications, request)
 
-    def _create_plan_maintenance(self, compteur, pm_data, request):
-        """Crée un nouveau plan de maintenance"""
-        if not pm_data:
-            return None
+    def _update_plan_maintenance_from_changes(self, compteur, modifications, request):
+        """Met à jour le plan de maintenance d'un compteur"""
+        print(f"📋 Traitement du plan de maintenance pour compteur {compteur.id}")
         
-        plan = PlanMaintenance.objects.create(
-            compteur=compteur,
-            equipement=compteur.equipement,
-            nom=pm_data['nom'],
-            type_plan_maintenance_id=pm_data['type']
-        )
-        
-        compteur.planMaintenance = plan
-        compteur.save()
-        
-        # Consommables
-        for cpm in pm_data.get('consommables', []):
-            PlanMaintenanceConsommable.objects.create(
-                plan_maintenance=plan,
-                consommable_id=cpm['consommable'],
-                quantite_necessaire=cpm['quantite']
-            )
-        
-        
-        
-        return plan
-
-    def _update_plan_maintenance(self, compteur, pm_modifications, request):
-        """Met à jour un plan de maintenance existant"""
-        print(f" Mise à jour du plan de maintenance pour le compteur ID {compteur.id}")
+        # Vérifier si un plan existe, sinon en créer un
         if not compteur.planMaintenance:
-            pm_data = {
-                'nom': pm_modifications.get('planMaintenance.nom', {}).get('nouvelle', pm_modifications.get('planMaintenance.nom', {}).get('nouveau', 'Plan sans nom')),
-                'type': pm_modifications.get('planMaintenance.type', {}).get('nouvelle', pm_modifications.get('planMaintenance.type', {}).get('nouveau', 1)),
-                'consommables': pm_modifications.get('planMaintenance.consommables', {}).get('nouvelle', pm_modifications.get('planMaintenance.consommables', {}).get('nouveau', [])),
-                'documents': pm_modifications.get('planMaintenance.documents', {}).get('nouvelle', pm_modifications.get('planMaintenance.documents', {}).get('nouveau', []))
-            }
-            self._create_plan_maintenance(compteur, pm_data, None)
-            return
+            print("  ➕ Création d'un nouveau plan de maintenance")
+            # Extraire les données du plan depuis equipement_data
+            # (Vous devrez passer les données complètes depuis l'update)
+            # Pour l'instant, on va créer un plan vide
+            plan = PlanMaintenance.objects.create(
+                compteur=compteur,
+                equipement=compteur.equipement,
+                nom="Nouveau plan",
+                type_plan_maintenance_id=1  # Type par défaut
+            )
+            compteur.planMaintenance = plan
+            compteur.save()
         
         plan = compteur.planMaintenance
         
         # Mise à jour du nom
-        if 'planMaintenance.nom' in pm_modifications:
-            plan.nom = pm_modifications['planMaintenance.nom'].get('nouvelle', pm_modifications['planMaintenance.nom'].get('nouveau'))
-        elif 'nom' in pm_modifications:
-            plan.nom = pm_modifications['nom'].get('nouvelle', pm_modifications['nom'].get('nouveau'))
+        if 'planMaintenance.nom' in modifications:
+            new_name = modifications['planMaintenance.nom'].get('nouvelle')
+            if new_name and plan.nom != new_name:
+                print(f"  📝 Nom du plan: {plan.nom} -> {new_name}")
+                plan.nom = new_name
         
         # Mise à jour du type
-        if 'planMaintenance.type' in pm_modifications:
-            plan.type_plan_maintenance_id = pm_modifications['planMaintenance.type'].get('nouvelle', pm_modifications['planMaintenance.type'].get('nouveau'))
-        elif 'type' in pm_modifications:
-            plan.type_plan_maintenance_id = pm_modifications['type'].get('nouvelle', pm_modifications['type'].get('nouveau'))
-        
-        plan.save()
+        if 'planMaintenance.type' in modifications:
+            new_type = modifications['planMaintenance.type'].get('nouvelle')
+            if new_type and plan.type_plan_maintenance_id != new_type:
+                print(f"  📝 Type du plan: {plan.type_plan_maintenance_id} -> {new_type}")
+                plan.type_plan_maintenance_id = new_type
         
         # Mise à jour des consommables
-        if 'planMaintenance.consommables' in pm_modifications:
-            nouveaux_consommables = pm_modifications['planMaintenance.consommables'].get('nouvelle', pm_modifications['planMaintenance.consommables'].get('nouveau', []))
+        if 'planMaintenance.consommables' in modifications:
+            consommables_data = modifications['planMaintenance.consommables']
+            nouveaux_consommables = consommables_data.get('nouvelle', [])
+            ajoutes = consommables_data.get('ajoutes', [])
+            retires = consommables_data.get('retires', [])
             
-            # Supprimer les anciens consommables
-            plan.planmaintenanceconsommable_set.all().delete()
-
-            for conso, qte in [(c['consommable'], c['quantite']) for c in nouveaux_consommables]:
+            print(f"  🛠️ Consommables: {len(nouveaux_consommables)} total, {len(ajoutes)} ajoutés, {len(retires)} retirés")
+            
+            # Supprimer les consommables retirés
+            if retires:
+                plan.planmaintenanceconsommable_set.filter(consommable_id__in=retires).delete()
+            
+            # Ajouter les nouveaux consommables
+            for consommable_id in ajoutes:
+                # Chercher la quantité dans les données complètes
+                quantite = 1  # Valeur par défaut
+                for conso in nouveaux_consommables:
+                    if isinstance(conso, dict) and conso.get('consommable') == consommable_id:
+                        quantite = conso.get('quantite', 1)
+                        break
+                
                 PlanMaintenanceConsommable.objects.create(
                     plan_maintenance=plan,
-                    consommable_id=conso,
-                    quantite_necessaire=qte
+                    consommable_id=consommable_id,
+                    quantite_necessaire=quantite
                 )
         
         # Mise à jour des documents
-        if 'planMaintenance.documents' in pm_modifications:
-            nouveaux_documents = pm_modifications['planMaintenance.documents'].get('nouvelle', pm_modifications['planMaintenance.documents'].get('nouveau', []))
+        if 'planMaintenance.documents' in modifications:
+            documents_data = modifications['planMaintenance.documents']
+            nouveaux_documents = documents_data.get('nouvelle', [])
+            anciens_documents = documents_data.get('ancienne', [])
             
-            # Pour les documents, on supprime tous les anciens et on recrée
-            plan.planmaintenancedocument_set.all().delete()
+            print(f"  📄 Documents: {len(nouveaux_documents)} nouveau(x), {len(anciens_documents)} ancien(s)")
             
-            # Créer les nouveaux documents
-            for doc_data in nouveaux_documents:
-                if doc_data.get('file') and doc_data['file']:
-                    uploaded_file = request.FILES.get(doc_data['file'])
-                    if uploaded_file:
-                        document = Document.objects.create(
-                            nomDocument=doc_data.get('titre', uploaded_file.name),
-                            cheminAcces=uploaded_file,
-                            typeDocument_id=doc_data.get('type')
-                        )
-
-                        PlanMaintenanceDocument.objects.create(
-                            plan_maintenance=plan,
-                            document=document
-                        )
+            # Créer un mapping pour trouver les fichiers
+            file_mapping = {}
+            for key, file in request.FILES.items():
+                if key.startswith('document_'):
+                    # Extraire les métadonnées
+                    meta_key = f"{key}_meta"
+                    if meta_key in request.data:
+                        try:
+                            meta = json.loads(request.data[meta_key])
+                            compteur_id = meta.get('compteurId')
+                            doc_index = meta.get('documentIndex')
+                            
+                            if compteur_id == compteur.id:
+                                file_mapping[doc_index] = file
+                        except json.JSONDecodeError:
+                            continue
+            
+            # Pour chaque nouveau document
+            for i, doc_data in enumerate(nouveaux_documents):
+                if not isinstance(doc_data, dict):
                     continue
+                
+                # Vérifier si c'est un document existant qui a un fichier à mettre à jour
+                file_to_use = file_mapping.get(i)
+                
+                if file_to_use:
+                    # Créer un nouveau document avec le fichier
+                    document = Document.objects.create(
+                        nomDocument=doc_data.get('titre', file_to_use.name),
+                        cheminAcces=file_to_use,
+                        typeDocument_id=doc_data.get('type', 1)
+                    )
+                    
+                    # Lier au plan de maintenance
+                    PlanMaintenanceDocument.objects.create(
+                        plan_maintenance=plan,
+                        document=document
+                    )
+                    print(f"  📎 Document ajouté: {document.nomDocument}")
+                
+                elif 'titre' in doc_data and 'type' in doc_data:
+                    # Document sans fichier (métadonnées seulement)
+                    # C'est peut-être un document qui existait déjà
+                    print(f"  📝 Document métadonnées seulement: {doc_data.get('titre')}")
+        
+        plan.save()
 
 
 

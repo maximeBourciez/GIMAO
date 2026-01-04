@@ -170,8 +170,7 @@
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
       <CounterForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter"
-        :editEquipMode="editEquipMode" @close="closeCounterDialog" />
+        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter" @close="closeCounterDialog" />
     </v-dialog>
 
     <v-dialog v-model="showFabricantDialog" max-width="80%">
@@ -195,7 +194,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants';
@@ -211,10 +210,6 @@ const router = useRouter();
 const api = useApi(API_BASE_URL);
 
 
-const route = useRoute()
-
-const equipmentId = computed(() => route.params.id || null)
-const editEquipMode = computed(() => !!equipmentId.value)
 
 const loading = ref(false);
 const loadingData = ref(false);
@@ -358,44 +353,6 @@ const fetchData = async () => {
   }
 };
 
-const fetchEquipment = async () => {
-  if (!editEquipMode.value) return
-
-  try {
-    loadingData.value = true
-    const res = await api.get(`equipement/${equipmentId.value}/affichage`)
-
-    console.log("J'ai !")
-
-    const eq = res
-
-    console.log("Etape 1");
-
-    formData.value = {
-      numSerie: eq.numSerie,
-      reference: eq.reference,
-      designation: eq.designation,
-      dateMiseEnService: eq.dateMiseEnService,
-      prixAchat: eq.prixAchat,
-      modeleEquipement: eq.modele?.id,
-      fournisseur: eq.fournisseur?.id,
-      fabricant: eq.fabricant?.id,
-      famille: eq.famille?.id,
-      lieu: eq.lieu,
-      statut: eq.dernier_statut.statut,
-      consommables: eq.consommables.map(c => c.id),
-      compteurs: eq.compteurs
-    }
-
-    console.log('Etape 2 : ', formData)
-
-  } catch (e) {
-    errorMessage.value = "Erreur lors du chargement de l'équipement: " + e
-  } finally {
-    loadingData.value = false
-  }
-}
-
 const handleSubmit = async () => {
   if (!validateForm()) return;
 
@@ -442,20 +399,11 @@ const handleSubmit = async () => {
       });
     });
 
-    // MODE EDITION : PUT 
-    if (editEquipMode.value) {
-      await api.put(`equipements/${equipmentId.value}/`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      successMessage.value = 'Équipement modifié avec succès';
-    }
-    // MODE CREATION : POST
-    else {
-      await api.post('equipements/', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      successMessage.value = 'Équipement créé avec succès';
-    }
+    await api.post('equipements/', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    successMessage.value = 'Équipement créé avec succès';
+
     setTimeout(() => router.back(), 1500);
 
   } catch (e) {
@@ -663,8 +611,7 @@ const closeCounterDialog = () => {
 
 onMounted(async () => {
   await fetchData()
-  await fetchEquipment()
-})
+});
 </script>
 
 <style scoped>
