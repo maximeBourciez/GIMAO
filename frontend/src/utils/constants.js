@@ -59,6 +59,10 @@ export const INTERVENTION_STATUS = {
 // ============================================
 
 export const TABLE_HEADERS = {
+
+    /********************************
+     *  DEMANDES D'INTERVENTIONS
+     *******************************/
     FAILURES: [
         {
             title: "Commentaire",
