@@ -71,14 +71,12 @@
 import { useRouter } from 'vue-router';
 import { useApi } from '@/composables/useApi';
 import { getFailureLevelColor } from '@/utils/helpers';
-import NavigationDrawer from '@/components/NavigationBar.vue';
 import TopNavBar from "@/components/TopBar.vue";
 import '@/assets/css/global.css';
 import { API_BASE_URL } from '@/utils/constants';
 
 export default {
   components: {
-    NavigationDrawer,
     TopNavBar,
   },
 

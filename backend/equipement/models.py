@@ -1,7 +1,7 @@
 from django.db import models
 from stock.models import Consommable
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
-
+from utilisateur.models import Utilisateur
 
 
 
@@ -47,9 +47,15 @@ class Equipement(models.Model):
     designation = models.CharField(max_length=100, help_text="Nom ou désignation de l'équipement")
     dateMiseEnService = models.DateTimeField(null=True, blank=True, help_text="Date de mise en service de l'équipement")
     prixAchat = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Prix d'achat de l'équipement")
-    lienImage = models.CharField(max_length=255, blank=True, null=True, help_text="Lien vers une image de l'équipement")
+    lienImage = models.FileField(upload_to='equipement_images/', null=True, blank=True, help_text="Image de l'équipement")
     preventifGlissant = models.BooleanField(default=False, help_text="Indique si l'entretien préventif est glissant")
-    createurEquipementId = models.IntegerField(help_text="ID de l'utilisateur ayant créé l'équipement")
+    createurEquipement = models.ForeignKey(
+        Utilisateur,
+        on_delete=models.PROTECT,
+        default=None,
+        related_name="equipements_crees",
+        help_text="Utilisateur ayant créé l'équipement"
+    )
     lieu = models.ForeignKey(Lieu, on_delete=models.PROTECT, related_name="equipements", help_text="Lieu où se trouve l'équipement")
     documents = models.ManyToManyField( Document, 
                                         through='DocumentEquipement', 
@@ -62,7 +68,6 @@ class Equipement(models.Model):
     famille = models.ForeignKey(FamilleEquipement, null=True, blank=True, on_delete=models.SET_NULL, related_name="equipements", help_text="Famille de l'équipement")
     x = models.FloatField(null=True, blank=True, help_text="Coordonnée X de l'équipement dans le lieu")
     y = models.FloatField(null=True, blank=True, help_text="Coordonnée Y del'équipement dans le lieu")
-    lieu = models.ForeignKey(Lieu, on_delete=models.PROTECT, related_name="equipements", help_text="Lieu où se trouve l'équipement")
 
     def __str__(self):
         return f"{self.designation} ({self.numSerie})"
@@ -77,7 +82,14 @@ class StatutEquipement(models.Model):
     """
     Historique des statuts d'un équipement.
     """
-    statut = models.CharField(max_length=50, help_text="Statut de l'équipement")
+    STATUTS_CHOICES = [
+        ('EN_FONCTIONNEMENT', 'En fonctionnement'),
+        ('DEGRADE', 'Dégradé'),
+        ('A_LARRET', 'A l\'arrêt'),
+        ('HORS_SERVICE', 'Hors service'),
+    ]
+
+    statut = models.CharField(max_length=50, choices=STATUTS_CHOICES, help_text="Statut de l'équipement")
     dateChangement = models.DateTimeField(auto_now_add=True, help_text="Date du changement de statut")
     equipement = models.ForeignKey(Equipement, on_delete=models.CASCADE, related_name="statuts", help_text="Équipement concerné")
 
@@ -97,15 +109,22 @@ class Compteur(models.Model):
     """
     equipement = models.ForeignKey(Equipement, on_delete=models.CASCADE, related_name="compteurs", help_text="Équipement associé au compteur")
     nomCompteur = models.CharField(max_length=100, null=False, default="Compteur sans nom", help_text="Nom du compteur")
+    descriptifMaintenance = models.CharField(max_length=255, blank=True, null=True, help_text="Description de la maintenance liée")
+
+    derniereIntervention = models.IntegerField(default=0, help_text="Valeur du compteur à la dernière intervention effectuée")
     valeurCourante = models.FloatField(help_text="Valeur actuelle du compteur")
-    valeurEcheance = models.FloatField(help_text="Valeur à l'échéance pour déclencher la maintenance")
     prochaineMaintenance = models.FloatField(help_text="Valeur prévue pour la prochaine maintenance")
     ecartInterventions = models.FloatField(help_text="Écart moyen entre interventions")
+    unite = models.CharField(max_length=50, help_text="Unité de mesure du compteur", default="jours")
+
+    estPrincipal = models.BooleanField(default=False, help_text="Indique si ce compteur est le principal pour l'équipement")
     estGlissant = models.BooleanField(default=False, help_text="Indique si ce compteur est glissant")
-    descriptifMaintenance = models.CharField(max_length=255, blank=True, null=True, help_text="Description de la maintenance liée")
+
     necessiteHabilitationElectrique = models.BooleanField(default=False, help_text="Nécessite une habilitation électrique")
     necessitePermisFeu = models.BooleanField(default=False, help_text="Nécessite un permis feu")
-    estPrincipal = models.BooleanField(default=False, help_text="Indique si ce compteur est le principal pour l'équipement")
+
+    planMaintenance = models.ForeignKey('maintenance.PlanMaintenance', on_delete=models.CASCADE, null=True, blank=True,related_name='plan_maintenance_compteur')
+    
 
     def __str__(self):
         return f"Compteur {self.id} - {self.equipement.designation}"

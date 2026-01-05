@@ -136,7 +136,7 @@ class PlanMaintenance(models.Model):
     # Relations
     type_plan_maintenance = models.ForeignKey(
         TypePlanMaintenance,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='plans_maintenance'
     )
     compteur = models.ForeignKey(
@@ -153,6 +153,7 @@ class PlanMaintenance(models.Model):
     # RelationsMany-to-Many
     documents = models.ManyToManyField(
         Document,
+        through='PlanMaintenanceDocument',
         related_name='plans_maintenance',
         blank=True
     )
@@ -179,7 +180,7 @@ class PlanMaintenanceConsommable(models.Model):
     """Table d'association entre PlanMaintenance et Consommable"""
     plan_maintenance = models.ForeignKey(
         PlanMaintenance,
-        on_delete=models.CASCADE
+        on_delete=models.PROTECT
     )
     consommable = models.ForeignKey(
         Consommable,
@@ -199,3 +200,24 @@ class PlanMaintenanceConsommable(models.Model):
     
     def __str__(self):
         return f"{self.plan_maintenance} - {self.consommable} (x{self.quantite_necessaire})"
+    
+    
+class PlanMaintenanceDocument(models.Model):
+    """Table d'association entre PlanMaintenance et Document"""
+    plan_maintenance = models.ForeignKey(
+        PlanMaintenance,
+        on_delete=models.CASCADE
+    )
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE
+    )
+    
+    class Meta:
+        db_table = 'gimao_plan_maintenance_document'
+        unique_together = ['plan_maintenance', 'document']
+        verbose_name = 'Document de plan de maintenance'
+        verbose_name_plural = 'Documents de plans de maintenance'
+    
+    def __str__(self):
+        return f"{self.plan_maintenance} - {self.document}"

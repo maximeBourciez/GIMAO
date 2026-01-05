@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Prefetch
+from django.db import transaction
 
 from donnees.models import Lieu, TypeDocument, Document, Fabricant, Fournisseur, Adresse
 from donnees.api.serializers import (
@@ -138,6 +138,20 @@ class FabricantViewSet(viewsets.ModelViewSet):
         fabricants = self.queryset.filter(serviceApresVente=True)
         serializer = self.get_serializer(fabricants, many=True)
         return Response(serializer.data)
+    
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """
+        Création d'un fabricant avec adresse imbriquée
+        """
+        adresse_data = request.data.pop('adresse', None)
+        if adresse_data:
+            adresse_serializer = AdresseSerializer(data=adresse_data)
+            adresse_serializer.is_valid(raise_exception=True)
+            adresse = adresse_serializer.save()
+            request.data['adresse'] = adresse.id
+        
+        return super().create(request, *args, **kwargs)
 
 
 class FournisseurViewSet(viewsets.ModelViewSet):
@@ -161,3 +175,17 @@ class FournisseurViewSet(viewsets.ModelViewSet):
         fournisseurs = self.queryset.filter(serviceApresVente=True)
         serializer = self.get_serializer(fournisseurs, many=True)
         return Response(serializer.data)
+    
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """
+        Création d'un fournisseur avec adresse imbriquée
+        """
+        adresse_data = request.data.pop('adresse', None)
+        if adresse_data:
+            adresse_serializer = AdresseSerializer(data=adresse_data)
+            adresse_serializer.is_valid(raise_exception=True)
+            adresse = adresse_serializer.save()
+            request.data['adresse'] = adresse.id
+        
+        return super().create(request, *args, **kwargs)

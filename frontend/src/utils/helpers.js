@@ -1,4 +1,4 @@
-import { EQUIPMENT_STATUS_COLORS, FAILURE_LEVEL_COLORS } from "./constants";
+import { FAILURE_LEVEL_COLORS, EQUIPMENT_STATUS, EQUIPMENT_STATUS_COLORS } from "./constants";
 
 // ============================================
 // FONCTIONS DE COULEURS
@@ -9,9 +9,19 @@ import { EQUIPMENT_STATUS_COLORS, FAILURE_LEVEL_COLORS } from "./constants";
  * @param {string} status - Le statut de l'équipement
  * @returns {string} La couleur correspondante
  */
-export function getStatusColor(status) {
-  return EQUIPMENT_STATUS_COLORS[status] || "grey";
+export function getStatusColor(code) {
+  return EQUIPMENT_STATUS_COLORS[code] || "grey";
 }
+
+/**
+ * Retourne le libellé associé à un code de statut d'équipement
+ * @param {string} code 
+ * @returns  {string} Le libellé du statut
+ */
+export function getStatusLabel(code) {
+  return EQUIPMENT_STATUS[code] || "Inconnu";
+}
+
 
 /**
  * Retourne la couleur associée à un niveau de défaillance

@@ -5,7 +5,11 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# URL d'accès aux fichiers média (via le navigateur)
+MEDIA_URL = '/media/'
 
+# Chemin physique de stockage des fichiers
+MEDIA_ROOT = BASE_DIR / 'media'
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 

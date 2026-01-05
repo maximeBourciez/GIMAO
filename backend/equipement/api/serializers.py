@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEquipement, Compteur, FamilleEquipement
-from donnees.api.serializers import LieuSerializer
-from donnees.models import Document
+from donnees.api.serializers import LieuSerializer, FabricantSimpleSerializer, FournisseurSimpleSerializer
 from maintenance.models import DemandeIntervention, BonTravail
 
 class EquipementSerializer(serializers.ModelSerializer):
@@ -33,25 +32,82 @@ class EquipementSerializer(serializers.ModelSerializer):
         model = Equipement
         fields = '__all__'
 
+
+class StatutEquipementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StatutEquipement
+        fields = '__all__'
+
+
+class ConstituerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Constituer
+        fields = '__all__'
+
+
+class ModeleEquipementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ModeleEquipement
+        fields = '__all__'
+
+
+class CompteurSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Compteur
+        fields = '__all__'
+
+
+class FamilleEquipementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FamilleEquipement
+        fields = '__all__'
+
+
+class EquipementCreateSerializer(serializers.ModelSerializer):
+    createurEquipement = serializers.IntegerField()
+    lieu = serializers.IntegerField()
+    modeleEquipement = serializers.IntegerField()
+    fournisseur = serializers.IntegerField()
+    fabricant = serializers.IntegerField()
+
+    consommables = serializers.ListField(child=serializers.IntegerField(), required=False)
+    compteurs = serializers.JSONField(required=False)
+
+    lienImageEquipement = serializers.ImageField(required=False)
+
+    class Meta:
+        model = Equipement
+        fields = [
+            'reference', 'designation', 'dateCreation', 'dateMiseEnService',
+            'prixAchat', 'createurEquipement', 'lieu', 'modeleEquipement',
+            'fournisseur', 'fabricant', 'consommables', 'numSerie',
+            'compteurs', 'lienImageEquipement'
+        ]
+
+
+
+
 class EquipementAffichageSerializer(serializers.ModelSerializer):
     """Serializer pour l'affichage détaillé d'un équipement"""
     lieu = LieuSerializer(read_only=True)
-    modele = serializers.SerializerMethodField()
+    modele = ModeleEquipementSerializer(read_only=True)
     famille = serializers.SerializerMethodField()
     dernier_statut = serializers.SerializerMethodField()
     compteurs = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
     consommables = serializers.SerializerMethodField()
     bons_travail = serializers.SerializerMethodField()
-    fabricant = serializers.CharField(source='fabricant.nom', read_only=True)
-    fournisseur = serializers.CharField(source='fournisseur.nom', read_only=True)
+    fabricant = FabricantSimpleSerializer(read_only=True)
+    fournisseur = FournisseurSimpleSerializer(read_only=True)
+    createurEquipement = serializers.CharField(source='createurEquipement.nom', read_only=True)
+    lienImage = serializers.SerializerMethodField()
 
     class Meta:
         model = Equipement
         fields = [
             'id', 'numSerie', 'reference', 'dateCreation', 'designation',
             'dateMiseEnService', 'prixAchat', 'lienImage', 'preventifGlissant',
-            'createurEquipementId', 'x', 'y', 'fabricant', 'fournisseur',
+            'createurEquipement', 'x', 'y', 'fabricant', 'fournisseur',
             'lieu', 'modele', 'famille', 'dernier_statut',
             'compteurs', 'documents', 'consommables', 'bons_travail'
         ]
@@ -88,17 +144,59 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         return None
 
     def get_compteurs(self, obj):
-        return [
-            {
+        compteurs_data = []
+        
+        for c in obj.compteurs.all():
+            plan_maintenance = None
+            
+            # Récupérer le plan de maintenance lié à ce compteur (s'il existe)
+            if c.planMaintenance:
+                # Récupérer les consommables avec leurs quantités
+                consommables = []
+                docs = []
+                relations_conso = c.planMaintenance.planmaintenanceconsommable_set.all().select_related('consommable')
+                relations_docs = c.planMaintenance.planmaintenancedocument_set.all().select_related('document')
+
+                # Récupération des consommables 
+                for rel_conso in relations_conso:
+                    consommables.append({
+                        'consommable': rel_conso.consommable.id,
+                        'quantite': rel_conso.quantite_necessaire
+                    })
+
+                # Récupération des infos des documents (pas du fichier)
+                for rel_doc in relations_docs:
+                    docs.append({
+                        'id': rel_doc.document.id,
+                        'titre': rel_doc.document.nomDocument,
+                        'path': rel_doc.document.cheminAcces.name,
+                        'type': rel_doc.document.typeDocument_id
+                    })
+                
+                plan_maintenance = {
+                    'id': c.planMaintenance.id,
+                    'nom': c.planMaintenance.nom,
+                    'type': c.planMaintenance.type_plan_maintenance_id,
+                    'consommables': consommables,
+                    'documents': docs
+                }
+            
+            compteur_dict = {
                 'id': c.id,
-                'nomCompteur': c.nomCompteur,
+                'nom': c.nomCompteur,
                 'valeurCourante': c.valeurCourante,
-                'valeurEcheance': c.valeurEcheance,
+                'intervalle': c.ecartInterventions,
+                'derniereIntervention': c.derniereIntervention,
                 'prochaineMaintenance': c.prochaineMaintenance,
-                'estPrincipal': c.estPrincipal
+                'unite': c.unite,
+                'estPrincipal': c.estPrincipal,
+                'estGlissant': c.estGlissant,
+                'planMaintenance': plan_maintenance  
             }
-            for c in obj.compteurs.all()
-        ]
+            
+            compteurs_data.append(compteur_dict)
+        
+        return compteurs_data
 
     def get_documents(self, obj):
         return [
@@ -138,33 +236,12 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             }
             for bon in bons
         ]
+    
+
+    def get_lienImage(self, obj):
+        """Retourne le nom du fichier ou l'URL complète"""
+        if obj.lienImage:
+            return obj.lienImage.name  
+        return None
 
 
-class StatutEquipementSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = StatutEquipement
-        fields = '__all__'
-
-
-class ConstituerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Constituer
-        fields = '__all__'
-
-
-class ModeleEquipementSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ModeleEquipement
-        fields = '__all__'
-
-
-class CompteurSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Compteur
-        fields = '__all__'
-
-
-class FamilleEquipementSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FamilleEquipement
-        fields = '__all__'

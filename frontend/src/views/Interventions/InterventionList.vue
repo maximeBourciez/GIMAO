@@ -1,5 +1,5 @@
 <template>
-  <BaseListView title="Liste des Interventions" :headers="tableHeaders" :items="interventions" :loading="loading"
+  <BaseListView title="Liste des Interventions" :headers="tableHeaders" :items="tempInterventions" :loading="loading"
     :error-message="errorMessage" :show-create-button="false"
     no-data-text="Aucune intervention enregistrée" no-data-icon="mdi-wrench-outline"
     @row-click="handleRowClick" @clear-error="errorMessage = ''">
@@ -29,6 +29,30 @@ const api = useApi(API_BASE_URL);
 const interventions = computed(() => api.data.value || []);
 const loading = computed(() => api.loading.value);
 const errorMessage = ref('');
+
+const tempInterventions = [
+  {
+    id: 1,
+    nomIntervention: "Remplacement du filtre à air",
+    dateAssignation: "2024-06-10T09:30:00Z",
+    dateCloture: "2024-06-12T15:45:00Z",
+    tempsEstime: "4 heures"
+  },
+  {
+    id: 2,
+    nomIntervention: "Réparation de la pompe hydraulique",
+    dateAssignation: "2024-06-11T11:00:00Z",
+    dateCloture: null,
+    tempsEstime: "6 heures"
+  },
+  {
+    id: 3,
+    nomIntervention: "Inspection générale de la machine CNC",
+    dateAssignation: "2024-06-09T08:15:00Z",
+    dateCloture: "2024-06-10T12:30:00Z",
+    tempsEstime: "3 heures"
+  }
+];
 
 const tableHeaders = [
   {

@@ -71,6 +71,16 @@ export function useApi(config = null) {
   };
 
   /**
+   * PUT request
+   * @param {string} endpoint - Endpoint relatif ou complet
+   * @param {Object} payload - Données à envoyer
+   * @param {Object} options - Options supplémentaires (ex: headers)
+   */
+  const put = async (endpoint, payload, options = {}) => {
+    return await fetch(endpoint, { method: "PUT", data: payload, ...options });
+  };
+
+  /**
    * PATCH request
    * @param {string} endpoint - Endpoint relatif ou complet
    * @param {Object} payload - Données à mettre à jour
@@ -106,6 +116,7 @@ export function useApi(config = null) {
     fetch,
     get,
     post,
+    put,
     patch,
     remove,
     reset,

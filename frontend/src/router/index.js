@@ -245,7 +245,7 @@ const routes = [
   },
 
   {
-    path: '/EditEquipment/:reference',
+    path: '/EditEquipment/:id',
     name: 'EditEquipment',
     component: EditEquipment,
     meta: { title: 'Modifier Equipement' }

@@ -7,9 +7,12 @@ node_modules/
 # Fichiers binaire 
 **/__pycache__/*
 
+# MIgrations 
+backend/*/migrations/0*.py
+
 
 # Fichier de stockage des images et des différents types de fichiers complémentaires 
-backend/media
+backend/media/*/*
 
 # Variables d'environnement de Django
 backend/.env
@@ -22,3 +25,6 @@ db/Schema.loo
 # Suppression du venv backend
 backend/venv/
 backend/.venv/
+
+# Fichiers d'IDE   
+*/.idea

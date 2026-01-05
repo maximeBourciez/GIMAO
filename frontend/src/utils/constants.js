@@ -4,6 +4,7 @@
 
 export const API_BASE_URL = "http://localhost:8000/api/";
 export const BASE_URL = "http://localhost:8000";
+export const MEDIA_BASE_URL = BASE_URL + '/media/'
 export const DEFAULT_ITEMS_PER_PAGE = 10;
 
 // ============================================
@@ -11,31 +12,46 @@ export const DEFAULT_ITEMS_PER_PAGE = 10;
 // ============================================
 
 export const EQUIPMENT_STATUS = {
-  FUNCTIONING: "Fonctionnel",
-  STOPPED: "A l'arrêt",
-  DEGRADED: "Dégradé"
+    EN_FONCTIONNEMENT: "En fonctionnement",
+    A_LARRET: "À l'arrêt",
+    DEGRADE: "Dégradé",
+    HORS_SERVICE: "Hors service",
 };
 
+
 export const EQUIPMENT_STATUS_COLORS = {
-  [EQUIPMENT_STATUS.FUNCTIONING]: "green",
-  [EQUIPMENT_STATUS.STOPPED]: "red",
-  [EQUIPMENT_STATUS.DEGRADED]: "orange"
+    EN_FONCTIONNEMENT: "green",
+    A_LARRET: "red",
+    DEGRADE: "orange",
+    HORS_SERVICE: "grey",
 };
+
 
 // ============================================
 // NIVEAUX DE DÉFAILLANCE
 // ============================================
 
 export const FAILURE_LEVELS = {
-  MINOR: "Mineur",
-  MAJOR: "Majeur",
-  CRITICAL: "Critique",
+    MINOR: "Mineur",
+    MAJOR: "Majeur",
+    CRITICAL: "Critique",
 };
 
 export const FAILURE_LEVEL_COLORS = {
-  [FAILURE_LEVELS.MINOR]: "green",
-  [FAILURE_LEVELS.MAJOR]: "orange",
-  [FAILURE_LEVELS.CRITICAL]: "red",
+    [FAILURE_LEVELS.MINOR]: "green",
+    [FAILURE_LEVELS.MAJOR]: "orange",
+    [FAILURE_LEVELS.CRITICAL]: "red",
+};
+
+// ============================================
+// STATUTS D'INTERVENTION (BT)
+// ============================================
+export const INTERVENTION_STATUS = {
+    EN_ATTENTE: "En attente",
+    EN_COURS: "En cours",
+    TERMINEE: "Terminée",
+    EN_RETARD: "En retard",
+    CLOTURE: "Cloturé",
 };
 
 // ============================================
@@ -43,78 +59,192 @@ export const FAILURE_LEVEL_COLORS = {
 // ============================================
 
 export const TABLE_HEADERS = {
-  FAILURES: [
-    {
-      title: "Commentaire",
-      align: "start",
-      sortable: true,
-      value: "commentaire",
-    },
-    {
-      title: "Créateur",
-      align: "center",
-      sortable: true,
-      value: "createur",
-    },
-    {
-      title: "Statut",
-      align: "center",
-      sortable: true,
-      value: "statut",
-    },
-    {
-      title: "Équipement",
-      align: "center",
-      sortable: false,
-      value: "equipement",
-    },
-  ],
+    FAILURES: [
+        {
+            title: "Commentaire",
+            align: "start",
+            sortable: true,
+            value: "commentaire",
+        },
+        {
+            title: "Créateur",
+            align: "center",
+            sortable: true,
+            value: "createur",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+        {
+            title: "Équipement",
+            align: "center",
+            sortable: false,
+            value: "equipement",
+        },
+    ],
 
-  INTERVENTIONS: [
-    {
-      title: "Nom",
-      align: "start",
-      sortable: true,
-      value: "nomIntervention",
-    },
-    {
-      title: "Date d'assignation",
-      align: "center",
-      sortable: true,
-      value: "dateAssignation",
-    },
-    {
-      title: "Responsable",
-      align: "center",
-      sortable: true,
-      value: "responsable",
-    },
-    {
-      title: "Niveau",
-      align: "center",
-      sortable: false,
-      value: "niveau",
-    },
-  ],
+    /********************************
+     *  BONS DE TRAVAIL
+     *******************************/
 
-  EQUIPMENTS: [
-    {
-      title: "Désignation",
-      value: "modeleEquipement.nomModeleEquipement",
-      sortable: true,
-      align: "center",
-    },
-    {
-      title: "Lieu",
-      value: "lieu.nomLieu",
-      sortable: true,
-      align: "center",
-    },
-    {
-      title: "Statut",
-      value: "statut.statutEquipement",
-      sortable: true,
-      align: "center",
-    },
-  ],
+    INTERVENTIONS: [
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nomIntervention",
+        },
+        {
+            title: "Date d'assignation",
+            align: "center",
+            sortable: true,
+            value: "dateAssignation",
+        },
+        {
+            title: "Responsable",
+            align: "center",
+            sortable: true,
+            value: "responsable",
+        },
+        {
+            title: "Niveau",
+            align: "center",
+            sortable: false,
+            value: "niveau",
+        },
+    ],
+
+    INTERVENTIONS_LIGHT: [
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Date d'assignation",
+            align: "center",
+            sortable: true,
+            value: "date_assignation",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+        {
+            title: "Visualiser",
+            align: "start",
+            sortable: false,
+            value: "action",
+        },
+    ],
+
+    /********************************
+     *  ÉQUIPEMENTS
+     *******************************/
+
+    EQUIPMENTS: [
+        {
+            title: "Désignation",
+            value: "modeleEquipement.nomModeleEquipement",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Lieu",
+            value: "lieu.nomLieu",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Statut",
+            value: "statut.statutEquipement",
+            sortable: true,
+            align: "center",
+        },
+    ],
+
+    COUNTERS: [
+        {
+            title: "ID",
+            value: "id",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Nom du compteur",
+            value: "nom",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Valeur Courante",
+            value: "valeurCourante",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Prochaine Maintenance",
+            value: "prochaineMaintenance",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Unité",
+            value: "unite",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Visualiser",
+            value: "action",
+            sortable: false,
+            align: "center",
+        }
+    ],
+
+    CONSUMABLES: [
+        {
+            title: "Désignation",
+            value: "designation",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Fabricant",
+            value: "fabricant",
+            sortable: true,
+            align: "center",
+        }
+    ],
+
+    /********************************
+     * DOCUMENTS
+     *******************************/
+    DOCUMENTS: [
+        {
+            title: "Doucument",
+            value: "nomDocument",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Type",
+            value: "typeDocument",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Télécharger",
+            value: "action",
+            sortable: false,
+            align: "center",
+        },
+    ],
+
 };
