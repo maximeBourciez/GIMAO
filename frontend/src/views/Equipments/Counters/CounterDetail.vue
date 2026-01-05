@@ -3,10 +3,6 @@
         <!-- Titre -->
         <v-card-title class="d-flex align-center">
             <span>Détails du compteur</span>
-            <v-spacer />
-            <v-btn icon @click="$emit('close')">
-                <v-icon>mdi-close</v-icon>
-            </v-btn>
         </v-card-title>
 
         <v-card-text v-if="!loading && counter">
@@ -18,19 +14,19 @@
                 <v-row dense>
                     <v-col cols="12" md="6">
                         <strong>Nom :</strong>
-                        <div>{{ counter.nom }}</div>
+                        <div>{{ counter.nomCompteur }}</div>
                     </v-col>
 
                     <v-col cols="12" md="6">
                         <strong>Description :</strong>
-                        <div>{{ counter.description || '—' }}</div>
+                        <div>{{ counter.descriptifMaintenance || '—' }}</div>
                     </v-col>
                 </v-row>
 
                 <v-row dense>
                     <v-col cols="6">
-                        <strong>Intervalle :</strong>
-                        <div>{{ counter.intervalle }} {{ counter.unite }}</div>
+                        <strong>Intervalle entre les interventions:</strong>
+                        <div>{{ counter.ecartInterventions }} {{ counter.unite }}</div>
                     </v-col>
 
                     <v-col cols="6">
@@ -60,7 +56,7 @@
 
                 <v-divider class="my-3" />
 
-                <strong>Maintenance nécessite :</strong>
+                <strong>Une maintenance nécessite :</strong>
                 <v-row dense class="mt-2">
                     <v-col cols="6">
                         <v-icon left color="success" v-if="counter.habElec">mdi-check</v-icon>
@@ -88,14 +84,14 @@
 
                     <v-col cols="4">
                         <strong>Type :</strong>
-                        <div>{{ getPMTypeLabel(counter.planMaintenance?.type) }}</div>
+                        <div>{{ counter.planMaintenance?.type_plan_maintenance.libelle }}</div>
                     </v-col>
                 </v-row>
-            </v-sheet>
 
-            <!-- Consommables -->
-            <v-sheet class="pa-4 mb-4" elevation="1" rounded>
-                <h4 class="mb-3">Consommables</h4>
+                <v-divider class="mt-3"></v-divider>
+
+                <!-- Consommables -->
+                <h4 class="my-3">Consommables</h4>
 
                 <div v-if="!counter.planMaintenance?.consommables?.length">
                     Aucun consommable
@@ -103,17 +99,17 @@
 
                 <v-row v-for="(c, index) in counter.planMaintenance.consommables" :key="index" dense>
                     <v-col cols="8">
-                        {{ getConsumableLabel(c.consommable) }}
+                        {{ c.designation }}
                     </v-col>
                     <v-col cols="4">
                         Quantité : {{ c.quantite }}
                     </v-col>
                 </v-row>
-            </v-sheet>
 
-            <!-- Documents -->
-            <v-sheet class="pa-4 mb-2" elevation="1" rounded>
-                <h4 class="mb-3">Documents</h4>
+                <v-divider class="mt-3"></v-divider>
+
+                <!-- Documents -->
+                <h4 class="my-3">Documents</h4>
 
                 <div v-if="!counter.planMaintenance?.documents?.length">
                     Aucun document
@@ -121,15 +117,15 @@
 
                 <v-row v-for="(doc, index) in counter.planMaintenance.documents" :key="index" dense class="mb-2">
                     <v-col cols="4">
-                        <strong>{{ doc.titre || 'Sans titre' }}</strong>
+                        <strong>{{ doc.nomDocument || 'Sans titre' }}</strong>
                     </v-col>
 
                     <v-col cols="5">
-                        {{ getFileName(doc.path) || '—' }}
+                        {{ getFileName(doc.cheminAcces) || '—' }}
                     </v-col>
 
                     <v-col cols="3">
-                        {{ getDocumentTypeLabel(doc.type) }}
+                        {{ doc.typeDocument.nomTypeDocument }}
                     </v-col>
                 </v-row>
             </v-sheet>
@@ -138,11 +134,16 @@
 
         <v-card-actions>
             <v-spacer />
-            <v-btn color="primary" @click="$emit('edit')">
+            <v-btn color="primary" @click="qhowCounterEdit = true">
                 Modifier
             </v-btn>
         </v-card-actions>
     </v-card>
+
+    <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
+      <CounterForm v-model="counter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
+        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter" @close="closeCounterDialog" />
+    </v-dialog>
 </template>
 
 <script setup>
@@ -150,6 +151,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
+import { CounterForm } from '@/components/Forms/CounterForm.vue'
 
 /* ========= ROUTER ========= */
 const route = useRoute()
@@ -172,14 +174,6 @@ const api = useApi(API_BASE_URL)
 /* ========= HELPERS ========= */
 const getFileName = (path) => path?.split('/').pop() || '—'
 
-const getPMTypeLabel = (id) =>
-    typesPM.value.find(t => t.id === id)?.libelle || '—'
-
-const getConsumableLabel = (id) =>
-    consumables.value.find(c => c.id === id)?.designation || '—'
-
-const getDocumentTypeLabel = (id) =>
-    typesDocuments.value.find(t => t.id === id)?.nomTypeDocument || '—'
 
 /* ========= FETCH ========= */
 const fetchCounter = async () => {

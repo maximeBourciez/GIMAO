@@ -88,11 +88,6 @@ class TypeDocumentSerializer(serializers.ModelSerializer):
 class DocumentSerializer(serializers.ModelSerializer):
     """Serializer pour le modèle Document"""
     typeDocument = TypeDocumentSerializer(read_only=True)
-    typeDocument_id = serializers.PrimaryKeyRelatedField(
-        queryset=TypeDocument.objects.all(),
-        source='typeDocument',
-        write_only=True
-    )
     
     class Meta:
         model = Document

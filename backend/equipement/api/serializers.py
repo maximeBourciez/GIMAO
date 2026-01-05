@@ -3,6 +3,9 @@ from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEq
 from donnees.api.serializers import LieuSerializer, FabricantSimpleSerializer, FournisseurSimpleSerializer
 from maintenance.models import DemandeIntervention, BonTravail
 
+from maintenance.api.serializers import PlanMaintenanceDetailSerializer
+
+
 class EquipementSerializer(serializers.ModelSerializer):
     # Fetcg le dernier statut de l'équipement
     statut = serializers.SerializerMethodField() 
@@ -52,6 +55,7 @@ class ModeleEquipementSerializer(serializers.ModelSerializer):
 
 
 class CompteurSerializer(serializers.ModelSerializer):
+    planMaintenance = PlanMaintenanceDetailSerializer(read_only=True)
     class Meta:
         model = Compteur
         fields = '__all__'
