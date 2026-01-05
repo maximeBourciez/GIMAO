@@ -425,6 +425,15 @@ const downloadDocument = async (lien, nomFichier) => {
   }
 };
 
+const viewCounter = (counter) => {
+  console.log(counter);
+  router.push({
+    name: 'CounterDetail',
+    params: { id: counter.id },
+    query: { from: 'equipment', equipmentId: equipmentDetails.value.id}
+  })
+}
+
 onMounted(() => {
   fetchEquipmentData();
 });

@@ -50,7 +50,7 @@ import ModelEquipmentList from '@/views/DataManagement/EquipmentsModels/ModelEqu
 import CreateModelEquipment from '@/views/DataManagement/EquipmentsModels/CreateModelEquipment.vue'
 import ModelEquipmentDetail from '@/views/DataManagement/EquipmentsModels/ModelEquipmentDetail.vue'
 
-
+import CounterDetail from '@/views/Equipments/Counters/CounterDetail.vue'
 
 
 const routes = [
@@ -249,6 +249,13 @@ const routes = [
     name: 'EditEquipment',
     component: EditEquipment,
     meta: { title: 'Modifier Equipement' }
+  },
+
+  {
+    path: '/CounterDetail/:id',
+    name: 'CounterDetail',
+    component: CounterDetail,
+    meta: { title: 'Détails du compteur'}
   },
 
   // Defaillance ---------------------------------------------------------------
