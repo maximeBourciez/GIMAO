@@ -24,6 +24,7 @@ db/Schema.loo
 
 # Suppression du venv backend
 backend/venv/
+backend/.venv/
 
 # Fichiers d'IDE   
 */.idea

@@ -67,7 +67,7 @@ const routes = [
     component: Technicians,
     meta: { title: 'Techniciens' }
   },
-  
+
   {
     path: '/AccountManagement',
     name: 'AccountManagement',
@@ -80,7 +80,7 @@ const routes = [
     name: 'Orders',
     component: Orders,
     meta: { title: 'Commandes' }
-    
+
   },
 
   {
@@ -100,7 +100,7 @@ const routes = [
     component: ConsumableList,
     meta: { title: 'Consommables' }
   },
-  
+
   {
     path: '/CreateConsumable',
     name: 'CreateConsumable',
@@ -117,7 +117,7 @@ const routes = [
   },
 
 
-    // Fabricants ------------------------------------------------------------------
+  // Fabricants ------------------------------------------------------------------
 
   {
     path: '/ManufacturerList',
@@ -125,7 +125,7 @@ const routes = [
     component: ManufacturerList,
     meta: { title: 'Fabricants' }
   },
-  
+
   {
     path: '/CreateManufacturer',
     name: 'CreateManufacturer',
@@ -142,7 +142,7 @@ const routes = [
   },
 
 
-    // Fournisseurs ------------------------------------------------------------------
+  // Fournisseurs ------------------------------------------------------------------
 
   {
     path: '/SupplierList',
@@ -190,7 +190,7 @@ const routes = [
     path: '/intervention/:id',
     name: 'InterventionDetail',
     component: InterventionDetail,
-    props: true, 
+    props: true,
     meta: { title: 'Détails de l\'intervention' }
   },
 
@@ -211,15 +211,6 @@ const routes = [
 
 
 
-  // Signalements ---------------------------------------------------------------
-
-  {
-    path: '/FailureList',
-    name: 'FailureList',
-    component: FailureList,
-    meta: { title: 'Demandes d\'interventions' }
-  },
-
   // Equipements ---------------------------------------------------------------
 
   {
@@ -233,7 +224,7 @@ const routes = [
     path: '/EquipmentDetail/:id',
     name: 'EquipmentDetail',
     component: EquipmentDetail,
-    props: true, 
+    props: true,
     meta: { title: 'Descriptif de l\'équipement' }
   },
 
@@ -252,6 +243,13 @@ const routes = [
   },
 
   // Defaillance ---------------------------------------------------------------
+  {
+    path: '/FailureList',
+    name: 'FailureList',
+    component: FailureList,
+    meta: { title: 'Demandes d\'interventions' }
+  },
+
   {
     path: '/CreateFailure/:equipementReference?',
     name: 'CreateFailure',
@@ -284,7 +282,7 @@ const routes = [
     component: LocationList,
     meta: { title: 'Lieux' }
   },
-  
+
   {
     path: '/CreateLocation',
     name: 'CreateLocation',
@@ -301,29 +299,29 @@ const routes = [
   },
 
 
-    // Modele Equipements ---------------------------------------------------------------
+  // Modele Equipements ---------------------------------------------------------------
 
-    {
-      path: '/ModelEquipmentList',
-      name: 'ModelEquipmentList',
-      component: ModelEquipmentList,
-      meta: { title: 'Modèle' }
-    },
+  {
+    path: '/ModelEquipmentList',
+    name: 'ModelEquipmentList',
+    component: ModelEquipmentList,
+    meta: { title: 'Modèle' }
+  },
 
-    {
-      path: '/CreateModelEquipment',
-      name: 'CreateModelEquipment',
-      component: CreateModelEquipment,
-      meta: { title: 'Creer un modele equipement' }
-    },
-    
-    {
-      path: '/ModelEquipmentDetail/:id',
-      name: 'ModelEquipmentDetail',
-      component: ModelEquipmentDetail,
-      meta: { title: 'Detail du modele equipement' }
-    },
-  
+  {
+    path: '/CreateModelEquipment',
+    name: 'CreateModelEquipment',
+    component: CreateModelEquipment,
+    meta: { title: 'Creer un modele equipement' }
+  },
+
+  {
+    path: '/ModelEquipmentDetail/:id',
+    name: 'ModelEquipmentDetail',
+    component: ModelEquipmentDetail,
+    meta: { title: 'Detail du modele equipement' }
+  },
+
 
 ]
 
