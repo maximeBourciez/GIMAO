@@ -63,11 +63,71 @@ export const TABLE_HEADERS = {
     /********************************
      *  DEMANDES D'INTERVENTIONS
      *******************************/
-    FAILURES: [
+    FAILURES_SUPER_LIGHT: [
         {
-            title: "Commentaire",
+            title: "N°",
             align: "start",
             sortable: true,
+            value: "id",
+        },
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+    ],
+
+    FAILURES_LIGHT: [
+        {
+            title: "N°",
+            align: "start",
+            sortable: true,
+            value: "id",
+        },
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Créateur",
+            align: "center",
+            sortable: true,
+            value: "createur",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+    ],
+
+    FAILURES: [
+        {
+            title: "N°",
+            align: "start",
+            sortable: true,
+            value: "id",
+        },
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Commentaire",
+            align: "center",
+            sortable: false,
             value: "commentaire",
         },
         {
@@ -85,7 +145,7 @@ export const TABLE_HEADERS = {
         {
             title: "Équipement",
             align: "center",
-            sortable: false,
+            sortable: true,
             value: "equipement",
         },
     ],
