@@ -61,7 +61,7 @@ export const BREADCRUMBS = {
             },
         },
         {
-            label: "Modifier",
+            label: `Compteur #${route.params.id}`,
         },
     ],
 

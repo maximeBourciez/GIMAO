@@ -264,7 +264,10 @@ class PlanMaintenanceSerializer(serializers.ModelSerializer):
 
 class PlanMaintenanceDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé avec consommables et documents"""
-    type_plan_maintenance = TypePlanMaintenanceSerializer(read_only=True)
+    type = serializers.IntegerField(
+        source='type_plan_maintenance.id',
+        read_only=True
+    )
     documents = DocumentSerializer(many=True, read_only=True)
     consommables = serializers.SerializerMethodField()
     
@@ -273,8 +276,7 @@ class PlanMaintenanceDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'nom',
-            'contenu',
-            'type_plan_maintenance',
+            'type',
             'documents',
             'consommables'
         ]
@@ -284,7 +286,6 @@ class PlanMaintenanceDetailSerializer(serializers.ModelSerializer):
             plan_maintenance=obj
         ).select_related('consommable')
         return [{
-            'id': assoc.consommable.id,
-            'designation': assoc.consommable.designation,
+            'consommable': assoc.consommable.id,
             'quantite': assoc.quantite_necessaire
         } for assoc in associations]

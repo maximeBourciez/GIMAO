@@ -14,19 +14,19 @@
                 <v-row dense>
                     <v-col cols="12" md="6">
                         <strong>Nom :</strong>
-                        <div>{{ counter.nomCompteur }}</div>
+                        <div>{{ counter.nom }}</div>
                     </v-col>
 
                     <v-col cols="12" md="6">
                         <strong>Description :</strong>
-                        <div>{{ counter.descriptifMaintenance || '—' }}</div>
+                        <div>{{ counter.description || '—' }}</div>
                     </v-col>
                 </v-row>
 
                 <v-row dense>
                     <v-col cols="6">
                         <strong>Intervalle entre les interventions:</strong>
-                        <div>{{ counter.ecartInterventions }} {{ counter.unite }}</div>
+                        <div>{{ counter.intervalle }} {{ counter.unite }}</div>
                     </v-col>
 
                     <v-col cols="6">
@@ -84,7 +84,7 @@
 
                     <v-col cols="4">
                         <strong>Type :</strong>
-                        <div>{{ counter.planMaintenance?.type_plan_maintenance.libelle }}</div>
+                        <div>{{ getPMTypeLabel(counter.planMaintenance?.type) }}</div>
                     </v-col>
                 </v-row>
 
@@ -99,7 +99,7 @@
 
                 <v-row v-for="(c, index) in counter.planMaintenance.consommables" :key="index" dense>
                     <v-col cols="8">
-                        {{ c.designation }}
+                        {{ getConsumableLabel(c.consommable) }}
                     </v-col>
                     <v-col cols="4">
                         Quantité : {{ c.quantite }}
@@ -117,15 +117,15 @@
 
                 <v-row v-for="(doc, index) in counter.planMaintenance.documents" :key="index" dense class="mb-2">
                     <v-col cols="4">
-                        <strong>{{ doc.nomDocument || 'Sans titre' }}</strong>
+                        <strong>{{ doc.titre || 'Sans titre' }}</strong>
                     </v-col>
 
                     <v-col cols="5">
-                        {{ getFileName(doc.cheminAcces) || '—' }}
+                        {{ getFileName(doc.path) || '—' }}
                     </v-col>
 
                     <v-col cols="3">
-                        {{ doc.typeDocument.nomTypeDocument }}
+                        {{ getDocumentTypeLabel(doc.type) }}
                     </v-col>
                 </v-row>
             </v-sheet>
@@ -134,15 +134,16 @@
 
         <v-card-actions>
             <v-spacer />
-            <v-btn color="primary" @click="qhowCounterEdit = true">
+            <v-btn color="primary" @click="showEditForm">
                 Modifier
             </v-btn>
         </v-card-actions>
     </v-card>
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
-      <CounterForm v-model="counter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter" @close="closeCounterDialog" />
+        <CounterForm v-model="counter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
+            :typesDocuments="typesDocuments" :isEditMode="true" @save="saveCurrentCounter"
+            @close="closeCounterDialog" />
     </v-dialog>
 </template>
 
@@ -150,12 +151,11 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
-import { API_BASE_URL } from '@/utils/constants'
-import { CounterForm } from '@/components/Forms/CounterForm.vue'
+import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants'
+import CounterForm from './CounterForm.vue'
 
 /* ========= ROUTER ========= */
 const route = useRoute()
-const router = useRouter()
 const counterId = Number(route.params.id)
 
 /* ========= STATE ========= */
@@ -164,6 +164,7 @@ const counter = ref(null)
 const consumables = ref([])
 const typesPM = ref([])
 const typesDocuments = ref([])
+const existingPMs = ref([])
 
 const loading = ref(true)
 const errorMessage = ref('')
@@ -174,6 +175,16 @@ const api = useApi(API_BASE_URL)
 /* ========= HELPERS ========= */
 const getFileName = (path) => path?.split('/').pop() || '—'
 
+const getPMTypeLabel = (id) => {
+    return typesPM.value.find(t => t.id === id)?.libelle || '—'
+}
+
+const getConsumableLabel = (id) => {
+    return consumables.value.find(c => c.id === id)?.designation || '—'
+}
+const getDocumentTypeLabel = (id) => {
+    return typesDocuments.value.find(t => t.id === id)?.nomTypeDocument || '—'
+}
 
 /* ========= FETCH ========= */
 const fetchCounter = async () => {
@@ -192,6 +203,41 @@ const fetchReferentials = async () => {
     typesDocuments.value = docTypes
 }
 
+const fetchPMFiles = async () => {
+    try {
+        // Créer un tableau de toutes les promises
+        const fetchPromises = [];
+
+        counter.value.planMaintenance?.documents.forEach(doc => {
+            if (doc.path) {
+                // Créer une promise et la stocker
+                const promise = fetch(MEDIA_BASE_URL + doc.path)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const filename = doc.titre || 'document';
+                        const file = new File([blob], filename, { type: blob.type });
+                        console.log('Fichier récupéré pour le document:', filename, file);
+                        // Assigner le file directement au doc
+                        doc.file = file;
+                        return file;
+                    })
+                    .catch(err => {
+                        console.error(`Erreur pour ${doc.path}:`, err);
+                    });
+
+                fetchPromises.push(promise);
+            }
+        });
+
+        // Attendre que tous les fichiers soient téléchargés
+        await Promise.all(fetchPromises);
+        console.log('Tous les fichiers ont été récupérés');
+
+    } catch (error) {
+        console.error('Erreur lors du chargement des documents:', error);
+    }
+};
+
 const loadPage = async () => {
     loading.value = true
     errorMessage.value = ''
@@ -201,9 +247,10 @@ const loadPage = async () => {
             throw new Error('Identifiant compteur invalide')
         }
 
+
         await Promise.all([
             fetchCounter(),
-            fetchReferentials()
+            fetchReferentials(),
         ])
     } catch (e) {
         console.error(e)
@@ -213,5 +260,25 @@ const loadPage = async () => {
     }
 }
 
-onMounted(loadPage)
+
+onMounted(async () => {
+    await loadPage();
+    fetchPMFiles();
+});
+
+/* ========= EDIT FORM ========= */
+const showCounterDialog = ref(false)
+
+const showEditForm = () => {
+    showCounterDialog.value = true
+}
+
+const closeCounterDialog = () => {
+    showCounterDialog.value = false
+}
+
+const saveCurrentCounter = async (updatedCounter) => {
+    counter.value = updatedCounter
+    closeCounterDialog()
+}
 </script>

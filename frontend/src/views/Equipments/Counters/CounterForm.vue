@@ -71,21 +71,22 @@
       <!-- Plan de maintenance -->
       <v-sheet class="pa-4 mb-4" elevation="1" rounded>
         <h4 class="mb-3">Plan de maintenance associé</h4>
-
+        <v-col cols="12">
+          <v-select v-if="existingPMs.length" v-model="counter.planMaintenance.nom" :items="existingPMs"
+            item-title="nom" item-value="nom" label="Plan existant" outlined dense clearable
+            @update:model-value="applyExistingPM" />
+        </v-col>
         <v-row>
           <v-col cols="8">
-            <v-select v-if="existingPMs.length" v-model="counter.planMaintenance.nom" :items="existingPMs"
-              item-title="nom" item-value="nom" label="Plan existant" outlined dense clearable
-              @update:model-value="applyExistingPM" />
+            <v-text-field v-model="counter.planMaintenance.nom" label="Nom du plan de maintenance" outlined dense />
           </v-col>
-
           <v-col cols="4">
             <v-select v-model="counter.planMaintenance.type" :items="typesPM" item-title="libelle" item-value="id"
               label="Type" outlined dense />
           </v-col>
         </v-row>
 
-        <v-text-field v-model="counter.planMaintenance.nom" label="Nom du plan" outlined dense />
+
       </v-sheet>
 
       <!-- Consommables -->

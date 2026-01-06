@@ -56,9 +56,28 @@ class ModeleEquipementSerializer(serializers.ModelSerializer):
 
 class CompteurSerializer(serializers.ModelSerializer):
     planMaintenance = PlanMaintenanceDetailSerializer(read_only=True)
+
+    nom = serializers.CharField(source='nomCompteur', read_only=True)
+    description = serializers.CharField(source='descriptifMaintenance', read_only=True)
+    intervalle = serializers.IntegerField(source='ecartInterventions', read_only=True)
+
     class Meta:
         model = Compteur
-        fields = '__all__'
+        fields = [
+            'id',
+            'nom',
+            'description',
+            'valeurCourante',
+            'intervalle',
+            'derniereIntervention',
+            'prochaineMaintenance',
+            'unite',
+            'estPrincipal',
+            'estGlissant',
+            'necessiteHabilitationElectrique',
+            'necessitePermisFeu',
+            'planMaintenance',
+        ]
 
 
 class FamilleEquipementSerializer(serializers.ModelSerializer):
