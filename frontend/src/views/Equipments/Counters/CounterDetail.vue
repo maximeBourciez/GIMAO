@@ -160,6 +160,7 @@ const counterId = Number(route.params.id)
 
 /* ========= STATE ========= */
 const counter = ref(null)
+const originalCounter = ref(null)
 
 const consumables = ref([])
 const typesPM = ref([])
@@ -270,6 +271,7 @@ onMounted(async () => {
 const showCounterDialog = ref(false)
 
 const showEditForm = () => {
+    originalCounter.value = replicateCounter();
     showCounterDialog.value = true
 }
 
@@ -278,7 +280,93 @@ const closeCounterDialog = () => {
 }
 
 const saveCurrentCounter = async (updatedCounter) => {
-    counter.value = updatedCounter
     closeCounterDialog()
+
+    // Détecter les changements 
+    const { hasChanges, changes } = detectChanges();
+}
+
+/* ========= CHANGEMENTS ========= */
+function detectChanges() {
+    let changes = {};
+    let hasChanges = false;
+
+    console.log('Compteur actuel:', counter.value);
+    console.log('Compteur original:', originalCounter.value);
+
+    // Champs du compteur 
+    const fieldsToCheck = ['nom', 'description', 'intervalle', 'unite', 'valeurCourante', 'estGlissant', 'estPrincipal', 'habElec', 'permisFeu'];
+
+    for (let key of fieldsToCheck) {
+        if (counter.value[key] !== originalCounter.value[key]) {
+            changes[key] = { ancienne: originalCounter.value[key], nouvelle: counter.value[key] };
+            hasChanges = true;
+        }
+    }
+
+    // Plan de maintenance
+    if (counter.value.planMaintenance && originalCounter.value.planMaintenance) {
+        const PMFieldsToCheck = ['nom', 'type'];
+        for (let key of PMFieldsToCheck) {
+            if (counter.value.planMaintenance[key] !== originalCounter.value.planMaintenance[key]) {
+                changes[`planMaintenance.${key}`] = { ancienne: originalCounter.value.planMaintenance[key], nouvelle: counter.value.planMaintenance[key] };
+                hasChanges = true;
+            }
+        }
+
+        // Consommables
+        const currentConsommables = JSON.stringify(counter.value.planMaintenance.consommables || []);
+        const originalConsommables = JSON.stringify(originalCounter.value.planMaintenance.consommables || []);
+        if (currentConsommables !== originalConsommables) {
+            changes['planMaintenance.consommables'] = { ancienne: originalCounter.value.planMaintenance.consommables || [], nouvelle: counter.value.planMaintenance.consommables || [] };
+            hasChanges = true;
+        }
+
+        // Documents
+        const currentDocs = counter.value.planMaintenance.documents || [];
+        const originalDocs = originalCounter.value.planMaintenance.documents || [];
+
+        if (currentDocs.length !== originalDocs.length) {
+            changes['planMaintenance.documents'] = { ancienne: originalDocs, nouvelle: currentDocs };
+            hasChanges = true;
+        } else {
+            // Vérifier les changements détaillés des documents
+            for (let i = 0; i < currentDocs.length; i++) {
+                const docStr = JSON.stringify({ titre: currentDocs[i].titre, type: currentDocs[i].type });
+                const originalDocStr = JSON.stringify({ titre: originalDocs[i].titre, type: originalDocs[i].type });
+                if (docStr !== originalDocStr) {
+                    changes['planMaintenance.documents'] = { ancienne: originalDocs, nouvelle: currentDocs };
+                    hasChanges = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    console.log('Changements détectés:', changes);
+
+    return { hasChanges, changes };
+}
+
+
+const replicateCounter = () => {
+    const ogCounter = {
+        ...counter.value,
+        planMaintenance: {
+            ...counter.value.planMaintenance,
+            consommables: counter.value.planMaintenance.consommables
+                .filter(c => c.consommable)
+                .map(c => ({ ...c })),
+            documents: counter.value.planMaintenance.documents
+                .filter(d => d.titre || d.file)
+                .map(d => ({
+                    titre: d.titre,
+                    type: d.type,
+                    file: d.file
+                }))
+        }
+    };
+
+    return ogCounter;
 }
 </script>
