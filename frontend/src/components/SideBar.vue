@@ -21,7 +21,7 @@
                     { 'disabled-item': item.disabled }
                 ]" @click="item.disabled ? $event.preventDefault() : null">
                 <template #prepend>
-                    <v-icon>{{ item.icon }}</v-icon>
+                    <v-icon class="ml-3">{{ item.icon }}</v-icon>
                 </template>
 
                 <v-list-item-title v-html="item.title" :class="[
@@ -65,7 +65,7 @@
 
                 <v-list-item class="logout-item" @click="logout">
                     <template #prepend>
-                        <v-icon>mdi-logout</v-icon>
+                        <v-icon class="ml-3">mdi-logout</v-icon>
                     </template>
 
                     <v-list-item-title v-if="displayTitles">
