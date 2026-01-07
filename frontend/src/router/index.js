@@ -1,6 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 // ---------------------------------------------------------------
+// AUTH
+import Login from '@/views/Auth/Login.vue'
+import SetPassword from '@/views/Auth/SetPassword.vue'
+
+// ---------------------------------------------------------------
 import Dashboard from '@/views/Dashboard/Dashboard.vue'
 import EquipmentList from '@/views/Equipments/EquipmentList.vue'
 import InterventionList from '@/views/Interventions/InterventionList.vue'
@@ -54,6 +59,21 @@ import ModelEquipmentDetail from '@/views/DataManagement/EquipmentsModels/ModelE
 
 
 const routes = [
+  // Auth routes (publiques)
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { public: true }
+  },
+  {
+    path: '/set-password',
+    name: 'SetPassword',
+    component: SetPassword,
+    meta: { public: true }
+  },
+
+  // Routes protégées
   {
     path: '/',
     name: 'Dashboard',
@@ -330,6 +350,25 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes
+})
+
+// Protection des routes
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('user')
+  
+  // Si la route est publique, laisser passer
+  if (to.meta.public) {
+    next()
+    return
+  }
+  
+  // Si non authentifié, rediriger vers login
+  if (!isAuthenticated) {
+    next('/login')
+    return
+  }
+  
+  next()
 })
 
 export default router
