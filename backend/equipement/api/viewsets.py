@@ -677,6 +677,23 @@ class CompteurViewSet(viewsets.ModelViewSet):
     queryset = Compteur.objects.all()
     serializer_class = CompteurSerializer
 
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        """Mise à jour d'un compteur - gère aussi le plan de maintenance"""
+        compteur = self.get_object()
+        data = request.data
+
+        compteurData = data.get("compteur")
+        changes = data.get("changes")
+
+        print(f" Changes - {changes}")
+        print(f"📁 Fichiers reçus - {list(request.FILES.keys())}")
+
+        return Response(
+            CompteurSerializer(compteur).data,
+            status=status.HTTP_200_OK
+        )
+
 
 class FamilleEquipementViewSet(viewsets.ModelViewSet):
     queryset = FamilleEquipement.objects.all()

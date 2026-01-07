@@ -248,7 +248,6 @@ const loadPage = async () => {
             throw new Error('Identifiant compteur invalide')
         }
 
-
         await Promise.all([
             fetchCounter(),
             fetchReferentials(),
@@ -279,12 +278,122 @@ const closeCounterDialog = () => {
     showCounterDialog.value = false
 }
 
-const saveCurrentCounter = async (updatedCounter) => {
-    closeCounterDialog()
+const saveCurrentCounter = async () => {
+    closeCounterDialog();
 
-    // Détecter les changements 
+    // Détecter les changements
     const { hasChanges, changes } = detectChanges();
-}
+
+    if (!hasChanges) {
+        errorMessage.value = 'Aucune modification détectée';
+        return;
+    }
+
+    loading.value = true;
+    errorMessage.value = '';
+
+    try {
+        const fd = new FormData();
+
+        // 1. Copie profonde du compteur pour JSON
+        const counterCopy = JSON.parse(JSON.stringify(counter.value));
+
+        // 2. Préparer les documents PM
+        const baseDocs = [];
+        const addedDocs = [];
+        const changedDocs = [];
+        const removedDocIds = [];
+
+        console.log("Compteur : ", counter.value);
+
+        const originalDocs = originalCounter.value.planMaintenance?.documents || [];
+        const currentDocs = counter.planMaintenance?.documents || [];
+
+        const originalDocsById = Object.fromEntries(originalDocs.map(d => [d.id, d]));
+
+        currentDocs.forEach((doc, idx) => {
+            if (doc.id) {
+                const orig = originalDocsById[doc.id];
+                console.log('Comparaison du document:', doc, orig);
+                if (!orig) {
+                    // Document avec id inconnu
+                    addedDocs.push({ tempId: `temp_${idx}`, name: doc.titre || doc.file?.name, file: doc.file });
+                } else if (doc.titre !== orig.titre || doc.type !== orig.type || doc.file instanceof File) {
+                    // Document existant mais modifié
+                    changedDocs.push({ id: doc.id, name: doc.titre, file: doc.file });
+                } else {
+                    // Document inchangé
+                    baseDocs.push({ id: doc.id, name: doc.titre, url: doc.url, hash: doc.hash, version: doc.version });
+                }
+            } else if (doc.file instanceof File) {
+                // Document ajouté sans id
+                addedDocs.push({ tempId: `temp_${idx}`, name: doc.titre || doc.file.name, file: doc.file });
+            }
+        });
+
+        // Détecter les documents supprimés
+        originalDocs.forEach(orig => {
+            const exists = currentDocs.find(d => d.id === orig.id);
+            if (!exists) removedDocIds.push(orig.id);
+        });
+
+        // 3. Construire le FormData comme buildEditEquipementPayload
+        const data = {
+            ...counterCopy,
+            documents: {
+                base: baseDocs,
+                added: addedDocs.map(d => ({ tempId: d.tempId, name: d.name })),
+                changed: changedDocs.map(d => ({ id: d.id, name: d.name })),
+                removed: removedDocIds,
+            }
+        };
+
+        fd.append('data', JSON.stringify(data));
+        fd.append('changes', JSON.stringify(changes));
+
+        // 4. Ajouter fichiers binaires
+        addedDocs.forEach(d => {
+            if (d.file) {
+                fd.append(`files.added.${d.tempId}`, d.file, d.name || d.file.name);
+            }
+        });     
+
+        changedDocs.forEach(d => {
+            if (d.file) {
+                fd.append(`files.changed.${d.id}`, d.file, d.name || d.file.name);
+            }
+        });
+
+        removedDocIds.forEach(id => {
+            fd.append(`files.removed.${id}`, '');
+        });
+
+        // 5. Envoyer PUT
+        console.log('Envoi des données de modification du compteur:');
+        await api.put(`compteurs/${counter.value.id}/`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        successMessage.value = 'Compteur modifié avec succès';
+        setTimeout(() => router.back(), 1500);
+
+    } catch (e) {
+        console.error('Erreur lors de la modification du compteur:', e);
+        errorMessage.value = 'Erreur lors de la modification du compteur';
+
+        if (e.response?.data) {
+            const errors = Object.entries(e.response.data)
+                .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+                .join('\n');
+            errorMessage.value += `\n${errors}`;
+        }
+
+    } finally {
+        loading.value = false;
+    }
+};
+
+
 
 /* ========= CHANGEMENTS ========= */
 function detectChanges() {
@@ -339,6 +448,24 @@ function detectChanges() {
                     hasChanges = true;
                     break;
                 }
+
+                // Si les 2 ont des fichiers, vérifier si le fichier a changé
+                if (currentDocs[i].file && originalDocs[i].file) {
+                
+                    // Comparer nom, taille et type
+                    if (currentDocs[i].file.name !== originalDocs[i].file.name ||
+                        currentDocs[i].file.size !== originalDocs[i].file.size ||
+                        currentDocs[i].file.type !== originalDocs[i].file.type) {
+                        changes['planMaintenance.documents'] = { ancienne: originalDocs, nouvelle: currentDocs };
+                        hasChanges = true;
+                        break;
+                    }                
+                } else if ((!currentDocs[i].file && currentDocs[i].file === undefined) && originalDocs[i].file) {
+                    // Nouveau fichier ajouté
+                    changes['planMaintenance.documents'] = { ancienne: originalDocs, nouvelle: currentDocs };
+                    hasChanges = true;
+                    break;
+                } 
             }
         }
     }
