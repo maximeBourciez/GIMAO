@@ -89,11 +89,6 @@ export default {
             isMini: false,    // choix utilisateur
             isHovered: false, // hover temporaire
 
-            user: {
-                name: "Jean Dupont",
-                role: "Administrateur"
-            },
-
             navigationItems: [
                 { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord" },
                 { name: "EquipmentList", icon: "mdi-tools", title: "Équipements" },
@@ -113,6 +108,37 @@ export default {
 
         drawerWidth() {
             return this.displayTitles ? 280 : 80;
+        },
+
+        user() {
+            const currentUser = this.$store.getters.currentUser;
+            
+            if (currentUser) {
+                return {
+                    name: `${currentUser.prenom} ${currentUser.nomFamille}`,
+                    role: currentUser.role?.nomRole || 'Utilisateur'
+                };
+            }
+            
+            // Fallback: essayer de lire depuis localStorage
+            const userFromStorage = localStorage.getItem('user');
+            if (userFromStorage) {
+                try {
+                    const userData = JSON.parse(userFromStorage);
+                    console.log('User from localStorage:', userData);
+                    return {
+                        name: `${userData.prenom} ${userData.nomFamille}`,
+                        role: userData.role?.nomRole || 'Utilisateur'
+                    };
+                } catch (e) {
+                    console.error('Error parsing user from localStorage:', e);
+                }
+            }
+            
+            return {
+                name: 'Utilisateur',
+                role: 'Non défini'
+            };
         },
 
         userInitials() {
@@ -135,9 +161,11 @@ export default {
         },
 
         logout() {
-            console.log("Déconnexion");
-            // this.$store.dispatch('user/logout')
-            // this.$router.push({ name: 'Login' })
+            // Supprimer les données du store et du localStorage
+            this.$store.dispatch('logout');
+            
+            // Rediriger vers login avec un reload complet pour nettoyer tout le state
+            window.location.href = '/login';
         }
     }
 };
