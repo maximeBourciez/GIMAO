@@ -4,8 +4,7 @@
       <v-container>
         <BaseForm v-model="formData" title="Créer une Défaillance" :loading="loading" :error-message="errorMessage"
           :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
-          :custom-validation="validateForm" submit-button-text="Valider" submit-button-color="success"
-          :show-reset-button="true" @submit="handleSubmit">
+          :custom-validation="validateForm" submit-button-text="Valider" submit-button-color="success" @submit="handleSubmit">
           <template #default="{ formData }">
 
 
