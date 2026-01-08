@@ -20,7 +20,7 @@
             <label class="detail-label">Statut</label>
             <div class="detail-value">
               <v-chip :color="data.statut ? FAILURE_STATUS_COLORS[data.statut] : 'grey'" dark>
-                {{ data.statut }}
+                {{ FAILURE_STATUS[data.statut] }}
               </v-chip>
             </div>
           </div>
