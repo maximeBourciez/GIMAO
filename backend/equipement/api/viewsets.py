@@ -684,14 +684,208 @@ class CompteurViewSet(viewsets.ModelViewSet):
         data = request.data
 
         compteurData = data.get("compteur")
-        changes = data.get("changes")
+        rawChanges = data.get("changes")
 
-        print(f" Changes - {changes}")
+        print(f" Changes - {rawChanges}")
         print(f"📁 Fichiers reçus - {list(request.FILES.keys())}")
+
+        try:
+            changes = json.loads(rawChanges) if rawChanges else {}
+        except json.JSONDecodeError:
+            changes = {}
+
+        PLAN_MAINTENANCE_KEYS = [
+            'planMaintenance.nom',
+            'planMaintenance.type',
+            'planMaintenance.consommables',
+            'planMaintenance.documents' 
+        ]
+
+        COMPTEUR_KEYS = [
+            'nom',
+            'description',
+            'valeurCourante',
+            'intervalle',
+            'unite',
+            'derniereIntervention',
+            'estPrincipal',
+            'estGlissant',
+            'habElec',
+            'permisFeu'
+        ]
+
+        field_mapping = {
+            'nom': 'nomCompteur',
+            'description': 'descriptifMaintenance',
+            'valeurCourante': 'valeurCourante',
+            'intervalle': 'ecartInterventions',
+            'unite': 'unite',
+            'derniereIntervention': 'derniereIntervention',
+            'estPrincipal': 'estPrincipal',
+            'estGlissant': 'estGlissant',
+            'habElec': 'necessiteHabilitationElectrique',
+            'permisFeu': 'necessitePermisFeu'
+        }
+
+        # Mise à jour des champs du compteur
+        for field in COMPTEUR_KEYS:
+            if field in changes:
+                field_data = changes[field]
+                print(f" Champ à mettre à jour: {field} - {field_data}")
+                nouvelle_valeur = field_data.get('nouvelle')
+                if nouvelle_valeur is not None:
+                    old_value = getattr(compteur, field_mapping.get(field, field))
+                    print(f"  Ancienne valeur: {old_value}, Nouvelle valeur: {nouvelle_valeur}")
+                    if str(old_value) != str(nouvelle_valeur):
+                        setattr(compteur, field_mapping.get(field, field), nouvelle_valeur)
+                        print(f"  📝 {field}: {old_value} -> {nouvelle_valeur}")
+                        # Créer un log
+                        self._create_log_entry(
+                            type_action='modification',
+                            nom_table='compteur',
+                            id_cible={'compteur_id': compteur.id},
+                            champs_modifies={field: {'ancien': old_value, 'nouveau': nouvelle_valeur}},
+                            utilisateur=Utilisateur.objects.get(id=3)
+                        )
+        
+        compteur.save()
+
+        self._update_plan_maintenance_from_changes(compteur, changes, request)
+
+        
 
         return Response(
             CompteurSerializer(compteur).data,
             status=status.HTTP_200_OK
+        )
+    
+    def _update_plan_maintenance_from_changes(self, compteur, modifications, request):
+        """Met à jour le plan de maintenance d'un compteur"""
+        print(f"📋 Traitement du plan de maintenance pour compteur {compteur.id}")
+        
+        # Vérifier si un plan existe, sinon en créer un
+        if not compteur.planMaintenance:
+            print("  ➕ Création d'un nouveau plan de maintenance")
+            plan = PlanMaintenance.objects.create(
+                compteur=compteur,
+                equipement=compteur.equipement,
+                nom="Nouveau plan",
+                type_plan_maintenance_id=1  # Type par défaut
+            )
+            compteur.planMaintenance = plan
+            compteur.save()
+        
+        plan = compteur.planMaintenance
+        
+        # Mise à jour du nom
+        if 'planMaintenance.nom' in modifications:
+            new_name = modifications['planMaintenance.nom'].get('nouvelle')
+            if new_name and plan.nom != new_name:
+                print(f"  📝 Nom du plan: {plan.nom} -> {new_name}")
+                plan.nom = new_name
+        
+        # Mise à jour du type
+        if 'planMaintenance.type' in modifications:
+            new_type = modifications['planMaintenance.type'].get('nouvelle')
+            if new_type and plan.type_plan_maintenance_id != new_type:
+                print(f"  📝 Type du plan: {plan.type_plan_maintenance_id} -> {new_type}")
+                plan.type_plan_maintenance_id = new_type
+                self._create_log_entry(
+                    type_action='modification',
+                    nom_table='plan_maintenance',
+                    id_cible={'plan_maintenance_id': plan.id},
+                    champs_modifies={'type_plan_maintenance': {'ancien': plan.type_plan_maintenance_id  , 'nouveau': new_type}},
+                    utilisateur=Utilisateur.objects.get(id=3)
+                )
+        
+        # Mise à jour des consommables
+        if 'planMaintenance.consommables' in modifications:
+            consommables_data = modifications['planMaintenance.consommables']
+            nouveaux_consommables = consommables_data.get('nouvelle', [])
+            ajoutes = consommables_data.get('ajoutes', [])
+            retires = consommables_data.get('retires', [])
+            
+            print(f"  🛠️ Consommables: {len(nouveaux_consommables)} total, {len(ajoutes)} ajoutés, {len(retires)} retirés")
+            
+            # Supprimer les consommables retirés
+            if retires:
+                plan.planmaintenanceconsommable_set.filter(consommable_id__in=retires).delete()
+            
+            # Ajouter les nouveaux consommables
+            for consommable_id in ajoutes:
+                # Chercher la quantité dans les données complètes
+                quantite = 1  # Valeur par défaut
+                for conso in nouveaux_consommables:
+                    if isinstance(conso, dict) and conso.get('consommable') == consommable_id:
+                        quantite = conso.get('quantite', 1)
+                        break
+                PlanMaintenanceConsommable.objects.create(
+                    plan_maintenance=plan,
+                    consommable_id=consommable_id,
+                    quantite_necessaire=quantite    
+                )
+
+        # Mise à jour des documents
+        if 'planMaintenance.documents' in modifications:
+            documents_data = modifications['planMaintenance.documents']
+            nouveaux_documents = documents_data.get('nouvelle', [])
+            anciens_documents = documents_data.get('ancienne', [])
+            
+            print(f"  📄 Documents: {len(nouveaux_documents)} nouveau(x), {len(anciens_documents)} ancien(s)")
+            
+            # Créer un mapping pour trouver les fichiers
+            file_mapping = {}
+            for key, file in request.FILES.items():
+                if key.startswith('document_'):
+                    # Extraire les métadonnées
+                    meta_key = f"{key}_meta"
+                    if meta_key in request.data:
+                        try:
+                            meta = json.loads(request.data[meta_key])
+                            compteur_id = meta.get('compteurId')
+                            doc_index = meta.get('documentIndex')
+                            
+                            if compteur_id == compteur.id:
+                                file_mapping[doc_index] = file
+                        except json.JSONDecodeError:
+                            continue
+            
+            # Pour chaque nouveau document
+            for i, doc_data in enumerate(nouveaux_documents):
+                if not isinstance(doc_data, dict):
+                    continue
+                
+                # Vérifier si c'est un document existant qui a un fichier à mettre à jour
+                file_to_use = file_mapping.get(i)
+                
+                if file_to_use:
+                    # Créer un nouveau document avec le fichier
+                    document = Document.objects.create(
+                        nomDocument=doc_data.get('titre', file_to_use.name),
+                        cheminAcces=file_to_use,
+                        typeDocument_id=doc_data.get('type', 1)
+                    )
+                    
+                    # Lier au plan de maintenance
+                    PlanMaintenanceDocument.objects.create(
+                        plan_maintenance=plan,
+                        document=document
+                    )
+                    print(f"  📎 Document ajouté: {document.nomDocument}")
+                
+                elif 'titre' in doc_data and 'type' in doc_data:
+                    # Document sans fichier (métadonnées seulement)
+                    print(f"  📝 Document métadonnées seulement: {doc_data.get('titre')}")
+        plan.save()                
+    
+    def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur):
+        """Crée une entrée de log"""
+        Log.objects.create(
+            type=type_action,
+            nomTable=nom_table,
+            idCible=id_cible,
+            champsModifies=champs_modifies,
+            utilisateur=utilisateur
         )
 
 

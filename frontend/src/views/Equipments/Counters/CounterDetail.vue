@@ -169,6 +169,7 @@ const existingPMs = ref([])
 
 const loading = ref(true)
 const errorMessage = ref('')
+const successMessage = ref('')
 
 /* ========= API ========= */
 const api = useApi(API_BASE_URL)
@@ -298,74 +299,34 @@ const saveCurrentCounter = async () => {
         // 1. Copie profonde du compteur pour JSON
         const counterCopy = JSON.parse(JSON.stringify(counter.value));
 
-        // 2. Préparer les documents PM
-        const baseDocs = [];
-        const addedDocs = [];
-        const changedDocs = [];
-        const removedDocIds = [];
+        // Ajouter les index aux pm
+        counterCopy.planMaintenance.documents.forEach((doc, index) => {
+            doc.index = index;
+        });
 
         console.log("Compteur : ", counter.value);
 
-        const originalDocs = originalCounter.value.planMaintenance?.documents || [];
-        const currentDocs = counter.planMaintenance?.documents || [];
-
-        const originalDocsById = Object.fromEntries(originalDocs.map(d => [d.id, d]));
-
-        currentDocs.forEach((doc, idx) => {
-            if (doc.id) {
-                const orig = originalDocsById[doc.id];
-                console.log('Comparaison du document:', doc, orig);
-                if (!orig) {
-                    // Document avec id inconnu
-                    addedDocs.push({ tempId: `temp_${idx}`, name: doc.titre || doc.file?.name, file: doc.file });
-                } else if (doc.titre !== orig.titre || doc.type !== orig.type || doc.file instanceof File) {
-                    // Document existant mais modifié
-                    changedDocs.push({ id: doc.id, name: doc.titre, file: doc.file });
-                } else {
-                    // Document inchangé
-                    baseDocs.push({ id: doc.id, name: doc.titre, url: doc.url, hash: doc.hash, version: doc.version });
-                }
-            } else if (doc.file instanceof File) {
-                // Document ajouté sans id
-                addedDocs.push({ tempId: `temp_${idx}`, name: doc.titre || doc.file.name, file: doc.file });
-            }
-        });
-
-        // Détecter les documents supprimés
-        originalDocs.forEach(orig => {
-            const exists = currentDocs.find(d => d.id === orig.id);
-            if (!exists) removedDocIds.push(orig.id);
-        });
-
-        // 3. Construire le FormData comme buildEditEquipementPayload
-        const data = {
-            ...counterCopy,
-            documents: {
-                base: baseDocs,
-                added: addedDocs.map(d => ({ tempId: d.tempId, name: d.name })),
-                changed: changedDocs.map(d => ({ id: d.id, name: d.name })),
-                removed: removedDocIds,
-            }
-        };
-
-        fd.append('data', JSON.stringify(data));
+        // 2. Ajouter compteur modifié
+        fd.append('compteur', JSON.stringify(counterCopy));
         fd.append('changes', JSON.stringify(changes));
 
         // 4. Ajouter fichiers binaires
-        addedDocs.forEach(d => {
-            if (d.file) {
-                fd.append(`files.added.${d.tempId}`, d.file, d.name || d.file.name);
-            }
-        });     
+        const pmDocsChanged = changes['planMaintenance.documents'].modifications;
+        console.log('Documents modifiés:', pmDocsChanged);
+        pmDocsChanged.forEach((doc, index) => {
+            if (doc.nouvelle) {
+                // Nouveaux documents 
+                console.log('Traitement des nouveaux documents:');
 
-        changedDocs.forEach(d => {
-            if (d.file) {
-                fd.append(`files.changed.${d.id}`, d.file, d.name || d.file.name);
             }
-        });
+        })
 
-        removedDocIds.forEach(id => {
-            fd.append(`files.removed.${id}`, '');
+        const pmDocsAdded = changes['planMaintenance.documents'].ajouts;
+        pmDocsAdded.forEach((doc, index) => {
+            if (doc.file) {
+                console.log('Ajout du fichier pour le document ajouté:', doc);
+                fd.append(`file_planMaintenance.documents_${index}`, doc.file);
+            }
         });
 
         // 5. Envoyer PUT
@@ -435,39 +396,61 @@ function detectChanges() {
         const currentDocs = counter.value.planMaintenance.documents || [];
         const originalDocs = originalCounter.value.planMaintenance.documents || [];
 
-        if (currentDocs.length !== originalDocs.length) {
-            changes['planMaintenance.documents'] = { ancienne: originalDocs, nouvelle: currentDocs };
-            hasChanges = true;
-        } else {
-            // Vérifier les changements détaillés des documents
-            for (let i = 0; i < currentDocs.length; i++) {
-                const docStr = JSON.stringify({ titre: currentDocs[i].titre, type: currentDocs[i].type });
-                const originalDocStr = JSON.stringify({ titre: originalDocs[i].titre, type: originalDocs[i].type });
-                if (docStr !== originalDocStr) {
-                    changes['planMaintenance.documents'] = { ancienne: originalDocs, nouvelle: currentDocs };
-                    hasChanges = true;
-                    break;
-                }
+        
 
-                // Si les 2 ont des fichiers, vérifier si le fichier a changé
-                if (currentDocs[i].file && originalDocs[i].file) {
-                
-                    // Comparer nom, taille et type
-                    if (currentDocs[i].file.name !== originalDocs[i].file.name ||
-                        currentDocs[i].file.size !== originalDocs[i].file.size ||
-                        currentDocs[i].file.type !== originalDocs[i].file.type) {
-                        changes['planMaintenance.documents'] = { ancienne: originalDocs, nouvelle: currentDocs };
-                        hasChanges = true;
-                        break;
-                    }                
-                } else if ((!currentDocs[i].file && currentDocs[i].file === undefined) && originalDocs[i].file) {
-                    // Nouveau fichier ajouté
-                    changes['planMaintenance.documents'] = { ancienne: originalDocs, nouvelle: currentDocs };
+        if (!changes['planMaintenance.documents']) {
+            changes['planMaintenance.documents'] = {
+                ajouts: [],
+                modifications: [],
+                suppressions: []
+            };
+        }
+
+        const deletedDocsIds = originalDocs
+            .filter(orig => !currentDocs.find(curr => curr.id === orig.id))
+            .map(d => d.id);
+
+        if (deletedDocsIds.length > 0) {
+            changes['planMaintenance.documents'].suppressions.push(...deletedDocsIds);
+            hasChanges = true;
+        }
+
+
+        // Vérifier les changements détaillés des documents
+        for (let i = 0; i < currentDocs.length; i++) {
+            const docStr = JSON.stringify({ titre: currentDocs[i].titre, type: currentDocs[i].type });
+            const originalDocStr = JSON.stringify({ titre: originalDocs[i]?.titre, type: originalDocs[i]?.type });
+
+            if (!currentDocs[i].id && originalDocs[i] === undefined) {
+                // Nouveau document sans id (ajouté)
+                console.log('Nouveau document détecté:', currentDocs[i]);
+                changes['planMaintenance.documents'].ajouts.push(currentDocs[i]);
+                hasChanges = true;
+            }
+            else if (docStr !== originalDocStr) {
+                changes['planMaintenance.documents'].modifications.push({ ancienne: originalDocs[i], nouvelle: currentDocs[i] });
+                hasChanges = true;
+            }
+
+            // Si les 2 ont des fichiers, vérifier si le fichier a changé
+            else if (currentDocs[i].file && originalDocs[i].file) {
+                // Comparer nom, taille et type
+                if (currentDocs[i].file.name !== originalDocs[i].file.name ||
+                    currentDocs[i].file.size !== originalDocs[i].file.size ||
+                    currentDocs[i].file.type !== originalDocs[i].file.type) {
+                    changes['planMaintenance.documents'].modifications.push({ ancienne: originalDocs[i], nouvelle: currentDocs[i] });
                     hasChanges = true;
-                    break;
-                } 
+                }
+            }
+            // Si l'original n'a pas de fichier mais le courant en a un
+            else if ((!originalDocs[i].file && originalDocs[i].file === undefined) && currentDocs[i].file) {
+                // Nouveau fichier ajouté
+                console.log('Nouveau fichier ajouté au document:', currentDocs[i]);
+                changes['planMaintenance.documents'].ajouts.push(currentDocs[i]);
+                hasChanges = true;
             }
         }
+
     }
 
     console.log('Changements détectés:', changes);
