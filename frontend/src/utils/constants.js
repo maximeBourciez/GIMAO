@@ -290,6 +290,39 @@ export const TABLE_HEADERS = {
     },
   ],
 
+  INTERVENTIONS_EQUIPMENT: [
+    {
+        title: "N°",
+        align: "center",
+        sortable: true,
+        value: "id",
+    },
+    {
+        title: "Nom",
+        align: "start",
+        sortable: true,
+        value: "nom",
+    },
+    {
+        title: "Date d'assignation",
+        align: "center",
+        sortable: true,
+        value: "date_assignation",
+    },
+    {
+        title: "Statut",
+        align: "center",
+        sortable: true,
+        value: "statut",
+    },
+    {
+        title: "Visualiser",
+        align: "center",
+        sortable: false,
+        value: "action",
+    }
+  ],
+
   COUNTER: [
     {
       title: "ID",

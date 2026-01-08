@@ -119,7 +119,7 @@
               <v-divider></v-divider>
               <v-card-text>
                 <v-data-table v-if="data.bons_travail && data.bons_travail.length > 0" :items="data.bons_travail"
-                  :headers="TABLE_HEADERS.INTERVENTIONS_LIGHT" class="elevation-1" hide-default-footer>
+                  :headers="TABLE_HEADERS.INTERVENTIONS_EQUIPMENT" class="elevation-1" hide-default-footer>
                   <template #item.date_assignation="{ item }">
                     {{ formatDate(item.date_assignation) }}
                   </template>

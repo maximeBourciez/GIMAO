@@ -245,7 +245,13 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         ]
 
     def get_bons_travail(self, obj):
-        bons = BonTravail.objects.filter(equipement=obj).select_related('responsable', 'demande_intervention')
+        bons = BonTravail.objects.filter(
+            demande_intervention__equipement=obj
+        ).select_related(
+            'responsable',
+            'demande_intervention',
+            'demande_intervention__equipement'
+        )
         return [
             {
                 'id': bon.id,
