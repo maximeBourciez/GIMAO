@@ -7,15 +7,30 @@
           :custom-validation="validateForm" submit-button-text="Valider" submit-button-color="success"
           :show-reset-button="true" @submit="handleSubmit">
           <template #default="{ formData }">
+
+
             <v-row>
               <v-col cols="12" md="6">
-                <v-select v-model="formData.niveau" label="Niveau" :items="levels" outlined dense required
-                  :rules="validation.getFieldRules('niveau')"></v-select>
+                <v-text-field v-model="formData.nom" label="Nom de la défaillance *" outlined required
+                  :rules="validation.getFieldRules('nom')"></v-text-field>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-autocomplete
+                  v-model="formData.equipement_id"
+                  :items="equipments"
+                  item-title="designation"
+                  item-value="id"
+                  label="Équipement *"
+                  outlined
+                  required
+                  :rules="validation.getFieldRules('equipement_id')"
+                ></v-autocomplete>
               </v-col>
 
               <v-col cols="12">
-                <v-textarea v-model="formData.commentaireDefaillance" label="Commentaires" rows="5" outlined
-                  counter="300" required :rules="validation.getFieldRules('commentaireDefaillance')"></v-textarea>
+                <v-textarea v-model="formData.commentaire" label="Commentaires" rows="5" outlined
+                  counter="300" :rules="validation.getFieldRules('commentaire')"></v-textarea>
               </v-col>
             </v-row>
           </template>
@@ -26,8 +41,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { useStore } from 'vuex';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { useFormValidation } from '@/composables/useFormValidation';
@@ -36,6 +52,7 @@ import '@/assets/css/global.css';
 
 const router = useRouter();
 const route = useRoute();
+const store = useStore();
 const api = useApi(API_BASE_URL);
 const equipmentsApi = useApi(API_BASE_URL);
 
@@ -44,33 +61,26 @@ const loadingData = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 
-const levels = ['Mineur', 'Majeur', 'Critique'];
+const equipments = ref([]);
 const equipmentReference = ref(null);
-const connectedUser = {
-  id: 1,
-  username: 'admin',
-  first_name: 'admin',
-  last_name: 'admin',
-  email: 'admin@a.com'
-};
+const connectedUser = computed(() => store.getters.currentUser);
 
 const formData = ref({
-  equipement: null,
-  commentaireDefaillance: '',
-  niveau: null
+  equipement_id: null,
+  commentaire: '',
+  nom: ''
 });
 
 const validation = useFormValidation(formData, {
-  niveau: [v => !!v || 'Le niveau est requis'],
-  commentaireDefaillance: [
-    v => !!v?.trim() || 'Le commentaire est requis',
-    v => (v && v.length <= 300) || 'Le commentaire ne doit pas dépasser 300 caractères',
-    v => (v && v.trim().length > 0) || 'Le commentaire ne doit pas être vide ou contenir uniquement des espaces'
+  nom: [v => !!v || 'Le nom est requis'],
+  equipement_id: [v => !!v || "L'équipement est requis"],
+  commentaire: [
+    v => (v && v.length <= 300) || 'Le commentaire ne doit pas dépasser 300 caractères'
   ]
 });
 
 const validateForm = () => {
-  return validation.checkRequiredFields(['niveau', 'commentaireDefaillance']);
+  return validation.checkRequiredFields(['nom', 'equipement_id']);
 };
 
 const fetchData = async () => {
@@ -78,12 +88,13 @@ const fetchData = async () => {
   errorMessage.value = '';
 
   try {
-    await equipmentsApi.get('equipements/');
+    const response = await equipmentsApi.get('equipements/');
+    equipments.value = response;
 
     const equipmentId = route.params.equipmentId;
     if (equipmentId) {
       equipmentReference.value = equipmentId;
-      formData.value.equipement = equipmentId;
+      formData.value.equipement_id = parseInt(equipmentId);
     }
   } catch (error) {
     console.error('Erreur lors de la récupération des données:', error);
@@ -97,16 +108,21 @@ const handleSubmit = async () => {
   loading.value = true;
   errorMessage.value = '';
 
+  if (!connectedUser.value) {
+    errorMessage.value = "Erreur: Utilisateur non connecté";
+    loading.value = false;
+    return;
+  }
+
   try {
     const failureData = {
-      commentaireDefaillance: formData.value.commentaireDefaillance,
-      niveau: formData.value.niveau,
-      equipement: formData.value.equipement,
-      utilisateur: connectedUser.id,
-      dateTraitementDefaillance: null
+      nom: formData.value.nom,
+      commentaire: formData.value.commentaire,
+      equipement_id: formData.value.equipement_id,
+      utilisateur_id: connectedUser.value.id
     };
 
-    const response = await api.post('defaillances/', failureData);
+    const response = await api.post('demandes-intervention/', failureData);
     const newFailureId = response.id;
 
     successMessage.value = 'Défaillance créée avec succès !';

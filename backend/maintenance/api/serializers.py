@@ -89,6 +89,16 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
             'utilisateur_id',
             'equipement_id'
         ]
+        read_only_fields = ['id', 'date_creation', 'date_changementStatut', 'statut']
+
+    def create(self, validated_data):
+        from django.utils import timezone
+        
+        validated_data['date_creation'] = timezone.now()
+        validated_data['date_changementStatut'] = timezone.now()
+        validated_data['statut'] = 'EN_ATTENTE'
+            
+        return super().create(validated_data)
 
 
 class DemandeInterventionDetailSerializer(DemandeInterventionSerializer):
