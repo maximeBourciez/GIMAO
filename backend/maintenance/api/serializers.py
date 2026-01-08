@@ -125,6 +125,10 @@ class BonTravailSerializer(serializers.ModelSerializer):
     demande_intervention = serializers.PrimaryKeyRelatedField(
         queryset=DemandeIntervention.objects.all()
     )
+    equipement_designation = serializers.CharField(
+        source='demande_intervention.equipement.designation',
+        read_only=True
+    )
     responsable = UtilisateurSimpleSerializer(read_only=True)
     utilisateur_assigne = UtilisateurSimpleSerializer(many=True, read_only=True)
     
@@ -159,6 +163,7 @@ class BonTravailSerializer(serializers.ModelSerializer):
             'commentaire',
             'commentaire_refus_cloture',
             'demande_intervention',
+            'equipement_designation',
             'responsable',
             'utilisateur_assigne',
             'responsable_id',

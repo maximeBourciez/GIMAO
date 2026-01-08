@@ -177,7 +177,7 @@ const routes = [
     meta: { title: 'Gestion des données' }
   },
 
-  // Interventions ---------------------------------------------------------------
+  // Bon de travail ---------------------------------------------------------------
 
   {
     path: '/InterventionList',
@@ -191,7 +191,7 @@ const routes = [
     name: 'InterventionDetail',
     component: InterventionDetail,
     props: true, 
-    meta: { title: 'Détails de l\'intervention' }
+    meta: { title: 'Détails du bon de travail' }
   },
 
   {
@@ -206,7 +206,7 @@ const routes = [
     name: 'AddDocumentIntervention',
     component: AddDocumentIntervention,
     props: true,
-    meta: { title: 'Détails de l\'intervention' }
+    meta: { title: 'Ajouter un document au bon de travail' }
   },
 
 

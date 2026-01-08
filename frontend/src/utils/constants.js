@@ -49,9 +49,18 @@ export const FAILURE_LEVEL_COLORS = {
 export const INTERVENTION_STATUS = {
     EN_ATTENTE: "En attente",
     EN_COURS: "En cours",
-    TERMINEE: "Terminée",
+    TERMINE: "Terminé",
     EN_RETARD: "En retard",
     CLOTURE: "Cloturé",
+};
+
+// Couleurs (tokens Vuetify) associées aux statuts de BT
+export const INTERVENTION_STATUS_COLORS = {
+    EN_ATTENTE: 'orange',
+    EN_COURS: 'primary',
+    TERMINE: 'green',
+    EN_RETARD: 'red',
+    CLOTURE: 'grey',
 };
 
 // ============================================
@@ -98,25 +107,45 @@ export const TABLE_HEADERS = {
             title: "Nom",
             align: "start",
             sortable: true,
-            value: "nomIntervention",
+            value: "nom",
+        },
+        {
+            title: "Équipement",
+            align: "center",
+            sortable: true,
+            value: "equipement_designation",
+        },
+        {
+            title: "Diagnostic",
+            align: "center",
+            sortable: true,
+            value: "diagnostic",
+            width: "15%",
+            maxWidth: "15%",
         },
         {
             title: "Date d'assignation",
             align: "center",
             sortable: true,
-            value: "dateAssignation",
+            value: "date_assignation",
+        },
+        {
+            title: "Date prévue",
+            align: "center",
+            sortable: true,
+            value: "date_prevue",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
         },
         {
             title: "Responsable",
             align: "center",
             sortable: true,
             value: "responsable",
-        },
-        {
-            title: "Niveau",
-            align: "center",
-            sortable: false,
-            value: "niveau",
         },
     ],
 
@@ -128,10 +157,24 @@ export const TABLE_HEADERS = {
             value: "nom",
         },
         {
-            title: "Date d'assignation",
+            title: "Équipement",
             align: "center",
             sortable: true,
-            value: "date_assignation",
+            value: "equipement_designation",
+        },
+        {
+            title: "Diagnostic",
+            align: "center",
+            sortable: true,
+            value: "diagnostic",
+            width: "15%",
+            maxWidth: "15%",
+        },
+        {
+            title: "Date prévue",
+            align: "center",
+            sortable: true,
+            value: "date_prevue",
         },
         {
             title: "Statut",
@@ -139,11 +182,26 @@ export const TABLE_HEADERS = {
             sortable: true,
             value: "statut",
         },
+    ],
+
+    INTERVENTIONS_MOBILE: [
         {
-            title: "Visualiser",
+            title: "Nom",
             align: "start",
-            sortable: false,
-            value: "action",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Équipement",
+            align: "center",
+            sortable: true,
+            value: "equipement_designation",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
         },
     ],
 
