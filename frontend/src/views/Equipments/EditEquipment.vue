@@ -120,7 +120,7 @@
                 <v-row cols="12" class="mb-2" align="center" justify="space-between">
                   <h3 class="mb-3">Compteurs Associés</h3>
                 </v-row>
-                <v-data-table :items="formData.compteurs" :headers="counterTableHeaders" class="elevation-1">
+                <v-data-table :items="formData.compteurs" :headers="TABLE_HEADERS.COUNTERS" class="elevation-1">
                   <template #item.nom="{ item }">
                     {{ item.nom }}
                   </template>
@@ -194,10 +194,10 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, MEDIA_BASE_URL, TABLE_HEADERS } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 import { EQUIPMENT_STATUS } from '@/utils/constants.js';
-import CounterForm from '@/components/Forms/CounterForm.vue';
+import CounterForm from './Counters/CounterForm';
 import FabricantForm from '@/components/Forms/FabricantForm.vue';
 import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
@@ -388,191 +388,80 @@ const fetchEquipment = async () => {
   }
 }
 
-const detectChanges = () => {
-  if (!initialData.value) return { hasChanges: false, changes: {} };
-
-  // Créer une copie profonde des données actuelles pour travailler dessus
-  const currentDataCopy = JSON.parse(JSON.stringify(formData.value));
-
-  // Ré-attacher les objets File qui sont perdus par JSON.stringify
-  formData.value.compteurs?.forEach((compteur, cIndex) => {
-    if (compteur.id && currentDataCopy.compteurs[cIndex]) {
-      if (compteur.planMaintenance?.documents) {
-        compteur.planMaintenance.documents.forEach((doc, dIndex) => {
-          if (doc.file && currentDataCopy.compteurs[cIndex].planMaintenance.documents[dIndex]) {
-            // Conserver la référence au fichier File
-            currentDataCopy.compteurs[cIndex].planMaintenance.documents[dIndex].file = doc.file;
-          }
-        });
-      }
-    }
-  });
+function detectChanges() {
+  if (!originalCounter.value || !counter.value) return { hasChanges: false, changes: {} };
 
   const changes = {};
   let hasChanges = false;
 
-  // Comparer les champs simples de l'équipement
-  const simpleFields = ['numSerie', 'reference', 'designation', 'dateMiseEnService', 'prixAchat',
-    'modeleEquipement', 'fournisseur', 'fabricant', 'famille', 'statut'];
+  // Champs simples du compteur
+  const fieldsToCheck = [
+    'nom', 'description', 'intervalle', 'unite', 'valeurCourante',
+    'estGlissant', 'estPrincipal', 'habElec', 'permisFeu'
+  ];
 
-  simpleFields.forEach(field => {
-    const oldValue = initialData.value[field];
-    const newValue = currentDataCopy[field];  // ← Utiliser la copie
+  for (let key of fieldsToCheck) {
+    if (counter.value[key] !== originalCounter.value[key]) {
+      changes[key] = {
+        ancienne: originalCounter.value[key],
+        nouvelle: counter.value[key]
+      };
+      hasChanges = true;
+    }
+  }
 
-    if (oldValue !== newValue) {
-      changes[field] = {
-        ancienne: oldValue,
-        nouvelle: newValue
+  // Plan de maintenance
+  const currentPM = counter.value.planMaintenance || {};
+  const originalPM = originalCounter.value.planMaintenance || {};
+
+  ['nom', 'type'].forEach(key => {
+    if (currentPM[key] !== originalPM[key]) {
+      changes[`planMaintenance.${key}`] = {
+        ancienne: originalPM[key],
+        nouvelle: currentPM[key]
       };
       hasChanges = true;
     }
   });
 
-  // Comparer le lieu
-  const oldLieuId = initialData.value.lieu?.id;
-  const newLieuId = currentDataCopy.lieu?.id;  // ← Utiliser la copie
-  if (oldLieuId !== newLieuId) {
-    changes.lieu = {
-      ancienne: oldLieuId,
-      nouvelle: newLieuId
+  // Consommables
+  const currentConsos = new Set((currentPM.consommables || []).map(c => c.consommable));
+  const originalConsos = new Set((originalPM.consommables || []).map(c => c.consommable));
+
+  const addedConsos = [...currentConsos].filter(x => !originalConsos.has(x));
+  const removedConsos = [...originalConsos].filter(x => !currentConsos.has(x));
+
+  if (addedConsos.length > 0 || removedConsos.length > 0) {
+    changes['planMaintenance.consommables'] = {
+      ancienne: [...originalConsos],
+      nouvelle: [...currentConsos],
+      ajoutes: addedConsos,
+      retires: removedConsos
     };
     hasChanges = true;
   }
 
-  // Comparer les consommables de l'équipement
-  const oldConsommables = new Set(initialData.value.consommables || []);
-  const newConsommables = new Set(currentDataCopy.consommables || []);  // ← Utiliser la copie
+  // Documents (comparaison par titre et type uniquement)
+  const currentDocs = currentPM.documents || [];
+  const originalDocs = originalPM.documents || [];
 
-  const addedConsommables = [...newConsommables].filter(x => !oldConsommables.has(x));
-  const removedConsommables = [...oldConsommables].filter(x => !newConsommables.has(x));
+  const currentDocsKey = currentDocs.map(d => `${d.titre}_${d.type}`).sort().join('|');
+  const originalDocsKey = originalDocs.map(d => `${d.titre}_${d.type}`).sort().join('|');
 
-  if (addedConsommables.length > 0 || removedConsommables.length > 0) {
-    changes.consommables = {
-      ancienne: [...oldConsommables],
-      nouvelle: [...newConsommables],
-      ajoutes: addedConsommables,
-      retires: removedConsommables
+  if (currentDocsKey !== originalDocsKey) {
+    changes['planMaintenance.documents'] = {
+      ancienne: originalDocs.map(d => ({ titre: d.titre, type: d.type })),
+      nouvelle: currentDocs.map(d => ({ titre: d.titre, type: d.type }))
     };
-    hasChanges = true;
-  }
-
-  // Comparer les compteurs (tous ont un ID maintenant)
-  const oldCompteurs = initialData.value.compteurs || [];
-  const newCompteurs = currentDataCopy.compteurs || [];  // ← Utiliser la copie
-
-  const oldCompteursById = {};
-  oldCompteurs.forEach(c => {
-    if (c.id) oldCompteursById[c.id] = c;
-  });
-
-  const compteurChanges = {
-    modifies: [],
-    supprimes: []
-  };
-
-  // Compteurs modifiés (plus d'ajouts)
-  newCompteurs.forEach(nc => {
-    if (nc.id && oldCompteursById[nc.id]) {
-      const oc = oldCompteursById[nc.id];
-      const compteurDiff = {};
-      let compteurChanged = false;
-
-      // Champs simples du compteur
-      ['nom', 'intervalle', 'unite', 'valeurCourante', 'derniereIntervention',
-        'estGlissant', 'estPrincipal', 'habElec', 'permisFeu'].forEach(field => {
-          if (oc[field] !== nc[field]) {
-            compteurDiff[field] = { ancienne: oc[field], nouvelle: nc[field] };
-            compteurChanged = true;
-          }
-        });
-
-      // Vérifier le plan de maintenance
-      const oldPM = oc.planMaintenance || {};
-      const newPM = nc.planMaintenance || {};
-
-      // Nom et type du PM
-      ['nom', 'type'].forEach(field => {
-        if (oldPM[field] !== newPM[field]) {
-          compteurDiff[`planMaintenance.${field}`] = { ancienne: oldPM[field], nouvelle: newPM[field] };
-          compteurChanged = true;
-        }
-      });
-
-      // Consommables du PM (comparaison par ID)
-      const oldPMConsos = new Set((oldPM.consommables || []).map(c => c.consommable));
-      const newPMConsos = new Set((newPM.consommables || []).map(c => c.consommable));
-
-      const addedPMConsos = [...newPMConsos].filter(x => !oldPMConsos.has(x));
-      const removedPMConsos = [...oldPMConsos].filter(x => !newPMConsos.has(x));
-
-      if (addedPMConsos.length > 0 || removedPMConsos.length > 0) {
-        compteurDiff['planMaintenance.consommables'] = {
-          ancienne: [...oldPMConsos],
-          nouvelle: [...newPMConsos],
-          ajoutes: addedPMConsos,
-          retires: removedPMConsos
-        };
-        compteurChanged = true;
-      }
-
-      // Documents du PM (juste métadonnées, fichiers gérés séparément)
-      const oldDocs = oldPM.documents || [];
-      const newDocs = newPM.documents || [];
-
-      // Comparer par titre et type (sans le fichier)
-      const oldDocsKey = oldDocs.map(d => `${d.titre}_${d.type}`).sort().join('|');
-      const newDocsKey = newDocs.map(d => `${d.titre}_${d.type}`).sort().join('|');
-
-      if (oldDocsKey !== newDocsKey) {
-        compteurDiff['planMaintenance.documents'] = {
-          ancienne: oldDocs.map(d => ({ titre: d.titre, type: d.type })),
-          nouvelle: newDocs.map(d => ({ titre: d.titre, type: d.type }))
-        };
-        compteurChanged = true;
-      }
-
-      if (compteurChanged) {
-        compteurChanges.modifies.push({
-          id: nc.id,
-          nom: nc.nom,
-          modifications: compteurDiff
-        });
-      }
-    }
-  });
-
-  // Compteurs supprimés
-  oldCompteurs.forEach(oc => {
-    const found = newCompteurs.find(nc => nc.id === oc.id);
-    if (!found && oc.id) {
-      compteurChanges.supprimes.push(oc.id);
-    }
-  });
-
-  if (compteurChanges.modifies.length > 0 || compteurChanges.supprimes.length > 0) {
-    changes.compteurs = compteurChanges;
     hasChanges = true;
   }
 
   return { hasChanges, changes };
-};
+}
+
 
 const handleSubmit = async () => {
   if (!validateForm()) return;
-
-  // DEBUG: Vérifier que les fichiers sont présents avant tout traitement
-  console.log('📁 Fichiers avant traitement:');
-  formData.value.compteurs?.forEach((compteur, cIndex) => {
-    compteur.planMaintenance?.documents?.forEach((doc, dIndex) => {
-      if (doc.file instanceof File) {
-        console.log(`✓ Compteur ${cIndex}, Document ${dIndex}: ${doc.titre} - ${doc.file.name}`);
-      } else if (doc.file) {
-        console.log(`⚠ Compteur ${cIndex}, Document ${dIndex}: ${doc.titre} - file existe mais pas File:`, typeof doc.file);
-      } else {
-        console.log(`✗ Compteur ${cIndex}, Document ${dIndex}: ${doc.titre} - PAS DE FICHIER`);
-      }
-    });
-  });
 
   // Détecter les changements
   const { hasChanges, changes } = detectChanges();
@@ -601,7 +490,7 @@ const handleSubmit = async () => {
       equipementData.compteurs = equipementData.compteurs.map(c => {
         const compteurData = { ...c };
 
-        // Convertir les dates en strings (si nécessaire)
+        // Convertir dateMiseEnService en string ISO si c'est un objet Date
         if (compteurData.dateMiseEnService instanceof Date) {
           compteurData.dateMiseEnService = compteurData.dateMiseEnService.toISOString().split('T')[0];
         }
@@ -609,11 +498,9 @@ const handleSubmit = async () => {
         // Pour planMaintenance, créer une copie des documents SANS les fichiers
         const pm = compteurData.planMaintenance;
         if (pm && pm.documents) {
-          // Créer une nouvelle copie des documents avec seulement les métadonnées
           pm.documents = pm.documents.map(doc => ({
             titre: doc.titre,
             type: doc.type
-            // Ne pas inclure le fichier ici - il sera ajouté séparément
           }));
         }
 
@@ -628,18 +515,18 @@ const handleSubmit = async () => {
     fd.append('changes', JSON.stringify(changes));
 
     // 5. Ajouter les fichiers des documents PM DEPUIS L'ORIGINAL (formData.value)
-    console.log('📁 Récupération des fichiers depuis formData.value:');
+    console.log('Récupération des fichiers depuis formData.value:');
     formData.value.compteurs?.forEach((compteur, cIndex) => {
       if (!compteur.id) return;
 
       compteur.planMaintenance?.documents?.forEach((doc, dIndex) => {
         console.log('Vérification du document : ', doc);
         if (doc.file instanceof File) {
-          // Nommage structuré: document_[docIndex]_compteur_[compteurId]
+          // Nommage : document_[docIndex]_compteur_[compteurId]
           const fileKey = `document_${dIndex}_compteur_${compteur.id}`;
           fd.append(fileKey, doc.file);
 
-          console.log(`✓ Ajout du fichier: ${fileKey} (${doc.file.name})`);
+          console.log(`Ajout du fichier: ${fileKey} (${doc.file.name})`);
 
           // Ajouter les métadonnées
           fd.append(`${fileKey}_meta`, JSON.stringify({
@@ -650,27 +537,20 @@ const handleSubmit = async () => {
             documentIndex: dIndex
           }));
         } else if (doc.file) {
-          console.warn(`⚠ Document ${dIndex} du compteur ${compteur.id}: fichier non File:`, typeof doc.file);
+          console.warn(`Document ${dIndex} du compteur ${compteur.id}: fichier non File:`, typeof doc.file);
         } else {
-          console.log(`✗ Document ${dIndex} du compteur ${compteur.id}: pas de fichier`);
+          console.log(`Document ${dIndex} du compteur ${compteur.id}: pas de fichier`);
         }
       });
     });
 
-    console.log('📝 Modifications détectées:', changes);
-    console.log('📁 Fichiers à envoyer:',
-      Array.from(fd.keys())
-        .filter(k => fd.get(k) instanceof File)
-        .map(k => `${k} (${fd.get(k).name})`)
-    );
-    
-        await api.put(`equipements/${equipmentId.value}/`, fd, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-    
-        successMessage.value = 'Équipement modifié avec succès';
-        setTimeout(() => router.back(), 1500);
-    
+    await api.put(`equipements/${equipmentId.value}/`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    successMessage.value = 'Équipement modifié avec succès';
+    setTimeout(() => router.back(), 1500);
+
   } catch (e) {
     console.error('Erreur lors de la modification:', e);
     errorMessage.value = 'Erreur lors de la modification de l\'équipement';
@@ -862,7 +742,7 @@ const fetchDocs = async () => {
   try {
     // Créer un tableau de toutes les promises
     const fetchPromises = [];
-    
+
     formData.value.compteurs.forEach(counter => {
       if (counter.planMaintenance && counter.planMaintenance.documents) {
         counter.planMaintenance.documents.forEach(doc => {
@@ -881,17 +761,17 @@ const fetchDocs = async () => {
               .catch(err => {
                 console.error(`Erreur pour ${doc.path}:`, err);
               });
-            
+
             fetchPromises.push(promise);
           }
         });
       }
     });
-    
+
     // Attendre que tous les fichiers soient téléchargés
     await Promise.all(fetchPromises);
     console.log('Tous les fichiers ont été récupérés');
-    
+
   } catch (error) {
     console.error('Erreur lors du chargement des documents:', error);
   }

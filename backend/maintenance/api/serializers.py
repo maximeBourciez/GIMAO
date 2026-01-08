@@ -12,6 +12,8 @@ from stock.models import Consommable
 from donnees.models import Document
 from donnees.api.serializers import DocumentSerializer
 
+from donnees.api.serializers import DocumentSerializer
+
 
 # ==================== SERIALIZERS SIMPLES ====================
 
@@ -248,31 +250,28 @@ class PlanMaintenanceSerializer(serializers.ModelSerializer):
 
 class PlanMaintenanceDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé avec consommables et documents"""
-    type_plan_maintenance = TypePlanMaintenanceSerializer(read_only=True)
-    equipement = EquipementSimpleSerializer(read_only=True)
-    compteur = CompteurSimpleSerializer(read_only=True)
-    documents = DocumentSimpleSerializer(many=True, read_only=True)
-    consommables_necessaires = serializers.SerializerMethodField()
+    type = serializers.IntegerField(
+        source='type_plan_maintenance.id',
+        read_only=True
+    )
+    documents = DocumentSerializer(many=True, read_only=True)
+    consommables = serializers.SerializerMethodField()
     
     class Meta:
         model = PlanMaintenance
         fields = [
             'id',
             'nom',
-            'contenu',
-            'type_plan_maintenance',
-            'equipement',
-            'compteur',
+            'type',
             'documents',
-            'consommables_necessaires'
+            'consommables'
         ]
     
-    def get_consommables_necessaires(self, obj):
+    def get_consommables(self, obj):
         associations = PlanMaintenanceConsommable.objects.filter(
             plan_maintenance=obj
         ).select_related('consommable')
         return [{
-            'id': assoc.consommable.id,
-            'designation': assoc.consommable.designation,
-            'quantite_necessaire': assoc.quantite_necessaire
+            'consommable': assoc.consommable.id,
+            'quantite': assoc.quantite_necessaire
         } for assoc in associations]

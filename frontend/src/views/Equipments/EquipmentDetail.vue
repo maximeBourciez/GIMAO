@@ -90,7 +90,7 @@
               <v-card-text>
 
                 <v-data-table v-if="data.compteurs && data.compteurs.length > 0" :items="data.compteurs"
-                  :headers="TABLE_HEADERS.COUNTERS" class="elevation-1" hide-default-footer>
+                  :headers="TABLE_HEADERS.COUNTER" class="elevation-1" hide-default-footer>
 
                   <template #item.action="{ item }">
                     <v-btn icon size="small" @click="viewCounter(item)">
@@ -424,6 +424,15 @@ const downloadDocument = async (lien, nomFichier) => {
     errorMessage.value = 'Erreur lors du téléchargement du fichier';
   }
 };
+
+const viewCounter = (counter) => {
+  console.log(counter);
+  router.push({
+    name: 'CounterDetail',
+    params: { id: counter.id },
+    query: { from: 'equipment', equipmentId: equipmentDetails.value.id}
+  })
+}
 
 onMounted(() => {
   fetchEquipmentData();

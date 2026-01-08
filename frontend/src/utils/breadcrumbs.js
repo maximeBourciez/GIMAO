@@ -62,6 +62,23 @@ export const BREADCRUMBS = {
         },
     ],
 
+    CounterDetail: (route) => [
+        {
+            label: "Equipements",
+            to: { name: "EquipmentList" },
+        },
+        {
+            label: `Equipement #${route.query.equipmentId}`,
+            to: {
+                name: "EquipmentDetail",
+                params: { id: route.query.equipmentId },
+            },
+        },
+        {
+            label: `Compteur #${route.params.id}`,
+        },
+    ],
+
     /***************************************
      * Bons de travail
      **************************************/

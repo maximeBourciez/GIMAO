@@ -4,7 +4,7 @@
 
 export const API_BASE_URL = "http://localhost:8000/api/";
 export const BASE_URL = "http://localhost:8000";
-export const MEDIA_BASE_URL = BASE_URL + '/media/'
+export const MEDIA_BASE_URL = BASE_URL + "/media/";
 export const DEFAULT_ITEMS_PER_PAGE = 10;
 
 // ============================================
@@ -18,14 +18,12 @@ export const EQUIPMENT_STATUS = {
     HORS_SERVICE: "Hors service",
 };
 
-
 export const EQUIPMENT_STATUS_COLORS = {
     EN_FONCTIONNEMENT: "green",
     A_LARRET: "red",
     DEGRADE: "orange",
     HORS_SERVICE: "grey",
 };
-
 
 // ============================================
 // NIVEAUX DE DÉFAILLANCE
@@ -70,11 +68,10 @@ export const INTERVENTION_STATUS_COLORS = {
 // ============================================
 
 export const TABLE_HEADERS = {
-
-    /********************************
-     *  DEMANDES D'INTERVENTIONS
+      /********************************
+     *  DEMANDES D'INTERVENTION
      *******************************/
-    FAILURES_SUPER_LIGHT: [
+      FAILURES_SUPER_LIGHT: [
         {
             title: "N°",
             align: "start",
@@ -268,107 +265,158 @@ export const TABLE_HEADERS = {
         },
     ],
 
-    /********************************
-     *  ÉQUIPEMENTS
-     *******************************/
+  /********************************
+   *  ÉQUIPEMENTS
+   *******************************/
 
-    EQUIPMENTS: [
-        {
-            title: "Désignation",
-            value: "modeleEquipement.nomModeleEquipement",
-            sortable: true,
-            align: "center",
-        },
-        {
-            title: "Lieu",
-            value: "lieu.nomLieu",
-            sortable: true,
-            align: "center",
-        },
-        {
-            title: "Statut",
-            value: "statut.statutEquipement",
-            sortable: true,
-            align: "center",
-        },
-    ],
+  EQUIPMENTS: [
+    {
+      title: "Désignation",
+      value: "modeleEquipement.nomModeleEquipement",
+      sortable: true,
+      align: "center",
+    },
+    {
+      title: "Lieu",
+      value: "lieu.nomLieu",
+      sortable: true,
+      align: "center",
+    },
+    {
+      title: "Statut",
+      value: "statut.statutEquipement",
+      sortable: true,
+      align: "center",
+    },
+  ],
 
-    COUNTERS: [
-        {
-            title: "ID",
-            value: "id",
-            sortable: true,
-            align: "center",
-        },
-        {
-            title: "Nom du compteur",
-            value: "nom",
-            sortable: false,
-            align: "center",
-        },
-        {
-            title: "Valeur Courante",
-            value: "valeurCourante",
-            sortable: false,
-            align: "center",
-        },
-        {
-            title: "Prochaine Maintenance",
-            value: "prochaineMaintenance",
-            sortable: false,
-            align: "center",
-        },
-        {
-            title: "Unité",
-            value: "unite",
-            sortable: false,
-            align: "center",
-        },
-        {
-            title: "Visualiser",
-            value: "action",
-            sortable: false,
-            align: "center",
-        }
-    ],
+  COUNTER: [
+    {
+      title: "ID",
+      value: "id",
+      sortable: true,
+      align: "center",
+    },
+    {
+      title: "Nom du compteur",
+      value: "nom",
+      sortable: false,
+      align: "center",
+    },
+    {
+      title: "Valeur Courante",
+      value: "valeurCourante",
+      sortable: false,
+      align: "center",
+    },
+    {
+      title: "Prochaine Maintenance",
+      value: "prochaineMaintenance",
+      sortable: false,
+      align: "center",
+    },
+    {
+      title: "Unité",
+      value: "unite",
+      sortable: false,
+      align: "center",
+    },
+    {
+      title: "Visualiser",
+      value: "action",
+      sortable: false,
+      align: "center",
+    },
+  ],
 
-    CONSUMABLES: [
-        {
-            title: "Désignation",
-            value: "designation",
-            sortable: true,
-            align: "center",
-        },
-        {
-            title: "Fabricant",
-            value: "fabricant",
-            sortable: true,
-            align: "center",
-        }
-    ],
+  COUNTERS: [
+    { 
+        title: "Nom du compteur", 
+        value: "nom", 
+        sortable: true, 
+        align: "center" 
+    },
+    { 
+        title: "Intervalle de maintenance", 
+        value: "intervalle", 
+        sortable: false, 
+        align: "center" 
+    },
+    { 
+        title: "Unité", 
+        value: "unite", 
+        sortable: false, 
+        align: "center" 
+    },
+    { 
+        title: "Valeur actuelle", 
+        value: "valeurCourante", 
+        sortable: false, 
+        align: "center" 
+    },
+    { 
+        title: "Dernière intervention", 
+        value: "derniereIntervention", 
+        sortable: false, 
+        align: "center" 
+    },
+    { 
+        title: "Plan de maintenance", 
+        value: "planMaintenance", 
+        sortable: false, 
+        align: "center" 
+    },
+    { 
+        title: "Options", 
+        value: "options", 
+        sortable: false, 
+        align: "center" 
+    },
+    { 
+        title: "Actions", 
+        value: "actions", 
+        sortable: false, 
+        align: "center" 
+    },
+  ],
 
-    /********************************
-     * DOCUMENTS
-     *******************************/
-    DOCUMENTS: [
-        {
-            title: "Doucument",
-            value: "nomDocument",
-            sortable: false,
-            align: "center",
-        },
-        {
-            title: "Type",
-            value: "typeDocument",
-            sortable: true,
-            align: "center",
-        },
-        {
-            title: "Télécharger",
-            value: "action",
-            sortable: false,
-            align: "center",
-        },
-    ],
+  CONSUMABLES: [
+    {
+      title: "Désignation",
+      value: "designation",
+      sortable: true,
+      align: "center",
+    },
+    {
+      title: "Fabricant",
+      value: "fabricant",
+      sortable: true,
+      align: "center",
+    },
+  ],
+
+  /********************************
+   * DOCUMENTS
+   *******************************/
+  DOCUMENTS: [
+    {
+      title: "Doucument",
+      value: "nomDocument",
+      sortable: false,
+      align: "center",
+    },
+    {
+      title: "Type",
+      value: "typeDocument",
+      sortable: true,
+      align: "center",
+    },
+    {
+      title: "Télécharger",
+      value: "action",
+      sortable: false,
+      align: "center",
+    },
+  ],
 
 };
