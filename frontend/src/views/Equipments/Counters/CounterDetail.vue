@@ -316,8 +316,7 @@ const saveCurrentCounter = async () => {
         pmDocsChanged.forEach((doc, index) => {
             if (doc.nouvelle) {
                 // Nouveaux documents 
-                console.log('Traitement des nouveaux documents:');
-
+                fd.append(`file_planMaintenance.documents_${doc.nouvelle.id}`, doc.nouvelle.file);
             }
         })
 
