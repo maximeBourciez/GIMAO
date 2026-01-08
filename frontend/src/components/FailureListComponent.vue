@@ -1,5 +1,6 @@
 <template>
   <BaseListView ref="tableContainer"
+    :title="'Liste des demandes d\'intervention'"
     :headers="tableHeaders" 
     :items="failures" 
     :loading="loading"
