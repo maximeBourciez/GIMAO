@@ -12,24 +12,34 @@
                 <h4 class="mb-3">Informations générales</h4>
 
                 <v-row dense>
-                    <v-col cols="12" md="6">
+                    <v-col cols="12" md="4">
                         <strong>Nom :</strong>
                         <div>{{ counter.nom }}</div>
                     </v-col>
 
-                    <v-col cols="12" md="6">
+                    <v-col cols="12" md="4">
                         <strong>Description :</strong>
                         <div>{{ counter.description || '—' }}</div>
+                    </v-col>
+
+                    <v-col cols="12" md="4">
+                        <strong>Dernière intervention</strong>
+                        <div>{{ counter.derniereIntervention }}</div>
                     </v-col>
                 </v-row>
 
                 <v-row dense>
-                    <v-col cols="6">
+                    <v-col cols="4">
                         <strong>Intervalle entre les interventions:</strong>
-                        <div>{{ counter.intervalle }} {{ counter.unite }}</div>
+                        <div>{{ counter.intervalle }}</div>
                     </v-col>
 
-                    <v-col cols="6">
+                    <v-col cols="4">
+                        <strong>Unité :</strong>
+                        <div>{{ counter.unite }}</div>
+                    </v-col>
+
+                    <v-col cols="4">
                         <strong>Valeur actuelle :</strong>
                         <div>{{ counter.valeurCourante ?? '—' }}</div>
                     </v-col>
