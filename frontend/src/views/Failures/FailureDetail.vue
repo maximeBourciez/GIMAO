@@ -1,54 +1,57 @@
 <template>
-  <BaseDetailView title="Détail de la Défaillance" :data="defaillance" :loading="loading" :error-message="errorMessage"
-    :success-message="successMessage" :auto-display="false" :show-edit-button="false" :show-delete-button="canDelete"
+  <BaseDetailView :data="defaillance" :loading="loading" :error-message="errorMessage"
+    :success-message="successMessage" :auto-display="false" :show-edit-button="false"
     @delete="handleDelete" @clear-error="errorMessage = ''" @clear-success="successMessage = ''">
     <!-- Contenu personnalisé -->
     <template #default="{ data }">
       <v-row v-if="data">
-        <!-- Colonne gauche: Informations défaillance -->
+        <!-- Colonne gauche: Demande d'intervention -->
         <v-col cols="12" md="6">
-          <h3 class="text-h6 mb-4 text-primary">Informations de la défaillance</h3>
+          <h1 class="text-h4 text-primary">Détail de la demande d'intervention</h1>
+
+          <h3 class="text-h6 mb-4 text-primary">{{ data.nom }}</h3>
 
           <div class="detail-field">
-            <label class="detail-label">Description</label>
-            <div class="detail-value">{{ data.commentaireDefaillance }}</div>
+            <label class="detail-label">Commentaire</label>
+            <div class="detail-value">{{ data.commentaire }}</div>
           </div>
 
           <div class="detail-field">
-            <label class="detail-label">Niveau</label>
+            <label class="detail-label">Statut</label>
             <div class="detail-value">
-              <v-chip :color="getFailureLevelColor(data.niveau)" dark>
-                {{ data.niveau }}
+              <v-chip :color="data.statut ? FAILURE_STATUS_COLORS[data.statut] : 'grey'" dark>
+                {{ data.statut }}
               </v-chip>
             </div>
           </div>
 
           <div class="detail-field">
-            <label class="detail-label">Traitée</label>
-            <div class="detail-value">
-              <v-chip :color="data.dateTraitementDefaillance ? 'green' : 'red'" dark>
-                {{ data.dateTraitementDefaillance ? 'Oui' : 'Non' }}
-              </v-chip>
-            </div>
+            <label class="detail-label">Date de création</label>
+            <div class="detail-value">{{ formatDate(data.date_creation) }}</div>
           </div>
 
           <div class="detail-field">
-            <label class="detail-label">Changer le statut de l'équipement</label>
-            <v-select v-model="selectedStatus" :items="statusOptions" outlined dense></v-select>
+            <label class="detail-label">Date de changement de statut</label>
+            <div class="detail-value">{{ formatDate(data.date_changementStatut) }}</div>
           </div>
 
-          <v-row class="mt-4">
-            <v-col>
-              <v-btn color="success" block :disabled="canTreat" @click="handleCreateIntervention">
-                <v-icon left>mdi-wrench</v-icon>
+
+          
+          <v-row>
+            <v-col cols="12">
+              <v-btn color="primary" block :disabled="!canCreateIntervention" @click="handleCreateIntervention">
+                <v-icon class="mx-2" left>mdi-wrench</v-icon>
                 Transformer en bon de travail
               </v-btn>
             </v-col>
-          </v-row>
-          <v-row>
-            <v-col>
-              <v-btn color="warning" block :disabled="!canTreat" @click="handleTreatFailure">
-                Mettre en attente la demande
+            <v-col cols="6">
+              <v-btn color="success" block :disabled="!canClose" @click="handleCloseFailure">
+                Accepter la demande
+              </v-btn>
+            </v-col>
+            <v-col cols="6">
+              <v-btn color="error" block :disabled="!canClose" @click="handleCloseFailure">
+                Refuser la demande
               </v-btn>
             </v-col>
           </v-row>
@@ -58,17 +61,15 @@
         <v-col cols="12" md="6">
           <!-- Section Équipement -->
           <v-card elevation="2" class="mb-4">
-            <v-card-title class="d-flex align-center">
+            <v-card-title class="d-flex align-center"  @click="showEquipmentDetails = !showEquipmentDetails">
               <span>Équipement</span>
               <v-spacer></v-spacer>
-              <v-btn color="primary" size="small" @click="openEquipment" :disabled="!data.equipement">
+              <v-btn color="primary" class="mr-2" size="small" @click="openEquipment" :disabled="!data.equipement">
                 Détails
               </v-btn>
-              <v-btn icon size="small" @click="showEquipmentDetails = !showEquipmentDetails">
-                <v-icon>
-                  {{ showEquipmentDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
-                </v-icon>
-              </v-btn>
+              <v-icon>
+                {{ showEquipmentDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+              </v-icon>
             </v-card-title>
 
             <v-expand-transition>
@@ -83,35 +84,37 @@
 
           <!-- Section Documents -->
           <v-card elevation="2">
-            <v-card-title class="d-flex align-center">
-              <span>Documents de la défaillance</span>
+            <v-card-title class="d-flex align-center"  @click="showDocumentsDetails = !showDocumentsDetails">
+              <span>Documents</span>
               <v-spacer></v-spacer>
-              <v-btn color="primary" size="small" @click="handleAddDocument">
+              <v-btn color="primary" class="mr-2" size="small" @click="handleAddDocument">
                 <v-icon left>mdi-plus</v-icon>
                 Ajouter
               </v-btn>
-              <v-btn icon size="small" @click="showDocumentsDetails = !showDocumentsDetails">
-                <v-icon>
-                  {{ showDocumentsDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
-                </v-icon>
-              </v-btn>
+              <v-icon>
+                {{ showDocumentsDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+              </v-icon>
             </v-card-title>
 
             <v-expand-transition>
               <v-card-text v-show="showDocumentsDetails">
-                <div class="d-flex justify-end mb-2">
-                  <v-btn size="small" @click="toggleActionMode">
-                    {{ actionMode === 'download' ? 'Mode suppression' : 'Mode téléchargement' }}
-                  </v-btn>
-                </div>
 
-                <v-data-table :headers="documentHeaders" :items="data.liste_documents_defaillance || []"
+                <v-data-table :headers="documentHeaders" :items="data.documentsDI || []"
                   class="elevation-1" hide-default-footer :items-per-page="-1">
+                  <template #item.name="{ item }">
+                    {{ item.nomDocument }}
+                  </template>
                   <template #item.actions="{ item }">
-                    <v-btn icon size="small" :color="actionMode === 'download' ? 'primary' : 'error'"
-                      @click="actionMode === 'download' ? downloadDocument(item) : deleteDocument(item)">
+                    <v-btn icon size="small" :color="'primary'" class="mr-2"
+                      @click="downloadDocument(item)">
                       <v-icon>
-                        {{ actionMode === 'download' ? 'mdi-download' : 'mdi-delete' }}
+                        mdi-download
+                      </v-icon>
+                    </v-btn>
+                    <v-btn icon size="small" :color="'error'"
+                      @click="deleteDocument(item)">
+                      <v-icon>
+                        mdi-delete
                       </v-icon>
                     </v-btn>
                   </template>
@@ -130,8 +133,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
-import { getFailureLevelColor } from '@/utils/helpers';
-import { API_BASE_URL, BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
 
 const router = useRouter();
 const route = useRoute();
@@ -148,20 +150,26 @@ const showDocumentsDetails = ref(false);
 const actionMode = ref('download');
 const selectedStatus = ref('pas de changement');
 
-const statusOptions = [
-  'pas de changement',
-  'En fonctionnement',
-  'Dégradé',
-  "À l'arrêt"
-];
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'Non spécifié';
+  return new Date(dateString).toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 const documentHeaders = [
-  { title: 'Nom du document', key: 'nomDocumentDefaillance' },
+  { title: 'Nom du document', key: 'name' },
   { title: 'Actions', key: 'actions', sortable: false }
 ];
 
-const canDelete = computed(() => !defaillance.value?.dateTraitementDefaillance);
-const canTreat = computed(() => !defaillance.value?.dateTraitementDefaillance);
+const canClose = computed(() => FAILURE_STATUS[ defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
+const canCreateIntervention = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
+const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 
 const formattedEquipmentLabel = computed(() => {
   if (!defaillance.value?.equipement) return {};
@@ -179,7 +187,7 @@ const fetchData = async () => {
   errorMessage.value = '';
 
   try {
-    const response = await failureApi.get(`defaillance/${route.params.id}/affichage/`);
+    const response = await failureApi.get(`demandes-intervention/${route.params.id}/`);
     const defaillanceData = response;
 
     if (defaillanceData.equipement && typeof defaillanceData.equipement === 'object') {
@@ -204,7 +212,7 @@ const fetchData = async () => {
 const handleDelete = async () => {
   if (confirm('Êtes-vous sûr de vouloir supprimer cette défaillance ?')) {
     try {
-      await patchApi.delete(`defaillances/${route.params.id}/`);
+      await patchApi.delete(`demandes-intervention/${route.params.id}/`);
       successMessage.value = 'Défaillance supprimée avec succès';
       setTimeout(() => router.push({ name: 'FailureList' }), 1500);
     } catch (error) {
@@ -213,10 +221,11 @@ const handleDelete = async () => {
   }
 };
 
-const handleTreatFailure = async () => {
+const handleCloseFailure = async () => {
   try {
-    await patchApi.patch(`defaillances/${route.params.id}/`, {
-      dateTraitementDefaillance: new Date().toISOString()
+    await patchApi.patch(`demandes-intervention/${route.params.id}/`, {
+      statut: "Refusé",
+      date_changementStatut: new Date().toISOString()
     });
     successMessage.value = 'Défaillance mise en attente';
     await fetchData();
@@ -251,18 +260,19 @@ const toggleActionMode = () => {
 
 const downloadDocument = async (item) => {
   try {
-    const response = await fetch(`${BASE_URL}${item.lienDocumentDefaillance}`);
-    const blob = await response.blob();
+    const response = await fetch(`${item.cheminAcces}`);
+    const blob = await response.blob(); 
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    a.download = item.nomDocumentDefaillance;
+    a.download = item.cheminAcces.split('/').pop();
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
     successMessage.value = 'Document téléchargé';
   } catch (error) {
+    console.log(error);
     errorMessage.value = 'Erreur lors du téléchargement';
   }
 };
