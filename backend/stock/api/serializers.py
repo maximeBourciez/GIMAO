@@ -38,11 +38,13 @@ class ConsommableSerializer(serializers.ModelSerializer):
 class ConsommableDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour le modèle Consommable avec informations du magasin"""
     magasin_details = serializers.SerializerMethodField()
+    fournisseur_nom = serializers.SerializerMethodField()
+    quantite = serializers.SerializerMethodField()
     
     class Meta:
         model = Consommable
         fields = ['id', 'designation', 'lienImageConsommable', 'magasin', 'magasin_details',
-                  'seuilStockFaible', 'documents']
+                  'quantite', 'seuilStockFaible', 'documents', 'fournisseur_nom']
     
     def get_magasin_details(self, obj):
         if obj.magasin:
@@ -52,6 +54,18 @@ class ConsommableDetailSerializer(serializers.ModelSerializer):
                 'estMobile': obj.magasin.estMobile,
             }
         return None
+    
+    def get_fournisseur_nom(self, obj):
+        # Récupère le fournisseur depuis les fournitures (PorterSur)
+        fourniture = obj.fournitures.first()
+        if fourniture and fourniture.fournisseur:
+            return fourniture.fournisseur.nom
+        return None
+    
+    def get_quantite(self, obj):
+        # Somme des quantités de toutes les fournitures
+        total = sum(fourniture.quantite for fourniture in obj.fournitures.all())
+        return total
 
 
 class PorterSurSerializer(serializers.ModelSerializer):
