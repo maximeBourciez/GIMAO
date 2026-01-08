@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.hashers import make_password, check_password
 
 class Role(models.Model):
     """
@@ -33,7 +34,9 @@ class Utilisateur(models.Model):
     )
     motDePasse = models.CharField(
         max_length=128,
-        help_text="Mot de passe hashé de l'utilisateur"
+        null=True,
+        blank=True,
+        help_text="Mot de passe hashé de l'utilisateur (null si pas encore défini)"
     )
     prenom = models.CharField(
         max_length=50,
@@ -67,6 +70,23 @@ class Utilisateur(models.Model):
         related_name="utilisateurs",
         help_text="Rôle attribué à l'utilisateur"
     )
+
+    def set_password(self, raw_password):
+        if raw_password:
+            self.motDePasse = make_password(raw_password)
+        else:
+            self.motDePasse = None
+    
+    def check_password(self, raw_password):
+        if not self.motDePasse:
+            return False
+        return check_password(raw_password, self.motDePasse)
+    
+    def has_usable_password(self):
+        return self.motDePasse is not None and self.motDePasse != ''
+    
+    def premiere_connexion(self):
+        return self.derniereConnexion is None
 
     def __str__(self):
         return f"{self.prenom} {self.nomFamille} ({self.nomUtilisateur})"

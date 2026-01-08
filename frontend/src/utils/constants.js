@@ -12,17 +12,17 @@ export const DEFAULT_ITEMS_PER_PAGE = 10;
 // ============================================
 
 export const EQUIPMENT_STATUS = {
-  EN_FONCTIONNEMENT: "En fonctionnement",
-  A_LARRET: "À l'arrêt",
-  DEGRADE: "Dégradé",
-  HORS_SERVICE: "Hors service",
+    EN_FONCTIONNEMENT: "En fonctionnement",
+    A_LARRET: "À l'arrêt",
+    DEGRADE: "Dégradé",
+    HORS_SERVICE: "Hors service",
 };
 
 export const EQUIPMENT_STATUS_COLORS = {
-  EN_FONCTIONNEMENT: "green",
-  A_LARRET: "red",
-  DEGRADE: "orange",
-  HORS_SERVICE: "grey",
+    EN_FONCTIONNEMENT: "green",
+    A_LARRET: "red",
+    DEGRADE: "orange",
+    HORS_SERVICE: "grey",
 };
 
 // ============================================
@@ -45,11 +45,20 @@ export const FAILURE_LEVEL_COLORS = {
 // STATUTS D'INTERVENTION (BT)
 // ============================================
 export const INTERVENTION_STATUS = {
-  EN_ATTENTE: "En attente",
-  EN_COURS: "En cours",
-  TERMINEE: "Terminée",
-  EN_RETARD: "En retard",
-  CLOTURE: "Cloturé",
+    EN_ATTENTE: "En attente",
+    EN_COURS: "En cours",
+    TERMINE: "Terminé",
+    EN_RETARD: "En retard",
+    CLOTURE: "Cloturé",
+};
+
+// Couleurs (tokens Vuetify) associées aux statuts de BT
+export const INTERVENTION_STATUS_COLORS = {
+    EN_ATTENTE: 'orange',
+    EN_COURS: 'primary',
+    TERMINE: 'green',
+    EN_RETARD: 'red',
+    CLOTURE: 'grey',
 };
 
 // ============================================
@@ -57,93 +66,202 @@ export const INTERVENTION_STATUS = {
 // ============================================
 
 export const TABLE_HEADERS = {
-  /********************************
-   *  DEMANDES D'INTERVENTION
-   *******************************/
-  FAILURES: [
-    {
-      title: "Commentaire",
-      align: "start",
-      sortable: true,
-      value: "commentaireDefaillance",
-    },
-    {
-      title: "Traitée",
-      align: "center",
-      sortable: true,
-      value: "traite",
-    },
-    {
-      title: "Niveau",
-      align: "center",
-      sortable: true,
-      value: "niveau",
-    },
-    {
-      title: "Équipement",
-      align: "center",
-      sortable: false,
-      value: "equipement",
-    },
-  ],
+      /********************************
+     *  DEMANDES D'INTERVENTION
+     *******************************/
+      FAILURES_SUPER_LIGHT: [
+        {
+            title: "N°",
+            align: "start",
+            sortable: true,
+            value: "id",
+        },
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+    ],
 
-  /********************************
-   *  BONS DE TRAVAIL
-   *******************************/
+    FAILURES_LIGHT: [
+        {
+            title: "N°",
+            align: "start",
+            sortable: true,
+            value: "id",
+        },
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Créateur",
+            align: "center",
+            sortable: true,
+            value: "createur",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+    ],
 
-  INTERVENTIONS: [
-    {
-      title: "Nom",
-      align: "start",
-      sortable: true,
-      value: "nomIntervention",
-    },
-    {
-      title: "Date d'assignation",
-      align: "center",
-      sortable: true,
-      value: "dateAssignation",
-    },
-    {
-      title: "Responsable",
-      align: "center",
-      sortable: true,
-      value: "responsable",
-    },
-    {
-      title: "Niveau",
-      align: "center",
-      sortable: false,
-      value: "niveau",
-    },
-  ],
+    FAILURES: [
+        {
+            title: "N°",
+            align: "start",
+            sortable: true,
+            value: "id",
+        },
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Commentaire",
+            align: "center",
+            sortable: false,
+            value: "commentaire",
+        },
+        {
+            title: "Créateur",
+            align: "center",
+            sortable: true,
+            value: "createur",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+        {
+            title: "Équipement",
+            align: "center",
+            sortable: true,
+            value: "equipement",
+        },
+    ],
 
-  INTERVENTIONS_LIGHT: [
-    {
-      title: "Nom",
-      align: "start",
-      sortable: true,
-      value: "nom",
-    },
-    {
-      title: "Date d'assignation",
-      align: "center",
-      sortable: true,
-      value: "date_assignation",
-    },
-    {
-      title: "Statut",
-      align: "center",
-      sortable: true,
-      value: "statut",
-    },
-    {
-      title: "Visualiser",
-      align: "start",
-      sortable: false,
-      value: "action",
-    },
-  ],
+    /********************************
+     *  BONS DE TRAVAIL
+     *******************************/
+
+    INTERVENTIONS: [
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Équipement",
+            align: "center",
+            sortable: true,
+            value: "equipement_designation",
+        },
+        {
+            title: "Diagnostic",
+            align: "center",
+            sortable: true,
+            value: "diagnostic",
+            width: "15%",
+            maxWidth: "15%",
+        },
+        {
+            title: "Date d'assignation",
+            align: "center",
+            sortable: true,
+            value: "date_assignation",
+        },
+        {
+            title: "Date prévue",
+            align: "center",
+            sortable: true,
+            value: "date_prevue",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+        {
+            title: "Responsable",
+            align: "center",
+            sortable: true,
+            value: "responsable",
+        },
+    ],
+
+    INTERVENTIONS_LIGHT: [
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Équipement",
+            align: "center",
+            sortable: true,
+            value: "equipement_designation",
+        },
+        {
+            title: "Diagnostic",
+            align: "center",
+            sortable: true,
+            value: "diagnostic",
+            width: "15%",
+            maxWidth: "15%",
+        },
+        {
+            title: "Date prévue",
+            align: "center",
+            sortable: true,
+            value: "date_prevue",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+    ],
+
+    INTERVENTIONS_MOBILE: [
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Équipement",
+            align: "center",
+            sortable: true,
+            value: "equipement_designation",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+    ],
 
   /********************************
    *  ÉQUIPEMENTS
@@ -298,4 +416,5 @@ export const TABLE_HEADERS = {
       align: "center",
     },
   ],
+
 };

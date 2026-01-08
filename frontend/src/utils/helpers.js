@@ -1,4 +1,9 @@
-import { FAILURE_LEVEL_COLORS, EQUIPMENT_STATUS, EQUIPMENT_STATUS_COLORS } from "./constants";
+import {
+  FAILURE_LEVEL_COLORS,
+  EQUIPMENT_STATUS,
+  EQUIPMENT_STATUS_COLORS,
+  INTERVENTION_STATUS_COLORS,
+} from "./constants";
 
 // ============================================
 // FONCTIONS DE COULEURS
@@ -30,6 +35,15 @@ export function getStatusLabel(code) {
  */
 export function getFailureLevelColor(level) {
   return FAILURE_LEVEL_COLORS[level] || "grey";
+}
+
+/**
+ * Retourne la couleur (token Vuetify) associée à un statut de bon de travail
+ * @param {string} statusCode
+ * @returns {string}
+ */
+export function getInterventionStatusColor(statusCode) {
+  return INTERVENTION_STATUS_COLORS[statusCode] || "grey";
 }
 
 // ============================================

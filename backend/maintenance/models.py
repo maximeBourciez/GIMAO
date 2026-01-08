@@ -11,8 +11,9 @@ class DemandeIntervention(models.Model):
     """Demande d'intervention sur un équipement"""
     commentaire = models.TextField(blank=True, null=True)
     nom = models.CharField(max_length=255)
-    date_traitement = models.DateTimeField(blank=True, null=True)
-    date_commencement = models.DateTimeField(blank=True, null=True)
+    statut = models.CharField(max_length=50)
+    date_creation = models.DateTimeField()
+    date_changementStatut = models.DateTimeField()
     
     # Relations
     utilisateur = models.ForeignKey(
@@ -30,7 +31,7 @@ class DemandeIntervention(models.Model):
         db_table = 'gimao_demande_intervention'
         verbose_name = 'Demande d\'intervention'
         verbose_name_plural = 'Demandes d\'intervention'
-        ordering = ['-date_commencement']
+        ordering = ['-date_creation']
     
     def __str__(self):
         return f"{self.nom} - {self.equipement}"
@@ -86,14 +87,7 @@ class BonTravail(models.Model):
         blank=True,
         related_name='bons_travail_responsable'
     )
-    equipement = models.ForeignKey(
-        Equipement,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='bons_travail'
-    )
-    
+
     class Meta:
         db_table = 'bon_travail'
         verbose_name = 'Bon de travail'

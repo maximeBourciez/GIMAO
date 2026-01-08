@@ -1,5 +1,5 @@
 <template>
-  <BaseDetailView title="Détail de l'Intervention" :data="intervention" :loading="isLoading" :show-edit-button="false"
+  <BaseDetailView title="Détail du Bon de Travail" :data="intervention" :loading="isLoading" :show-edit-button="false"
     :show-delete-button="false">
     <template #actions>
       <v-btn color="warning" class="mx-1" @click="reopen_intervention" :disabled="!can_supprimer">
@@ -27,19 +27,19 @@
           <h3 class="text-h6 mb-4 text-primary">Commentaires</h3>
 
           <div class="detail-field">
-            <label class="detail-label">Commentaire de l'intervention</label>
-            <div class="detail-value">{{ data.commentaireIntervention || 'Aucun commentaire' }}</div>
+            <label class="detail-label">Commentaire</label>
+            <div class="detail-value">{{ data.commentaire || 'Aucun commentaire' }}</div>
           </div>
 
-          <div v-if="data.commentaireRefusCloture" class="detail-field">
+          <div v-if="data.commentaire_refus_cloture" class="detail-field">
             <label class="detail-label">Commentaire de refus de clôture</label>
-            <div class="detail-value">{{ data.commentaireRefusCloture }}</div>
+            <div class="detail-value">{{ data.commentaire_refus_cloture }}</div>
           </div>
 
-          <!-- Section Défaillance expandable -->
+          <!-- Section DI expandable -->
           <v-card class="mt-4" elevation="2">
             <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggle_defaillance_details">
-              Défaillance
+              Demande d'intervention
               <v-spacer></v-spacer>
               <v-btn color="primary" size="small" class="mr-2" @click.stop="open_failure" :disabled="!defaillance_id">
                 Ouvrir
@@ -64,7 +64,7 @@
           <!-- Section Documents -->
           <v-card class="mt-4" elevation="2">
             <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggle_documents_details">
-              Documents de l'intervention
+              Documents du bon de travail
               <v-spacer></v-spacer>
               <v-btn color="primary" size="small" class="mr-2" @click.stop="add_document">
                 Ajouter
@@ -127,7 +127,7 @@ const headers = [
   { title: 'Actions', value: 'actions', sortable: false }
 ];
 
-const defaillance_id = computed(() => intervention.value?.defaillance?.id);
+const defaillance_id = computed(() => intervention.value?.demande_intervention?.id);
 
 const date_format = (dateString) => {
   if (!dateString) return 'Non spécifié';
@@ -144,33 +144,34 @@ const date_format = (dateString) => {
 const format_label_intervention = computed(() => {
   if (!intervention.value) return {};
   return {
-    'Nom de l\'intervention': intervention.value.nomIntervention,
-    'Date d\'assignation': date_format(intervention.value.dateAssignation),
-    'Date de clôture': date_format(intervention.value.dateCloture),
-    'Date du début de l\'intervention': date_format(intervention.value.dateDebutIntervention),
-    'Date de fin de l\'intervention': date_format(intervention.value.dateFinIntervention),
-    'Temps estimé': intervention.value.tempsEstime,
-    'Intervention curative': intervention.value.interventionCurative ? 'Oui' : 'Non',
+    'Nom': intervention.value.nom,
+    'Type': intervention.value.type,
+    'Statut': intervention.value.statut,
+    'Date d\'assignation': date_format(intervention.value.date_assignation),
+    'Date de clôture': date_format(intervention.value.date_cloture),
+    'Date de début': date_format(intervention.value.date_debut),
+    'Date de fin': date_format(intervention.value.date_fin),
   };
 });
 
 const format_label_defaillance = computed(() => {
-  if (!intervention.value || !intervention.value.defaillance) return {};
-  const defaillance = intervention.value.defaillance;
+  if (!intervention.value || !intervention.value.demande_intervention) return {};
+  const demande = intervention.value.demande_intervention;
   return {
-    'Nom de la défaillance': defaillance.commentaireDefaillance,
-    'Date de la défaillance': date_format(defaillance.dateDefaillance),
-    'Commentaire': defaillance.commentaireDefaillance || 'Aucun commentaire'
+    'Nom de la demande': demande.nom,
+    'Date de commencement': date_format(demande.date_commencement),
+    'Date de traitement': date_format(demande.date_traitement),
+    'Commentaire': demande.commentaire || 'Aucun commentaire',
   };
 });
 
-const can_supprimer = computed(() => intervention.value && !intervention.value.dateCloture);
-const can_cloturer = computed(() => intervention.value && !intervention.value.dateCloture);
+const can_supprimer = computed(() => intervention.value && !intervention.value.date_cloture);
+const can_cloturer = computed(() => intervention.value && !intervention.value.date_cloture);
 
 const fetch_data = async () => {
   isLoading.value = true;
   try {
-    const response = await interventionApi.get(`intervention/${route.params.id}/affichage/`);
+    const response = await interventionApi.get(`bons-travail/${route.params.id}`);
     intervention.value = response;
   } catch (error) {
     console.error('Erreur lors de la récupération des données:', error);
@@ -190,23 +191,23 @@ const toggle_action_mode = () => {
 };
 
 const reopen_intervention = async () => {
-  if (confirm('Êtes-vous sûr de vouloir refuser la clôture de cette intervention ?')) {
+  if (confirm('Êtes-vous sûr de vouloir refuser la clôture de ce bon de travail ?')) {
     try {
-      await interventionApi.patch(`interventions/${intervention.value.id}/`, { dateCloture: null });
+      await interventionApi.patch(`bons-travail/${intervention.value.id}/`, { date_cloture: null });
       await fetch_data();
     } catch (error) {
-      console.error('Erreur lors de la réouverture de l\'intervention:', error);
+      console.error('Erreur lors de la réouverture du bon de travail:', error);
     }
   }
 };
 
 const close_intervention = async () => {
-  if (confirm('Êtes-vous sûr de vouloir clôturer cette intervention ?')) {
+  if (confirm('Êtes-vous sûr de vouloir clôturer ce bon de travail ?')) {
     try {
-      await interventionApi.patch(`interventions/${intervention.value.id}/`, { dateCloture: new Date().toISOString() });
+      await interventionApi.post(`bons-travail/${intervention.value.id}/cloturer`);
       router.go(-1);
     } catch (error) {
-      console.error('Erreur lors de la clôture de l\'intervention:', error);
+      console.error('Erreur lors de la clôture du bon de travail:', error);
     }
   }
 };

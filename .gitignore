@@ -17,6 +17,9 @@ backend/media/*/*
 # Variables d'environnement de Django
 backend/.env
 
+#Migrations de la base de données
+backend/*/migrations/0*.py
+
 # Fichier de création de la BD
 db/create-db.sql
 db/Modele_entite_relation
@@ -24,6 +27,7 @@ db/Schema.loo
 
 # Suppression du venv backend
 backend/venv/
+backend/.venv/
 
 # Fichiers d'IDE   
 */.idea

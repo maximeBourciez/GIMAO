@@ -139,7 +139,9 @@ class LoginSerializer(serializers.Serializer):
     """Serializer pour la connexion"""
     nomUtilisateur = serializers.CharField(required=True)
     motDePasse = serializers.CharField(
-        required=True,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
         style={'input_type': 'password'},
         write_only=True
     )
@@ -166,6 +168,30 @@ class ChangePasswordSerializer(serializers.Serializer):
     
     def validate(self, data):
         """Vérifie que les nouveaux mots de passe correspondent"""
+        if data['nouveau_motDePasse'] != data['nouveau_motDePasse_confirmation']:
+            raise serializers.ValidationError({
+                'nouveau_motDePasse_confirmation': 'Les mots de passe ne correspondent pas'
+            })
+        return data
+
+
+class DefinirMotDePasseSerializer(serializers.Serializer):
+    """Serializer pour définir un mot de passe (première connexion)"""
+    nomUtilisateur = serializers.CharField(required=True)
+    nouveau_motDePasse = serializers.CharField(
+        required=True,
+        style={'input_type': 'password'},
+        write_only=True,
+        min_length=8
+    )
+    nouveau_motDePasse_confirmation = serializers.CharField(
+        required=True,
+        style={'input_type': 'password'},
+        write_only=True
+    )
+    
+    def validate(self, data):
+        """Vérifie que les mots de passe correspondent"""
         if data['nouveau_motDePasse'] != data['nouveau_motDePasse_confirmation']:
             raise serializers.ValidationError({
                 'nouveau_motDePasse_confirmation': 'Les mots de passe ne correspondent pas'
