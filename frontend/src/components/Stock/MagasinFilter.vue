@@ -1,40 +1,60 @@
 <template>
-  <v-card elevation="1" class="rounded-lg pa-2">
-    <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
-      Magasins
-    </v-card-title>
-    <v-divider></v-divider>
-    <v-list dense>
-      <v-list-item 
-        link 
-        @click="handleSelectMagasin(null)"
-        :class="{ 'selected-item bg-primary-lighten-5': selectedMagasin === null }"
-      >
-        <v-list-item-title>Tous les magasins</v-list-item-title>
-        <template v-slot:append>
-          <v-chip size="small" color="primary">{{ totalCount }}</v-chip>
-        </template>
-      </v-list-item>
-      <v-list-item 
+  <div>
+    <h3 class="text-subtitle-2 text-primary mb-2">Filtrer par magasin</h3>
+    <v-row dense>
+      <!-- Tous les magasins -->
+      <v-col cols="12" sm="6" md="4" lg="3" xl="2">
+        <v-card 
+          elevation="1" 
+          class="rounded-lg pa-2 cursor-pointer magasin-card"
+          :class="{ 'selected-card': selectedMagasin === null }"
+          @click="handleSelectMagasin(null)"
+        >
+          <div class="d-flex align-center">
+            <v-icon size="24" color="primary" class="mr-2">mdi-view-grid</v-icon>
+            <div>
+              <p class="text-caption font-weight-medium mb-0">Tous les magasins</p>
+              <p class="text-caption text-grey-darken-1 mb-0" style="font-size: 0.7rem;">{{ totalCount }} consommables</p>
+            </div>
+          </div>
+        </v-card>
+      </v-col>
+
+      <!-- Chaque magasin -->
+      <v-col 
         v-for="magasin in magasins" 
-        :key="magasin.id" 
-        link
-        @click="handleSelectMagasin(magasin.id)"
-        :class="{ 'selected-item bg-primary-lighten-5': selectedMagasin === magasin.id }"
+        :key="magasin.id"
+        cols="12" 
+        sm="6" 
+        md="4" 
+        lg="3"
+        xl="2"
       >
-        <v-list-item-title>
-          <v-icon v-if="magasin.estMobile" size="small" class="mr-1">mdi-truck</v-icon>
-          <v-icon v-else size="small" class="mr-1">mdi-warehouse</v-icon>
-          {{ magasin.nom }}
-        </v-list-item-title>
-        <template v-slot:append>
-          <v-chip size="small" color="primary">
-            {{ getConsommableCountByMagasin(magasin.id) }}
-          </v-chip>
-        </template>
-      </v-list-item>
-    </v-list>
-  </v-card>
+        <v-card 
+          elevation="1" 
+          class="rounded-lg pa-2 cursor-pointer magasin-card"
+          :class="{ 'selected-card': selectedMagasin === magasin.id }"
+          @click="handleSelectMagasin(magasin.id)"
+        >
+          <div class="d-flex align-center">
+            <v-icon 
+              size="24" 
+              :color="magasin.estMobile ? 'orange' : 'blue'" 
+              class="mr-2"
+            >
+              {{ magasin.estMobile ? 'mdi-truck' : 'mdi-warehouse' }}
+            </v-icon>
+            <div>
+              <p class="text-caption font-weight-medium mb-0">{{ magasin.nom }}</p>
+              <p class="text-caption text-grey-darken-1 mb-0" style="font-size: 0.7rem;">
+                {{ getConsommableCountByMagasin(magasin.id) }} consommables
+              </p>
+            </div>
+          </div>
+        </v-card>
+      </v-col>
+    </v-row>
+  </div>
 </template>
 
 <script setup>
@@ -69,7 +89,23 @@ const handleSelectMagasin = (magasinId) => {
 </script>
 
 <style scoped>
-.selected-item {
-  border-left: 3px solid rgb(var(--v-theme-primary));
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.magasin-card {
+  transition: all 0.2s ease-in-out;
+  border: 2px solid rgba(0, 0, 0, 0.12);
+}
+
+.magasin-card:hover {
+  transform: translateY(-2px);
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.selected-card {
+  border-color: rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.08);
 }
 </style>

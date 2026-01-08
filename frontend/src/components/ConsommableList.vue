@@ -1,18 +1,8 @@
 <template>
   <v-container fluid>
     <v-row>
-      <!-- Sidebar gauche avec filtres -->
-      <v-col cols="12" md="3">
-        <!-- Filtres par Magasin -->
-        <MagasinFilter 
-          :magasins="magasins"
-          :consommables="consommables"
-          v-model:selectedMagasin="selectedMagasin"
-        />
-      </v-col>
-
-      <!-- Colonne principale -->
-      <v-col cols="12" md="9">
+      <!-- Colonne principale pleine largeur -->
+      <v-col cols="12">
         <!-- Statistiques en haut -->
         <StockStatistics :consommables="filteredConsommables" class="mb-4" />
         
@@ -50,24 +40,35 @@
             </v-chip>
           </template>
         </BaseListView>
-
-        <!-- Bouton flottant en bas à droite -->
-        <v-btn 
-          v-if="showCreateButton" 
-          color="primary" 
-          size="large" 
-          icon 
-          class="floating-add-button" 
-          elevation="4"
-          @click="$emit('create')"
-        >
-          <v-icon size="large">mdi-plus</v-icon>
-          <v-tooltip activator="parent" location="left">
-            {{ createButtonText }}
-          </v-tooltip>
-        </v-btn>
       </v-col>
     </v-row>
+
+    <!-- Bouton flottant en bas à droite -->
+    <v-btn 
+      v-if="showCreateButton" 
+      color="primary" 
+      size="large" 
+      icon 
+      class="floating-add-button" 
+      elevation="8"
+      @click="$emit('create')"
+    >
+      <v-icon size="large">mdi-plus</v-icon>
+      <v-tooltip activator="parent" location="left">
+        {{ createButtonText }}
+      </v-tooltip>
+    </v-btn>
+
+    <!-- Filtres par Magasin sticky en bas -->
+    <div class="magasin-filter-sticky">
+      <v-container fluid>
+        <MagasinFilter 
+          :magasins="magasins"
+          :consommables="consommables"
+          v-model:selectedMagasin="selectedMagasin"
+        />
+      </v-container>
+    </div>
   </v-container>
 </template>
 
@@ -163,8 +164,28 @@ onMounted(() => {
 <style scoped>
 .floating-add-button {
   position: fixed;
+  bottom: 140px;
+  right: 24px;
+  z-index: 1001;
+}
+
+.magasin-filter-sticky {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 8px 0;
+  margin-top: 24px;
+}
+
+.floating-add-button {
+  position: fixed !important;
   bottom: 24px;
   right: 24px;
-  z-index: 100;
+  z-index: 1001;
 }
 </style>
