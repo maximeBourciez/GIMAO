@@ -3,77 +3,16 @@
     <v-row>
       <!-- Sidebar gauche avec filtres -->
       <v-col cols="12" md="3">
-        <!-- Card: Filtres par Magasin -->
-        <v-card elevation="1" class="rounded-lg pa-2 mb-4">
-          <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
-            Magasins
-          </v-card-title>
-          <v-divider></v-divider>
-          <v-list dense>
-            <v-list-item 
-              link 
-              @click="selectedMagasin = null"
-              :class="{ 'selected-item bg-primary-lighten-5': selectedMagasin === null }"
-            >
-              <v-list-item-title>Tous les magasins</v-list-item-title>
-              <template v-slot:append>
-                <v-chip size="small" color="primary">{{ consommables.length }}</v-chip>
-              </template>
-            </v-list-item>
-            <v-list-item 
-              v-for="magasin in magasins" 
-              :key="magasin.id" 
-              link
-              @click="selectedMagasin = magasin.id"
-              :class="{ 'selected-item bg-primary-lighten-5': selectedMagasin === magasin.id }"
-            >
-              <v-list-item-title>
-                <v-icon v-if="magasin.estMobile" size="small" class="mr-1">mdi-truck</v-icon>
-                <v-icon v-else size="small" class="mr-1">mdi-warehouse</v-icon>
-                {{ magasin.nom }}
-              </v-list-item-title>
-              <template v-slot:append>
-                <v-chip size="small" color="primary">
-                  {{ getConsommableCountByMagasin(magasin.id) }}
-                </v-chip>
-              </template>
-            </v-list-item>
-          </v-list>
-        </v-card>
+        <!-- Filtres par Magasin -->
+        <MagasinFilter 
+          :magasins="magasins"
+          :consommables="consommables"
+          v-model:selectedMagasin="selectedMagasin"
+          class="mb-4"
+        />
 
-        <!-- Card: Statistiques -->
-        <v-card elevation="1" class="rounded-lg pa-3">
-          <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2 mb-2">
-            Statistiques
-          </v-card-title>
-          <v-divider class="mb-3"></v-divider>
-          <v-row dense>
-            <v-col cols="12">
-              <div class="d-flex justify-space-between align-center mb-2">
-                <span class="text-caption text-grey-darken-1">Hors stock</span>
-                <v-chip size="small" color="error" variant="tonal">
-                  {{ horsStockCount }}
-                </v-chip>
-              </div>
-            </v-col>
-            <v-col cols="12">
-              <div class="d-flex justify-space-between align-center mb-2">
-                <span class="text-caption text-grey-darken-1">Sous le seuil</span>
-                <v-chip size="small" color="warning" variant="tonal">
-                  {{ sousSeuilCount }}
-                </v-chip>
-              </div>
-            </v-col>
-            <v-col cols="12">
-              <div class="d-flex justify-space-between align-center">
-                <span class="text-caption text-grey-darken-1">Stock suffisant</span>
-                <v-chip size="small" color="success" variant="tonal">
-                  {{ stockSuffisantCount }}
-                </v-chip>
-              </div>
-            </v-col>
-          </v-row>
-        </v-card>
+        <!-- Statistiques -->
+        <StockStatistics :consommables="filteredConsommables" />
       </v-col>
 
       <!-- Colonne principale avec BaseListView -->
@@ -136,6 +75,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import BaseListView from '@/components/common/BaseListView.vue';
+import MagasinFilter from '@/components/Stock/MagasinFilter.vue';
+import StockStatistics from '@/components/Stock/StockStatistics.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 
@@ -192,28 +133,6 @@ const filteredConsommables = computed(() => {
     return consommables.value;
   }
   return consommables.value.filter(c => c.magasin === selectedMagasin.value);
-});
-
-// Compteur de consommables par magasin
-const getConsommableCountByMagasin = (magasinId) => {
-  return consommables.value.filter(c => c.magasin === magasinId).length;
-};
-
-// Statistiques de stock
-const horsStockCount = computed(() => {
-  return filteredConsommables.value.filter(c => c.quantite === 0).length;
-});
-
-const sousSeuilCount = computed(() => {
-  return filteredConsommables.value.filter(c => 
-    c.quantite > 0 && c.seuilStockFaible !== null && c.quantite <= c.seuilStockFaible
-  ).length;
-});
-
-const stockSuffisantCount = computed(() => {
-  return filteredConsommables.value.filter(c => 
-    c.seuilStockFaible === null || c.quantite > c.seuilStockFaible
-  ).length;
 });
 
 // Couleur de la quantité
