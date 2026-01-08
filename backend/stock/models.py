@@ -56,8 +56,8 @@ class PorterSur(models.Model):
     
     # Attributs
     quantite = models.IntegerField(
-        validators=[MinValueValidator(1)],
-        default=1
+        validators=[MinValueValidator(0)],
+        default=0
     )
     prix_unitaire = models.DecimalField(
         max_digits=10,

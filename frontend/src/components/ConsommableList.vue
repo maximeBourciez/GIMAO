@@ -4,7 +4,12 @@
       <!-- Colonne principale pleine largeur -->
       <v-col cols="12">
         <!-- Statistiques en haut -->
-        <StockStatistics :consommables="filteredConsommables" class="mb-4" />
+        <StockStatistics 
+          :consommables="consommables" 
+          :selectedFilter="selectedStockFilter"
+          @filter-change="selectedStockFilter = $event"
+          class="mb-4" 
+        />
         
         <BaseListView 
           :title="title" 
@@ -83,7 +88,7 @@ import { API_BASE_URL } from '@/utils/constants';
 const props = defineProps({
   title: {
     type: String,
-    default: 'Gestion des Consommables'
+    default: 'Liste des Consommables'
   },
   showCreateButton: {
     type: Boolean,
@@ -106,6 +111,7 @@ const magasinsApi = useApi(API_BASE_URL);
 
 const errorMessage = ref('');
 const selectedMagasin = ref(null);
+const selectedStockFilter = ref(null);
 
 const consommables = computed(() => consommablesApi.data.value || []);
 const magasins = computed(() => magasinsApi.data.value || []);
@@ -127,12 +133,29 @@ const currentSubtitle = computed(() => {
   return magasin ? `Magasin: ${magasin.nom} - ${filteredConsommables.value.length} consommable(s)` : '';
 });
 
-// Filtrage par magasin
+// Filtrage par magasin et stock
 const filteredConsommables = computed(() => {
-  if (selectedMagasin.value === null) {
-    return consommables.value;
+  let filtered = consommables.value;
+
+  // Filtre par magasin
+  if (selectedMagasin.value !== null) {
+    filtered = filtered.filter(c => c.magasin === selectedMagasin.value);
   }
-  return consommables.value.filter(c => c.magasin === selectedMagasin.value);
+
+  // Filtre par type de stock
+  if (selectedStockFilter.value === 'hors-stock') {
+    filtered = filtered.filter(c => c.quantite === 0);
+  } else if (selectedStockFilter.value === 'sous-seuil') {
+    filtered = filtered.filter(c => 
+      c.quantite > 0 && c.seuilStockFaible !== null && c.quantite <= c.seuilStockFaible
+    );
+  } else if (selectedStockFilter.value === 'stock-suffisant') {
+    filtered = filtered.filter(c => 
+      c.seuilStockFaible === null || c.quantite > c.seuilStockFaible
+    );
+  }
+
+  return filtered;
 });
 
 // Couleur de la quantité
