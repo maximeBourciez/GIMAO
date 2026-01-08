@@ -10,6 +10,7 @@ from equipement.models import Equipement, Compteur
 from utilisateur.models import Utilisateur
 from stock.models import Consommable
 from donnees.models import Document
+from donnees.api.serializers import DocumentSerializer
 
 from donnees.api.serializers import DocumentSerializer
 
@@ -90,35 +91,14 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
         ]
 
 
-class DemandeInterventionDetailSerializer(serializers.ModelSerializer):
-    """Serializer détaillé avec les bons de travail"""
-    utilisateur = UtilisateurSimpleSerializer(read_only=True)
-    equipement = EquipementSimpleSerializer(read_only=True)
-    bons_travail = serializers.SerializerMethodField()
+class DemandeInterventionDetailSerializer(DemandeInterventionSerializer):
+    """Serializer détaillé avec les documents et le bon de travail"""
+    documentsDI = DocumentSerializer(source='documents', many=True, read_only=True)
     
-    class Meta:
-        model = DemandeIntervention
-        fields = [
-            'id',
-            'nom',
-            'commentaire',
-            'date_traitement',
-            'date_commencement',
-            'utilisateur',
-            'equipement',
-            'bons_travail'
+    class Meta(DemandeInterventionSerializer.Meta):
+        fields = DemandeInterventionSerializer.Meta.fields + [
+            'documentsDI'
         ]
-    
-    def get_bons_travail(self, obj):
-        bons = obj.bons_travail.all()
-        return [{
-            'id': bon.id,
-            'nom': bon.nom,
-            'type': bon.type,
-            'statut': bon.statut,
-            'date_assignation': bon.date_assignation,
-            'date_cloture': bon.date_cloture
-        } for bon in bons]
 
 
 # ==================== BON TRAVAIL ====================

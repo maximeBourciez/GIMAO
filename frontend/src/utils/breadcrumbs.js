@@ -21,15 +21,29 @@ export const BREADCRUMBS = {
         },
     ],
 
-    EquipmentDetail: (route) => [
-        {
+    EquipmentDetail: (route) => {
+        if (route.query.from === "failure") {
+            return [
+                { label: "Demandes d'intervention", to: { name: "FailureList" } },
+                {
+                    label: `Demande d'intervention #${route.query.failureID}`,
+                    to: {
+                        name: "FailureDetail",
+                        params: { id: route.query.failureID },
+                    },
+                },
+                { label: `Équipement #${route.params.id}` },
+            ];
+        }
+
+        return [{
             label: "Équipements",
             to: { name: "EquipmentList" },
         },
         {
             label: `Équipement #${route.params.id}`,
-        },
-    ],
+        }];
+    },
 
     EditEquipment: (route) => [
         {

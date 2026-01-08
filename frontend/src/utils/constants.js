@@ -29,16 +29,18 @@ export const EQUIPMENT_STATUS_COLORS = {
 // NIVEAUX DE DÉFAILLANCE
 // ============================================
 
-export const FAILURE_LEVELS = {
-  MINOR: "Mineur",
-  MAJOR: "Majeur",
-  CRITICAL: "Critique",
+export const FAILURE_STATUS = {
+    EN_ATTENTE: "En attente",
+    ACCEPTEE: "Acceptée",
+    REFUSEE: "Refusée",
+    TRANSFORMEE: "Transformée",
 };
 
-export const FAILURE_LEVEL_COLORS = {
-  [FAILURE_LEVELS.MINOR]: "green",
-  [FAILURE_LEVELS.MAJOR]: "orange",
-  [FAILURE_LEVELS.CRITICAL]: "red",
+export const FAILURE_STATUS_COLORS = {
+    EN_ATTENTE: "orange",
+    ACCEPTEE: "green",
+    REFUSEE: "red",
+    TRANSFORMEE: "grey",
 };
 
 // ============================================
