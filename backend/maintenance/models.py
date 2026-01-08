@@ -87,14 +87,7 @@ class BonTravail(models.Model):
         blank=True,
         related_name='bons_travail_responsable'
     )
-    equipement = models.ForeignKey(
-        Equipement,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='bons_travail'
-    )
-    
+
     class Meta:
         db_table = 'bon_travail'
         verbose_name = 'Bon de travail'
