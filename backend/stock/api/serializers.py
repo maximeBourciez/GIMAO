@@ -35,16 +35,27 @@ class ConsommableSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class FournitureConsommableSerializer(serializers.ModelSerializer):
+    """Serializer pour les fournitures (PorterSur) avec détails du fournisseur et fabricant"""
+    fournisseur_nom = serializers.CharField(source='fournisseur.nom', read_only=True)
+    fabricant_nom = serializers.CharField(source='fabricant.nom', read_only=True)
+    
+    class Meta:
+        model = PorterSur
+        fields = ['id', 'fournisseur', 'fournisseur_nom', 'fabricant', 'fabricant_nom', 
+                  'quantite', 'prix_unitaire', 'date_reference_prix']
+
+
 class ConsommableDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour le modèle Consommable avec informations du magasin"""
     magasin_details = serializers.SerializerMethodField()
-    fournisseur_nom = serializers.SerializerMethodField()
-    quantite = serializers.SerializerMethodField()
+    fournitures = FournitureConsommableSerializer(many=True, read_only=True)
+    quantite_totale = serializers.SerializerMethodField()
     
     class Meta:
         model = Consommable
         fields = ['id', 'designation', 'lienImageConsommable', 'magasin', 'magasin_details',
-                  'quantite', 'seuilStockFaible', 'documents', 'fournisseur_nom']
+                  'fournitures', 'quantite_totale', 'seuilStockFaible', 'documents']
     
     def get_magasin_details(self, obj):
         if obj.magasin:
@@ -55,14 +66,7 @@ class ConsommableDetailSerializer(serializers.ModelSerializer):
             }
         return None
     
-    def get_fournisseur_nom(self, obj):
-        # Récupère le fournisseur depuis les fournitures (PorterSur)
-        fourniture = obj.fournitures.first()
-        if fourniture and fourniture.fournisseur:
-            return fourniture.fournisseur.nom
-        return None
-    
-    def get_quantite(self, obj):
+    def get_quantite_totale(self, obj):
         # Somme des quantités de toutes les fournitures
         total = sum(fourniture.quantite for fourniture in obj.fournitures.all())
         return total

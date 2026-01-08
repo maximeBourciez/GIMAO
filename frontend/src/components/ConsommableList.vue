@@ -34,6 +34,12 @@
             <span v-else class="text-grey">-</span>
           </template>
 
+          <!-- Colonne Fabricant -->
+          <template #item.fabricant_nom="{ item }">
+            <span v-if="item.fabricant_nom">{{ item.fabricant_nom }}</span>
+            <span v-else class="text-grey">-</span>
+          </template>
+
           <!-- Colonne Quantité avec couleur -->
           <template #item.quantite="{ item }">
             <v-chip 
@@ -43,6 +49,12 @@
             >
               {{ item.quantite }}
             </v-chip>
+          </template>
+
+          <!-- Colonne Prix -->
+          <template #item.prix_unitaire="{ item }">
+            <span v-if="item.prix_unitaire !== null">{{ item.prix_unitaire.toFixed(2) }} €</span>
+            <span v-else class="text-grey">-</span>
           </template>
         </BaseListView>
       </v-col>
@@ -121,20 +133,22 @@ const loading = computed(() => consommablesApi.loading.value || magasinsApi.load
 const tableHeaders = [
   { title: 'Nom', key: 'designation', sortable: true },
   { title: 'Fournisseur', key: 'fournisseur_nom', sortable: true },
-  { title: 'Quantité', key: 'quantite', sortable: true, align: 'center' }
+  { title: 'Fabricant', key: 'fabricant_nom', sortable: true },
+  { title: 'Magasin', key: 'magasin_details.nom' },
+  { title: 'Quantité', key: 'quantite', sortable: true, align: 'center' },
+  { title: 'Prix unitaire', key: 'prix_unitaire', sortable: true, align: 'right' }
 ];
 
-// Sous-titre dynamique
-const currentSubtitle = computed(() => {
-  if (selectedMagasin.value === null) {
-    return `${filteredConsommables.value.length} consommable(s) au total`;
-  }
-  const magasin = magasins.value.find(m => m.id === selectedMagasin.value);
-  return magasin ? `Magasin: ${magasin.nom} - ${filteredConsommables.value.length} consommable(s)` : '';
-});
+// Fonction utilitaire pour vérifier le statut du stock d'un consommable
+const getStockStatus = (consommable) => {
+  const quantite = consommable.quantite_totale ?? consommable.quantite ?? 0;
+  if (quantite === 0) return 'hors-stock';
+  if (consommable.seuilStockFaible !== null && quantite <= consommable.seuilStockFaible) return 'sous-seuil';
+  return 'stock-suffisant';
+};
 
-// Filtrage par magasin et stock
-const filteredConsommables = computed(() => {
+// Filtrage par magasin et stock sur les consommables originaux
+const consommablesFiltered = computed(() => {
   let filtered = consommables.value;
 
   // Filtre par magasin
@@ -142,20 +156,54 @@ const filteredConsommables = computed(() => {
     filtered = filtered.filter(c => c.magasin === selectedMagasin.value);
   }
 
-  // Filtre par type de stock
-  if (selectedStockFilter.value === 'hors-stock') {
-    filtered = filtered.filter(c => c.quantite === 0);
-  } else if (selectedStockFilter.value === 'sous-seuil') {
-    filtered = filtered.filter(c => 
-      c.quantite > 0 && c.seuilStockFaible !== null && c.quantite <= c.seuilStockFaible
-    );
-  } else if (selectedStockFilter.value === 'stock-suffisant') {
-    filtered = filtered.filter(c => 
-      c.seuilStockFaible === null || c.quantite > c.seuilStockFaible
-    );
+  // Filtre par type de stock (utilise quantite_totale)
+  if (selectedStockFilter.value) {
+    filtered = filtered.filter(c => getStockStatus(c) === selectedStockFilter.value);
   }
 
   return filtered;
+});
+
+// Expansion des consommables filtrés en fournitures individuelles
+const filteredConsommables = computed(() => {
+  const expanded = [];
+  
+  consommablesFiltered.value.forEach(consommable => {
+    if (consommable.fournitures && consommable.fournitures.length > 0) {
+      consommable.fournitures.forEach(fourniture => {
+        expanded.push({
+          ...consommable,
+          fournisseur_nom: fourniture.fournisseur_nom,
+          fabricant_nom: fourniture.fabricant_nom,
+          fournisseur: fourniture.fournisseur,
+          fabricant: fourniture.fabricant,
+          quantite: fourniture.quantite,
+          prix_unitaire: parseFloat(fourniture.prix_unitaire),
+          date_reference_prix: fourniture.date_reference_prix,
+          fourniture_id: fourniture.id
+        });
+      });
+    } else {
+      expanded.push({
+        ...consommable,
+        fournisseur_nom: null,
+        fabricant_nom: null,
+        quantite: 0,
+        prix_unitaire: null
+      });
+    }
+  });
+  
+  return expanded;
+});
+
+// Sous-titre dynamique
+const currentSubtitle = computed(() => {
+  if (selectedMagasin.value === null) {
+    return `${filteredConsommables.value.length} fourniture(s) au total`;
+  }
+  const magasin = magasins.value.find(m => m.id === selectedMagasin.value);
+  return magasin ? `Magasin: ${magasin.nom} - ${filteredConsommables.value.length} fourniture(s)` : '';
 });
 
 // Couleur de la quantité
@@ -185,13 +233,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.floating-add-button {
-  position: fixed;
-  bottom: 140px;
-  right: 24px;
-  z-index: 1001;
-}
-
 .magasin-filter-sticky {
   position: sticky;
   bottom: 0;

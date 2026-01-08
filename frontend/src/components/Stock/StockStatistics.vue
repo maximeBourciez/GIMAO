@@ -72,19 +72,21 @@ const emit = defineEmits(['filter-change']);
 
 // Statistiques de stock
 const horsStockCount = computed(() => {
-  return props.consommables.filter(c => c.quantite === 0).length;
+  return props.consommables.filter(c => (c.quantite_totale ?? c.quantite ?? 0) === 0).length;
 });
 
 const sousSeuilCount = computed(() => {
-  return props.consommables.filter(c => 
-    c.quantite > 0 && c.seuilStockFaible !== null && c.quantite <= c.seuilStockFaible
-  ).length;
+  return props.consommables.filter(c => {
+    const quantite = c.quantite_totale ?? c.quantite ?? 0;
+    return quantite > 0 && c.seuilStockFaible !== null && quantite <= c.seuilStockFaible;
+  }).length;
 });
 
 const stockSuffisantCount = computed(() => {
-  return props.consommables.filter(c => 
-    c.seuilStockFaible === null || c.quantite > c.seuilStockFaible
-  ).length;
+  return props.consommables.filter(c => {
+    const quantite = c.quantite_totale ?? c.quantite ?? 0;
+    return c.seuilStockFaible === null || quantite > c.seuilStockFaible;
+  }).length;
 });
 
 const handleFilterClick = (filterType) => {
