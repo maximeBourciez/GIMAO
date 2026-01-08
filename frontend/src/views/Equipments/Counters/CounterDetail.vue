@@ -155,8 +155,9 @@ import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants'
 import CounterForm from './CounterForm.vue'
 
 /* ========= ROUTER ========= */
-const route = useRoute()
-const counterId = Number(route.params.id)
+const route = useRoute();
+const router = useRouter();
+const counterId = Number(route.params.id);
 
 /* ========= STATE ========= */
 const counter = ref(null)
