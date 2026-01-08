@@ -74,7 +74,7 @@ const validation = useFormValidation(formData, {
   nom: [v => !!v || 'Le nom est requis'],
   equipement_id: [v => !!v || "L'équipement est requis"],
   commentaire: [
-    v => (v && v.length <= 300) || 'Le commentaire ne doit pas dépasser 300 caractères'
+    v => !v || v.length <= 300 || 'Le commentaire ne doit pas dépasser 300 caractères'
   ]
 });
 
