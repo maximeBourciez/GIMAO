@@ -9,9 +9,16 @@ from donnees.models import Fabricant, Fournisseur, Document
 
 class DemandeIntervention(models.Model):
     """Demande d'intervention sur un équipement"""
+    STATUT_CHOICES = [
+        ('EN_ATTENTE', 'En attente'),
+        ('ACCEPTEE', 'Acceptée'),
+        ('REFUSEE', 'Refusée'),
+        ('TRANSFORMEE', 'Transformée'),
+    ]
+    
     commentaire = models.TextField(blank=True, null=True)
     nom = models.CharField(max_length=255)
-    statut = models.CharField(max_length=50)
+    statut = models.CharField(max_length=50, choices=STATUT_CHOICES)
     date_creation = models.DateTimeField()
     date_changementStatut = models.DateTimeField()
     
