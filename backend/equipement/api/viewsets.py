@@ -748,7 +748,6 @@ class CompteurViewSet(viewsets.ModelViewSet):
                             utilisateur=Utilisateur.objects.get(id=3)
                         )
         
-        compteur.save()
 
         self._update_plan_maintenance_from_changes(compteur, changes, request)
 
@@ -761,19 +760,12 @@ class CompteurViewSet(viewsets.ModelViewSet):
     
     def _update_plan_maintenance_from_changes(self, compteur, modifications, request):
         """Met à jour le plan de maintenance d'un compteur"""
-        print(f"📋 Traitement du plan de maintenance pour compteur {compteur.id}")
-        
+        print(f" Traitement du plan de maintenance pour compteur {compteur.id}")
+    
         # Vérifier si un plan existe, sinon en créer un
-        if not compteur.planMaintenance:
-            print("  ➕ Création d'un nouveau plan de maintenance")
-            plan = PlanMaintenance.objects.create(
-                compteur=compteur,
-                equipement=compteur.equipement,
-                nom="Nouveau plan",
-                type_plan_maintenance_id=1  # Type par défaut
-            )
-            compteur.planMaintenance = plan
-            compteur.save()
+        if not compteur.planMaintenance or compteur.planMaintenance is None:
+            print(" Création d'un nouveau plan de maintenance")
+            self._createNewPlan(compteur, modifications, request)
         
         plan = compteur.planMaintenance
         
@@ -783,6 +775,14 @@ class CompteurViewSet(viewsets.ModelViewSet):
             if new_name and plan.nom != new_name:
                 print(f"  📝 Nom du plan: {plan.nom} -> {new_name}")
                 plan.nom = new_name
+
+                self._create_log_entry(
+                    type_action='modification',
+                    nom_table='plan_maintenance',
+                    id_cible={'plan_maintenance_id': plan.id},
+                    champs_modifies={'nom': {'ancien': plan.nom , 'nouveau': new_name}},
+                    utilisateur=Utilisateur.objects.get(id=3)
+                )
         
         # Mise à jour du type
         if 'planMaintenance.type' in modifications:
@@ -801,29 +801,63 @@ class CompteurViewSet(viewsets.ModelViewSet):
         # Mise à jour des consommables
         if 'planMaintenance.consommables' in modifications:
             consommables_data = modifications['planMaintenance.consommables']
+            
+            consommables_existants = plan.planmaintenanceconsommable_set.all()
+            consommables_existants_ids = set(consommable.consommable_id for consommable in consommables_existants)
+
             nouveaux_consommables = consommables_data.get('nouvelle', [])
-            ajoutes = consommables_data.get('ajoutes', [])
-            retires = consommables_data.get('retires', [])
-            
-            print(f"  🛠️ Consommables: {len(nouveaux_consommables)} total, {len(ajoutes)} ajoutés, {len(retires)} retirés")
-            
-            # Supprimer les consommables retirés
-            if retires:
-                plan.planmaintenanceconsommable_set.filter(consommable_id__in=retires).delete()
-            
-            # Ajouter les nouveaux consommables
-            for consommable_id in ajoutes:
-                # Chercher la quantité dans les données complètes
-                quantite = 1  # Valeur par défaut
-                for conso in nouveaux_consommables:
-                    if isinstance(conso, dict) and conso.get('consommable') == consommable_id:
-                        quantite = conso.get('quantite', 1)
-                        break
-                PlanMaintenanceConsommable.objects.create(
-                    plan_maintenance=plan,
-                    consommable_id=consommable_id,
-                    quantite_necessaire=quantite    
-                )
+
+            for conso in nouveaux_consommables:
+                conso_id = conso.get('consommable')
+                quantite = conso.get('quantite', 1)
+
+                if conso_id not in consommables_existants_ids:
+                    # Ajouter le nouveau consommable
+                    PlanMaintenanceConsommable.objects.create(
+                        plan_maintenance=plan,
+                        consommable_id=conso_id,
+                        quantite_necessaire=quantite
+                    )
+                    print(f"  Consommable ajouté: {conso_id} (Quantité: {quantite})")
+
+                    self._create_log_entry(
+                        type_action='ajout',
+                        nom_table='plan_maintenance_consommable',
+                        id_cible={'plan_maintenance_id': plan.id, 'consommable_id': conso_id},
+                        champs_modifies={'quantite_necessaire': quantite},
+                        utilisateur=Utilisateur.objects.get(id=3)   
+                    )
+
+                else:
+                    # Mettre à jour la quantité si nécessaire
+                    conso_obj = consommables_existants.get(consommable_id=conso_id)
+                    if conso_obj.quantite_necessaire != quantite:
+                        old_quantity = conso_obj.quantite_necessaire
+                        conso_obj.quantite_necessaire = quantite
+                        conso_obj.save()
+                        print(f"  Consommable mis à jour: {conso_id} (Quantité: {old_quantity} -> {quantite})")
+
+                        self._create_log_entry(
+                            type_action='modification',
+                            nom_table='plan_maintenance_consommable',
+                            id_cible={'plan_maintenance_id': plan.id, 'consommable_id': conso_id},
+                            champs_modifies={'quantite_necessaire': {'ancien': old_quantity, 'nouveau': quantite}},
+                            utilisateur=Utilisateur.objects.get(id=3)   
+                        )
+                
+            for old_conso in consommables_existants:
+                if old_conso.consommable_id not in [c.get('consommable') for c in nouveaux_consommables]:
+                    # Supprimer le consommable retiré
+                    old_conso.delete()
+                    print(f"  Consommable supprimé: {old_conso.consommable_id}")
+
+                    self._create_log_entry(
+                        type_action='suppression',
+                        nom_table='plan_maintenance_consommable',
+                        id_cible={'plan_maintenance_id': plan.id, 'consommable_id': old_conso.consommable_id},
+                        champs_modifies={},
+                        utilisateur=Utilisateur.objects.get(id=3)   
+                    )
 
         # Mise à jour des documents
         if 'planMaintenance.documents' in modifications:
