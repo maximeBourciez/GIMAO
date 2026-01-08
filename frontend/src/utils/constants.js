@@ -12,18 +12,18 @@ export const DEFAULT_ITEMS_PER_PAGE = 10;
 // ============================================
 
 export const EQUIPMENT_STATUS = {
-  EN_FONCTIONNEMENT: "En fonctionnement",
-  A_LARRET: "À l'arrêt",
-  DEGRADE: "Dégradé",
-  HORS_SERVICE: "Hors service",
+    EN_FONCTIONNEMENT: "En fonctionnement",
+    A_LARRET: "À l'arrêt",
+    DEGRADE: "Dégradé",
+    HORS_SERVICE: "Hors service",
 };
 
 
 export const EQUIPMENT_STATUS_COLORS = {
-  EN_FONCTIONNEMENT: "green",
-  A_LARRET: "red",
-  DEGRADE: "orange",
-  HORS_SERVICE: "grey",
+    EN_FONCTIONNEMENT: "green",
+    A_LARRET: "red",
+    DEGRADE: "orange",
+    HORS_SERVICE: "grey",
 };
 
 
@@ -68,32 +68,93 @@ export const INTERVENTION_STATUS_COLORS = {
 // ============================================
 
 export const TABLE_HEADERS = {
-  /********************************
-     *  DEMANDES D'INTERVENTION
+
+    /********************************
+     *  DEMANDES D'INTERVENTIONS
      *******************************/
-    FAILURES: [
+    FAILURES_SUPER_LIGHT: [
         {
-            title: "Commentaire",
+            title: "N°",
             align: "start",
             sortable: true,
-            value: "commentaireDefaillance",
+            value: "id",
         },
         {
-            title: "Traitée",
-            align: "center",
+            title: "Nom",
+            align: "start",
             sortable: true,
-            value: "traite",
+            value: "nom",
         },
         {
-            title: "Niveau",
+            title: "Statut",
             align: "center",
             sortable: true,
-            value: "niveau",
+            value: "statut",
+        },
+    ],
+
+    FAILURES_LIGHT: [
+        {
+            title: "N°",
+            align: "start",
+            sortable: true,
+            value: "id",
+        },
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Créateur",
+            align: "center",
+            sortable: true,
+            value: "createur",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+    ],
+
+    FAILURES: [
+        {
+            title: "N°",
+            align: "start",
+            sortable: true,
+            value: "id",
+        },
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Commentaire",
+            align: "center",
+            sortable: false,
+            value: "commentaire",
+        },
+        {
+            title: "Créateur",
+            align: "center",
+            sortable: true,
+            value: "createur",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
         },
         {
             title: "Équipement",
             align: "center",
-            sortable: false,
+            sortable: true,
             value: "equipement",
         },
     ],
@@ -270,18 +331,18 @@ export const TABLE_HEADERS = {
     ],
 
     CONSUMABLES: [
-      {
-        title: "Désignation",
-        value: "designation",
-        sortable: true,
-        align: "center",
-      },
-      {
-        title: "Fabricant",
-        value: "fabricant",
-        sortable: true,
-        align: "center",
-      }
+        {
+            title: "Désignation",
+            value: "designation",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Fabricant",
+            value: "fabricant",
+            sortable: true,
+            align: "center",
+        }
     ],
 
     /********************************
@@ -307,5 +368,5 @@ export const TABLE_HEADERS = {
             align: "center",
         },
     ],
-      
+
 };

@@ -93,10 +93,6 @@ export default {
       drawer: false,
       appTitle: "GIMAO",
       logo: require("@/assets/images/LogoGIMAO.png"),
-      user: {
-        name: "Jean Dupont",
-        role: "Administrateur"
-      },
       navigationItems: [
         { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord" },
         { name: "EquipmentList", icon: "mdi-tools", title: "Équipements" },
@@ -112,6 +108,36 @@ export default {
   computed: {
     pageTitle() {
       return this.$route.meta?.title || this.appTitle;
+    },
+    
+    user() {
+      const currentUser = this.$store.getters.currentUser;
+      
+      if (currentUser) {
+        return {
+          name: `${currentUser.prenom} ${currentUser.nomFamille}`,
+          role: currentUser.role?.nomRole || 'Utilisateur'
+        };
+      }
+      
+      // Fallback: essayer de lire depuis localStorage
+      const userFromStorage = localStorage.getItem('user');
+      if (userFromStorage) {
+        try {
+          const userData = JSON.parse(userFromStorage);
+          return {
+            name: `${userData.prenom} ${userData.nomFamille}`,
+            role: userData.role?.nomRole || 'Utilisateur'
+          };
+        } catch (e) {
+          console.error('Error parsing user from localStorage:', e);
+        }
+      }
+      
+      return {
+        name: 'Utilisateur',
+        role: 'Non défini'
+      };
     },
     
     userInitials() {
@@ -137,10 +163,12 @@ export default {
     },
     
     logout() {
-      // Logique de déconnexion
-      console.log('Déconnexion...');
+      // Supprimer les données du store et du localStorage
+      this.$store.dispatch('logout');
       this.drawer = false;
-      // this.$router.push({ name: 'Login' });
+      
+      // Rediriger vers login avec un reload complet pour nettoyer tout le state
+      window.location.href = '/login';
     }
   }
 };

@@ -1,6 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 // ---------------------------------------------------------------
+// AUTH
+import Login from '@/views/Auth/Login.vue'
+import SetPassword from '@/views/Auth/SetPassword.vue'
+
+// ---------------------------------------------------------------
 import Dashboard from '@/views/Dashboard/Dashboard.vue'
 import EquipmentList from '@/views/Equipments/EquipmentList.vue'
 import InterventionList from '@/views/Interventions/InterventionList.vue'
@@ -54,6 +59,21 @@ import ModelEquipmentDetail from '@/views/DataManagement/EquipmentsModels/ModelE
 
 
 const routes = [
+  // Auth routes (publiques)
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { public: true }
+  },
+  {
+    path: '/set-password',
+    name: 'SetPassword',
+    component: SetPassword,
+    meta: { public: true }
+  },
+
+  // Routes protégées
   {
     path: '/',
     name: 'Dashboard',
@@ -67,7 +87,7 @@ const routes = [
     component: Technicians,
     meta: { title: 'Techniciens' }
   },
-  
+
   {
     path: '/AccountManagement',
     name: 'AccountManagement',
@@ -80,7 +100,7 @@ const routes = [
     name: 'Orders',
     component: Orders,
     meta: { title: 'Commandes' }
-    
+
   },
 
   {
@@ -100,7 +120,7 @@ const routes = [
     component: ConsumableList,
     meta: { title: 'Consommables' }
   },
-  
+
   {
     path: '/CreateConsumable',
     name: 'CreateConsumable',
@@ -117,7 +137,7 @@ const routes = [
   },
 
 
-    // Fabricants ------------------------------------------------------------------
+  // Fabricants ------------------------------------------------------------------
 
   {
     path: '/ManufacturerList',
@@ -125,7 +145,7 @@ const routes = [
     component: ManufacturerList,
     meta: { title: 'Fabricants' }
   },
-  
+
   {
     path: '/CreateManufacturer',
     name: 'CreateManufacturer',
@@ -142,7 +162,7 @@ const routes = [
   },
 
 
-    // Fournisseurs ------------------------------------------------------------------
+  // Fournisseurs ------------------------------------------------------------------
 
   {
     path: '/SupplierList',
@@ -211,15 +231,6 @@ const routes = [
 
 
 
-  // Signalements ---------------------------------------------------------------
-
-  {
-    path: '/FailureList',
-    name: 'FailureList',
-    component: FailureList,
-    meta: { title: 'Demandes d\'interventions' }
-  },
-
   // Equipements ---------------------------------------------------------------
 
   {
@@ -233,7 +244,7 @@ const routes = [
     path: '/EquipmentDetail/:id',
     name: 'EquipmentDetail',
     component: EquipmentDetail,
-    props: true, 
+    props: true,
     meta: { title: 'Descriptif de l\'équipement' }
   },
 
@@ -252,6 +263,13 @@ const routes = [
   },
 
   // Defaillance ---------------------------------------------------------------
+  {
+    path: '/FailureList',
+    name: 'FailureList',
+    component: FailureList,
+    meta: { title: 'Demandes d\'interventions' }
+  },
+
   {
     path: '/CreateFailure/:equipementReference?',
     name: 'CreateFailure',
@@ -284,7 +302,7 @@ const routes = [
     component: LocationList,
     meta: { title: 'Lieux' }
   },
-  
+
   {
     path: '/CreateLocation',
     name: 'CreateLocation',
@@ -301,35 +319,54 @@ const routes = [
   },
 
 
-    // Modele Equipements ---------------------------------------------------------------
+  // Modele Equipements ---------------------------------------------------------------
 
-    {
-      path: '/ModelEquipmentList',
-      name: 'ModelEquipmentList',
-      component: ModelEquipmentList,
-      meta: { title: 'Modèle' }
-    },
+  {
+    path: '/ModelEquipmentList',
+    name: 'ModelEquipmentList',
+    component: ModelEquipmentList,
+    meta: { title: 'Modèle' }
+  },
 
-    {
-      path: '/CreateModelEquipment',
-      name: 'CreateModelEquipment',
-      component: CreateModelEquipment,
-      meta: { title: 'Creer un modele equipement' }
-    },
-    
-    {
-      path: '/ModelEquipmentDetail/:id',
-      name: 'ModelEquipmentDetail',
-      component: ModelEquipmentDetail,
-      meta: { title: 'Detail du modele equipement' }
-    },
-  
+  {
+    path: '/CreateModelEquipment',
+    name: 'CreateModelEquipment',
+    component: CreateModelEquipment,
+    meta: { title: 'Creer un modele equipement' }
+  },
+
+  {
+    path: '/ModelEquipmentDetail/:id',
+    name: 'ModelEquipmentDetail',
+    component: ModelEquipmentDetail,
+    meta: { title: 'Detail du modele equipement' }
+  },
+
 
 ]
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes
+})
+
+// Protection des routes
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('user')
+  
+  // Si la route est publique, laisser passer
+  if (to.meta.public) {
+    next()
+    return
+  }
+  
+  // Si non authentifié, rediriger vers login
+  if (!isAuthenticated) {
+    next('/login')
+    return
+  }
+  
+  next()
 })
 
 export default router

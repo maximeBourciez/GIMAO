@@ -1,20 +1,23 @@
 <template>
   <v-app>
-    <!-- Desktop Sidebar -->
-    <Sidebar v-if="!isMobile" />
-    
-    <!-- Mobile TopBar (avec menu hamburger) -->
-    <TopBar v-if="isMobile" />
-    
-    <!-- Desktop TopBar (juste le titre, pas de hamburger) -->
-    <v-app-bar v-if="!isMobile" app color="white" elevation="1">
-      <v-toolbar-title class="font-weight-bold ml-4">
-        {{ pageTitle }}
-      </v-toolbar-title>
-    </v-app-bar>
+    <!-- N'afficher la navigation que si on n'est pas sur une page publique -->
+    <template v-if="!isPublicPage">
+      <!-- Desktop Sidebar -->
+      <Sidebar v-if="!isMobile" />
+      
+      <!-- Mobile TopBar (avec menu hamburger) -->
+      <TopBar v-if="isMobile" />
+      
+      <!-- Desktop TopBar (juste le titre, pas de hamburger) -->
+      <v-app-bar v-if="!isMobile" app color="white" elevation="1">
+        <v-toolbar-title class="font-weight-bold ml-4">
+          {{ pageTitle }}
+        </v-toolbar-title>
+      </v-app-bar>
+    </template>
     
     <v-main>
-      <Breadcrumb />
+      <Breadcrumb v-if="!isPublicPage" />
       <router-view />
     </v-main>
   </v-app>
@@ -42,10 +45,16 @@ export default {
   computed: {
     pageTitle() {
       return this.$route.meta?.title || 'GIMAO';
+    },
+    isPublicPage() {
+      return this.$route.meta?.public === true;
     }
   },
   
   mounted() {
+    // Initialiser l'authentification depuis le localStorage
+    this.$store.dispatch('initAuth');
+    
     this.checkIfMobile();
     window.addEventListener('resize', this.checkIfMobile);
   },

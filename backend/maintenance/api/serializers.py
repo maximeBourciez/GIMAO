@@ -78,10 +78,11 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
             'id',
             'nom',
             'commentaire',
-            'date_traitement',
-            'date_commencement',
-            'utilisateur',
+            'statut',
+            'date_creation',
+            'date_changementStatut',
             'equipement',
+            'utilisateur',
             'utilisateur_id',
             'equipement_id'
         ]
