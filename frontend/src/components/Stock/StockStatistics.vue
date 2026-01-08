@@ -1,36 +1,39 @@
 <template>
-  <v-card elevation="1" class="rounded-lg pa-3">
-    <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2 mb-2">
-      Statistiques
-    </v-card-title>
-    <v-divider class="mb-3"></v-divider>
-    <v-row dense>
-      <v-col cols="12">
-        <div class="d-flex justify-space-between align-center mb-2">
-          <span class="text-caption text-grey-darken-1">Hors stock</span>
-          <v-chip size="small" color="error" variant="tonal">
-            {{ horsStockCount }}
-          </v-chip>
+  <v-row>
+    <v-col cols="12" md="4">
+      <v-card elevation="1" class="rounded-lg pa-4" color="error-lighten-5">
+        <div class="d-flex align-center justify-space-between">
+          <div>
+            <p class="text-caption text-grey-darken-1 mb-1">Hors stock</p>
+            <p class="text-h4 font-weight-bold text-error">{{ horsStockCount }}</p>
+          </div>
+          <v-icon size="48" color="error" class="opacity-50">mdi-alert-circle</v-icon>
         </div>
-      </v-col>
-      <v-col cols="12">
-        <div class="d-flex justify-space-between align-center mb-2">
-          <span class="text-caption text-grey-darken-1">Sous le seuil</span>
-          <v-chip size="small" color="warning" variant="tonal">
-            {{ sousSeuilCount }}
-          </v-chip>
+      </v-card>
+    </v-col>
+    <v-col cols="12" md="4">
+      <v-card elevation="1" class="rounded-lg pa-4" color="warning-lighten-5">
+        <div class="d-flex align-center justify-space-between">
+          <div>
+            <p class="text-caption text-grey-darken-1 mb-1">Sous le seuil</p>
+            <p class="text-h4 font-weight-bold text-warning">{{ sousSeuilCount }}</p>
+          </div>
+          <v-icon size="48" color="warning" class="opacity-50">mdi-alert</v-icon>
         </div>
-      </v-col>
-      <v-col cols="12">
-        <div class="d-flex justify-space-between align-center">
-          <span class="text-caption text-grey-darken-1">Stock suffisant</span>
-          <v-chip size="small" color="success" variant="tonal">
-            {{ stockSuffisantCount }}
-          </v-chip>
+      </v-card>
+    </v-col>
+    <v-col cols="12" md="4">
+      <v-card elevation="1" class="rounded-lg pa-4" color="success-lighten-5">
+        <div class="d-flex align-center justify-space-between">
+          <div>
+            <p class="text-caption text-grey-darken-1 mb-1">Stock suffisant</p>
+            <p class="text-h4 font-weight-bold text-success">{{ stockSuffisantCount }}</p>
+          </div>
+          <v-icon size="48" color="success" class="opacity-50">mdi-check-circle</v-icon>
         </div>
-      </v-col>
-    </v-row>
-  </v-card>
+      </v-card>
+    </v-col>
+  </v-row>
 </template>
 
 <script setup>
@@ -60,3 +63,9 @@ const stockSuffisantCount = computed(() => {
   ).length;
 });
 </script>
+
+<style scoped>
+.opacity-50 {
+  opacity: 0.5;
+}
+</style>

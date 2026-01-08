@@ -8,15 +8,14 @@
           :magasins="magasins"
           :consommables="consommables"
           v-model:selectedMagasin="selectedMagasin"
-          class="mb-4"
         />
-
-        <!-- Statistiques -->
-        <StockStatistics :consommables="filteredConsommables" />
       </v-col>
 
-      <!-- Colonne principale avec BaseListView -->
+      <!-- Colonne principale -->
       <v-col cols="12" md="9">
+        <!-- Statistiques en haut -->
+        <StockStatistics :consommables="filteredConsommables" class="mb-4" />
+        
         <BaseListView 
           :title="title" 
           :subtitle="currentSubtitle"
@@ -162,10 +161,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.selected-item {
-  border-left: 3px solid rgb(var(--v-theme-primary));
-}
-
 .floating-add-button {
   position: fixed;
   bottom: 24px;
