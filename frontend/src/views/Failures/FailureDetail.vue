@@ -239,10 +239,11 @@ const handleCreateIntervention = () => {
 };
 
 const openEquipment = () => {
-  if (defaillance.value?.equipement?.reference) {
+  if (defaillance.value?.equipement?.id) {
     router.push({
       name: 'EquipmentDetail',
-      params: { reference: defaillance.value.equipement.reference }
+      params: { id: defaillance.value.equipement.id },
+      query:  {from: 'failure', failureID: defaillance.value.id}
     });
   }
 };
