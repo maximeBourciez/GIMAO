@@ -2,160 +2,203 @@
   <v-app>
     <v-main>
       <v-container>
-        <BaseForm v-model="formData" title="Créer un Équipement" :loading="loading" :error-message="errorMessage"
-          :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
-          :showActions="canSubmit" :custom-validation="validateForm" submit-button-text="Créer un Équipement"
-          :handleSubmit="handleSubmit" actions-container-class="d-flex justify-end gap-2" >
-          <template #default="{ formData }">
-            <v-stepper v-model="step" :steps="6" justify="center" alt-labels>
+        <BaseStepper 
+          v-model="formData" 
+          title="Créer un Équipement" 
+          :loading="loading" 
+          :error-message="errorMessage"
+          :success-message="successMessage" 
+          :loading-message="loadingData ? 'Chargement des données...' : ''"
+          :steps="stepConfigs"
+          :validation-schema="validationSchema"
+          submit-button-text="Créer un Équipement"
+          :handleSubmit="handleSubmit" 
+          actions-container-class="d-flex justify-end gap-2"
+          :validate-on-step-change="true"
+        >
+          <!-- Étape 1: Informations générales -->
+          <template #step1="{ formData, validation }">
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="formData.numSerie" 
+                  label="Numéro de série*"
+                  :rules="validation.getFieldRules('numSerie', 1)"
+                />
+              </v-col>
 
-              
-              <v-stepper-header class="justify-center">
-                <v-stepper-item v-for="(label, index) in EQUIPMENT_CREATE_STEPS" :key="index" :value="index + 1"
-                  :complete="step > index + 1" :editable="step > index + 1">
-                  <template #title>
-                    <span class="step-label">{{ label }}</span>
-                  </template>
-                </v-stepper-item>
-              </v-stepper-header>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="formData.reference" 
+                  label="Référence*"
+                  :rules="validation.getFieldRules('reference', 1)"
+                />
+              </v-col>
 
-              <v-stepper-window v-model="step" :steps="6" class="mb-4">
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="formData.designation" 
+                  label="Désignation*"
+                  :rules="validation.getFieldRules('designation', 1)"
+                />
+              </v-col>
 
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="formData.dateMiseEnService" 
+                  type="date" 
+                  label="Date de mise en service*"
+                  :rules="validation.getFieldRules('dateMiseEnService', 1)"
+                />
+              </v-col>
 
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="formData.prixAchat" 
+                  type="number" 
+                  label="Prix d'achat*"
+                  :rules="validation.getFieldRules('prixAchat', 1)"
+                />
+              </v-col>
 
-                <!-- Étape 1: Informations générales -->
-                <v-stepper-window-item :value="1">
-                  <v-row>
-                    <v-col cols="12" md="6">
-                      <v-text-field v-model="formData.numSerie" label="Numéro de série*" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <v-text-field v-model="formData.reference" label="Référence*" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <v-text-field v-model="formData.designation" label="Désignation*" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <v-text-field v-model="formData.dateMiseEnService" type="date" label="Date de mise en service*" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <v-text-field v-model="formData.prixAchat" type="number" label="Prix d'achat*" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <v-file-input label="Image de l'équipement" @change="handleFileUpload" />
-                    </v-col>
-                  </v-row>
-                </v-stepper-window-item>
-
-                <!-- Étape 2: Fournisseur et Fabricant -->
-                <v-stepper-window-item :value="2">
-                  <v-row>
-                    <v-col cols="12" md="6">
-                      <v-select v-model="formData.fournisseur" :items="fournisseurs" item-title="nom" item-value="id"
-                        label="Fournisseur*" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <v-select v-model="formData.fabricant" :items="fabricants" item-title="nom" item-value="id"
-                        label="Fabricant*" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <v-select v-model="formData.famille" :items="familles" item-title="nom" item-value="id"
-                        label="Famille*" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom"
-                        item-value="id" label="Modèle*" />
-                    </v-col>
-                  </v-row>
-                </v-stepper-window-item>
-
-                <!-- Étape 3: Localisation -->
-                <v-stepper-window-item :value="3">
-                  <LocationTreeView :items="locations" v-model:selected="formData.lieu" />
-                </v-stepper-window-item>
-
-                <!-- Étape 4: Statut -->
-                <v-stepper-window-item :value="4">
-                  <v-select v-model="formData.statut" :items="equipmentStatuses" item-title="label" item-value="value"
-                    label="Statut*" />
-                </v-stepper-window-item>
-
-                <!-- Étape 5: Consommables -->
-                <v-stepper-window-item :value="5">
-                  <v-select v-model="formData.consommables" :items="consumables" item-title="designation"
-                    item-value="id" multiple chips label="Consommables" />
-                </v-stepper-window-item>
-
-                <!-- Étape 6: Compteurs -->
-                <v-stepper-window-item :value="6">
-                  <v-row class="my-2" align="center" justify="space-between">
-                    <v-col cols="12" md="8">
-                      <h3 class="mb-3">Compteurs Associés</h3>
-                    </v-col>
-
-                    <v-col cols="12" md="4" class="text-end">
-                      <v-btn color="primary" class="my-1" @click="handleCounterAdd">
-                        Ajouter un Compteur
-                      </v-btn>
-                    </v-col>
-                  </v-row>
-
-                  <v-data-table :items="formData.compteurs" :headers="counterTableHeaders" class="elevation-1">
-                    <template #item.nom="{ item }">
-                      {{ item.nom }}
-                    </template>
-                    <template #item.intervalle="{ item }">
-                      {{ item.intervalle }}
-                    </template>
-                    <template #item.unite="{ item }">
-                      {{ item.unite }}
-                    </template>
-                    <template #item.options="{ item }">
-                      <div>
-                        {{ item.estGlissant && item.estPrincipal ? 'Glissant et Principal' :
-                          item.estGlissant ? 'Glissant' :
-                            item.estPrincipal ? 'Principal' :
-                              'Aucune' }}
-                      </div>
-                    </template>
-                    <template #item.planMaintenance="{ item }">
-                      <div>
-                        <v-icon left small>mdi-wrench</v-icon>
-                        {{ item.planMaintenance?.nom?.slice(0, 20) || 'Aucun plan associé' }}
-                      </div>
-                    </template>
-                    <template template #item.actions="{ item }">
-                      <v-btn icon small color="primary" @click="handleCounterEdit(item)">
-                        <v-icon>mdi-pencil</v-icon>
-                      </v-btn>
-                      <v-btn icon small color="red" @click="handleCounterDelete(item)">
-                        <v-icon>mdi-delete</v-icon>
-                      </v-btn>
-                    </template>
-                  </v-data-table>
-                </v-stepper-window-item>
-
-                <v-row justify="space-between" class="mt-4">
-                  <v-btn variant="text" @click="prevStep" :disabled="step === 1">
-                    Précédent
-                  </v-btn>
-
-                  <v-btn variant="text" color="primary" v-if="step < 6" @click="nextStep">
-                    Suivant
-                  </v-btn>
-                </v-row>
-              </v-stepper-window>
-            </v-stepper>
+              <v-col cols="12" md="6">
+                <v-file-input 
+                  label="Image de l'équipement" 
+                  @change="handleFileUpload"
+                  :rules="validation.getFieldRules('lienImageEquipement', 1)"
+                />
+              </v-col>
+            </v-row>
           </template>
-        </BaseForm>
+
+          <!-- Étape 2: Fournisseur et Fabricant -->
+          <template #step2="{ formData, validation }">
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-select 
+                  v-model="formData.fournisseur" 
+                  :items="fournisseurs" 
+                  item-title="nom" 
+                  item-value="id"
+                  label="Fournisseur*"
+                  :rules="validation.getFieldRules('fournisseur', 2)"
+                />
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-select 
+                  v-model="formData.fabricant" 
+                  :items="fabricants" 
+                  item-title="nom" 
+                  item-value="id"
+                  label="Fabricant*"
+                  :rules="validation.getFieldRules('fabricant', 2)"
+                />
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-select 
+                  v-model="formData.famille" 
+                  :items="familles" 
+                  item-title="nom" 
+                  item-value="id"
+                  label="Famille*"
+                  :rules="validation.getFieldRules('famille', 2)"
+                />
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-select 
+                  v-model="formData.modeleEquipement" 
+                  :items="equipmentModels" 
+                  item-title="nom"
+                  item-value="id" 
+                  label="Modèle*"
+                  :rules="validation.getFieldRules('modeleEquipement', 2)"
+                />
+              </v-col>
+            </v-row>
+          </template>
+
+          <!-- Étape 3: Localisation -->
+          <template #step3="{ formData, validation }">
+            <LocationTreeView :items="locations" v-model:selected="formData.lieu" />
+          </template>
+
+          <!-- Étape 4: Statut -->
+          <template #step4="{ formData, validation }">
+            <v-select 
+              v-model="formData.statut" 
+              :items="equipmentStatuses" 
+              item-title="label" 
+              item-value="value"
+              label="Statut*"
+              :rules="validation.getFieldRules('statut', 4)"
+            />
+          </template>
+
+          <!-- Étape 5: Consommables -->
+          <template #step5="{ formData, validation }">
+            <v-select 
+              v-model="formData.consommables" 
+              :items="consumables" 
+              item-title="designation"
+              item-value="id" 
+              multiple 
+              chips 
+              label="Consommables"
+            />
+          </template>
+
+          <!-- Étape 6: Compteurs -->
+          <template #step6="{ formData }">
+            <v-row class="my-2" align="center" justify="space-between">
+              <v-col cols="12" md="8">
+                <h3 class="mb-3">Compteurs Associés</h3>
+              </v-col>
+
+              <v-col cols="12" md="4" class="text-end">
+                <v-btn color="primary" class="my-1" @click="handleCounterAdd">
+                  Ajouter un Compteur
+                </v-btn>
+              </v-col>
+            </v-row>
+
+            <v-data-table :items="formData.compteurs" :headers="counterTableHeaders" class="elevation-1">
+              <template #item.nom="{ item }">
+                {{ item.nom }}
+              </template>
+              <template #item.intervalle="{ item }">
+                {{ item.intervalle }}
+              </template>
+              <template #item.unite="{ item }">
+                {{ item.unite }}
+              </template>
+              <template #item.options="{ item }">
+                <div>
+                  {{ item.estGlissant && item.estPrincipal ? 'Glissant et Principal' :
+                    item.estGlissant ? 'Glissant' :
+                      item.estPrincipal ? 'Principal' :
+                        'Aucune' }}
+                </div>
+              </template>
+              <template #item.planMaintenance="{ item }">
+                <div>
+                  <v-icon left small>mdi-wrench</v-icon>
+                  {{ item.planMaintenance?.nom?.slice(0, 20) || 'Aucun plan associé' }}
+                </div>
+              </template>
+              <template template #item.actions="{ item }">
+                <v-btn icon small color="primary" @click="handleCounterEdit(item)">
+                  <v-icon>mdi-pencil</v-icon>
+                </v-btn>
+                <v-btn icon small color="red" @click="handleCounterDelete(item)">
+                  <v-icon>mdi-delete</v-icon>
+                </v-btn>
+              </template>
+            </v-data-table>
+          </template>
+        </BaseStepper>
       </v-container>
     </v-main>
 
@@ -187,7 +230,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import BaseForm from '@/components/common/BaseForm.vue';
+import { BaseStepper } from '@/components/common';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, EQUIPMENT_CREATE_STEPS } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
@@ -207,6 +250,38 @@ const errorMessage = ref('');
 const successMessage = ref('');
 const isEditMode = ref(false);
 const editingCounterIndex = ref(-1);
+
+// Configuration des étapes
+const stepConfigs = EQUIPMENT_CREATE_STEPS.map(label => ({ label }));
+
+// Schéma de validation
+const validationSchema = {
+  step1: {
+    numSerie: ['required', { name: 'minLength', params: [3] }],
+    reference: ['required'],
+    designation: ['required'],
+    dateMiseEnService: ['required', 'date'],
+    prixAchat: ['required', 'numeric', 'positive'],
+  },
+  step2: {
+    fournisseur: ['required'],
+    fabricant: ['required'],
+    famille: ['required'],
+    modeleEquipement: ['required'],
+  },
+  step3: {
+    lieu: ['required'],
+  },
+  step4: {
+    statut: ['required'],
+  },
+  step5: {
+    // Consommables optionnels
+  },
+  step6: {
+    // Validation personnalisée pour les compteurs
+  }
+};
 
 let formData = ref({
   numSerie: '',
@@ -277,24 +352,6 @@ const getEmptyCounter = () => ({
 });
 
 const currentCounter = ref(getEmptyCounter());
-
-const validateForm = () => {
-  const requiredFields = ['numSerie', 'reference', 'designation', 'modeleEquipement', 'lieu', 'statut'];
-  let isValid = true;
-
-  requiredFields.forEach(field => {
-    if (!formData.value[field]) {
-      isValid = false;
-    }
-  });
-
-  if (formData.value.compteurs.length === 0) {
-    errorMessage.value = 'Au moins un compteur est requis';
-    isValid = false;
-  }
-
-  return isValid;
-};
 
 const handleFileUpload = (event) => {
   const file = event.target.files ? event.target.files[0] : event;
@@ -598,24 +655,14 @@ const closeCounterDialog = () => {
 onMounted(async () => {
   await fetchData()
 });
-
-const step = ref(1
-);
-
-const nextStep = () => {
-  if (step.value < 6) step.value++
-}
-
-const prevStep = () => {
-  if (step.value > 1) step.value--
-}
-
-const canSubmit = computed(() => {
-  return step.value === 6;
-});
 </script>
 
 <style scoped>
+.step-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .rotate-icon {
   transform: rotate(90deg);
   transition: transform 0.2s;

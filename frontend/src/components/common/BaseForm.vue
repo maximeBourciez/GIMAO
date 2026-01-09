@@ -52,6 +52,7 @@
         :is-valid="formValid"
         :reset-form="resetForm"
         :reset-validation="resetValidation"
+        :validation="validation"
       ></slot>
 
       <!-- Actions -->
@@ -86,6 +87,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { FormAlert, FormActions, FormContainer } from '.';
+import { useFormValidation } from '@/composables/useFormValidation';
 
 const props = defineProps({
   // Titre et sous-titre
@@ -253,6 +255,10 @@ const props = defineProps({
   },
 
   // Validation
+  validationSchema: {
+    type: Object,
+    default: () => ({})
+  },
   customValidation: {
     type: Function,
     default: () => true
@@ -285,7 +291,17 @@ const formData = computed({
   set: (value) => emit('update:modelValue', value)
 });
 
+// Initialiser la validation si un schéma est fourni
+const validation = props.validationSchema && Object.keys(props.validationSchema).length > 0
+  ? useFormValidation(props.validationSchema)
+  : null;
+
 const handleSubmit = () => {
+  // Valider avec le schéma si disponible
+  if (validation && !validation.validateAll(formData.value)) {
+    return;
+  }
+
   // Si une fonction personnalisée est fournie, l'utiliser
   if (props.handleSubmit && typeof props.handleSubmit === 'function') {
     props.handleSubmit(formData.value);
@@ -317,11 +333,17 @@ const resetForm = () => {
   if (formRef.value) {
     formRef.value.reset();
   }
+  if (validation) {
+    validation.clearErrors();
+  }
 };
 
 const resetValidation = () => {
   if (formRef.value) {
     formRef.value.resetValidation();
+  }
+  if (validation) {
+    validation.clearErrors();
   }
 };
 
@@ -329,7 +351,8 @@ defineExpose({
   resetForm,
   resetValidation,
   formRef,
-  formValid
+  formValid,
+  validation
 });
 </script>
 
