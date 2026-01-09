@@ -503,14 +503,8 @@ const handleSubmit = async () => {
 
   } catch (e) {
     console.error('Erreur lors de la création:', e);
-    errorMessage.value = 'Erreur lors de la création de l\'équipement';
-
-    if (e.response?.data) {
-      const errors = Object.entries(e.response.data)
-        .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
-        .join('\n');
-      errorMessage.value += `\n${errors}`;
-    }
+    console.error('Détails de l\'erreur:', e.response?.data);
+    errorMessage.value = 'L\'équipement n\'a pas pu être créé. Veuillez vérifier les informations saisies.';
   } finally {
     loading.value = false;
   }
