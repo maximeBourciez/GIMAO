@@ -157,7 +157,7 @@ const fetchData = async () => {
   try {
     await Promise.all([
       equipmentsApi.get('equipements/'),
-      locationsApi.get('lieux-hierarchy/'),
+      locationsApi.get('lieux/hierarchy/'),
       modelsApi.get('modele-equipements/')
     ]);
     emit('equipments-loaded', equipments.value);

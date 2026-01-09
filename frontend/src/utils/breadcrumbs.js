@@ -1,3 +1,4 @@
+import CreateLocation from "../views/DataManagement/Locations/CreateLocation.vue";
 import Stocks from "../views/Stocks/Stocks.vue";
 
 export const BREADCRUMBS = {
@@ -168,6 +169,41 @@ export const BREADCRUMBS = {
         {
             label: "Tableau de bord",
             to: { name: "Dashboard" },
+        },
+    ],
+
+    /**************************************
+     * Données secondaires
+     **************************************/
+    DataManagement: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+    ],
+
+    LocationList: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Lieux",
+            to: { name: "LocationList" },
+        },
+    ],
+
+    CreateLocation: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Lieux",
+            to: { name: "LocationList" },
+        },
+        {
+            label: "Créer un lieu",
         },
     ],
 };

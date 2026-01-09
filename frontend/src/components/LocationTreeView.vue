@@ -42,7 +42,7 @@ const props = defineProps({
   showCreateButton: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["update:selected"]);
+const emit = defineEmits(["update:selected", "create"]);
 
 const openNodes = ref([]);
 
@@ -63,7 +63,8 @@ const onSelect = (item) => {
 
 // Transmission de l’événement de création
 const onCreate = (item) => {
-  emit("create", item);
+  console.log("Create location under parent:", item); // Debug
+  emit("create", item.id);
 };
 
 

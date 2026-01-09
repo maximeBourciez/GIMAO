@@ -76,7 +76,35 @@ class LieuViewSet(viewsets.ModelViewSet):
         enfants = Lieu.objects.filter(lieuParent=lieu)
         serializer = self.get_serializer(enfants, many=True)
         return Response(serializer.data)
+    
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """
+        Création d'un lieu avec ou sans parent
+        """
+        data = request.data
+        nom = data.get('nomLieu')
+        parent_id = data.get('parentId')
+        type_lieu = data.get('typeLieu')
 
+        # Si on a un parent, vérifier qu'il existe
+        parent = None
+        if parent_id:
+            try:
+                parent = Lieu.objects.get(id=parent_id)
+            except Lieu.DoesNotExist:
+                return Response(
+                    {'error': 'Le lieu parent spécifié n\'existe pas.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+        lieu = Lieu.objects.create(
+            nomLieu=nom,
+            lieuParent=parent,
+            typeLieu=type_lieu
+        )
+
+        return Response(self.get_serializer(lieu).data, status=status.HTTP_201_CREATED)
 
 class TypeDocumentViewSet(viewsets.ModelViewSet):
     """

@@ -326,7 +326,7 @@ const fetchData = async () => {
     const typesDocumentsApi = useApi(API_BASE_URL);
 
     await Promise.all([
-      locationsApi.get('lieux-hierarchy/'),
+      locationsApi.get('lieux/hierarchy/'),
       modelsApi.get('modele-equipements/'),
       fabricantApi.get('fabricants/'),
       fournisseurApi.get('fournisseurs/'),
