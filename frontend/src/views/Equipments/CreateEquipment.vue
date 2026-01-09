@@ -4,165 +4,156 @@
       <v-container>
         <BaseForm v-model="formData" title="Créer un Équipement" :loading="loading" :error-message="errorMessage"
           :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
-          :custom-validation="validateForm" submit-button-text="Créer un Équipement" :handleSubmit="handleSubmit">
+          :showActions="canSubmit" :custom-validation="validateForm" submit-button-text="Créer un Équipement"
+          :handleSubmit="handleSubmit" actions-container-class="d-flex justify-end gap-2" >
           <template #default="{ formData }">
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="formData.numSerie" label="Numéro de série" type="text" outlined
-                  dense></v-text-field>
-              </v-col>
+            <v-stepper v-model="step" :steps="6" justify="center" alt-labels>
 
-              <v-col cols="12" md="6">
-                <v-text-field v-model="formData.reference" label="Référence" outlined dense required></v-text-field>
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field v-model="formData.designation" label="Désignation" outlined dense required
-                  :rules="[v => !!v || 'La désignation est requise']"></v-text-field>
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field v-model="formData.dateMiseEnService" label="Date de mise en service" type="date" outlined
-                  dense></v-text-field>
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field v-model="formData.prixAchat" label="Prix d'achat" type="number" outlined
-                  dense></v-text-field>
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-file-input label="Image de l'équipement" outlined dense accept="image/*"
-                  @change="handleFileUpload"></v-file-input>
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom" item-value="id"
-                  label="Modèle de l'équipement" outlined dense>
-                  <template #append-item>
-                    <v-divider class="mt-2" />
-                    <v-list-item class="text-primary" @click="openModeleDialog">
-                      <v-list-item-title>
-                        <v-icon left size="18">mdi-plus</v-icon>
-                        Créer un modèle d'équipement
-                      </v-list-item-title>
-                    </v-list-item>
+              
+              <v-stepper-header class="justify-center">
+                <v-stepper-item v-for="(label, index) in EQUIPMENT_CREATE_STEPS" :key="index" :value="index + 1"
+                  :complete="step > index + 1" :editable="step > index + 1">
+                  <template #title>
+                    <span class="step-label">{{ label }}</span>
                   </template>
-                </v-select>
-              </v-col>
+                </v-stepper-item>
+              </v-stepper-header>
 
-              <v-col cols="12" md="6">
-                <v-select v-model="formData.fournisseur" :items="fournisseurs" item-title="nom" item-value="id"
-                  label="Fournisseur" outlined dense>
-
-                  <template #append-item>
-                    <v-divider class="mt-2" />
-                    <v-list-item class="text-primary" @click="openFournisseurDialog">
-                      <v-list-item-title>
-                        <v-icon left size="18">mdi-plus</v-icon>
-                        Créer un fournisseur
-                      </v-list-item-title>
-                    </v-list-item>
-                  </template>
-                </v-select>
-              </v-col>
-
-              <v-col cols="6" md="6">
-                <v-select v-model="formData.fabricant" :items="fabricants" item-title="nom" item-value="id"
-                  label="Fabricant" outlined dense>
-                  <template #append-item>
-                    <v-divider class="mt-2" />
-                    <v-list-item class="text-primary" @click="openFabricantDialog">
-                      <v-list-item-title>
-                        <v-icon left size="18">mdi-plus</v-icon>
-                        Créer un fabricant
-                      </v-list-item-title>
-                    </v-list-item>
-                  </template>
-                </v-select>
-              </v-col>
+              <v-stepper-window v-model="step" :steps="6" class="mb-4">
 
 
-              <v-col cols="6" md="6">
-                <v-select v-model="formData.famille" :items="familles" item-title="nom" item-value="id"
-                  label="Famille d'équipement" outlined dense>
-                  <template #append-item>
-                    <v-divider class="mt-2" />
-                    <v-list-item class="text-primary" @click="openFamilleDialog">
-                      <v-list-item-title>
-                        <v-icon left size="18">mdi-plus</v-icon>
-                        Créer une famille d'équipement
-                      </v-list-item-title>
-                    </v-list-item>
-                  </template>
-                </v-select>
-              </v-col>
 
-              <v-col cols="6">
-                <LocationTreeView :items="locations" v-model:selected="formData.lieu"
-                  @created="handleLocationCreated" />
-              </v-col>
+                <!-- Étape 1: Informations générales -->
+                <v-stepper-window-item :value="1">
+                  <v-row>
+                    <v-col cols="12" md="6">
+                      <v-text-field v-model="formData.numSerie" label="Numéro de série*" />
+                    </v-col>
 
-              <v-col cols="6">
-                <v-select v-model="formData.statut" :items="equipmentStatuses" item-title="label" item-value="value"
-                  label="Statut de l'équipement" outlined dense></v-select>
-              </v-col>
+                    <v-col cols="12" md="6">
+                      <v-text-field v-model="formData.reference" label="Référence*" />
+                    </v-col>
 
-              <v-col cols="12">
-                <v-divider class="my-4"></v-divider>
-                <h3 class="mb-3">Consommables Associés</h3>
-                <v-select v-model="formData.consommables" :items="consumables" item-title="designation" item-value="id"
-                  label="Sélectionner les consommables" multiple chips outlined dense></v-select>
-              </v-col>
+                    <v-col cols="12" md="6">
+                      <v-text-field v-model="formData.designation" label="Désignation*" />
+                    </v-col>
 
-              <v-divider class="my-4"></v-divider>
+                    <v-col cols="12" md="6">
+                      <v-text-field v-model="formData.dateMiseEnService" type="date" label="Date de mise en service*" />
+                    </v-col>
 
-              <v-col cols="12">
-                <v-row cols="12" class="mb-2" align="center" justify="space-between">
-                  <h3 class="mb-3">Compteurs Associés</h3>
-                  <v-btn color="primary" class="mr-4 my-1" @click="handleCounterAdd">
-                    Ajouter un Compteur
-                  </v-btn>
-                </v-row>
-                <v-data-table :items="formData.compteurs" :headers="counterTableHeaders" class="elevation-1">
-                  <template #item.nom="{ item }">
-                    {{ item.nom }}
-                  </template>
-                  <template #item.intervalle="{ item }">
-                    {{ item.intervalle }}
-                  </template>
-                  <template #item.unite="{ item }">
-                    {{ item.unite }}
-                  </template>
-                  <template #item.options="{ item }">
-                    <div>
+                    <v-col cols="12" md="6">
+                      <v-text-field v-model="formData.prixAchat" type="number" label="Prix d'achat*" />
+                    </v-col>
+
+                    <v-col cols="12" md="6">
+                      <v-file-input label="Image de l'équipement" @change="handleFileUpload" />
+                    </v-col>
+                  </v-row>
+                </v-stepper-window-item>
+
+                <!-- Étape 2: Fournisseur et Fabricant -->
+                <v-stepper-window-item :value="2">
+                  <v-row>
+                    <v-col cols="12" md="6">
+                      <v-select v-model="formData.fournisseur" :items="fournisseurs" item-title="nom" item-value="id"
+                        label="Fournisseur*" />
+                    </v-col>
+
+                    <v-col cols="12" md="6">
+                      <v-select v-model="formData.fabricant" :items="fabricants" item-title="nom" item-value="id"
+                        label="Fabricant*" />
+                    </v-col>
+
+                    <v-col cols="12" md="6">
+                      <v-select v-model="formData.famille" :items="familles" item-title="nom" item-value="id"
+                        label="Famille*" />
+                    </v-col>
+
+                    <v-col cols="12" md="6">
+                      <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom"
+                        item-value="id" label="Modèle*" />
+                    </v-col>
+                  </v-row>
+                </v-stepper-window-item>
+
+                <!-- Étape 3: Localisation -->
+                <v-stepper-window-item :value="3">
+                  <LocationTreeView :items="locations" v-model:selected="formData.lieu" />
+                </v-stepper-window-item>
+
+                <!-- Étape 4: Statut -->
+                <v-stepper-window-item :value="4">
+                  <v-select v-model="formData.statut" :items="equipmentStatuses" item-title="label" item-value="value"
+                    label="Statut*" />
+                </v-stepper-window-item>
+
+                <!-- Étape 5: Consommables -->
+                <v-stepper-window-item :value="5">
+                  <v-select v-model="formData.consommables" :items="consumables" item-title="designation"
+                    item-value="id" multiple chips label="Consommables" />
+                </v-stepper-window-item>
+
+                <!-- Étape 6: Compteurs -->
+                <v-stepper-window-item :value="6">
+                  <v-row class="my-2" align="center" justify="space-between">
+                    <v-col cols="12" md="8">
+                      <h3 class="mb-3">Compteurs Associés</h3>
+                    </v-col>
+
+                    <v-col cols="12" md="4" class="text-end">
+                      <v-btn color="primary" class="my-1" @click="handleCounterAdd">
+                        Ajouter un Compteur
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+
+                  <v-data-table :items="formData.compteurs" :headers="counterTableHeaders" class="elevation-1">
+                    <template #item.nom="{ item }">
+                      {{ item.nom }}
+                    </template>
+                    <template #item.intervalle="{ item }">
+                      {{ item.intervalle }}
+                    </template>
+                    <template #item.unite="{ item }">
+                      {{ item.unite }}
+                    </template>
+                    <template #item.options="{ item }">
                       <div>
                         {{ item.estGlissant && item.estPrincipal ? 'Glissant et Principal' :
                           item.estGlissant ? 'Glissant' :
                             item.estPrincipal ? 'Principal' :
                               'Aucune' }}
                       </div>
-                    </div>
-                  </template>
-                  <template #item.planMaintenance="{ item }">
-                    <div>
-                      <v-icon left small>mdi-wrench</v-icon>
-                      {{ item.planMaintenance?.nom?.slice(0, 20) || 'Aucun plan associé' }}
-                    </div>
-                  </template>
-                  <template #item.actions="{ item }">
-                    <v-row>
-                      <v-btn icon color="blue" @click="handleCounterEdit(item)" size="30" class="mr-2">
-                        <v-icon size="14">mdi-pencil</v-icon>
+                    </template>
+                    <template #item.planMaintenance="{ item }">
+                      <div>
+                        <v-icon left small>mdi-wrench</v-icon>
+                        {{ item.planMaintenance?.nom?.slice(0, 20) || 'Aucun plan associé' }}
+                      </div>
+                    </template>
+                    <template template #item.actions="{ item }">
+                      <v-btn icon small color="primary" @click="handleCounterEdit(item)">
+                        <v-icon>mdi-pencil</v-icon>
                       </v-btn>
-                      <v-btn icon color="red" @click="handleCounterDelete(item)" size="30">
-                        <v-icon size="14">mdi-delete</v-icon>
+                      <v-btn icon small color="red" @click="handleCounterDelete(item)">
+                        <v-icon>mdi-delete</v-icon>
                       </v-btn>
-                    </v-row>
-                  </template>
-                </v-data-table>
-              </v-col>
-            </v-row>
+                    </template>
+                  </v-data-table>
+                </v-stepper-window-item>
+
+                <v-row justify="space-between" class="mt-4">
+                  <v-btn variant="text" @click="prevStep" :disabled="step === 1">
+                    Précédent
+                  </v-btn>
+
+                  <v-btn variant="text" color="primary" v-if="step < 6" @click="nextStep">
+                    Suivant
+                  </v-btn>
+                </v-row>
+              </v-stepper-window>
+            </v-stepper>
           </template>
         </BaseForm>
       </v-container>
@@ -170,7 +161,8 @@
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
       <CounterForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter" @close="closeCounterDialog" />
+        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter"
+        @close="closeCounterDialog" />
     </v-dialog>
 
     <v-dialog v-model="showFabricantDialog" max-width="80%">
@@ -197,7 +189,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, EQUIPMENT_CREATE_STEPS } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 import { EQUIPMENT_STATUS } from '@/utils/constants.js';
 import CounterForm from './Counters/CounterForm';
@@ -208,8 +200,6 @@ import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue'
 
 const router = useRouter();
 const api = useApi(API_BASE_URL);
-
-
 
 const loading = ref(false);
 const loadingData = ref(false);
@@ -235,6 +225,8 @@ let formData = ref({
   compteurs: [],
   createurEquipement: 3
 });
+
+
 
 const locations = ref([]);
 const equipmentModels = ref([]);
@@ -461,8 +453,6 @@ const handleCounterEdit = (counter) => {
   showCounterDialog.value = true;
 };
 
-
-
 const handleCounterDelete = (counter) => {
   if (confirm('Êtes-vous sûr de vouloir supprimer ce compteur ?')) {
     formData.value.compteurs = formData.value.compteurs.filter(c => c !== counter);
@@ -535,7 +525,6 @@ const updateExistingPM = (counterToSave) => {
   }
 };
 
-
 // -------------------------------
 // Modales Fabricant, Fournisseur, Modele, Famille Equipement
 // -------------------------------
@@ -598,9 +587,6 @@ const handleFamilleCreated = (newFamille) => {
   formData.value.famille = newFamille.id;
 };
 
-
-
-
 const closeCounterDialog = () => {
   showCounterDialog.value = false;
   editingCounterIndex.value = -1;
@@ -611,6 +597,21 @@ const closeCounterDialog = () => {
 
 onMounted(async () => {
   await fetchData()
+});
+
+const step = ref(1
+);
+
+const nextStep = () => {
+  if (step.value < 6) step.value++
+}
+
+const prevStep = () => {
+  if (step.value > 1) step.value--
+}
+
+const canSubmit = computed(() => {
+  return step.value === 6;
 });
 </script>
 

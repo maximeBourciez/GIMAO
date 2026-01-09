@@ -14,6 +14,7 @@
     :title-class="titleClass"
     :subtitle-class="subtitleClass"
     :content-class="contentClass"
+    :showActions="true"
   >
     <!-- Alerts -->
     <FormAlert
@@ -76,6 +77,7 @@
         :custom-cancel-action="customCancelAction"
         @cancel="handleCancel"
         @reset="handleReset"
+        v-if="showActions"
       />
     </v-form>
   </FormContainer>
@@ -264,6 +266,12 @@ const props = defineProps({
   handleSubmit: {
     type: Function,
     default: false
+  },
+
+  // Affichage des actions
+  showActions: {
+    type: Boolean,
+    default: true
   }
 });
 

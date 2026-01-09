@@ -25,6 +25,15 @@ export const EQUIPMENT_STATUS_COLORS = {
     HORS_SERVICE: "grey",
 };
 
+export const EQUIPMENT_CREATE_STEPS = [
+    "Informations Générales",
+    "Modèle d'Équipement",
+    "Lieu d'Installation",
+    "Statut de l'Équipement",
+    "Consommables",
+    "Compteurs",
+];
+
 // ============================================
 // NIVEAUX DE DÉFAILLANCE
 // ============================================
