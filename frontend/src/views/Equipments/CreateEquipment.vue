@@ -22,8 +22,10 @@
                   v-for="(label, index) in EQUIPMENT_CREATE_STEPS" 
                   :key="index" 
                   :value="index + 1"
-                  :complete="step > index + 1" 
-                  :editable="step > index + 1"
+                  :complete="isStepComplete(index + 1)" 
+                  :editable="isStepEditable(index + 1)"
+                  :color="isStepEditable(index + 1) ? 'primary' : undefined"
+                  @click="goToStep(index + 1)"
                 >
                   <template #title>
                     <span class="step-label">{{ label }}</span>
@@ -286,6 +288,7 @@ const successMessage = ref('');
 const isEditMode = ref(false);
 const editingCounterIndex = ref(-1);
 const step = ref(1);
+const visitedSteps = ref([1]); // Track des étapes visitées
 
 // Schéma de validation
 const validationSchema = {
@@ -687,11 +690,35 @@ const closeCounterDialog = () => {
 
 // Navigation entre les steps
 const nextStep = () => {
-  if (step.value < 6) step.value++;
+  if (step.value < 6) {
+    const nextStepValue = step.value + 1;
+    step.value = nextStepValue;
+    // Ajouter la nouvelle étape aux étapes visitées
+    if (!visitedSteps.value.includes(nextStepValue)) {
+      visitedSteps.value.push(nextStepValue);
+    }
+  }
 };
 
 const prevStep = () => {
   if (step.value > 1) step.value--;
+};
+
+const goToStep = (targetStep) => {
+  // Permet de naviguer vers n'importe quelle étape déjà visitée
+  if (isStepEditable(targetStep)) {
+    step.value = targetStep;
+  }
+};
+
+const isStepComplete = (stepNumber) => {
+  // Une étape est complète si on est passé au-delà
+  return visitedSteps.value.includes(stepNumber) && step.value > stepNumber;
+};
+
+const isStepEditable = (stepNumber) => {
+  // Une étape est éditable si elle a déjà été visitée
+  return visitedSteps.value.includes(stepNumber);
 };
 
 const canGoToNextStep = (validation) => {
@@ -708,6 +735,25 @@ onMounted(async () => {
 .step-label {
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+/* Style pour les étapes visitées (avec données) */
+:deep(.v-stepper-item--editable) {
+  cursor: pointer;
+}
+
+:deep(.v-stepper-item--editable .v-stepper-item__avatar) {
+  background-color: rgb(var(--v-theme-primary)) !important;
+  color: white !important;
+}
+
+:deep(.v-stepper-item--complete .v-stepper-item__avatar) {
+  background-color: rgb(var(--v-theme-primary)) !important;
+}
+
+:deep(.v-stepper-item--editable .step-label) {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 600;
 }
 
 .rotate-icon {
