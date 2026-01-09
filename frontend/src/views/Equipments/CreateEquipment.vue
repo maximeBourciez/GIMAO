@@ -273,6 +273,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import { BaseForm } from '@/components/common';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, EQUIPMENT_CREATE_STEPS } from '@/utils/constants';
@@ -285,6 +286,7 @@ import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
 import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue';
 
 const router = useRouter();
+const store = useStore();
 const api = useApi(API_BASE_URL);
 
 const loading = ref(false);
@@ -325,6 +327,33 @@ const validationSchema = {
   }
 };
 
+// Récupérer l'ID de l'utilisateur connecté
+const getCurrentUserId = () => {
+  const currentUser = store.getters.currentUser;
+  console.log('Current user from store:', currentUser);
+  
+  if (currentUser && currentUser.id) {
+    console.log('Using user ID from store:', currentUser.id);
+    return currentUser.id;
+  }
+  
+  // Fallback: lire depuis localStorage
+  const userFromStorage = localStorage.getItem('user');
+  if (userFromStorage) {
+    try {
+      const userData = JSON.parse(userFromStorage);
+      console.log('User data from localStorage:', userData);
+      console.log('Using user ID from localStorage:', userData.id);
+      return userData.id;
+    } catch (e) {
+      console.error('Error parsing user from localStorage:', e);
+    }
+  }
+  
+  console.error('Aucun utilisateur connecté trouvé');
+  return null;
+};
+
 let formData = ref({
   numSerie: '',
   reference: '',
@@ -340,7 +369,7 @@ let formData = ref({
   statut: null,
   consommables: [],
   compteurs: [],
-  createurEquipement: 3
+  createurEquipement: getCurrentUserId()
 });
 
 
@@ -454,6 +483,9 @@ const handleSubmit = async () => {
   loading.value = true;
   errorMessage.value = '';
 
+  console.log('FormData avant envoi:', formData.value);
+  console.log('createurEquipement ID:', formData.value.createurEquipement);
+
   try {
     const fd = new FormData();
 
@@ -466,6 +498,10 @@ const handleSubmit = async () => {
       } else if (key === 'compteurs') {
         const compteursData = formData.value.compteurs.map(c => ({
           ...c,
+          // S'assurer que les valeurs numériques ne sont pas null
+          valeurCourante: c.valeurCourante ?? 0,
+          derniereIntervention: c.derniereIntervention ?? 0,
+          intervalle: c.intervalle ?? 0,
           planMaintenance: {
             ...c.planMaintenance,
             documents: c.planMaintenance.documents.map(d => ({
