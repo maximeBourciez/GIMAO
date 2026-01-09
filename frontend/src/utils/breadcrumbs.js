@@ -182,6 +182,7 @@ export const BREADCRUMBS = {
         },
     ],
 
+    // Lieux
     LocationList: (route) => [
         {
             label: "Gestion des données",
@@ -204,6 +205,32 @@ export const BREADCRUMBS = {
         },
         {
             label: "Créer un lieu",
+        },
+    ],
+
+    // Fournisseurs
+    SupplierList: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Fournisseurs",
+            to: { name: "SupplierList" },
+        },
+    ],
+
+    CreateSupplier: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Fournisseurs",
+            to: { name: "SupplierList" },
+        },
+        {
+            label: "Créer un fournisseur",
         },
     ],
 };

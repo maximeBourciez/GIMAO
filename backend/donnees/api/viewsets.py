@@ -191,8 +191,6 @@ class FournisseurViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Utilise le serializer simple pour list"""
-        if self.action == 'list':
-            return FournisseurSimpleSerializer
         return FournisseurSerializer
 
     @action(detail=False, methods=['get'])
