@@ -16,7 +16,6 @@ export { default as FormContainer } from "./FormContainer.vue";
 
 // Export des composants principaux
 export { default as BaseForm } from "./BaseForm.vue";
-export { default as BaseStepper } from "./BaseStepper.vue";
 export { default as BaseListView } from "./BaseListView.vue";
 export { default as BaseDetailView } from "./BaseDetailView.vue";
 
