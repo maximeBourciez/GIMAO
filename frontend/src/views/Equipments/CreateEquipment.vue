@@ -218,11 +218,17 @@
 
                 <!-- Navigation -->
                 <v-row justify="space-between" class="mt-4">
-                  <v-btn variant="text" @click="prevStep" :disabled="step === 1">
+                  <v-btn 
+                    type="button"
+                    variant="text" 
+                    @click="prevStep" 
+                    :disabled="step === 1"
+                  >
                     Précédent
                   </v-btn>
 
                   <v-btn 
+                    type="button"
                     variant="text" 
                     color="primary" 
                     v-if="step < 6" 
@@ -439,7 +445,11 @@ const fetchData = async () => {
 };
 
 const handleSubmit = async () => {
-  if (!validateForm()) return;
+  // Validation basique : au moins un compteur requis
+  if (formData.value.compteurs.length === 0) {
+    errorMessage.value = 'Au moins un compteur est requis';
+    return;
+  }
 
   loading.value = true;
   errorMessage.value = '';

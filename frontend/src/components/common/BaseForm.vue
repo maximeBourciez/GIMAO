@@ -39,11 +39,11 @@
       @close="$emit('clear-success')"
     />
 
-    <!-- Form -->
+    <!-- Form - Utilise v-form seulement si pas de validationSchema (formulaires simples) -->
     <v-form 
+      v-if="!validationSchema || Object.keys(validationSchema).length === 0"
       ref="formRef" 
-      v-model="formValid" 
-      @submit.prevent="handleSubmit"
+      v-model="formValid"
     >
       <!-- Slot pour le contenu du formulaire -->
       <slot 
@@ -78,9 +78,50 @@
         :custom-cancel-action="customCancelAction"
         @cancel="handleCancel"
         @reset="handleReset"
+        @submit="handleSubmit"
         v-if="showActions"
       />
     </v-form>
+
+    <!-- Pour les formulaires avec validationSchema (steppers), pas de v-form wrapper -->
+    <div v-else>
+      <!-- Slot pour le contenu du formulaire -->
+      <slot 
+        :form-data="formData"
+        :is-loading="loading"
+        :is-valid="formValid"
+        :reset-form="resetForm"
+        :reset-validation="resetValidation"
+        :validation="validation"
+      ></slot>
+
+      <!-- Actions -->
+      <FormActions
+        :submit-button-text="submitButtonText"
+        :submit-button-color="submitButtonColor"
+        :submit-button-class="submitButtonClass"
+        :submit-button-variant="submitButtonVariant"
+        :submit-disabled="loading || customDisabled"
+        :show-cancel-button="showCancelButton"
+        :cancel-button-text="cancelButtonText"
+        :cancel-button-color="cancelButtonColor"
+        :cancel-button-class="cancelButtonClass"
+        :cancel-button-variant="cancelButtonVariant"
+        :show-reset-button="showResetButton"
+        :reset-button-text="resetButtonText"
+        :reset-button-color="resetButtonColor"
+        :reset-button-class="resetButtonClass"
+        :reset-button-variant="resetButtonVariant"
+        :loading="loading"
+        :container-class="actionsContainerClass"
+        :spacer="actionsSpacer"
+        :custom-cancel-action="customCancelAction"
+        @cancel="handleCancel"
+        @reset="handleReset"
+        @submit="handleSubmit"
+        v-if="showActions"
+      />
+    </div>
   </FormContainer>
 </template>
 
