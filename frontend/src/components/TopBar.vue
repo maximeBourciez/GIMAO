@@ -99,7 +99,7 @@ export default {
         { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail" },
         { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions" },
         { name: "AccountManagement", icon: "mdi-account-cog", title: "Gestion des comptes", disabled: true },
-        { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", disabled: true },
+        { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks"},
         { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données" },
       ]
     };

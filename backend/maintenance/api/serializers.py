@@ -95,6 +95,7 @@ class DemandeInterventionDetailSerializer(DemandeInterventionSerializer):
     """Serializer détaillé avec les documents et le bon de travail"""
     documentsDI = DocumentSerializer(source='documents', many=True, read_only=True)
     
+
     class Meta(DemandeInterventionSerializer.Meta):
         fields = DemandeInterventionSerializer.Meta.fields + [
             'documentsDI'

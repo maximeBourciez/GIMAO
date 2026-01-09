@@ -19,12 +19,11 @@ class Magasin(models.Model):
 
 class Consommable(models.Model):
     designation = models.CharField(max_length=50)
-    lienImageConsommable = models.ImageField(upload_to='images/consomable', null=False)
+    lienImageConsommable = models.ImageField(upload_to='images/consomable', null=True, blank=True)
     magasin = models.ForeignKey(Magasin, on_delete=models.CASCADE)
     seuilStockFaible = models.IntegerField(validators=[MinValueValidator(0)], blank=True, null=True, help_text="Seuil en dessous duquel le stock est considéré comme faible")
     documents = models.ManyToManyField('donnees.Document', blank=True, help_text="Documents associés au consommable")
-    fabricant = models.ForeignKey('donnees.Fabricant', on_delete=models.CASCADE, null=True, blank=True, related_name='fabricant', help_text="Fabricant du consommable")
-    fournisseur = models.ForeignKey('donnees.Fournisseur', on_delete=models.CASCADE, null=True, blank=True, related_name='fournisseur', help_text="Fournisseur principal du consommable")
+    
     def __str__(self):
         return self.designation
 
@@ -57,8 +56,8 @@ class PorterSur(models.Model):
     
     # Attributs
     quantite = models.IntegerField(
-        validators=[MinValueValidator(1)],
-        default=1
+        validators=[MinValueValidator(0)],
+        default=0
     )
     prix_unitaire = models.DecimalField(
         max_digits=10,
