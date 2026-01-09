@@ -3,6 +3,9 @@ from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEq
 from donnees.api.serializers import LieuSerializer, FabricantSimpleSerializer, FournisseurSimpleSerializer
 from maintenance.models import DemandeIntervention, BonTravail
 
+from maintenance.api.serializers import PlanMaintenanceDetailSerializer
+
+
 class EquipementSerializer(serializers.ModelSerializer):
     # Fetcg le dernier statut de l'équipement
     statut = serializers.SerializerMethodField() 
@@ -52,9 +55,29 @@ class ModeleEquipementSerializer(serializers.ModelSerializer):
 
 
 class CompteurSerializer(serializers.ModelSerializer):
+    planMaintenance = PlanMaintenanceDetailSerializer(read_only=True)
+
+    nom = serializers.CharField(source='nomCompteur', read_only=True)
+    description = serializers.CharField(source='descriptifMaintenance', read_only=True)
+    intervalle = serializers.IntegerField(source='ecartInterventions', read_only=True)
+
     class Meta:
         model = Compteur
-        fields = '__all__'
+        fields = [
+            'id',
+            'nom',
+            'description',
+            'valeurCourante',
+            'intervalle',
+            'derniereIntervention',
+            'prochaineMaintenance',
+            'unite',
+            'estPrincipal',
+            'estGlissant',
+            'necessiteHabilitationElectrique',
+            'necessitePermisFeu',
+            'planMaintenance',
+        ]
 
 
 class FamilleEquipementSerializer(serializers.ModelSerializer):
@@ -222,7 +245,13 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         ]
 
     def get_bons_travail(self, obj):
-        bons = BonTravail.objects.filter(equipement=obj).select_related('responsable', 'demande_intervention')
+        bons = BonTravail.objects.filter(
+            demande_intervention__equipement=obj
+        ).select_related(
+            'responsable',
+            'demande_intervention',
+            'demande_intervention__equipement'
+        )
         return [
             {
                 'id': bon.id,

@@ -10,6 +10,9 @@ from equipement.models import Equipement, Compteur
 from utilisateur.models import Utilisateur
 from stock.models import Consommable
 from donnees.models import Document
+from donnees.api.serializers import DocumentSerializer
+
+from donnees.api.serializers import DocumentSerializer
 
 
 # ==================== SERIALIZERS SIMPLES ====================
@@ -88,36 +91,15 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
         ]
 
 
-class DemandeInterventionDetailSerializer(serializers.ModelSerializer):
-    """Serializer détaillé avec les bons de travail"""
-    utilisateur = UtilisateurSimpleSerializer(read_only=True)
-    equipement = EquipementSimpleSerializer(read_only=True)
-    bons_travail = serializers.SerializerMethodField()
+class DemandeInterventionDetailSerializer(DemandeInterventionSerializer):
+    """Serializer détaillé avec les documents et le bon de travail"""
+    documentsDI = DocumentSerializer(source='documents', many=True, read_only=True)
     
-    class Meta:
-        model = DemandeIntervention
-        fields = [
-            'id',
-            'nom',
-            'commentaire',
-            'statut',
-            'date_creation',
-            'date_changementStatut',
-            'utilisateur',
-            'equipement',
-            'bons_travail'
+
+    class Meta(DemandeInterventionSerializer.Meta):
+        fields = DemandeInterventionSerializer.Meta.fields + [
+            'documentsDI'
         ]
-    
-    def get_bons_travail(self, obj):
-        bons = obj.bons_travail.all()
-        return [{
-            'id': bon.id,
-            'nom': bon.nom,
-            'type': bon.type,
-            'statut': bon.statut,
-            'date_assignation': bon.date_assignation,
-            'date_cloture': bon.date_cloture
-        } for bon in bons]
 
 
 # ==================== BON TRAVAIL ====================
@@ -126,6 +108,10 @@ class BonTravailSerializer(serializers.ModelSerializer):
     """Serializer pour BonTravail"""
     demande_intervention = serializers.PrimaryKeyRelatedField(
         queryset=DemandeIntervention.objects.all()
+    )
+    equipement_designation = serializers.CharField(
+        source='demande_intervention.equipement.designation',
+        read_only=True
     )
     responsable = UtilisateurSimpleSerializer(read_only=True)
     utilisateur_assigne = UtilisateurSimpleSerializer(many=True, read_only=True)
@@ -161,6 +147,7 @@ class BonTravailSerializer(serializers.ModelSerializer):
             'commentaire',
             'commentaire_refus_cloture',
             'demande_intervention',
+            'equipement_designation',
             'responsable',
             'utilisateur_assigne',
             'responsable_id',
@@ -264,31 +251,28 @@ class PlanMaintenanceSerializer(serializers.ModelSerializer):
 
 class PlanMaintenanceDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé avec consommables et documents"""
-    type_plan_maintenance = TypePlanMaintenanceSerializer(read_only=True)
-    equipement = EquipementSimpleSerializer(read_only=True)
-    compteur = CompteurSimpleSerializer(read_only=True)
-    documents = DocumentSimpleSerializer(many=True, read_only=True)
-    consommables_necessaires = serializers.SerializerMethodField()
+    type = serializers.IntegerField(
+        source='type_plan_maintenance.id',
+        read_only=True
+    )
+    documents = DocumentSerializer(many=True, read_only=True)
+    consommables = serializers.SerializerMethodField()
     
     class Meta:
         model = PlanMaintenance
         fields = [
             'id',
             'nom',
-            'contenu',
-            'type_plan_maintenance',
-            'equipement',
-            'compteur',
+            'type',
             'documents',
-            'consommables_necessaires'
+            'consommables'
         ]
     
-    def get_consommables_necessaires(self, obj):
+    def get_consommables(self, obj):
         associations = PlanMaintenanceConsommable.objects.filter(
             plan_maintenance=obj
         ).select_related('consommable')
         return [{
-            'id': assoc.consommable.id,
-            'designation': assoc.consommable.designation,
-            'quantite_necessaire': assoc.quantite_necessaire
+            'consommable': assoc.consommable.id,
+            'quantite': assoc.quantite_necessaire
         } for assoc in associations]

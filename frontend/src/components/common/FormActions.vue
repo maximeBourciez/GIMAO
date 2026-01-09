@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, computed } from 'vue';
+import { defineProps } from 'vue';
 import { useRouter } from 'vue-router';
 
 const props = defineProps({

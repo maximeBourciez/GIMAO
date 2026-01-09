@@ -9,9 +9,16 @@ from donnees.models import Fabricant, Fournisseur, Document
 
 class DemandeIntervention(models.Model):
     """Demande d'intervention sur un équipement"""
+    STATUT_CHOICES = [
+        ('EN_ATTENTE', 'En attente'),
+        ('ACCEPTEE', 'Acceptée'),
+        ('REFUSEE', 'Refusée'),
+        ('TRANSFORMEE', 'Transformée'),
+    ]
+    
     commentaire = models.TextField(blank=True, null=True)
     nom = models.CharField(max_length=255)
-    statut = models.CharField(max_length=50)
+    statut = models.CharField(max_length=50, choices=STATUT_CHOICES)
     date_creation = models.DateTimeField()
     date_changementStatut = models.DateTimeField()
     
@@ -25,6 +32,12 @@ class DemandeIntervention(models.Model):
         Equipement,
         on_delete=models.CASCADE,
         related_name='demandes_intervention'
+    )
+    documents = models.ManyToManyField(
+        Document,
+        through='DemandeInterventionDocument',
+        related_name='demandes_intervention',
+        blank=True
     )
     
     class Meta:
@@ -87,14 +100,7 @@ class BonTravail(models.Model):
         blank=True,
         related_name='bons_travail_responsable'
     )
-    equipement = models.ForeignKey(
-        Equipement,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='bons_travail'
-    )
-    
+
     class Meta:
         db_table = 'bon_travail'
         verbose_name = 'Bon de travail'
@@ -221,3 +227,23 @@ class PlanMaintenanceDocument(models.Model):
     
     def __str__(self):
         return f"{self.plan_maintenance} - {self.document}"
+
+class DemandeInterventionDocument(models.Model):
+    """Table d'association entre DemandeIntervention et Document"""
+    demande_intervention = models.ForeignKey(
+        DemandeIntervention,
+        on_delete=models.CASCADE
+    )
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE
+    )
+    
+    class Meta:
+        db_table = 'gimao_demande_intervention_document'
+        unique_together = ['demande_intervention', 'document']
+        verbose_name = 'Document de demande d\'intervention'
+        verbose_name_plural = 'Documents de demandes d\'intervention'
+    
+    def __str__(self):
+        return f"{self.demande_intervention} - {self.document}"

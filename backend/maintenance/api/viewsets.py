@@ -109,6 +109,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     """
     queryset = BonTravail.objects.select_related(
         'demande_intervention',
+        'demande_intervention__equipement',
         'responsable'
     ).prefetch_related('utilisateur_assigne')
     serializer_class = BonTravailSerializer
