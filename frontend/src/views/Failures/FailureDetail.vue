@@ -1,5 +1,5 @@
 <template>
-  <BaseDetailView :data="defaillance" :loading="loading" :error-message="errorMessage"
+  <BaseDetailView :data="defaillance" :loading="loading" :error-message="errorMessage" :title="'Détail de la demande d\'intervention'"
     :success-message="successMessage" :auto-display="false" :show-edit-button="false"
     @delete="handleDelete" @clear-error="errorMessage = ''" @clear-success="successMessage = ''">
     <!-- Contenu personnalisé -->
@@ -7,8 +7,6 @@
       <v-row v-if="data">
         <!-- Colonne gauche: Demande d'intervention -->
         <v-col cols="12" md="6">
-          <h1 class="text-h4 text-primary">Détail de la demande d'intervention</h1>
-
           <h3 class="text-h6 mb-4 text-primary">{{ data.nom }}</h3>
 
           <div class="detail-field">
@@ -20,7 +18,7 @@
             <label class="detail-label">Statut</label>
             <div class="detail-value">
               <v-chip :color="data.statut ? FAILURE_STATUS_COLORS[data.statut] : 'grey'" dark>
-                {{ data.statut }}
+                {{ FAILURE_STATUS[data.statut] }}
               </v-chip>
             </div>
           </div>

@@ -1,5 +1,6 @@
 <template>
   <BaseListView ref="tableContainer"
+    :title="'Liste des demandes d\'intervention'"
     :headers="tableHeaders" 
     :items="failures" 
     :loading="loading"
@@ -21,8 +22,8 @@
 
     <!-- Colonne Statut -->
     <template #item.statut="{ item }">
-      <v-chip :color="item.statut == 'Accepté' ? 'green' : item.statut == 'Refusé' ? 'red' : 'orange'" dark>
-        {{ item.statut }}
+      <v-chip :color="item.statut ? FAILURE_STATUS_COLORS[item.statut] : 'grey'" dark>
+        {{ FAILURE_STATUS[item.statut] }}
       </v-chip>
     </template>
 
@@ -49,7 +50,7 @@ import { ref, computed, onMounted } from 'vue';
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
 import { getFailureLevelColor } from '@/utils/helpers';
-import { TABLE_HEADERS, API_BASE_URL } from '@/utils/constants';
+import { TABLE_HEADERS, API_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
 
 const props = defineProps({
   createButtonText: {
