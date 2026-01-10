@@ -2,7 +2,7 @@
   <v-app>
     <v-main>
       <v-container>
-        <BaseForm v-model="formData" title="Créer une Défaillance" :loading="loading" :error-message="errorMessage"
+        <BaseForm v-model="formData" title="Créer une Demande d'intervention" :loading="loading" :error-message="errorMessage"
           :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
           :custom-validation="validateForm" submit-button-text="Valider" submit-button-color="success" @submit="handleSubmit">
           <template #default="{ formData }">
@@ -10,7 +10,7 @@
 
             <v-row>
               <v-col cols="12" md="6">
-                <v-text-field v-model="formData.nom" label="Nom de la défaillance *" outlined required
+                <v-text-field v-model="formData.nom" label="Nom de la demande d'intervention *" outlined required
                   :rules="validation.getFieldRules('nom')"></v-text-field>
               </v-col>
 
@@ -39,17 +39,17 @@
 
                   <v-row v-for="(doc, index) in formData.documents" :key="index" dense class="mb-3 align-center">
                     <v-col cols="4">
-                      <v-text-field v-model="doc.nomDocument" label="Titre" outlined dense hide-details />
+                      <v-text-field v-model="doc.nomDocument" label="Titre *" outlined dense hide-details />
                     </v-col>
 
                     <v-col cols="4">
-                      <v-file-input v-model="doc.file" dense outlined show-size label="Document"
+                      <v-file-input v-model="doc.file" dense outlined show-size label="Document *"
                         hide-details prepend-icon="" prepend-inner-icon="mdi-paperclip"></v-file-input>
                     </v-col>
 
                     <v-col cols="3">
                       <v-select v-model="doc.typeDocument" :items="typesDocuments" item-title="nomTypeDocument"
-                        item-value="id" label="Type" outlined dense hide-details />
+                        item-value="id" label="Type *" outlined dense hide-details />
                     </v-col>
 
                     <v-col cols="1" class="d-flex justify-center">
@@ -208,14 +208,14 @@ const handleSubmit = async () => {
     });
     const newFailureId = response.id;
 
-    successMessage.value = 'Défaillance créée avec succès !';
+    successMessage.value = 'Demande d\'intervention créée avec succès !';
 
     setTimeout(() => {
       router.push({ name: 'FailureDetail', params: { id: newFailureId } });
     }, 1500);
   } catch (error) {
-    console.error('Erreur lors de la création de la défaillance:', error);
-    errorMessage.value = 'Une erreur est survenue lors de la création de la défaillance.';
+    console.error('Erreur lors de la création de la Demande d\'intervention:', error);
+    errorMessage.value = 'Une erreur est survenue lors de la création de la demande d\'intervention.';
   } finally {
     loading.value = false;
   }
