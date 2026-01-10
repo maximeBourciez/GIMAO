@@ -31,6 +31,42 @@
                 <v-textarea v-model="formData.commentaire" label="Commentaires" rows="5" outlined
                   counter="300" :rules="validation.getFieldRules('commentaire')"></v-textarea>
               </v-col>
+
+              <!-- Documents -->
+              <v-col cols="12">
+                <v-sheet class="pa-4 mb-4" elevation="1" rounded>
+                  <h4 class="mb-3">Documents</h4>
+
+                  <v-row v-for="(doc, index) in formData.documents" :key="index" dense class="mb-3 align-center">
+                    <v-col cols="4">
+                      <v-text-field v-model="doc.nomDocument" label="Titre" outlined dense hide-details />
+                    </v-col>
+
+                    <v-col cols="4">
+                      <v-file-input v-model="doc.file" dense outlined show-size label="Document"
+                        hide-details prepend-icon="" prepend-inner-icon="mdi-paperclip"></v-file-input>
+                    </v-col>
+
+                    <v-col cols="3">
+                      <v-select v-model="doc.typeDocument" :items="typesDocuments" item-title="nomTypeDocument"
+                        item-value="id" label="Type" outlined dense hide-details />
+                    </v-col>
+
+                    <v-col cols="1" class="d-flex justify-center">
+                      <v-btn icon color="error" size="small" @click="removeDocument(index)">
+                        <v-icon>mdi-delete</v-icon>
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+
+                  <v-btn color="primary" variant="outlined" class="mt-2" @click="addDocument">
+                    <v-icon left>mdi-plus</v-icon>
+                    Ajouter un document
+                  </v-btn>
+                </v-sheet>
+              </v-col>
+
+
             </v-row>
           </template>
         </BaseForm>
@@ -54,6 +90,7 @@ const route = useRoute();
 const store = useStore();
 const api = useApi(API_BASE_URL);
 const equipmentsApi = useApi(API_BASE_URL);
+const documentsApi = useApi(API_BASE_URL);
 
 const loading = ref(false);
 const loadingData = ref(false);
@@ -61,13 +98,15 @@ const errorMessage = ref('');
 const successMessage = ref('');
 
 const equipments = ref([]);
+const typesDocuments = ref([]);
 const equipmentReference = ref(null);
 const connectedUser = computed(() => store.getters.currentUser);
 
 const formData = ref({
   equipement_id: null,
   commentaire: '',
-  nom: ''
+  nom: '',
+  documents: []
 });
 
 const validation = useFormValidation(formData, {
@@ -82,13 +121,31 @@ const validateForm = () => {
   return validation.checkRequiredFields(['nom', 'equipement_id']);
 };
 
+const addDocument = () => {
+  formData.value.documents.push({
+    nomDocument: '',
+    file: null,
+    typeDocument: null
+  });
+};
+
+const removeDocument = (index) => {
+  formData.value.documents.splice(index, 1);
+};
+
 const fetchData = async () => {
   loadingData.value = true;
   errorMessage.value = '';
 
   try {
-    const response = await equipmentsApi.get('equipements/');
-    equipments.value = response;
+    const [equipmentsResponse, typesDocumentsResponse] = await Promise.all([
+      equipmentsApi.get('equipements/'),
+      documentsApi.get('types-documents/')
+    ]);
+    
+    equipments.value = equipmentsResponse;
+    typesDocuments.value = typesDocumentsResponse;
+    console.log(typesDocuments.value);
 
     const equipmentId = route.params.equipmentId;
     if (equipmentId) {
@@ -114,14 +171,41 @@ const handleSubmit = async () => {
   }
 
   try {
-    const failureData = {
-      nom: formData.value.nom,
-      commentaire: formData.value.commentaire,
-      equipement_id: formData.value.equipement_id,
-      utilisateur_id: connectedUser.value.id
-    };
+    // Utilisation de FormData pour envoyer les fichiers
+    const formDataToSend = new FormData();
+    formDataToSend.append('nom', formData.value.nom);
+    formDataToSend.append('commentaire', formData.value.commentaire || '');
+    formDataToSend.append('equipement_id', formData.value.equipement_id);
+    formDataToSend.append('utilisateur_id', connectedUser.value.id);
 
-    const response = await api.post('demandes-intervention/', failureData);
+    // Préparation des documents (métadonnées en JSON, fichiers séparés)
+    const validDocs = formData.value.documents
+      .filter(doc => doc.file && doc.typeDocument && doc.nomDocument);
+
+    if (validDocs.length > 0) {
+      const docMetadata = validDocs.map((doc, index) => ({
+        nomDocument: doc.nomDocument,
+        typeDocument_id: doc.typeDocument
+      }));
+      formDataToSend.append('documents', JSON.stringify(docMetadata));
+
+      // Ajouter chaque fichier avec la convention document_{index}
+      validDocs.forEach((doc, index) => {
+        const file = doc.file[0] || doc.file;
+        formDataToSend.append(`document_${index}`, file);
+      });
+    }
+
+    console.log('FormData entries:');
+    for (let [key, value] of formDataToSend.entries()) {
+      console.log(key, value);
+    }
+
+    const response = await api.post('demandes-intervention/', formDataToSend, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     const newFailureId = response.id;
 
     successMessage.value = 'Défaillance créée avec succès !';
@@ -136,7 +220,6 @@ const handleSubmit = async () => {
     loading.value = false;
   }
 };
-
 
 onMounted(() => {
   fetchData();
