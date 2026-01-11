@@ -131,7 +131,7 @@ const loadManufacturerData = async () => {
 const editManufacturer = () => {
   router.push({
     name: 'EditManufacturer',
-    params: { id: supplierId }
+    params: { id: manufacturerId }
   });
 };
 

@@ -492,5 +492,44 @@ export const TABLE_HEADERS = {
             sortable: false,
             align: "center",
         }
+    ],
+
+    MANUFACTURERS: [
+        {
+            title: "Nom",
+            value: "nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Email",
+            value: "email",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Téléphone",
+            value: "numTelephone",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "SAV",
+            value: "serviceApresVente",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Pays",
+            value: "adresse.pays",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Actions",
+            value: "actions",
+            sortable: false,
+            align: "center",
+        }
     ]
 };

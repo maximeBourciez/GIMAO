@@ -17,6 +17,8 @@ from donnees.api.serializers import (
     AdresseSerializer
 )
 
+from utilisateur.models import Log
+
 
 class AdresseViewSet(viewsets.ModelViewSet):
     """
@@ -192,6 +194,46 @@ class FabricantViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(fabricant)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        fabricant = self.get_object()
+        data = request.data.copy()
+        utilisateur_id = data.pop('user', None)  # id de l'utilisateur pour les logs
+
+        # Séparer l'adresse si présente
+        adresse_data = data.pop('adresse', None)
+        if adresse_data and fabricant.adresse:
+            for key, val in adresse_data.items():
+                if isinstance(val, dict) and 'nouvelle' in val:
+                    setattr(fabricant.adresse, key, val['nouvelle'])
+                    # Créer le log pour chaque champ adresse
+                    Log.objects.create(
+                        type="modification",
+                        nomTable="adresse",
+                        idCible=fabricant.adresse.id,
+                        champsModifies={key: {'ancien': val.get('ancienne'), 'nouveau': val['nouvelle']}},
+                        utilisateur_id=utilisateur_id
+                    )
+            fabricant.adresse.save()
+
+        # Mettre à jour les champs simples du fabricant
+        for key, val in data.items():
+            if isinstance(val, dict) and 'nouvelle' in val:
+                setattr(fabricant, key, val['nouvelle'])
+                # Créer le log pour chaque champ
+                Log.objects.create(
+                    type="modification",
+                    nomTable="fabricant",
+                    idCible=fabricant.id,
+                    champsModifies={key: {'ancien': val.get('ancienne'), 'nouveau': val['nouvelle']}},
+                    utilisateur_id=utilisateur_id
+                )
+
+        fabricant.save()
+
+        serializer = FabricantSerializer(fabricant)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class FournisseurViewSet(viewsets.ModelViewSet):
@@ -248,24 +290,38 @@ class FournisseurViewSet(viewsets.ModelViewSet):
         """
         Mise à jour d'un fournisseur avec adresse imbriquée
         """
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
+        fournisseur = self.get_object()
+        data = request.data.copy()
+        utilisateur_id = data.pop('user', None)  # id de l'utilisateur pour les logs
 
-        adresse_data = request.data.pop('adresse', None)
-        if adresse_data:
-            if instance.adresse:
-                # Mettre à jour l'adresse existante
-                adresse_serializer = AdresseSerializer(
-                    instance.adresse,
-                    data=adresse_data,
-                    partial=partial
+        # Mise à jour de l'adresse si présente
+        adresse_data = data.pop('adresse', None)
+        if adresse_data and fournisseur.adresse:
+            for key, val in adresse_data.items():
+                if isinstance(val, dict) and 'nouvelle' in val:
+                    setattr(fournisseur.adresse, key, val['nouvelle'])
+                    Log.objects.create(
+                        type="modification",
+                        nomTable="adresse",
+                        idCible=fournisseur.adresse.id,
+                        champsModifies={key: {'ancien': val.get('ancienne'), 'nouveau': val['nouvelle']}},
+                        utilisateur_id=utilisateur_id
+                    )
+            fournisseur.adresse.save()
+
+        # Mise à jour des champs simples du fournisseur
+        for key, val in data.items():
+            if isinstance(val, dict) and 'nouvelle' in val:
+                setattr(fournisseur, key, val['nouvelle'])
+                Log.objects.create(
+                    type="modification",
+                    nomTable="fournisseur",
+                    idCible=fournisseur.id,
+                    champsModifies={key: {'ancien': val.get('ancienne'), 'nouveau': val['nouvelle']}},
+                    utilisateur_id=utilisateur_id
                 )
-            else:
-                # Créer une nouvelle adresse
-                adresse_serializer = AdresseSerializer(data=adresse_data)
-            
-            adresse_serializer.is_valid(raise_exception=True)
-            adresse = adresse_serializer.save()
-            request.data['adresse'] = adresse.id
 
-        return super().update(request, *args, **kwargs)
+        fournisseur.save()
+
+        serializer = FournisseurSerializer(fournisseur)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -93,6 +93,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
@@ -100,6 +101,7 @@ import BaseForm from '@/components/common/BaseForm.vue';
 
 const route = useRoute();
 const router = useRouter();
+const store = useStore();
 const api = useApi(API_BASE_URL);
 
 const supplierId = route.params.id;
@@ -144,10 +146,24 @@ const handleSubmit = async () => {
     isSaving.value = true;
     saveErrorMessage.value = '';
 
-    console.log('Submitting supplier data:', supplierData.value);
+    const changes = detectChanges();
+
+    console.log('Detected changes:', changes);
+
+    changes.user = store.getters.currentUser.id;
+
+    console.log('Changes to be sent:', changes);
+
+    if(Object.keys(changes).length === 0) {
+        // Aucune modification détectée
+        isSaving.value = false;
+        console.log('No changes detected, skipping update.');
+        return;
+    }
+
 
     try {
-        await api.put(`fournisseurs/${supplierId}/`, supplierData.value);
+        await api.put(`fournisseurs/${supplierId}/`, changes);
 
         // Rediriger vers la page de détail après la modification
         router.push({
@@ -162,6 +178,34 @@ const handleSubmit = async () => {
     }
 };
 
+
+const detectChanges = () => {
+    const changes = {};
+    changes.adresse = {};
+
+    // Champs simples
+    ['nom', 'email', 'numTelephone', 'serviceApresVente'].forEach(field => {
+        if (manufacturerData.value[field] !== originalData.value[field]) {
+            changes[field] = {
+                ancienne: originalData.value[field],
+                nouvelle: manufacturerData.value[field]
+            };
+        }
+    });
+
+    // Adresse
+    const champsAdresse = ['numero', 'rue', 'ville', 'code_postal', 'pays', 'complement'];
+    champsAdresse.forEach(field => {
+        if ((manufacturerData.value.adresse[field] !== originalData.value.adresse[field])) {
+            changes.adresse[field] = {
+                ancienne: originalData.value.adresse[field],
+                nouvelle: manufacturerData.value.adresse[field]
+            };
+        }
+    });
+
+    return changes;
+};
 const goBack = () => {
     router.back();
 };

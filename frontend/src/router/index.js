@@ -46,6 +46,7 @@ import SupplierDetail from '@/views/DataManagement/Suppliers/SupplierDetail.vue'
 import CreateManufacturer from '@/views/DataManagement/Manufacturers/CreateManufacturer.vue'
 import ManufacturerList from '@/views/DataManagement/Manufacturers/ManufacturerList.vue'
 import ManufacturerDetail from '@/views/DataManagement/Manufacturers/ManufacturerDetail.vue'
+import EditManufacturer from '../views/DataManagement/Manufacturers/EditManufacturer.vue'
 
 import ConsumableList from '@/views/DataManagement/Consumables/ConsumableList.vue'
 import CreateConsumable from '@/views/DataManagement/Consumables/CreateConsumable.vue'
@@ -161,7 +162,13 @@ const routes = [
     props: true,
     meta: { title: 'Détails d\'un fabricant' }
   },
-
+  {
+    path: '/EditManufacturer/:id',
+    name: 'EditManufacturer',
+    component: EditManufacturer,
+    props: true,
+    meta: { title: 'Modifier un Fabricant' }
+  },
 
   // Fournisseurs ------------------------------------------------------------------
 
