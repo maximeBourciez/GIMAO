@@ -21,8 +21,8 @@
           <v-select
             v-model="form_data.fabricant"
             :items="manufacturers"
-            item-text="nomFabricant"
-            item-title="nomFabricant"
+            item-text="nom"
+            item-title="nom"
             item-value="id"
             label="Fabricant"
             outlined
@@ -86,7 +86,7 @@ export default {
     const fetch_data = async () => {
       try {
         await manufacturersApi.get('fabricants/');
-        state.manufacturers = manufacturersApi.data.value;
+        manufacturers = manufacturersApi.value;
       } catch (error) {
         console.error('Error loading data:', error);
         state.error_message = 'Erreur lors du chargement des fabricants.';

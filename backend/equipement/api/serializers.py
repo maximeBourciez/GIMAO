@@ -49,6 +49,7 @@ class ConstituerSerializer(serializers.ModelSerializer):
 
 
 class ModeleEquipementSerializer(serializers.ModelSerializer):
+    fabricant = FabricantSimpleSerializer(read_only=True)
     class Meta:
         model = ModeleEquipement
         fields = '__all__'

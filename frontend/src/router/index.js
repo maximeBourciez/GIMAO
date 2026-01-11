@@ -48,10 +48,6 @@ import ManufacturerList from '@/views/DataManagement/Manufacturers/ManufacturerL
 import ManufacturerDetail from '@/views/DataManagement/Manufacturers/ManufacturerDetail.vue'
 import EditManufacturer from '../views/DataManagement/Manufacturers/EditManufacturer.vue'
 
-import ConsumableList from '@/views/DataManagement/Consumables/ConsumableList.vue'
-import CreateConsumable from '@/views/DataManagement/Consumables/CreateConsumable.vue'
-import ConsumableDetail from '@/views/DataManagement/Consumables/ConsumableDetail.vue'
-
 import ModelEquipmentList from '@/views/DataManagement/EquipmentsModels/ModelEquipmentList.vue'
 import CreateModelEquipment from '@/views/DataManagement/EquipmentsModels/CreateModelEquipment.vue'
 import ModelEquipmentDetail from '@/views/DataManagement/EquipmentsModels/ModelEquipmentDetail.vue'
@@ -116,27 +112,7 @@ const routes = [
 
   // Consommables ------------------------------------------------------------------
 
-  {
-    path: '/ConsumableList',
-    name: 'ConsumableList',
-    component: ConsumableList,
-    meta: { title: 'Consommables' }
-  },
 
-  {
-    path: '/CreateConsumable',
-    name: 'CreateConsumable',
-    component: CreateConsumable,
-    meta: { title: 'Creer un Consommable' }
-  },
-
-  {
-    path: '/ConsumableDetail/:id',
-    name: 'ConsumableDetail',
-    component: ConsumableDetail,
-    props: true,
-    meta: { title: 'Détails d\'un consommable' }
-  },
 
 
   // Fabricants ------------------------------------------------------------------

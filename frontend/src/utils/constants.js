@@ -531,5 +531,32 @@ export const TABLE_HEADERS = {
             sortable: false,
             align: "center",
         }
+    ],
+
+    MODEL_EQUIPMENTS: [
+        {
+            title: "ID",
+            value: "id",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Nom du modèle",
+            value: "nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Fabricant",
+            value: "fabricant.nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Visualiser",
+            value: "action",
+            sortable: false,
+            align: "center",
+        },
     ]
 };

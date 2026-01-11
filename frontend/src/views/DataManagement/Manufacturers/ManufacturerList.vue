@@ -1,5 +1,5 @@
 <template>
-  <BaseListView :title="title" :headers="TABLE_HEADERS.MANUFACTURERS" :items="manufacturers" :loading="loading"
+  <BaseListView :title="title" :headers="TABLE_HEADERS.SUPPLIERS" :items="manufacturers" :loading="loading"
     :error-message="errorMessage" :show-search="true" :show-create-button="false"
     no-data-icon="mdi-package-variant-closed" @row-click="goToManufacturerDetail($event.id)"
     @clear-error="errorMessage = ''" :internal-search="true">
