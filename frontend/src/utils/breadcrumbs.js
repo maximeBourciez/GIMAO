@@ -269,4 +269,65 @@ export const BREADCRUMBS = {
             label: `Fournisseur #${route.params.id}`,
         },
     ],
+
+    // Fabricants
+    ManufacturerList: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Fabricants",
+            to: { name: "ManufacturerList" },
+        },
+    ],
+
+    CreateManufacturer: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Fabricants",
+            to: { name: "ManufacturerList" },
+        },
+        {
+            label: "Créer un fabricant",
+        },
+    ],
+
+    ManufacturerDetail: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Fabricants",
+            to: { name: "ManufacturerList" },
+        },
+        {
+            label: `Fabricant #${route.params.id}`,
+        },
+    ],
+
+    EditManufacturer: (route) => [  
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Fabricants",
+            to: { name: "ManufacturerList" },
+        },
+        {
+            label: `Fabricant #${route.params.id}`,
+            to: {
+                name: "ManufacturerDetail",
+                params: { id: route.params.id },
+            },
+        },
+        {
+            label: "Modifier le fabricant",
+        },
+    ],
 };

@@ -154,8 +154,6 @@ class FabricantViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Utilise le serializer simple pour list"""
-        if self.action == 'list':
-            return FabricantSimpleSerializer
         return FabricantSerializer
 
     @action(detail=False, methods=['get'])
@@ -172,14 +170,28 @@ class FabricantViewSet(viewsets.ModelViewSet):
         """
         Création d'un fabricant avec adresse imbriquée
         """
-        adresse_data = request.data.pop('adresse', None)
-        if adresse_data:
-            adresse_serializer = AdresseSerializer(data=adresse_data)
-            adresse_serializer.is_valid(raise_exception=True)
-            adresse = adresse_serializer.save()
-            request.data['adresse'] = adresse.id
-        
-        return super().create(request, *args, **kwargs)
+        data = request.data.copy()
+        adresse_data = data.pop('adresse', None)
+        if not adresse_data:
+            return Response(
+                {'error': 'Données d\'adresse requises pour créer un fabricant.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        adresse_serializer = AdresseSerializer(data=adresse_data)
+        adresse_serializer.is_valid(raise_exception=True)
+        adresse = adresse_serializer.save()
+
+        fabricant = Fabricant.objects.create(
+            nom=data.get('nom'),
+            email=data.get('email'),
+            numTelephone=data.get('numTelephone'),
+            serviceApresVente=data.get('serviceApresVente', False),
+            adresse_id=adresse.id
+        )
+
+        serializer = self.get_serializer(fabricant)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class FournisseurViewSet(viewsets.ModelViewSet):
@@ -207,14 +219,28 @@ class FournisseurViewSet(viewsets.ModelViewSet):
         """
         Création d'un fournisseur avec adresse imbriquée
         """
-        adresse_data = request.data.pop('adresse', None)
-        if adresse_data:
-            adresse_serializer = AdresseSerializer(data=adresse_data)
-            adresse_serializer.is_valid(raise_exception=True)
-            adresse = adresse_serializer.save()
-            request.data['adresse'] = adresse.id
-        
-        return super().create(request, *args, **kwargs)
+        data = request.data.copy()
+        adresse_data = data.pop('adresse', None)
+        if not adresse_data:
+            return Response(
+                {'error': 'Données d\'adresse requises pour créer un fournisseur.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        adresse_serializer = AdresseSerializer(data=adresse_data)
+        adresse_serializer.is_valid(raise_exception=True)
+        adresse = adresse_serializer.save()
+
+        fournisseur = Fournisseur.objects.create(
+            nom=data.get('nom'),
+            email=data.get('email'),
+            numTelephone=data.get('numTelephone'),
+            serviceApresVente=data.get('serviceApresVente', False),
+            adresse_id=adresse.id
+        )
+
+        serializer = self.get_serializer(fournisseur)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
 
     @transaction.atomic

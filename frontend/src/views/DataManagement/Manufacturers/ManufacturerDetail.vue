@@ -1,106 +1,148 @@
 <template>
-  <v-container>
-    <v-row justify="center">
-      <v-col cols="12" md="8">
-        <v-card v-if="manufacturer">
-          <v-card-title>Détails du fabricant</v-card-title>
-          <v-card-text>
-            <v-alert v-if="error_message" type="error">
-              {{ error_message }}
-            </v-alert>
-            <v-list>
-              <v-list-item>
-                <v-list-item-title>Nom du fabricant:</v-list-item-title>
-                <v-list-item-subtitle>{{ manufacturer.nomFabricant }}</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-title>Pays:</v-list-item-title>
-                <v-list-item-subtitle>{{ manufacturer.paysFabricant }}</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-title>Email:</v-list-item-title>
-                <v-list-item-subtitle>{{ manufacturer.mailFabricant }}</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-title>Téléphone:</v-list-item-title>
-                <v-list-item-subtitle>{{ manufacturer.numTelephoneFabricant }}</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-title>Service Après-Vente:</v-list-item-title>
-                <v-list-item-subtitle>{{ manufacturer.serviceApresVente ? 'Oui' : 'Non' }}</v-list-item-subtitle>
-              </v-list-item>
-            </v-list>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn color="primary" @click="go_back">
-              Retour
-            </v-btn>
-            <v-spacer></v-spacer>
-          </v-card-actions>
-        </v-card>
-        <v-alert v-else-if="is_loading" type="info">
-          Chargement du fabricant...
-        </v-alert>
-        <v-alert v-else type="warning">
-          Fabricant non trouvé
-        </v-alert>
-      </v-col>
-    </v-row>
-    <v-dialog v-model="show_delete_confirmation" max-width="300">
-      <v-card>
-        <v-card-title>Confirmer la suppression</v-card-title>
-        <v-card-text>
-          Êtes-vous sûr de vouloir supprimer ce fabricant ?
-        </v-card-text>
-        <v-card-actions>
-          <v-btn color="primary" text @click="show_delete_confirmation = false">Annuler</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-  </v-container>
+  <BaseDetailView :data="manufacturerData" :loading="isLoading" :error-message="errorMessage"
+    :title="'Détail du fabricant'" :success-message="successMessage" :auto-display="false"
+    :show-edit-button="false" @delete="handleDelete" @clear-error="errorMessage = ''"
+    @clear-success="successMessage = ''">
+    <template #default="{ data }">
+      <v-row v-if="data" dense>
+
+        <!-- Informations générales -->
+        <v-col cols="12">
+          <h3 class="text-h6 mb-3">Informations générales</h3>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <strong>Nom</strong>
+          <div>{{ data.nom }}</div>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <strong>Email</strong>
+          <div>{{ data.email }}</div>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <strong>Téléphone</strong>
+          <div>{{ data.numTelephone }}</div>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <strong>Service après-vente</strong>
+          <div>
+            <v-chip :color="data.serviceApresVente ? 'success' : 'error'" variant="outlined" size="small">
+              {{ data.serviceApresVente ? 'Oui' : 'Non' }}
+            </v-chip>
+          </div>
+        </v-col>
+
+        <!-- Adresse -->
+        <v-col cols="12" class="mt-4">
+          <h3 class="text-h6 mb-3">Adresse</h3>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <strong>Rue</strong>
+          <div>
+            {{ data.adresse.numero }} {{ data.adresse.rue }}
+          </div>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <strong>Complément</strong>
+          <div>
+            {{ data.adresse.complement || '-' }}
+          </div>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <strong>Ville</strong>
+          <div>{{ data.adresse.ville }}</div>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <strong>Code postal</strong>
+          <div>{{ data.adresse.code_postal }}</div>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <strong>Pays</strong>
+          <div>{{ data.adresse.pays }}</div>
+        </v-col>
+
+      </v-row>
+
+      <v-row v-else>
+        <v-col>
+          <v-alert type="info" outlined>
+            Aucune donnée disponible pour ce fabricant.
+          </v-alert>
+        </v-col>
+      </v-row>
+    </template>
+  </BaseDetailView>
+
+
+  <!-- Bouton flottant pour modifier -->
+  <v-btn color="primary" size="large" icon class="floating-edit-button" elevation="4" @click="editManufacturer">
+    <v-icon size="large">mdi-pencil</v-icon>
+    <v-tooltip activator="parent" location="left">
+      Modifier le fabricant
+    </v-tooltip>
+  </v-btn>
+
+
+
+
 </template>
 
-<script>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+<script setup>
+
+import { onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL } from '@/utils/constants.js';
 
-export default {
-  setup() {
-    const router = useRouter();
-    const route = useRoute();
-    const api = useApi(API_BASE_URL);
-    const manufacturer = computed(() => api.data.value);
-    const error_message = ref('');
-    const is_loading = computed(() => api.loading.value);
-    const show_delete_confirmation = ref(false);
+// Données
+const route = useRoute();
+const router = useRouter();
+const manufacturerId = route.params.id;
+const manufacturerData = ref(null);
+const isLoading = ref(true);
+const api = useApi(API_BASE_URL);
+const edition = ref(false);
 
-    const get_manufacturer = async () => {
-      error_message.value = '';
-      try {
-        await api.get(`fabricants/${route.params.id}/`);
-      } catch (error) {
-        console.error('Error fetching manufacturer:', error);
-        error_message.value = 'Erreur lors de la récupération du fabricant.';
-      }
-    };
 
-    const go_back = () => {
-      router.go(-1);
-    };
+onMounted(async () => {
+  loadManufacturerData();
+});
 
-    onMounted(() => {
-      get_manufacturer();
-    });
-
-    return {
-      manufacturer,
-      error_message,
-      is_loading,
-      go_back,
-      show_delete_confirmation
-    };
+const loadManufacturerData = async () => {
+  isLoading.value = true;
+  try {
+    manufacturerData.value = await api.get(`fabricants/${manufacturerId}`);
+  } catch (error) {
+    console.error('Error loading manufacturer data:', error);
+  } finally {
+    isLoading.value = false;
   }
 };
+
+const editManufacturer = () => {
+  router.push({
+    name: 'EditManufacturer',
+    params: { id: supplierId }
+  });
+};
+
+
 </script>
+
+<style scoped>
+.floating-edit-button {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+</style>
