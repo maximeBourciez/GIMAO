@@ -463,7 +463,7 @@ export const TABLE_HEADERS = {
             align: "center",
         },
         {
-            title: "email",
+            title: "Email",
             value: "email",
             sortable: true,
             align: "center",
@@ -492,6 +492,5 @@ export const TABLE_HEADERS = {
             sortable: false,
             align: "center",
         }
-
     ]
 };

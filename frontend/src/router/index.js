@@ -56,6 +56,7 @@ import CreateModelEquipment from '@/views/DataManagement/EquipmentsModels/Create
 import ModelEquipmentDetail from '@/views/DataManagement/EquipmentsModels/ModelEquipmentDetail.vue'
 
 import CounterDetail from '@/views/Equipments/Counters/CounterDetail.vue'
+import EditSupplier from '@/views/DataManagement/Suppliers/EditSupplier.vue'
 
 
 const routes = [
@@ -184,6 +185,13 @@ const routes = [
     component: SupplierDetail,
     props: true,
     meta: { title: 'Détails d\'un Fournisseur' }
+  },
+  {
+    path: '/EditSupplier/:id',
+    name: 'EditSupplier',
+    component: EditSupplier,
+    props: true,
+    meta: { title: 'Modifier un Fournisseur' }
   },
 
 

@@ -4,6 +4,12 @@
     no-data-icon="mdi-package-variant-closed" @row-click="goToSupplierDetail($event.id)"
     @clear-error="errorMessage = ''" :internal-search="true">
 
+    <template #item.serviceApresVente="{ item }">
+      <v-chip :color="item.serviceApresVente ? 'success' : 'error'" variant="outlined" size="small">
+        {{ item.serviceApresVente ? 'Oui' : 'Non' }}
+      </v-chip>
+    </template>
+
     <template #item.actions="{ item }">
       <v-btn icon size="small" @click.stop="goToSupplierDetail(item.id)">
         <v-icon>mdi-eye</v-icon>

@@ -215,3 +215,31 @@ class FournisseurViewSet(viewsets.ModelViewSet):
             request.data['adresse'] = adresse.id
         
         return super().create(request, *args, **kwargs)
+    
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        """
+        Mise à jour d'un fournisseur avec adresse imbriquée
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        adresse_data = request.data.pop('adresse', None)
+        if adresse_data:
+            if instance.adresse:
+                # Mettre à jour l'adresse existante
+                adresse_serializer = AdresseSerializer(
+                    instance.adresse,
+                    data=adresse_data,
+                    partial=partial
+                )
+            else:
+                # Créer une nouvelle adresse
+                adresse_serializer = AdresseSerializer(data=adresse_data)
+            
+            adresse_serializer.is_valid(raise_exception=True)
+            adresse = adresse_serializer.save()
+            request.data['adresse'] = adresse.id
+
+        return super().update(request, *args, **kwargs)

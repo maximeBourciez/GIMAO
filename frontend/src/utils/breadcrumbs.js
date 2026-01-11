@@ -1,4 +1,5 @@
 import CreateLocation from "../views/DataManagement/Locations/CreateLocation.vue";
+import SupplierDetail from "../views/DataManagement/Suppliers/SupplierDetail.vue";
 import Stocks from "../views/Stocks/Stocks.vue";
 
 export const BREADCRUMBS = {
@@ -231,6 +232,41 @@ export const BREADCRUMBS = {
         },
         {
             label: "Créer un fournisseur",
+        },
+    ],
+
+    EditSupplier: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Fournisseurs",
+            to: { name: "SupplierList" },
+        },
+        {
+            label: `Fournisseur #${route.params.id}`,
+            to: {
+                name: "SupplierDetail",
+                params: { id: route.params.id },
+            },
+        },
+        {
+            label: "Modifier le fournisseur",
+        },
+    ],
+
+    SupplierDetail: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Fournisseurs",
+            to: { name: "SupplierList" },
+        },
+        {
+            label: `Fournisseur #${route.params.id}`,
         },
     ],
 };
