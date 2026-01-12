@@ -38,51 +38,87 @@
                 <v-stepper-window-item :value="1">
                   <v-row>
                     <v-col cols="12" md="6">
+                      <label class="field-label">
+                        Numéro de série <span class="required-star">*</span>
+                      </label>
                       <v-text-field 
                         v-model="formData.numSerie" 
-                        label="Numéro de série*"
+                        placeholder="Saisir le numéro de série"
                         :rules="validation.getFieldRules('numSerie', 1)"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details="auto"
                       />
                     </v-col>
 
                     <v-col cols="12" md="6">
+                      <label class="field-label">
+                        Référence <span class="required-star">*</span>
+                      </label>
                       <v-text-field 
                         v-model="formData.reference" 
-                        label="Référence*"
+                        placeholder="Saisir la référence"
                         :rules="validation.getFieldRules('reference', 1)"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details="auto"
                       />
                     </v-col>
 
                     <v-col cols="12" md="6">
+                      <label class="field-label">
+                        Désignation <span class="required-star">*</span>
+                      </label>
                       <v-text-field 
                         v-model="formData.designation" 
-                        label="Désignation*"
+                        placeholder="Saisir la désignation"
                         :rules="validation.getFieldRules('designation', 1)"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details="auto"
                       />
                     </v-col>
 
                     <v-col cols="12" md="6">
+                      <label class="field-label">
+                        Date de mise en service <span class="required-star">*</span>
+                      </label>
                       <v-text-field 
                         v-model="formData.dateMiseEnService" 
                         type="date" 
-                        label="Date de mise en service*"
                         :rules="validation.getFieldRules('dateMiseEnService', 1)"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details="auto"
                       />
                     </v-col>
 
                     <v-col cols="12" md="6">
+                      <label class="field-label">
+                        Prix d'achat <span class="required-star">*</span>
+                      </label>
                       <v-text-field 
                         v-model="formData.prixAchat" 
                         type="number" 
-                        label="Prix d'achat*"
+                        placeholder="0.00"
                         :rules="validation.getFieldRules('prixAchat', 1)"
+                        prefix="€"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details="auto"
                       />
                     </v-col>
 
                     <v-col cols="12" md="6">
+                      <label class="field-label">Image de l'équipement</label>
                       <v-file-input 
-                        label="Image de l'équipement" 
+                        placeholder="Sélectionner une image"
                         @change="handleFileUpload"
+                        variant="outlined"
+                        density="comfortable"
+                        prepend-icon=""
+                        prepend-inner-icon="mdi-camera"
+                        hide-details="auto"
                       />
                     </v-col>
                   </v-row>
@@ -446,7 +482,7 @@ const fetchData = async () => {
     const typesDocumentsApi = useApi(API_BASE_URL);
 
     await Promise.all([
-      locationsApi.get('lieux-hierarchy/'),
+      locationsApi.get('lieux/hierarchy/'),
       modelsApi.get('modele-equipements/'),
       fabricantApi.get('fabricants/'),
       fournisseurApi.get('fournisseurs/'),
