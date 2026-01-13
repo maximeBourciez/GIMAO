@@ -2,31 +2,16 @@
   <v-app>
     <v-main>
       <v-container>
-        <BaseForm 
-          v-model="formData" 
-          title="Créer un Équipement" 
-          :loading="loading" 
-          :error-message="errorMessage"
-          :success-message="successMessage" 
-          :loading-message="loadingData ? 'Chargement des données...' : ''"
-          :validation-schema="validationSchema"
-          submit-button-text="Créer un Équipement"
-          :handleSubmit="handleSubmit" 
-          actions-container-class="d-flex justify-end gap-2"
-          :showActions="step === 6"
-        >
+        <BaseForm v-model="formData" title="Créer un Équipement" :loading="loading" :error-message="errorMessage"
+          :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
+          :validation-schema="validationSchema" submit-button-text="Créer un Équipement" :handleSubmit="handleSubmit"
+          actions-container-class="d-flex justify-end gap-2" :showActions="step === 6">
           <template #default="{ formData, validation }">
             <v-stepper v-model="step" :steps="6" justify="center" alt-labels>
               <v-stepper-header class="justify-center">
-                <v-stepper-item 
-                  v-for="(label, index) in EQUIPMENT_CREATE_STEPS" 
-                  :key="index" 
-                  :value="index + 1"
-                  :complete="isStepComplete(index + 1)" 
-                  :editable="isStepEditable(index + 1)"
-                  :color="isStepEditable(index + 1) ? 'primary' : undefined"
-                  @click="goToStep(index + 1)"
-                >
+                <v-stepper-item v-for="(label, index) in EQUIPMENT_CREATE_STEPS" :key="index" :value="index + 1"
+                  :complete="isStepComplete(index + 1)" :editable="isStepEditable(index + 1)"
+                  :color="isStepEditable(index + 1) ? 'primary' : undefined" @click="goToStep(index + 1)">
                   <template #title>
                     <span class="step-label">{{ label }}</span>
                   </template>
@@ -39,87 +24,54 @@
                   <v-row>
                     <v-col cols="12" md="6">
                       <label class="field-label">
-                        Numéro de série <span class="required-star">*</span>
+                        Numéro de série
                       </label>
-                      <v-text-field 
-                        v-model="formData.numSerie" 
-                        placeholder="Saisir le numéro de série"
-                        :rules="validation.getFieldRules('numSerie', 1)"
-                        variant="outlined"
-                        density="comfortable"
-                        hide-details="auto"
-                      />
+                      <v-text-field v-model="formData.numSerie" placeholder="Saisir le numéro de série"
+                        :rules="validation.getFieldRules('numSerie', 1)" variant="outlined" density="comfortable"
+                        hide-details="auto" counter="100" />
                     </v-col>
 
                     <v-col cols="12" md="6">
                       <label class="field-label">
-                        Référence <span class="required-star">*</span>
+                        Référence
                       </label>
-                      <v-text-field 
-                        v-model="formData.reference" 
-                        placeholder="Saisir la référence"
-                        :rules="validation.getFieldRules('reference', 1)"
-                        variant="outlined"
-                        density="comfortable"
-                        hide-details="auto"
-                      />
+                      <v-text-field v-model="formData.reference" placeholder="Saisir la référence"
+                        :rules="validation.getFieldRules('reference', 1)" variant="outlined" density="comfortable"
+                        hide-details="auto" counter="100" />
                     </v-col>
 
                     <v-col cols="12" md="6">
                       <label class="field-label">
-                        Désignation <span class="required-star">*</span>
+                        Désignation
                       </label>
-                      <v-text-field 
-                        v-model="formData.designation" 
-                        placeholder="Saisir la désignation"
-                        :rules="validation.getFieldRules('designation', 1)"
-                        variant="outlined"
-                        density="comfortable"
-                        hide-details="auto"
-                      />
+                      <v-text-field v-model="formData.designation" placeholder="Saisir la désignation"
+                        :rules="validation.getFieldRules('designation', 1)" variant="outlined" density="comfortable"
+                        hide-details="auto" counter="100" />
                     </v-col>
 
                     <v-col cols="12" md="6">
                       <label class="field-label">
-                        Date de mise en service <span class="required-star">*</span>
+                        Date de mise en service
                       </label>
-                      <v-text-field 
-                        v-model="formData.dateMiseEnService" 
-                        type="date" 
-                        :rules="validation.getFieldRules('dateMiseEnService', 1)"
-                        variant="outlined"
-                        density="comfortable"
-                        hide-details="auto"
-                      />
+                      <v-text-field v-model="formData.dateMiseEnService" type="date"
+                        :rules="validation.getFieldRules('dateMiseEnService', 1)" variant="outlined"
+                        density="comfortable" hide-details="auto" />
                     </v-col>
 
                     <v-col cols="12" md="6">
                       <label class="field-label">
-                        Prix d'achat <span class="required-star">*</span>
+                        Prix d'achat
                       </label>
-                      <v-text-field 
-                        v-model="formData.prixAchat" 
-                        type="number" 
-                        placeholder="0.00"
-                        :rules="validation.getFieldRules('prixAchat', 1)"
-                        prefix="€"
-                        variant="outlined"
-                        density="comfortable"
-                        hide-details="auto"
-                      />
+                      <v-text-field v-model="formData.prixAchat" type="number" placeholder="0.00"
+                        :rules="validation.getFieldRules('prixAchat', 1)" prefix="€" variant="outlined"
+                        density="comfortable" hide-details="auto" step="0.01" min="0" />
                     </v-col>
 
                     <v-col cols="12" md="6">
                       <label class="field-label">Image de l'équipement</label>
-                      <v-file-input 
-                        placeholder="Sélectionner une image"
-                        @change="handleFileUpload"
-                        variant="outlined"
-                        density="comfortable"
-                        prepend-icon=""
-                        prepend-inner-icon="mdi-camera"
-                        hide-details="auto"
-                      />
+                      <v-file-input placeholder="Sélectionner une image" @change="handleFileUpload" accept="image/*"
+                        variant="outlined" density="comfortable" prepend-icon="" prepend-inner-icon="mdi-camera"
+                        hide-details="auto" />
                     </v-col>
                   </v-row>
                 </v-stepper-window-item>
@@ -128,47 +80,24 @@
                 <v-stepper-window-item :value="2">
                   <v-row>
                     <v-col cols="12" md="6">
-                      <v-select 
-                        v-model="formData.fournisseur" 
-                        :items="fournisseurs" 
-                        item-title="nom" 
-                        item-value="id"
-                        label="Fournisseur*"
-                        :rules="validation.getFieldRules('fournisseur', 2)"
-                      />
+                      <v-select v-model="formData.fournisseur" :items="fournisseurs" item-title="nom" item-value="id"
+                        label="Fournisseur" :rules="validation.getFieldRules('fournisseur', 2)" clearable />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <v-select 
-                        v-model="formData.fabricant" 
-                        :items="fabricants" 
-                        item-title="nom" 
-                        item-value="id"
-                        label="Fabricant*"
-                        :rules="validation.getFieldRules('fabricant', 2)"
-                      />
+                      <v-select v-model="formData.fabricant" :items="fabricants" item-title="nom" item-value="id"
+                        label="Fabricant" :rules="validation.getFieldRules('fabricant', 2)" clearable />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <v-select 
-                        v-model="formData.famille" 
-                        :items="familles" 
-                        item-title="nom" 
-                        item-value="id"
-                        label="Famille*"
-                        :rules="validation.getFieldRules('famille', 2)"
-                      />
+                      <v-select v-model="formData.famille" :items="familles" item-title="nom" item-value="id"
+                        label="Famille" :rules="validation.getFieldRules('famille', 2)" clearable />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <v-select 
-                        v-model="formData.modeleEquipement" 
-                        :items="equipmentModels" 
-                        item-title="nom"
-                        item-value="id" 
-                        label="Modèle*"
-                        :rules="validation.getFieldRules('modeleEquipement', 2)"
-                      />
+                      <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom"
+                        item-value="id" label="Modèle" :rules="validation.getFieldRules('modeleEquipement', 2)"
+                        clearable />
                     </v-col>
                   </v-row>
                 </v-stepper-window-item>
@@ -180,27 +109,14 @@
 
                 <!-- Étape 4: Statut -->
                 <v-stepper-window-item :value="4">
-                  <v-select 
-                    v-model="formData.statut" 
-                    :items="equipmentStatuses" 
-                    item-title="label" 
-                    item-value="value"
-                    label="Statut*"
-                    :rules="validation.getFieldRules('statut', 4)"
-                  />
+                  <v-select v-model="formData.statut" :items="equipmentStatuses" item-title="label" item-value="value"
+                    label="Statut*" :rules="validation.getFieldRules('statut', 4)" />
                 </v-stepper-window-item>
 
                 <!-- Étape 5: Consommables -->
                 <v-stepper-window-item :value="5">
-                  <v-select 
-                    v-model="formData.consommables" 
-                    :items="consumables" 
-                    item-title="designation"
-                    item-value="id" 
-                    multiple 
-                    chips 
-                    label="Consommables"
-                  />
+                  <v-select v-model="formData.consommables" :items="consumables" item-title="designation"
+                    item-value="id" multiple chips label="Consommables" />
                 </v-stepper-window-item>
 
                 <!-- Étape 6: Compteurs -->
@@ -254,23 +170,12 @@
 
                 <!-- Navigation -->
                 <v-row justify="space-between" class="mt-4">
-                  <v-btn 
-                    type="button"
-                    variant="text" 
-                    @click="prevStep" 
-                    :disabled="step === 1"
-                  >
+                  <v-btn type="button" variant="text" @click="prevStep" :disabled="step === 1">
                     Précédent
                   </v-btn>
 
-                  <v-btn 
-                    type="button"
-                    variant="text" 
-                    color="primary" 
-                    v-if="step < 6" 
-                    @click="nextStep"
-                    :disabled="!canGoToNextStep(validation)"
-                  >
+                  <v-btn type="button" variant="text" color="primary" v-if="step < 6" @click="nextStep"
+                    :disabled="!canGoToNextStep(validation)">
                     Suivant
                   </v-btn>
                 </v-row>
@@ -332,22 +237,23 @@ const successMessage = ref('');
 const isEditMode = ref(false);
 const editingCounterIndex = ref(-1);
 const step = ref(1);
-const visitedSteps = ref([1]); // Track des étapes visitées
+const visitedSteps = ref([1]);
 
-// Schéma de validation
 const validationSchema = {
   step1: {
-    numSerie: ['required', { name: 'minLength', params: [3] }],
-    reference: ['required'],
-    designation: ['required'],
-    dateMiseEnService: ['required', 'date'],
-    prixAchat: ['required', 'numeric', 'positive'],
+    numSerie: [{ name: 'minLength', params: [1] }, { name: 'maxLength', params: [100] }],
+    designation: ['required', { name: 'maxLength', params: [100] }],
+
+    reference: ['required', { name: 'maxLength', params: [100] }],
+    dateMiseEnService: [],
+    prixAchat: ['numeric', 'positive'],
   },
   step2: {
+
+    modeleEquipement: ['required'],
     fournisseur: ['required'],
     fabricant: ['required'],
     famille: ['required'],
-    modeleEquipement: ['required'],
   },
   step3: {
     lieu: ['required'],
@@ -356,10 +262,8 @@ const validationSchema = {
     statut: ['required'],
   },
   step5: {
-    // Consommables optionnels
   },
   step6: {
-    // Validation personnalisée pour les compteurs
   }
 };
 
@@ -367,12 +271,12 @@ const validationSchema = {
 const getCurrentUserId = () => {
   const currentUser = store.getters.currentUser;
   console.log('Current user from store:', currentUser);
-  
+
   if (currentUser && currentUser.id) {
     console.log('Using user ID from store:', currentUser.id);
     return currentUser.id;
   }
-  
+
   // Fallback: lire depuis localStorage
   const userFromStorage = localStorage.getItem('user');
   if (userFromStorage) {
@@ -385,7 +289,7 @@ const getCurrentUserId = () => {
       console.error('Error parsing user from localStorage:', e);
     }
   }
-  
+
   console.error('Aucun utilisateur connecté trouvé');
   return null;
 };
@@ -427,9 +331,6 @@ const showModeleDialog = ref(false);
 const showFamilleDialog = ref(false);
 
 const existingPMs = ref([
-  { nom: 'Plan de maintenance vidange', consommables: [{ consommable: 1, quantite: 1 }, { consommable: 2, quantite: 2 }], documents: [], type: 2 },
-  { nom: 'Plan de maintenance révision', consommables: [], documents: [], type: 3 },
-  { nom: 'Plan de maintenance complet', consommables: [], documents: [], type: 2 }
 ]);
 
 const equipmentStatuses = computed(() => {
@@ -513,6 +414,25 @@ const handleSubmit = async () => {
   // Validation basique : au moins un compteur requis
   if (formData.value.compteurs.length === 0) {
     errorMessage.value = 'Au moins un compteur est requis';
+    step.value = 6;  // Rediriger vers l'étape des compteurs
+    return;
+  }
+
+  // Validation des compteurs
+  const invalidCounters = formData.value.compteurs.filter(c =>
+    !c.nom || !c.unite || c.intervalle === null || c.intervalle === undefined || c.intervalle <= 0
+  );
+
+  if (invalidCounters.length > 0) {
+    errorMessage.value = 'Tous les compteurs doivent avoir un nom, une unité et un intervalle positif';
+    step.value = 6;
+    return;
+  }
+
+  // Validation que le statut est défini
+  if (!formData.value.statut) {
+    errorMessage.value = 'Le statut de l\'équipement est requis';
+    step.value = 4;
     return;
   }
 
