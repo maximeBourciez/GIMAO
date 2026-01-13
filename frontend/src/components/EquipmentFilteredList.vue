@@ -84,7 +84,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { VTreeview } from 'vuetify/labs/VTreeview';
+import { VTreeview } from 'vuetify/components'
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';

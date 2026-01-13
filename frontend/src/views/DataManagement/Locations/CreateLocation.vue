@@ -77,7 +77,7 @@
 import { useApi } from '@/composables/useApi';
 import { ref, computed, reactive, onMounted, toRefs } from 'vue';
 import { useRouter } from 'vue-router';
-import { VTreeView } from 'vuetify/labs/components';
+import { VTreeView } from 'vuetify/components'
 import { API_BASE_URL } from '@/utils/constants';
 
 export default {
