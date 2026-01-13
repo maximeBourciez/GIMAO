@@ -121,11 +121,8 @@ export function useEquipmentForm(isEditMode = false) {
     return isValid;
   };
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files ? event.target.files[0] : event;
-    if (file) {
-      formData.value.lienImageEquipement = file;
-    }
+  const handleFileUpload = (file) => {
+    formData.value.lienImageEquipement = file;
   };
 
   const fetchData = async () => {

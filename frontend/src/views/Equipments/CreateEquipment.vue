@@ -23,8 +23,8 @@
                 <v-stepper-window-item :value="1">
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
-                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="1"
-                    :show-location="false" :show-status="false" :show-consommables="false" :show-counters="false"
+                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="1" :show-location="false"
+                    :show-status="false" :show-consommables="false" :show-counters="false"
                     @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
@@ -32,8 +32,8 @@
                 <v-stepper-window-item :value="2">
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
-                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="2"
-                    :show-location="false" :show-status="false" :show-consommables="false" :show-counters="false"
+                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="2" :show-location="false"
+                    :show-status="false" :show-consommables="false" :show-counters="false"
                     @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
@@ -41,18 +41,18 @@
                 <v-stepper-window-item :value="3">
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
-                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="3"
-                    :show-status="false" :show-consommables="false" :show-counters="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="3" :show-status="false"
+                    :show-consommables="false" :show-counters="false" @file-upload="handleFileUpload"
+                    @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 4: Statut -->
                 <v-stepper-window-item :value="4">
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
-                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="4"
-                    :show-location="false" :show-consommables="false" :show-counters="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="4" :show-location="false"
+                    :show-consommables="false" :show-counters="false" @file-upload="handleFileUpload"
+                    @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 5: Consommables -->
@@ -435,14 +435,6 @@ onMounted(async () => {
 .step-label {
   font-size: 0.875rem;
   font-weight: 500;
-}
-
-.field-label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgba(0, 0, 0, 0.87);
 }
 
 :deep(.v-stepper-item--editable) {

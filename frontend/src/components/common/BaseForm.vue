@@ -407,4 +407,12 @@ defineExpose({
 </script>
 
 <style scoped>
+/* Style global pour les labels de champs */
+:deep(.field-label) {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.87);
+}
 </style>

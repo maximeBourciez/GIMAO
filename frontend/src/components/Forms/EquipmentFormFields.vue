@@ -27,10 +27,13 @@
         </v-col>
 
         <v-col cols="12" md="6">
-            <label class="field-label">Image de l'équipement</label>
-            <v-file-input placeholder="Sélectionner une image" @change="handleFileUpload" accept="image/*"
-                variant="outlined" density="comfortable" prepend-icon="" prepend-inner-icon="mdi-camera"
-                hide-details="auto" />
+            <FormFileInput
+                label="Image de l'équipement"
+                placeholder="Sélectionner une image"
+                accept="image/*"
+                prepend-inner-icon="mdi-camera"
+                @update:model-value="handleFileUpload"
+            />
         </v-col>
 
         <!-- Modèle, Fournisseur, Fabricant, Famille -->
@@ -117,7 +120,7 @@
 </template>
 
 <script setup>
-import { FormField, FormSelect } from '@/components/common';
+import { FormField, FormSelect, FormFileInput } from '@/components/common';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 import { TABLE_HEADERS } from '@/utils/constants';
 
@@ -178,8 +181,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter']);
 
-const handleFileUpload = (event) => {
-    emit('file-upload', event);
+const handleFileUpload = (file) => {
+    emit('file-upload', file);
 };
 
 const handleLocationCreated = (newLocation) => {
@@ -188,11 +191,4 @@ const handleLocationCreated = (newLocation) => {
 </script>
 
 <style scoped>
-.field-label {
-    display: block;
-    margin-bottom: 4px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.87);
-}
 </style>
