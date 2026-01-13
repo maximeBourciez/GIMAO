@@ -53,6 +53,7 @@
         :reset-form="resetForm"
         :reset-validation="resetValidation"
         :validation="validation"
+        :is-field-required="validation?.isFieldRequired"
       ></slot>
 
       <!-- Actions -->
@@ -93,6 +94,7 @@
         :reset-form="resetForm"
         :reset-validation="resetValidation"
         :validation="validation"
+        :is-field-required="validation?.isFieldRequired"
       ></slot>
 
       <!-- Actions -->
@@ -336,6 +338,13 @@ const formData = computed({
 const validation = props.validationSchema && Object.keys(props.validationSchema).length > 0
   ? useFormValidation(props.validationSchema)
   : null;
+
+// Fournir validation et isFieldRequired aux composants enfants
+import { provide } from 'vue';
+if (validation) {
+  provide('validation', validation);
+  provide('isFieldRequired', validation.isFieldRequired);
+}
 
 const handleSubmit = () => {
   // Valider avec le schéma si disponible

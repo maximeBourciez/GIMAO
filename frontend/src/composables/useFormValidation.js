@@ -220,6 +220,42 @@ export function useFormValidation(schema, options = {}) {
     return validateStep(step, formData);
   };
 
+  /**
+   * Vérifie si un champ est requis dans le schéma de validation
+   * @param {string} fieldName - Nom du champ
+   * @param {number|null} step - Numéro de l'étape (null pour formulaires simples)
+   * @returns {boolean} - true si le champ est requis
+   */
+  const isFieldRequired = (fieldName, step = null) => {
+    let fieldSchema;
+
+    if (step !== null && schema[`step${step}`]) {
+      // Formulaire multi-steps
+      fieldSchema = schema[`step${step}`]?.[fieldName];
+    } else {
+      // Formulaire simple
+      fieldSchema = schema[fieldName];
+    }
+
+    if (!fieldSchema) return false;
+
+    // Si le schéma est un tableau
+    if (Array.isArray(fieldSchema)) {
+      return fieldSchema.some(rule => {
+        if (typeof rule === 'string' && rule === 'required') return true;
+        if (typeof rule === 'object' && rule.name === 'required') return true;
+        return false;
+      });
+    }
+
+    // Si le schéma est un objet
+    if (typeof fieldSchema === 'object') {
+      return fieldSchema.required === true || typeof fieldSchema.required === 'string';
+    }
+
+    return false;
+  };
+
   return {
     getFieldRules,
     validateField,
@@ -231,7 +267,8 @@ export function useFormValidation(schema, options = {}) {
     errors,
     currentStep,
     totalSteps,
-    isStepValid
+    isStepValid,
+    isFieldRequired
   };
 }
 

@@ -23,48 +23,28 @@
                 <v-stepper-window-item :value="1">
                   <v-row>
                     <v-col cols="12" md="6">
-                      <label class="field-label">
-                        Numéro de série
-                      </label>
-                      <v-text-field v-model="formData.numSerie" placeholder="Saisir le numéro de série"
-                        :rules="validation.getFieldRules('numSerie', 1)" variant="outlined" density="comfortable"
-                        hide-details="auto" counter="100" />
+                      <FormField v-model="formData.numSerie" field-name="numSerie" :step="1" label="Numéro de série"
+                        placeholder="Saisir le numéro de série" counter="100" />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <label class="field-label">
-                        Référence
-                      </label>
-                      <v-text-field v-model="formData.reference" placeholder="Saisir la référence"
-                        :rules="validation.getFieldRules('reference', 1)" variant="outlined" density="comfortable"
-                        hide-details="auto" counter="100" />
+                      <FormField v-model="formData.reference" field-name="reference" :step="1" label="Référence"
+                        placeholder="Saisir la référence" counter="100" />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <label class="field-label">
-                        Désignation
-                      </label>
-                      <v-text-field v-model="formData.designation" placeholder="Saisir la désignation"
-                        :rules="validation.getFieldRules('designation', 1)" variant="outlined" density="comfortable"
-                        hide-details="auto" counter="100" />
+                      <FormField v-model="formData.designation" field-name="designation" :step="1" label="Désignation"
+                        placeholder="Saisir la désignation" counter="100" />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <label class="field-label">
-                        Date de mise en service
-                      </label>
-                      <v-text-field v-model="formData.dateMiseEnService" type="date"
-                        :rules="validation.getFieldRules('dateMiseEnService', 1)" variant="outlined"
-                        density="comfortable" hide-details="auto" />
+                      <FormField v-model="formData.dateMiseEnService" field-name="dateMiseEnService" :step="1"
+                        label="Date de mise en service" type="date" />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <label class="field-label">
-                        Prix d'achat
-                      </label>
-                      <v-text-field v-model="formData.prixAchat" type="number" placeholder="0.00"
-                        :rules="validation.getFieldRules('prixAchat', 1)" prefix="€" variant="outlined"
-                        density="comfortable" hide-details="auto" step="0.01" min="0" />
+                      <FormField v-model="formData.prixAchat" field-name="prixAchat" :step="1" label="Prix d'achat"
+                        type="number" placeholder="0.00" prefix="€" step="0.01" min="0" />
                     </v-col>
 
                     <v-col cols="12" md="6">
@@ -80,24 +60,23 @@
                 <v-stepper-window-item :value="2">
                   <v-row>
                     <v-col cols="12" md="6">
-                      <v-select v-model="formData.fournisseur" :items="fournisseurs" item-title="nom" item-value="id"
-                        label="Fournisseur" :rules="validation.getFieldRules('fournisseur', 2)" clearable />
+                      <FormSelect v-model="formData.fournisseur" field-name="fournisseur" :step="2" label="Fournisseur"
+                        :items="fournisseurs" item-title="nom" item-value="id" clearable />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <v-select v-model="formData.fabricant" :items="fabricants" item-title="nom" item-value="id"
-                        label="Fabricant" :rules="validation.getFieldRules('fabricant', 2)" clearable />
+                      <FormSelect v-model="formData.fabricant" field-name="fabricant" :step="2" label="Fabricant"
+                        :items="fabricants" item-title="nom" item-value="id" clearable />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <v-select v-model="formData.famille" :items="familles" item-title="nom" item-value="id"
-                        label="Famille" :rules="validation.getFieldRules('famille', 2)" clearable />
+                      <FormSelect v-model="formData.famille" field-name="famille" :step="2" label="Famille"
+                        :items="familles" item-title="nom" item-value="id" clearable />
                     </v-col>
 
                     <v-col cols="12" md="6">
-                      <v-select v-model="formData.modeleEquipement" :items="equipmentModels" item-title="nom"
-                        item-value="id" label="Modèle" :rules="validation.getFieldRules('modeleEquipement', 2)"
-                        clearable />
+                      <FormSelect v-model="formData.modeleEquipement" field-name="modeleEquipement" :step="2"
+                        label="Modèle" :items="equipmentModels" item-title="nom" item-value="id" clearable />
                     </v-col>
                   </v-row>
                 </v-stepper-window-item>
@@ -109,8 +88,8 @@
 
                 <!-- Étape 4: Statut -->
                 <v-stepper-window-item :value="4">
-                  <v-select v-model="formData.statut" :items="equipmentStatuses" item-title="label" item-value="value"
-                    label="Statut*" :rules="validation.getFieldRules('statut', 4)" />
+                  <FormSelect v-model="formData.statut" field-name="statut" :step="4" label="Statut"
+                    :items="equipmentStatuses" item-title="label" item-value="value" />
                 </v-stepper-window-item>
 
                 <!-- Étape 5: Consommables -->
@@ -215,7 +194,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
-import { BaseForm } from '@/components/common';
+import { BaseForm, FormField, FormSelect } from '@/components/common';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, EQUIPMENT_CREATE_STEPS } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
@@ -241,9 +220,8 @@ const visitedSteps = ref([1]);
 
 const validationSchema = {
   step1: {
-    numSerie: [{ name: 'minLength', params: [1] }, { name: 'maxLength', params: [100] }],
+    numSerie: ['required', { name: 'minLength', params: [1] }, { name: 'maxLength', params: [100] }],
     designation: ['required', { name: 'maxLength', params: [100] }],
-
     reference: ['required', { name: 'maxLength', params: [100] }],
     dateMiseEnService: [],
     prixAchat: ['numeric', 'positive'],
@@ -618,10 +596,6 @@ const updateExistingPM = (counterToSave) => {
 // Modales Fabricant, Fournisseur, Modele, Famille Equipement
 // -------------------------------
 // Fabricant
-const openFabricantDialog = () => {
-  showFabricantDialog.value = true
-}
-
 const closeFabricantDialog = () => {
   showFabricantDialog.value = false
 }
@@ -632,10 +606,6 @@ const handleFabricantCreated = (newFabricant) => {
 }
 
 // Fournisseur
-const openFournisseurDialog = () => {
-  showFournisseurDialog.value = true
-}
-
 const closeFournisseurDialog = () => {
   showFournisseurDialog.value = false
 }
@@ -646,10 +616,6 @@ const handleFournisseurCreated = (newFournisseur) => {
 }
 
 // Modèle Equipement
-const openModeleDialog = () => {
-  showModeleDialog.value = true;
-};
-
 const closeModeleDialog = () => {
   showModeleDialog.value = false;
 };
@@ -662,10 +628,6 @@ const handleModeleCreated = (newModele) => {
 };
 
 // Famille Equipement
-const openFamilleDialog = () => {
-  showFamilleDialog.value = true;
-};
-
 const closeFamilleDialog = () => {
   showFamilleDialog.value = false;
 };
@@ -733,7 +695,14 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-/* Style pour les étapes visitées (avec données) */
+.field-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.87);
+}
+
 :deep(.v-stepper-item--editable) {
   cursor: pointer;
 }
@@ -750,23 +719,5 @@ onMounted(async () => {
 :deep(.v-stepper-item--editable .step-label) {
   color: rgb(var(--v-theme-primary));
   font-weight: 600;
-}
-
-.rotate-icon {
-  transform: rotate(90deg);
-  transition: transform 0.2s;
-}
-
-.tree-icon-placeholder {
-  display: inline-block;
-  width: 24px;
-}
-
-.location-tree {
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 8px;
 }
 </style>
