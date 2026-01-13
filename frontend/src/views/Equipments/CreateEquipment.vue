@@ -6,7 +6,7 @@
           :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
           :validation-schema="validationSchema" submit-button-text="Créer un Équipement" :handleSubmit="handleSubmit"
           actions-container-class="d-flex justify-end gap-2" :showActions="step === 6">
-          <template #default="{ formData, validation }">
+          <template #default="{ validation }">
             <v-stepper v-model="step" :steps="6" justify="center" alt-labels>
               <v-stepper-header class="justify-center">
                 <v-stepper-item v-for="(label, index) in EQUIPMENT_CREATE_STEPS" :key="index" :value="index + 1"
@@ -21,75 +21,38 @@
               <v-stepper-window v-model="step" :steps="6" class="mb-4">
                 <!-- Étape 1: Informations générales -->
                 <v-stepper-window-item :value="1">
-                  <v-row>
-                    <v-col cols="12" md="6">
-                      <FormField v-model="formData.numSerie" field-name="numSerie" :step="1" label="Numéro de série"
-                        placeholder="Saisir le numéro de série" counter="100" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <FormField v-model="formData.reference" field-name="reference" :step="1" label="Référence"
-                        placeholder="Saisir la référence" counter="100" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <FormField v-model="formData.designation" field-name="designation" :step="1" label="Désignation"
-                        placeholder="Saisir la désignation" counter="100" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <FormField v-model="formData.dateMiseEnService" field-name="dateMiseEnService" :step="1"
-                        label="Date de mise en service" type="date" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <FormField v-model="formData.prixAchat" field-name="prixAchat" :step="1" label="Prix d'achat"
-                        type="number" placeholder="0.00" suffix="€" step="0.01" min="0" />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <label class="field-label">Image de l'équipement</label>
-                      <v-file-input placeholder="Sélectionner une image" @change="handleFileUpload" accept="image/*"
-                        variant="outlined" density="comfortable" prepend-icon="" prepend-inner-icon="mdi-camera"
-                        hide-details="auto" />
-                    </v-col>
-                  </v-row>
+                  <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
+                    :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
+                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="1"
+                    :show-location="false" :show-status="false" :show-consommables="false" :show-counters="false"
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 2: Fournisseur et Fabricant -->
                 <v-stepper-window-item :value="2">
-                  <v-row>
-                    <v-col cols="12" md="6">
-                      <FormSelect v-model="formData.fournisseur" field-name="fournisseur" :step="2" label="Fournisseur"
-                        :items="fournisseurs" item-title="nom" item-value="id" clearable />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <FormSelect v-model="formData.fabricant" field-name="fabricant" :step="2" label="Fabricant"
-                        :items="fabricants" item-title="nom" item-value="id" clearable />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <FormSelect v-model="formData.famille" field-name="famille" :step="2" label="Famille"
-                        :items="familles" item-title="nom" item-value="id" clearable />
-                    </v-col>
-
-                    <v-col cols="12" md="6">
-                      <FormSelect v-model="formData.modeleEquipement" field-name="modeleEquipement" :step="2"
-                        label="Modèle" :items="equipmentModels" item-title="nom" item-value="id" clearable />
-                    </v-col>
-                  </v-row>
+                  <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
+                    :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
+                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="2"
+                    :show-location="false" :show-status="false" :show-consommables="false" :show-counters="false"
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 3: Localisation -->
                 <v-stepper-window-item :value="3">
-                  <LocationTreeView :items="locations" v-model:selected="formData.lieu" />
+                  <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
+                    :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
+                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="3"
+                    :show-status="false" :show-consommables="false" :show-counters="false"
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 4: Statut -->
                 <v-stepper-window-item :value="4">
-                  <FormSelect v-model="formData.statut" field-name="statut" :step="4" label="Statut"
-                    :items="equipmentStatuses" item-title="label" item-value="value" />
+                  <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
+                    :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
+                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="4"
+                    :show-location="false" :show-consommables="false" :show-counters="false"
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 5: Consommables -->
@@ -126,7 +89,7 @@
 
                         <template #append>
                           <v-btn icon="mdi-pencil" size="small" variant="text" color="primary"
-                            @click="handleCounterEdit(compteur)" />
+                            @click="internalHandleCounterEdit(compteur)" />
                           <v-btn icon="mdi-delete" size="small" variant="text" color="error"
                             @click="handleCounterDelete(compteur)" />
                         </template>
@@ -147,8 +110,8 @@
                   <!-- Formulaire pour ajouter/éditer un compteur -->
                   <CounterInlineForm v-if="showCounterForm" v-model="currentCounter" :existingPMs="existingPMs"
                     :typesPM="typesPM" :consumables="consumables" :typesDocuments="typesDocuments"
-                    :isEditMode="isEditMode" :isFirstCounter="formData.compteurs.length === 0"
-                    @save="saveCurrentCounter" @cancel="cancelCounterForm" />
+                    :isEditMode="editingCounterIndex >= 0" :isFirstCounter="formData.compteurs.length === 0"
+                    @save="internalSaveCurrentCounter" @cancel="cancelCounterForm" />
                 </v-stepper-window-item>
 
                 <!-- Navigation -->
@@ -183,51 +146,79 @@
     </v-dialog>
 
     <v-dialog v-model="showFabricantDialog" max-width="80%">
-      <FabricantForm @created="handleFabricantCreated" @close="closeFabricantDialog" />
+      <FabricantForm @created="handleFabricantCreated" @close="showFabricantDialog = false" />
     </v-dialog>
 
     <v-dialog v-model="showFournisseurDialog" max-width="80%">
-      <FournisseurForm @created="handleFournisseurCreated" @close="closeFournisseurDialog" />
+      <FournisseurForm @created="handleFournisseurCreated" @close="showFournisseurDialog = false" />
     </v-dialog>
 
     <v-dialog v-model="showModeleDialog" max-width="80%">
-      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="closeModeleDialog"
+      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="showModeleDialog = false"
         @fabricant-created="handleFabricantCreated" />
     </v-dialog>
 
     <v-dialog v-model="showFamilleDialog" max-width="50%">
-      <FamilleEquipementForm :families="familles" @created="handleFamilleCreated" @close="closeFamilleDialog" />
+      <FamilleEquipementForm :families="familles" @created="handleFamilleCreated" @close="showFamilleDialog = false" />
     </v-dialog>
   </v-app>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useStore } from 'vuex';
-import { BaseForm, FormField, FormSelect } from '@/components/common';
-import { useApi } from '@/composables/useApi';
+import { ref, onMounted } from 'vue';
+import { BaseForm } from '@/components/common';
 import { API_BASE_URL, EQUIPMENT_CREATE_STEPS } from '@/utils/constants';
-import LocationTreeView from '@/components/LocationTreeView.vue';
-import { EQUIPMENT_STATUS } from '@/utils/constants.js';
+import { useEquipmentForm } from '@/composables/useEquipmentForm';
+import EquipmentFormFields from '@/components/Forms/EquipmentFormFields.vue';
 import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
 import FabricantForm from '@/components/Forms/FabricantForm.vue';
 import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
 import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue';
 
-const router = useRouter();
-const store = useStore();
-const api = useApi(API_BASE_URL);
+const {
+  formData,
+  loading,
+  loadingData,
+  errorMessage,
+  successMessage,
+  locations,
+  equipmentModels,
+  fournisseurs,
+  fabricants,
+  consumables,
+  familles,
+  typesPM,
+  typesDocuments,
+  equipmentStatuses,
+  currentCounter,
+  isCounterEditMode,
+  existingPMs,
+  showCounterDialog,
+  showFabricantDialog,
+  showFournisseurDialog,
+  showModeleDialog,
+  showFamilleDialog,
+  handleFileUpload,
+  fetchData,
+  handleCounterEdit,
+  handleCounterDelete,
+  saveCurrentCounter,
+  closeCounterDialog,
+  handleFabricantCreated,
+  handleFournisseurCreated,
+  handleModeleCreated,
+  handleFamilleCreated,
+  handleLocationCreated,
+  getEmptyCounter,
+  api,
+  router
+} = useEquipmentForm();
 
-const loading = ref(false);
-const loadingData = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
-const isEditMode = ref(false);
-const editingCounterIndex = ref(-1);
 const step = ref(1);
 const visitedSteps = ref([1]);
+const showCounterForm = ref(true);
+const editingCounterIndex = ref(-1);
 
 const validationSchema = {
   step1: {
@@ -253,124 +244,6 @@ const validationSchema = {
   step5: {
   },
   step6: {
-  }
-};
-
-// Récupérer l'ID de l'utilisateur connecté
-const getCurrentUserId = () => {
-  const currentUser = store.getters.currentUser;
-  if (currentUser?.id) return currentUser.id;
-
-  const userFromStorage = localStorage.getItem('user');
-  if (userFromStorage) {
-    try {
-      const userData = JSON.parse(userFromStorage);
-      return userData.id;
-    } catch (e) {
-      console.error('Error parsing user from localStorage:', e);
-    }
-  }
-
-  console.error('Aucun utilisateur connecté trouvé');
-  return null;
-};
-
-let formData = ref({
-  numSerie: '',
-  reference: '',
-  designation: '',
-  dateMiseEnService: '',
-  prixAchat: null,
-  lienImageEquipement: null,
-  modeleEquipement: null,
-  fournisseur: null,
-  fabricant: null,
-  famille: null,
-  lieu: null,
-  statut: null,
-  consommables: [],
-  compteurs: [],
-  createurEquipement: getCurrentUserId()
-});
-
-const locations = ref([]);
-const equipmentModels = ref([]);
-const fournisseurs = ref([]);
-const fabricants = ref([]);
-const consumables = ref([]);
-const familles = ref([]);
-const typesPM = ref([]);
-const typesDocuments = ref([]);
-
-const showCounterDialog = ref(false);
-const showCounterForm = ref(true);
-const showFabricantDialog = ref(false);
-const showFournisseurDialog = ref(false);
-const showModeleDialog = ref(false);
-const showFamilleDialog = ref(false);
-
-const existingPMs = ref([]);
-
-const equipmentStatuses = computed(() => {
-  return Object.entries(EQUIPMENT_STATUS).map(([value, label]) => ({
-    value,
-    label
-  }));
-});
-
-const getEmptyCounter = () => ({
-  nom: '',
-  description: '',
-  intervalle: '',
-  unite: '',
-  valeurCourante: null,
-  derniereIntervention: null,
-  estGlissant: false,
-  estPrincipal: false,
-  habElec: false,
-  permisFeu: false,
-  planMaintenance: {
-    nom: '',
-    type: null,
-    consommables: [],
-    documents: []
-  }
-});
-
-const currentCounter = ref(getEmptyCounter());
-
-const handleFileUpload = (event) => {
-  const file = event.target.files ? event.target.files[0] : event;
-  if (file) {
-    formData.value.lienImageEquipement = file;
-  }
-};
-
-const fetchData = async () => {
-  loadingData.value = true;
-  errorMessage.value = '';
-
-  try {
-    const formDataApi = useApi(API_BASE_URL);
-
-    await formDataApi.get('equipements/form-data/');
-
-    const data = formDataApi.data.value;
-
-    locations.value = data.locations;
-    equipmentModels.value = data.equipmentModels;
-    fournisseurs.value = data.fournisseurs;
-    fabricants.value = data.fabricants;
-    consumables.value = data.consumables;
-    familles.value = data.familles;
-    typesPM.value = data.typesPM;
-    typesDocuments.value = data.typesDocuments;
-
-  } catch (error) {
-    console.error('Erreur lors du chargement des données:', error);
-    errorMessage.value = 'Erreur lors du chargement des données. Veuillez réessayer.';
-  } finally {
-    loadingData.value = false;
   }
 };
 
@@ -462,51 +335,19 @@ const handleSubmit = async () => {
   }
 };
 
-const counterTableHeaders = [
-  { title: 'Nom du compteur', value: 'nom' },
-  { title: 'Intervalle de maintenance', value: 'intervalle' },
-  { title: 'Unité', value: 'unite' },
-  { title: 'Valeur actuelle', value: 'valeurCourante' },
-  { title: 'Dernière intervention', value: 'derniereIntervention' },
-  { title: 'Plan de maintenance', value: 'planMaintenance' },
-  { title: 'Options', value: 'options', sortable: false },
-  { title: 'Actions', value: 'actions', sortable: false }
-];
-
 const handleCounterAdd = () => {
   editingCounterIndex.value = -1;
-  isEditMode.value = false;
   currentCounter.value = getEmptyCounter();
   showCounterForm.value = true;
 };
 
-const handleCounterEdit = (counter) => {
+const internalHandleCounterEdit = (counter) => {
+  handleCounterEdit(counter);
   editingCounterIndex.value = formData.value.compteurs.indexOf(counter);
-  isEditMode.value = true;
-
-  currentCounter.value = {
-    ...counter,
-    planMaintenance: {
-      ...counter.planMaintenance,
-      consommables: counter.planMaintenance?.consommables
-        ? counter.planMaintenance.consommables.map(c => ({ ...c }))
-        : [],
-      documents: counter.planMaintenance?.documents
-        ? counter.planMaintenance.documents.map(d => ({ ...d }))
-        : []
-    }
-  };
-
   showCounterForm.value = true;
 };
 
-const handleCounterDelete = (counter) => {
-  if (confirm('Êtes-vous sûr de vouloir supprimer ce compteur ?')) {
-    formData.value.compteurs = formData.value.compteurs.filter(c => c !== counter);
-  }
-};
-
-const saveCurrentCounter = () => {
+const internalSaveCurrentCounter = () => {
   const counterToSave = {
     ...currentCounter.value,
     planMaintenance: {
@@ -526,23 +367,21 @@ const saveCurrentCounter = () => {
 
   if (editingCounterIndex.value >= 0) {
     formData.value.compteurs[editingCounterIndex.value] = counterToSave;
-    updateExistingPM(counterToSave);
   } else {
     formData.value.compteurs.push(counterToSave);
+  }
 
-    if (counterToSave.planMaintenance.nom &&
-      !existingPMs.value.some(pm => pm.nom === counterToSave.planMaintenance.nom)) {
-      existingPMs.value.push({
-        nom: counterToSave.planMaintenance.nom,
-        type: counterToSave.planMaintenance.type,
-        consommables: [...counterToSave.planMaintenance.consommables],
-        documents: [...counterToSave.planMaintenance.documents]
-      });
-    }
+  if (counterToSave.planMaintenance.nom &&
+    !existingPMs.value.some(pm => pm.nom === counterToSave.planMaintenance.nom)) {
+    existingPMs.value.push({
+      nom: counterToSave.planMaintenance.nom,
+      type: counterToSave.planMaintenance.type,
+      consommables: [...counterToSave.planMaintenance.consommables],
+      documents: [...counterToSave.planMaintenance.documents]
+    });
   }
 
   showCounterForm.value = false;
-  isEditMode.value = false;
   editingCounterIndex.value = -1;
   currentCounter.value = getEmptyCounter();
 };
@@ -550,78 +389,9 @@ const saveCurrentCounter = () => {
 const cancelCounterForm = () => {
   if (formData.value.compteurs.length > 0) {
     showCounterForm.value = false;
-    isEditMode.value = false;
     editingCounterIndex.value = -1;
     currentCounter.value = getEmptyCounter();
   }
-};
-
-const updateExistingPM = (counterToSave) => {
-  const pmNom = counterToSave.planMaintenance.nom;
-  if (!pmNom) return;
-
-  const existingPMIndex = existingPMs.value.findIndex(pm => pm.nom === pmNom);
-
-  if (existingPMIndex >= 0) {
-    existingPMs.value[existingPMIndex] = {
-      nom: pmNom,
-      type: counterToSave.planMaintenance.type || null,
-      consommables: [...counterToSave.planMaintenance.consommables],
-      documents: [...counterToSave.planMaintenance.documents]
-    };
-  } else {
-    existingPMs.value.push({
-      nom: pmNom,
-      type: counterToSave.planMaintenance.type || null,
-      consommables: [...counterToSave.planMaintenance.consommables],
-      documents: [...counterToSave.planMaintenance.documents]
-    });
-  }
-};
-
-const closeFabricantDialog = () => {
-  showFabricantDialog.value = false
-}
-
-const handleFabricantCreated = (newFabricant) => {
-  fabricants.value.push(newFabricant)
-  formData.value.fabricant = newFabricant.id
-}
-
-const closeFournisseurDialog = () => {
-  showFournisseurDialog.value = false
-}
-
-const handleFournisseurCreated = (newFournisseur) => {
-  fournisseurs.value.push(newFournisseur)
-  formData.value.fournisseur = newFournisseur.id
-}
-
-const closeModeleDialog = () => {
-  showModeleDialog.value = false;
-};
-
-const handleModeleCreated = (newModele) => {
-  equipmentModels.value.push(newModele);
-  formData.value.modeleEquipement = newModele.id;
-  formData.value.fabricant = newModele.fabricant;
-};
-
-const closeFamilleDialog = () => {
-  showFamilleDialog.value = false;
-};
-
-const handleFamilleCreated = (newFamille) => {
-  familles.value.push(newFamille);
-  formData.value.famille = newFamille.id;
-};
-
-const closeCounterDialog = () => {
-  showCounterDialog.value = false;
-  editingCounterIndex.value = -1;
-  isEditMode.value = false;
-  currentCounter.value = getEmptyCounter();
-  errorMessage.value = '';
 };
 
 const nextStep = () => {
