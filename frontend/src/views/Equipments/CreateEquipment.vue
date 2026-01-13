@@ -44,7 +44,7 @@
 
                     <v-col cols="12" md="6">
                       <FormField v-model="formData.prixAchat" field-name="prixAchat" :step="1" label="Prix d'achat"
-                        type="number" placeholder="0.00" prefix="€" step="0.01" min="0" />
+                        type="number" placeholder="0.00" suffix="€" step="0.01" min="0" />
                     </v-col>
 
                     <v-col cols="12" md="6">
@@ -220,9 +220,9 @@ const visitedSteps = ref([1]);
 
 const validationSchema = {
   step1: {
-    numSerie: ['required', { name: 'minLength', params: [1] }, { name: 'maxLength', params: [100] }],
+    numSerie: [{ name: 'minLength', params: [1] }, { name: 'maxLength', params: [100] }],
     designation: ['required', { name: 'maxLength', params: [100] }],
-    reference: ['required', { name: 'maxLength', params: [100] }],
+    reference: [{ name: 'maxLength', params: [100] }],
     dateMiseEnService: [],
     prixAchat: ['numeric', 'positive'],
   },

@@ -42,7 +42,7 @@ class Equipement(models.Model):
     Représente un équipement physique.
     """
     numSerie = models.CharField(max_length=100, null=True, blank=True, help_text="Numéro de série de l'équipement")
-    reference = models.CharField(max_length=100, help_text="Référence interne ou fournisseur")
+    reference = models.CharField(max_length=100, null=True, blank=True, help_text="Référence interne ou fournisseur")
     dateCreation = models.DateTimeField(auto_now_add=True, help_text="Date de création de l'équipement")
     designation = models.CharField(max_length=100, help_text="Nom ou désignation de l'équipement")
     dateMiseEnService = models.DateTimeField(null=True, blank=True, help_text="Date de mise en service de l'équipement")
