@@ -13,6 +13,9 @@
 export { default as FormAlert } from "./FormAlert.vue";
 export { default as FormActions } from "./FormActions.vue";
 export { default as FormContainer } from "./FormContainer.vue";
+export { default as FormField } from "./FormField.vue";
+export { default as FormSelect } from "./FormSelect.vue";
+export { default as FormFileInput } from "./FormFileInput.vue";
 
 // Export des composants principaux
 export { default as BaseForm } from "./BaseForm.vue";

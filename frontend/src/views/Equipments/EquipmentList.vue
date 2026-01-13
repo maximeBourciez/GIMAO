@@ -1,11 +1,6 @@
 <template>
-  <EquipmentFilteredList 
-    title="Liste des Équipements" 
-    :show-search="false"
-    create-button-text="Ajouter un équipement"
-    @create="handleCreate" 
-    @row-click="handleRowClick"
-  />
+  <EquipmentFilteredList title="Liste des Équipements" :show-search="false" create-button-text="Ajouter un équipement"
+    @create="handleCreate" @row-click="handleRowClick" />
 </template>
 
 <script setup>

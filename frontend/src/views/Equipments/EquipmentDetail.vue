@@ -102,8 +102,7 @@
 
               </v-card-text>
               <div class="justify-end d-flex">
-                <v-btn text color="primary align-self-end" class="my-2 mx-2"
-                  @click="router.push({ name: 'CreateCounter', query: { equipementId: data.id } })">
+                <v-btn text color="primary align-self-end" class="my-2 mx-2" @click="openAddCounterDialog">
                   Ajouter un compteur
                 </v-btn>
               </div>
@@ -183,12 +182,20 @@
       {{ editButtonText }}
     </v-tooltip>
   </v-btn>
+
+  <!-- Dialog pour ajouter un compteur -->
+  <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
+    <CounterInlineForm v-if="showCounterDialog" v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM"
+      :consumables="consumables" :typesDocuments="typesDocuments" :isEditMode="false" :isFirstCounter="true"
+      @save="saveCounter" @cancel="closeCounterDialog" />
+  </v-dialog>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
+import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';
 import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, TABLE_HEADERS } from '@/utils/constants';
@@ -203,6 +210,35 @@ const errorMessage = ref('');
 const successMessage = ref('');
 const showEditButton = ref(true);
 const editButtonText = ref('Modifier l\'équipement');
+
+// Dialog compteur
+const showCounterDialog = ref(false);
+const currentCounter = ref(null);
+
+// Données pour le formulaire de compteur
+const consumables = ref([]);
+const typesPM = ref([]);
+const typesDocuments = ref([]);
+const existingPMs = ref([]);
+
+const getEmptyCounter = () => ({
+  nom: '',
+  description: '',
+  intervalle: '',
+  unite: '',
+  valeurCourante: null,
+  derniereIntervention: null,
+  estGlissant: false,
+  estPrincipal: false,
+  habElec: false,
+  permisFeu: false,
+  planMaintenance: {
+    nom: '',
+    type: null,
+    consommables: [],
+    documents: []
+  }
+});
 
 const technicalDocumentsHeaders = [
   { title: 'Document technique', key: 'nomDocumentTechnique', align: 'start' },
@@ -220,11 +256,9 @@ const technicalDocuments = computed(() => {
   return equipement.value.liste_documents_techniques || [];
 });
 
-// Autres documents (défaillances et interventions)
 const othersDocuments = computed(() => {
   const documents = [];
 
-  // Documents de défaillance
   (equipement.value.liste_documents_defaillance || []).forEach(doc => {
     documents.push({
       type: 'Défaillance',
@@ -234,7 +268,6 @@ const othersDocuments = computed(() => {
     });
   });
 
-  // Documents d'intervention
   (equipement.value.liste_documents_intervention || []).forEach(doc => {
     documents.push({
       type: 'Intervention',
@@ -244,7 +277,6 @@ const othersDocuments = computed(() => {
     });
   });
 
-  // Documents généraux de l'équipement
   (equipement.value.documents || []).forEach(doc => {
     documents.push({
       type: 'Équipement',
@@ -280,9 +312,24 @@ const fetchEquipmentData = async () => {
   errorMessage.value = '';
   try {
     await api.get(`equipement/${route.params.id}/affichage/`);
+    await fetchCounterFormData();
   } catch (error) {
     console.error("Erreur lors de la récupération des données de l'équipement:", error);
     errorMessage.value = "Erreur lors du chargement de l'équipement";
+  }
+};
+
+const fetchCounterFormData = async () => {
+  try {
+    const formDataApi = useApi(API_BASE_URL);
+    await formDataApi.get('equipements/form-data/');
+    const data = formDataApi.data.value;
+
+    consumables.value = data.consumables;
+    typesPM.value = data.typesPM;
+    typesDocuments.value = data.typesDocuments;
+  } catch (error) {
+    console.error('Erreur lors du chargement des données du formulaire:', error);
   }
 };
 
@@ -301,10 +348,8 @@ const formatLabel = (key) => {
   return labels[key] || key;
 };
 
-// Détecte un ISO 8601 de type complet (ex: 2025-12-02T22:15:30Z ou 2025-12-02T22:15:30+01:00)
 const isoDateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/;
 
-// Formatage de date en français sans le T
 const formatDate = (isoString) => {
   const d = new Date(isoString);
   if (isNaN(d.getTime())) return isoString;
@@ -333,7 +378,6 @@ const formatValue = (value) => {
   if (typeof value === 'string') {
     const trimmed = value.trim();
 
-    // Si la chaîne correspond strictement au pattern ISO datetime, on la formate.
     if (isoDateTimeRegex.test(trimmed)) {
       const ts = Date.parse(trimmed);
       if (!isNaN(ts)) {
@@ -342,7 +386,6 @@ const formatValue = (value) => {
       return trimmed;
     }
 
-    // Reconnaissance d'une date ISO sans time (YYYY-MM-DD)
     const isoDateOnly = /^\d{4}-\d{2}-\d{2}$/;
     if (isoDateOnly.test(trimmed)) {
       const ts = Date.parse(trimmed);
@@ -352,11 +395,9 @@ const formatValue = (value) => {
       return trimmed;
     }
 
-    // Aucun format date reconnu -> on renvoie la chaîne telle quelle 
     return trimmed === '' ? '-' : trimmed;
   }
 
-  // Par défaut
   return String(value) || '-';
 };
 
@@ -387,13 +428,11 @@ const downloadDocument = async (lien, nomFichier) => {
   }
 
   try {
-    // Nettoyer le lien
     let cleanedLink = lien;
     if (lien.includes('/media/')) {
       cleanedLink = lien.split('/media/')[1];
     }
 
-    // S'assurer que cleanedLink n'a pas de slash au début
     if (cleanedLink.startsWith('/')) {
       cleanedLink = cleanedLink.substring(1);
     }
@@ -426,13 +465,66 @@ const downloadDocument = async (lien, nomFichier) => {
 };
 
 const viewCounter = (counter) => {
-  console.log(counter);
   router.push({
     name: 'CounterDetail',
     params: { id: counter.id },
-    query: { from: 'equipment', equipmentId: equipmentDetails.value.id}
+    query: { from: 'equipment', equipmentId: equipmentDetails.value.id }
   })
 }
+
+const openAddCounterDialog = () => {
+  currentCounter.value = getEmptyCounter();
+  showCounterDialog.value = true;
+};
+
+const closeCounterDialog = () => {
+  showCounterDialog.value = false;
+  currentCounter.value = null;
+};
+
+const saveCounter = async () => {
+  try {
+    const fd = new FormData();
+
+    const counterData = {
+      ...currentCounter.value,
+      equipement: route.params.id,
+      valeurCourante: currentCounter.value.valeurCourante ?? 0,
+      derniereIntervention: currentCounter.value.derniereIntervention ?? 0,
+      intervalle: currentCounter.value.intervalle ?? 0,
+      planMaintenance: {
+        ...currentCounter.value.planMaintenance,
+        documents: currentCounter.value.planMaintenance.documents.map(d => ({
+          titre: d.titre,
+          type: d.type
+        }))
+      }
+    };
+
+    fd.append('compteur', JSON.stringify(counterData));
+
+    currentCounter.value.planMaintenance.documents.forEach((doc, docIndex) => {
+      if (doc.file instanceof File) {
+        fd.append(`document_${docIndex}`, doc.file);
+      }
+    });
+
+    const counterApi = useApi(API_BASE_URL);
+    await counterApi.post('compteurs/', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    successMessage.value = 'Compteur créé avec succès';
+    closeCounterDialog();
+
+    await fetchEquipmentData();
+
+    setTimeout(() => successMessage.value = '', 3000);
+  } catch (error) {
+    console.error('Erreur lors de la création du compteur:', error);
+    errorMessage.value = 'Erreur lors de la création du compteur';
+  }
+};
 
 onMounted(() => {
   fetchEquipmentData();
@@ -442,7 +534,7 @@ const editCurrentEquip = () => [
   router.push({
     name: 'EditEquipment',
     params: { id: equipmentDetails.value.id },
-    query: { from: 'equipment', equipmentId: equipmentDetails.value.id}
+    query: { from: 'equipment', equipmentId: equipmentDetails.value.id }
   })
 ]
 </script>
@@ -482,5 +574,4 @@ const editCurrentEquip = () => [
   right: 24px;
   z-index: 100;
 }
-
 </style>

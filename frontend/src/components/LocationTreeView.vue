@@ -56,7 +56,7 @@
 
 <script setup>
 import { computed, ref } from "vue";
-import { VTreeview } from "vuetify/labs/components";
+import { VTreeview } from 'vuetify/labs/components'
 
 const props = defineProps({
   items: Array,
