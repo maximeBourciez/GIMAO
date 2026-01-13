@@ -43,7 +43,7 @@
               </v-btn>
             </v-col>
             <v-col cols="6">
-              <v-btn color="success" block :disabled="!canClose" @click="handleCloseFailure">
+              <v-btn color="success" block :disabled="!canClose" @click="handleChangeStatusFailure('ACCEPTEE')">
                 Accepter la demande
               </v-btn>
             </v-col>
@@ -219,13 +219,12 @@ const handleDelete = async () => {
   }
 };
 
-const handleCloseFailure = async () => {
+const handleChangeStatusFailure = async (newStatus) => {
   try {
-    await patchApi.patch(`demandes-intervention/${route.params.id}/`, {
-      statut: "Refusé",
-      date_changementStatut: new Date().toISOString()
+    await patchApi.patch(`demandes-intervention/${route.params.id}/updateStatus/`, {
+      statut: newStatus
     });
-    successMessage.value = 'Défaillance mise en attente';
+    successMessage.value = 'Statut de la défaillance modifié avec succès';
     await fetchData();
   } catch (error) {
     errorMessage.value = 'Erreur lors de la mise à jour';
