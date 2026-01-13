@@ -23,7 +23,7 @@
 
         <v-col cols="12" md="6">
             <FormField v-model="modelValue.prixAchat" field-name="prixAchat" :step="step" label="Prix d'achat"
-                type="number" placeholder="0.00" suffix="€" step="0.01" min="0" />
+                placeholder="0.00" suffix="€" />
         </v-col>
 
         <v-col cols="12" md="6">

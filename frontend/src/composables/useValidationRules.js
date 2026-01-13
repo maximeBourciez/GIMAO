@@ -56,8 +56,12 @@ export function useValidationRules() {
    */
   const numeric = (message = 'Doit être un nombre') => {
     return (value) => {
-      if (!value && value !== 0) return true;
-      return !isNaN(parseFloat(value)) && isFinite(value) || message;
+      if (value === null || value === undefined || value === '') return true;
+      const stringValue = String(value).trim();
+      const pattern = /^-?\d+(\.\d+)?$/;
+      if (!pattern.test(stringValue)) return message;
+      const numValue = Number(stringValue);
+      return !isNaN(numValue) && isFinite(numValue) || message;
     };
   };
 
@@ -66,8 +70,12 @@ export function useValidationRules() {
    */
   const positive = (message = 'Doit être positif') => {
     return (value) => {
-      if (!value && value !== 0) return true;
-      return parseFloat(value) >= 0 || message;
+      // Accepter uniquement si vide (sera géré par required si nécessaire)
+      if (value === null || value === undefined || value === '') return true;
+      const numValue = Number(value);
+      // Rejeter si NaN ou négatif
+      if (isNaN(numValue) || !isFinite(numValue)) return message;
+      return numValue >= 0 || message;
     };
   };
 
