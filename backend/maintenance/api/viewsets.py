@@ -95,6 +95,15 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(demande)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['patch'])
+    def updateStatus(self, request, pk=None):
+        demande = self.get_object()
+        demande.statut = request.data.get('statut', demande.statut)
+        demande.date_changementStatut = timezone.now()
+        demande.save()
+        serializer = self.get_serializer(demande)
+        return Response(serializer.data)
+
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         """Création d'une nouvelle demande d'intervention"""
