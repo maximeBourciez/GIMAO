@@ -102,8 +102,7 @@
 
               </v-card-text>
               <div class="justify-end d-flex">
-                <v-btn text color="primary align-self-end" class="my-2 mx-2"
-                  @click="router.push({ name: 'CreateCounter', query: { equipementId: data.id } })">
+                <v-btn text color="primary align-self-end" class="my-2 mx-2" @click="openAddCounterDialog">
                   Ajouter un compteur
                 </v-btn>
               </div>
@@ -183,12 +182,29 @@
       {{ editButtonText }}
     </v-tooltip>
   </v-btn>
+
+  <!-- Dialog pour ajouter un compteur -->
+  <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
+    <CounterInlineForm
+      v-if="showCounterDialog"
+      v-model="currentCounter"
+      :existingPMs="existingPMs"
+      :typesPM="typesPM"
+      :consumables="consumables"
+      :typesDocuments="typesDocuments"
+      :isEditMode="false"
+      :isFirstCounter="true"
+      @save="saveCounter"
+      @cancel="closeCounterDialog"
+    />
+  </v-dialog>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
+import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';
 import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, TABLE_HEADERS } from '@/utils/constants';
@@ -203,6 +219,35 @@ const errorMessage = ref('');
 const successMessage = ref('');
 const showEditButton = ref(true);
 const editButtonText = ref('Modifier l\'équipement');
+
+// Dialog compteur
+const showCounterDialog = ref(false);
+const currentCounter = ref(null);
+
+// Données pour le formulaire de compteur
+const consumables = ref([]);
+const typesPM = ref([]);
+const typesDocuments = ref([]);
+const existingPMs = ref([]);
+
+const getEmptyCounter = () => ({
+  nom: '',
+  description: '',
+  intervalle: '',
+  unite: '',
+  valeurCourante: null,
+  derniereIntervention: null,
+  estGlissant: false,
+  estPrincipal: false,
+  habElec: false,
+  permisFeu: false,
+  planMaintenance: {
+    nom: '',
+    type: null,
+    consommables: [],
+    documents: []
+  }
+});
 
 const technicalDocumentsHeaders = [
   { title: 'Document technique', key: 'nomDocumentTechnique', align: 'start' },
@@ -280,9 +325,26 @@ const fetchEquipmentData = async () => {
   errorMessage.value = '';
   try {
     await api.get(`equipement/${route.params.id}/affichage/`);
+    
+    // Charger les données nécessaires pour le formulaire de compteur
+    await fetchCounterFormData();
   } catch (error) {
     console.error("Erreur lors de la récupération des données de l'équipement:", error);
     errorMessage.value = "Erreur lors du chargement de l'équipement";
+  }
+};
+
+const fetchCounterFormData = async () => {
+  try {
+    const formDataApi = useApi(API_BASE_URL);
+    await formDataApi.get('equipements/form-data/');
+    const data = formDataApi.data.value;
+    
+    consumables.value = data.consumables;
+    typesPM.value = data.typesPM;
+    typesDocuments.value = data.typesDocuments;
+  } catch (error) {
+    console.error('Erreur lors du chargement des données du formulaire:', error);
   }
 };
 
@@ -433,6 +495,63 @@ const viewCounter = (counter) => {
     query: { from: 'equipment', equipmentId: equipmentDetails.value.id}
   })
 }
+
+const openAddCounterDialog = () => {
+  currentCounter.value = getEmptyCounter();
+  showCounterDialog.value = true;
+};
+
+const closeCounterDialog = () => {
+  showCounterDialog.value = false;
+  currentCounter.value = null;
+};
+
+const saveCounter = async () => {
+  try {
+    const fd = new FormData();
+    
+    // Préparer les données du compteur
+    const counterData = {
+      ...currentCounter.value,
+      equipement: route.params.id,
+      valeurCourante: currentCounter.value.valeurCourante ?? 0,
+      derniereIntervention: currentCounter.value.derniereIntervention ?? 0,
+      intervalle: currentCounter.value.intervalle ?? 0,
+      planMaintenance: {
+        ...currentCounter.value.planMaintenance,
+        documents: currentCounter.value.planMaintenance.documents.map(d => ({
+          titre: d.titre,
+          type: d.type
+        }))
+      }
+    };
+    
+    fd.append('compteur', JSON.stringify(counterData));
+    
+    // Ajouter les fichiers des documents
+    currentCounter.value.planMaintenance.documents.forEach((doc, docIndex) => {
+      if (doc.file instanceof File) {
+        fd.append(`document_${docIndex}`, doc.file);
+      }
+    });
+    
+    const counterApi = useApi(API_BASE_URL);
+    await counterApi.post('compteurs/', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    
+    successMessage.value = 'Compteur créé avec succès';
+    closeCounterDialog();
+    
+    // Recharger les données de l'équipement
+    await fetchEquipmentData();
+    
+    setTimeout(() => successMessage.value = '', 3000);
+  } catch (error) {
+    console.error('Erreur lors de la création du compteur:', error);
+    errorMessage.value = 'Erreur lors de la création du compteur';
+  }
+};
 
 onMounted(() => {
   fetchEquipmentData();

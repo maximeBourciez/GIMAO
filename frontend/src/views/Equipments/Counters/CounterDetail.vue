@@ -151,9 +151,13 @@
     </v-card>
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
-        <CounterForm v-model="counter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-            :typesDocuments="typesDocuments" :isEditMode="true" @save="saveCurrentCounter"
-            @close="closeCounterDialog" />
+        <v-card>
+            <v-card-title>Modifier le compteur</v-card-title>
+            <v-card-text>
+                <CounterInlineForm v-model="counter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
+                    :typesDocuments="typesDocuments" @save="saveCurrentCounter" @cancel="closeCounterDialog" />
+            </v-card-text>
+        </v-card>
     </v-dialog>
 </template>
 
@@ -162,7 +166,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants'
-import CounterForm from './CounterForm.vue'
+import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue'
 
 /* ========= ROUTER ========= */
 const route = useRoute();

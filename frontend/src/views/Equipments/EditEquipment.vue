@@ -165,9 +165,15 @@
     </v-main>
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
-      <CounterForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-        :typesDocuments="typesDocuments" :isEditMode="isEditMode" @save="saveCurrentCounter"
-        :editEquipMode="editEquipMode" @close="closeCounterDialog" />
+      <v-card>
+        <v-card-title>
+          {{ isEditMode ? 'Modifier un compteur' : 'Ajouter un compteur' }}
+        </v-card-title>
+        <v-card-text>
+          <CounterInlineForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
+            :typesDocuments="typesDocuments" @save="saveCurrentCounter" @cancel="closeCounterDialog" />
+        </v-card-text>
+      </v-card>
     </v-dialog>
 
     <v-dialog v-model="showFabricantDialog" max-width="80%">
@@ -197,7 +203,7 @@ import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, MEDIA_BASE_URL, TABLE_HEADERS } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 import { EQUIPMENT_STATUS } from '@/utils/constants.js';
-import CounterForm from './Counters/CounterForm';
+import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
 import FabricantForm from '@/components/Forms/FabricantForm.vue';
 import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
