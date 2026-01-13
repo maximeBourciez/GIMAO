@@ -220,6 +220,7 @@ const visitedSteps = ref([1]);
 const showCounterForm = ref(true);
 const editingCounterIndex = ref(-1);
 
+//Règles de validation par étape
 const validationSchema = {
   step1: {
     numSerie: [{ name: 'minLength', params: [1] }, { name: 'maxLength', params: [100] }],
