@@ -351,34 +351,20 @@ const fetchData = async () => {
   errorMessage.value = '';
 
   try {
-    const locationsApi = useApi(API_BASE_URL);
-    const modelsApi = useApi(API_BASE_URL);
-    const fournisseurApi = useApi(API_BASE_URL);
-    const fabricantApi = useApi(API_BASE_URL);
-    const consumablesApi = useApi(API_BASE_URL);
-    const famillesApi = useApi(API_BASE_URL);
-    const typesPMApi = useApi(API_BASE_URL);
-    const typesDocumentsApi = useApi(API_BASE_URL);
+    const formDataApi = useApi(API_BASE_URL);
+    
+    await formDataApi.get('equipements/form-data/');
 
-    await Promise.all([
-      locationsApi.get('lieux/hierarchy/'),
-      modelsApi.get('modele-equipements/'),
-      fabricantApi.get('fabricants/'),
-      fournisseurApi.get('fournisseurs/'),
-      consumablesApi.get('consommables/'),
-      famillesApi.get('famille-equipements/'),
-      typesPMApi.get('types-plan-maintenance/'),
-      typesDocumentsApi.get('types-documents/')
-    ]);
-
-    locations.value = locationsApi.data.value;
-    equipmentModels.value = modelsApi.data.value;
-    fournisseurs.value = fournisseurApi.data.value;
-    fabricants.value = fabricantApi.data.value;
-    consumables.value = consumablesApi.data.value;
-    familles.value = famillesApi.data.value;
-    typesPM.value = typesPMApi.data.value;
-    typesDocuments.value = typesDocumentsApi.data.value;
+    const data = formDataApi.data.value;
+    
+    locations.value = data.locations;
+    equipmentModels.value = data.equipmentModels;
+    fournisseurs.value = data.fournisseurs;
+    fabricants.value = data.fabricants;
+    consumables.value = data.consumables;
+    familles.value = data.familles;
+    typesPM.value = data.typesPM;
+    typesDocuments.value = data.typesDocuments;
 
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error);
