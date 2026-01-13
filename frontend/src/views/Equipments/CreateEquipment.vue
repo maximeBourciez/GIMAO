@@ -101,9 +101,10 @@
                 <!-- Étape 6: Compteurs -->
                 <v-stepper-window-item :value="6">
                   <!-- Liste des compteurs déjà ajoutés -->
-                  <v-sheet v-if="formData.compteurs.length > 0 && !showCounterForm" class="pa-4 mb-4" elevation="2" rounded>
+                  <v-sheet v-if="formData.compteurs.length > 0 && !showCounterForm" class="pa-4 mb-4" elevation="2"
+                    rounded>
                     <h4 class="mb-3">Compteurs ajoutés ({{ formData.compteurs.length }})</h4>
-                    
+
                     <v-list dense>
                       <v-list-item v-for="(compteur, index) in formData.compteurs" :key="index" class="mb-2 pa-3"
                         elevation="1" rounded>
@@ -116,9 +117,10 @@
                         </v-list-item-title>
 
                         <v-list-item-subtitle>
-                          Intervalle: {{ compteur.intervalle }} {{ compteur.unite }} | 
+                          Intervalle: {{ compteur.intervalle }} {{ compteur.unite }} |
                           Plan: {{ compteur.planMaintenance?.nom || 'Aucun' }}
-                          <v-chip v-if="compteur.estPrincipal" size="x-small" color="primary" class="ml-2">Principal</v-chip>
+                          <v-chip v-if="compteur.estPrincipal" size="x-small" color="primary"
+                            class="ml-2">Principal</v-chip>
                           <v-chip v-if="compteur.estGlissant" size="x-small" color="info" class="ml-1">Glissant</v-chip>
                         </v-list-item-subtitle>
 
@@ -132,7 +134,7 @@
                     </v-list>
 
                     <v-divider class="my-4" />
-                    
+
                     <!-- Boutons d'action -->
                     <v-row class="mt-4" justify="center">
                       <v-btn color="primary" size="large" @click="handleCounterAdd" class="mr-2">
@@ -143,18 +145,10 @@
                   </v-sheet>
 
                   <!-- Formulaire pour ajouter/éditer un compteur -->
-                  <CounterInlineForm 
-                    v-if="showCounterForm" 
-                    v-model="currentCounter" 
-                    :existingPMs="existingPMs" 
-                    :typesPM="typesPM" 
-                    :consumables="consumables"
-                    :typesDocuments="typesDocuments" 
-                    :isEditMode="isEditMode"
-                    :isFirstCounter="formData.compteurs.length === 0"
-                    @save="saveCurrentCounter"
-                    @cancel="cancelCounterForm" 
-                  />
+                  <CounterInlineForm v-if="showCounterForm" v-model="currentCounter" :existingPMs="existingPMs"
+                    :typesPM="typesPM" :consumables="consumables" :typesDocuments="typesDocuments"
+                    :isEditMode="isEditMode" :isFirstCounter="formData.compteurs.length === 0"
+                    @save="saveCurrentCounter" @cancel="cancelCounterForm" />
                 </v-stepper-window-item>
 
                 <!-- Navigation -->
@@ -181,8 +175,9 @@
           {{ isEditMode ? 'Modifier un compteur' : 'Ajouter un compteur' }}
         </v-card-title>
         <v-card-text>
-          <CounterInlineForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-            :typesDocuments="typesDocuments" @save="saveCurrentCounter" @cancel="closeCounterDialog" />
+          <CounterInlineForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM"
+            :consumables="consumables" :typesDocuments="typesDocuments" @save="saveCurrentCounter"
+            @cancel="closeCounterDialog" />
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -264,20 +259,12 @@ const validationSchema = {
 // Récupérer l'ID de l'utilisateur connecté
 const getCurrentUserId = () => {
   const currentUser = store.getters.currentUser;
-  console.log('Current user from store:', currentUser);
+  if (currentUser?.id) return currentUser.id;
 
-  if (currentUser && currentUser.id) {
-    console.log('Using user ID from store:', currentUser.id);
-    return currentUser.id;
-  }
-
-  // Fallback: lire depuis localStorage
   const userFromStorage = localStorage.getItem('user');
   if (userFromStorage) {
     try {
       const userData = JSON.parse(userFromStorage);
-      console.log('User data from localStorage:', userData);
-      console.log('Using user ID from localStorage:', userData.id);
       return userData.id;
     } catch (e) {
       console.error('Error parsing user from localStorage:', e);
@@ -306,8 +293,6 @@ let formData = ref({
   createurEquipement: getCurrentUserId()
 });
 
-
-
 const locations = ref([]);
 const equipmentModels = ref([]);
 const fournisseurs = ref([]);
@@ -317,16 +302,14 @@ const familles = ref([]);
 const typesPM = ref([]);
 const typesDocuments = ref([]);
 
-// Modales et formulaires inline
 const showCounterDialog = ref(false);
-const showCounterForm = ref(true); // true par défaut pour afficher le formulaire au premier chargement
+const showCounterForm = ref(true);
 const showFabricantDialog = ref(false);
 const showFournisseurDialog = ref(false);
 const showModeleDialog = ref(false);
 const showFamilleDialog = ref(false);
 
-const existingPMs = ref([
-]);
+const existingPMs = ref([]);
 
 const equipmentStatuses = computed(() => {
   return Object.entries(EQUIPMENT_STATUS).map(([value, label]) => ({
@@ -369,11 +352,11 @@ const fetchData = async () => {
 
   try {
     const formDataApi = useApi(API_BASE_URL);
-    
+
     await formDataApi.get('equipements/form-data/');
 
     const data = formDataApi.data.value;
-    
+
     locations.value = data.locations;
     equipmentModels.value = data.equipmentModels;
     fournisseurs.value = data.fournisseurs;
@@ -419,9 +402,6 @@ const handleSubmit = async () => {
 
   loading.value = true;
   errorMessage.value = '';
-
-  console.log('FormData avant envoi:', formData.value);
-  console.log('createurEquipement ID:', formData.value.createurEquipement);
 
   try {
     const fd = new FormData();
@@ -476,7 +456,6 @@ const handleSubmit = async () => {
 
   } catch (e) {
     console.error('Erreur lors de la création:', e);
-    console.error('Détails de l\'erreur:', e.response?.data);
     errorMessage.value = 'L\'équipement n\'a pas pu être créé. Veuillez vérifier les informations saisies.';
   } finally {
     loading.value = false;
@@ -505,8 +484,6 @@ const handleCounterEdit = (counter) => {
   editingCounterIndex.value = formData.value.compteurs.indexOf(counter);
   isEditMode.value = true;
 
-  console.log("Compteur à modifier: ", counter);
-
   currentCounter.value = {
     ...counter,
     planMaintenance: {
@@ -530,8 +507,6 @@ const handleCounterDelete = (counter) => {
 };
 
 const saveCurrentCounter = () => {
-  // Validation déléguée au CounterForm, on suppose que les données sont valides ici
-
   const counterToSave = {
     ...currentCounter.value,
     planMaintenance: {
@@ -550,11 +525,9 @@ const saveCurrentCounter = () => {
   };
 
   if (editingCounterIndex.value >= 0) {
-    // Modification
     formData.value.compteurs[editingCounterIndex.value] = counterToSave;
     updateExistingPM(counterToSave);
   } else {
-    // Ajout
     formData.value.compteurs.push(counterToSave);
 
     if (counterToSave.planMaintenance.nom &&
@@ -568,7 +541,6 @@ const saveCurrentCounter = () => {
     }
   }
 
-  // Fermer le formulaire inline après la sauvegarde
   showCounterForm.value = false;
   isEditMode.value = false;
   editingCounterIndex.value = -1;
@@ -576,7 +548,6 @@ const saveCurrentCounter = () => {
 };
 
 const cancelCounterForm = () => {
-  // Ne permettre l'annulation que s'il y a déjà au moins un compteur
   if (formData.value.compteurs.length > 0) {
     showCounterForm.value = false;
     isEditMode.value = false;
@@ -608,10 +579,6 @@ const updateExistingPM = (counterToSave) => {
   }
 };
 
-// -------------------------------
-// Modales Fabricant, Fournisseur, Modele, Famille Equipement
-// -------------------------------
-// Fabricant
 const closeFabricantDialog = () => {
   showFabricantDialog.value = false
 }
@@ -621,7 +588,6 @@ const handleFabricantCreated = (newFabricant) => {
   formData.value.fabricant = newFabricant.id
 }
 
-// Fournisseur
 const closeFournisseurDialog = () => {
   showFournisseurDialog.value = false
 }
@@ -631,25 +597,21 @@ const handleFournisseurCreated = (newFournisseur) => {
   formData.value.fournisseur = newFournisseur.id
 }
 
-// Modèle Equipement
 const closeModeleDialog = () => {
   showModeleDialog.value = false;
 };
 
 const handleModeleCreated = (newModele) => {
-  console.log(JSON.stringify(newModele));
   equipmentModels.value.push(newModele);
   formData.value.modeleEquipement = newModele.id;
   formData.value.fabricant = newModele.fabricant;
 };
 
-// Famille Equipement
 const closeFamilleDialog = () => {
   showFamilleDialog.value = false;
 };
 
 const handleFamilleCreated = (newFamille) => {
-  console.log('Nouvelle famille créée:', newFamille);
   familles.value.push(newFamille);
   formData.value.famille = newFamille.id;
 };
@@ -662,14 +624,11 @@ const closeCounterDialog = () => {
   errorMessage.value = '';
 };
 
-// Navigation entre les steps
 const nextStep = () => {
   if (step.value < 6) {
-    const nextStepValue = step.value + 1;
-    step.value = nextStepValue;
-    // Ajouter la nouvelle étape aux étapes visitées
-    if (!visitedSteps.value.includes(nextStepValue)) {
-      visitedSteps.value.push(nextStepValue);
+    step.value++;
+    if (!visitedSteps.value.includes(step.value)) {
+      visitedSteps.value.push(step.value);
     }
   }
 };
@@ -679,19 +638,16 @@ const prevStep = () => {
 };
 
 const goToStep = (targetStep) => {
-  // Permet de naviguer vers n'importe quelle étape déjà visitée
   if (isStepEditable(targetStep)) {
     step.value = targetStep;
   }
 };
 
 const isStepComplete = (stepNumber) => {
-  // Une étape est complète si on est passé au-delà
   return visitedSteps.value.includes(stepNumber) && step.value > stepNumber;
 };
 
 const isStepEditable = (stepNumber) => {
-  // Une étape est éditable si elle a déjà été visitée
   return visitedSteps.value.includes(stepNumber);
 };
 
