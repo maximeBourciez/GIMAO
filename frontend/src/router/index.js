@@ -51,6 +51,7 @@ import EditManufacturer from '../views/DataManagement/Manufacturers/EditManufact
 import ModelEquipmentList from '@/views/DataManagement/EquipmentsModels/ModelEquipmentList.vue'
 import CreateModelEquipment from '@/views/DataManagement/EquipmentsModels/CreateModelEquipment.vue'
 import ModelEquipmentDetail from '@/views/DataManagement/EquipmentsModels/ModelEquipmentDetail.vue'
+import EditModelEquipment from '@/views/DataManagement/EquipmentsModels/EditModelEquipment.vue'
 
 import CounterDetail from '@/views/Equipments/Counters/CounterDetail.vue'
 import EditSupplier from '@/views/DataManagement/Suppliers/EditSupplier.vue'
@@ -339,6 +340,12 @@ const routes = [
     component: ModelEquipmentDetail,
     meta: { title: 'Detail du modele equipement' }
   },
+  {
+    path: '/EditModelEquipment/:id',
+    name: 'EditModelEquipment',
+    component: EditModelEquipment,
+    meta: { title: 'Modifier modele equipement' }
+  }
 
 
 ]

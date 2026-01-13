@@ -110,7 +110,6 @@ const manufacturerId = route.params.id;
 const manufacturerData = ref(null);
 const isLoading = ref(true);
 const api = useApi(API_BASE_URL);
-const edition = ref(false);
 
 
 onMounted(async () => {

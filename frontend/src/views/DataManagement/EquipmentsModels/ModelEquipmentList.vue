@@ -1,7 +1,7 @@
 <template>
   <BaseListView :title="title" :items="modelEquipments" :loading="loading" :error-message="errorMessage"
-    :headers="TABLE_HEADERS.MODEL_EQUIPMENTS" @row-click="goToModelEquipmentDetail"
-    @create-button-click="goToModelEquipmentCreation">
+    :headers="TABLE_HEADERS.MODEL_EQUIPMENTS" @row-click="goToModelEquipmentDetail($event.id)"
+    @create-button-click="goToModelEquipmentCreation" :show-create-button="false">
 
     <template #item.fabricant="{ item }">
       {{ item.fabricant?.nom }}

@@ -1,3 +1,4 @@
+import CreateModelEquipment from "../views/DataManagement/EquipmentsModels/CreateModelEquipment.vue";
 import CreateLocation from "../views/DataManagement/Locations/CreateLocation.vue";
 import SupplierDetail from "../views/DataManagement/Suppliers/SupplierDetail.vue";
 import Stocks from "../views/Stocks/Stocks.vue";
@@ -328,6 +329,64 @@ export const BREADCRUMBS = {
         },
         {
             label: "Modifier le fabricant",
+        },
+    ],
+
+    // Modèles d'équipements
+    ModelEquipmentList: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Modèles d'équipements",
+            to: { name: "ModelEquipmentList" },
+        },
+    ],
+    ModelEquipmentDetail: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Modèles d'équipements",
+            to: { name: "ModelEquipmentList" },
+        },
+        {
+            label: `Modèle d'équipement #${route.params.id}`,
+        },
+    ],
+    CreateModelEquipment: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Modèles d'équipements",
+            to: { name: "ModelEquipmentList" },
+        },
+        {
+            label: "Créer un modèle d'équipement",
+        },
+    ],
+    EditModelEquipment: (route) => [
+        {
+            label: "Gestion des données",
+            to: { name: "DataManagement" },
+        },
+        {
+            label: "Modèles d'équipements",
+            to: { name: "ModelEquipmentList" },
+        },
+        {
+            label: `Modèle d'équipement #${route.params.id}`,
+            to: {
+                name: "ModelEquipmentDetail",
+                params: { id: route.params.id },
+            },
+        },
+        {
+            label: "Modifier le modèle d'équipement",
         },
     ],
 };
