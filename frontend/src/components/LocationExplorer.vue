@@ -32,7 +32,7 @@
 </template>
 
 <script>
-import { VTreeView } from 'vuetify/components'
+import { VTreeView } from 'vuetify/labs/components'
 
 export default {
   name: 'LocationExplorer',
