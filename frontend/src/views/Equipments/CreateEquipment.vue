@@ -100,51 +100,61 @@
 
                 <!-- Étape 6: Compteurs -->
                 <v-stepper-window-item :value="6">
-                  <v-row class="my-2" align="center" justify="space-between">
-                    <v-col cols="12" md="8">
-                      <h3 class="mb-3">Compteurs Associés</h3>
-                    </v-col>
+                  <!-- Liste des compteurs déjà ajoutés -->
+                  <v-sheet v-if="formData.compteurs.length > 0 && !showCounterForm" class="pa-4 mb-4" elevation="2" rounded>
+                    <h4 class="mb-3">Compteurs ajoutés ({{ formData.compteurs.length }})</h4>
+                    
+                    <v-list dense>
+                      <v-list-item v-for="(compteur, index) in formData.compteurs" :key="index" class="mb-2 pa-3"
+                        elevation="1" rounded>
+                        <template #prepend>
+                          <v-icon color="primary">mdi-counter</v-icon>
+                        </template>
 
-                    <v-col cols="12" md="4" class="text-end">
-                      <v-btn color="primary" class="my-1" @click="handleCounterAdd">
-                        Ajouter un Compteur
-                      </v-btn>
-                    </v-col>
-                  </v-row>
+                        <v-list-item-title class="font-weight-medium">
+                          {{ compteur.nom }}
+                        </v-list-item-title>
 
-                  <v-data-table :items="formData.compteurs" :headers="counterTableHeaders" class="elevation-1">
-                    <template #item.nom="{ item }">
-                      {{ item.nom }}
-                    </template>
-                    <template #item.intervalle="{ item }">
-                      {{ item.intervalle }}
-                    </template>
-                    <template #item.unite="{ item }">
-                      {{ item.unite }}
-                    </template>
-                    <template #item.options="{ item }">
-                      <div>
-                        {{ item.estGlissant && item.estPrincipal ? 'Glissant et Principal' :
-                          item.estGlissant ? 'Glissant' :
-                            item.estPrincipal ? 'Principal' :
-                              'Aucune' }}
-                      </div>
-                    </template>
-                    <template #item.planMaintenance="{ item }">
-                      <div>
-                        <v-icon left small>mdi-wrench</v-icon>
-                        {{ item.planMaintenance?.nom?.slice(0, 20) || 'Aucun plan associé' }}
-                      </div>
-                    </template>
-                    <template #item.actions="{ item }">
-                      <v-btn icon small color="primary" @click="handleCounterEdit(item)">
-                        <v-icon>mdi-pencil</v-icon>
+                        <v-list-item-subtitle>
+                          Intervalle: {{ compteur.intervalle }} {{ compteur.unite }} | 
+                          Plan: {{ compteur.planMaintenance?.nom || 'Aucun' }}
+                          <v-chip v-if="compteur.estPrincipal" size="x-small" color="primary" class="ml-2">Principal</v-chip>
+                          <v-chip v-if="compteur.estGlissant" size="x-small" color="info" class="ml-1">Glissant</v-chip>
+                        </v-list-item-subtitle>
+
+                        <template #append>
+                          <v-btn icon="mdi-pencil" size="small" variant="text" color="primary"
+                            @click="handleCounterEdit(compteur)" />
+                          <v-btn icon="mdi-delete" size="small" variant="text" color="error"
+                            @click="handleCounterDelete(compteur)" />
+                        </template>
+                      </v-list-item>
+                    </v-list>
+
+                    <v-divider class="my-4" />
+                    
+                    <!-- Boutons d'action -->
+                    <v-row class="mt-4" justify="center">
+                      <v-btn color="primary" size="large" @click="handleCounterAdd" class="mr-2">
+                        <v-icon left>mdi-plus</v-icon>
+                        Ajouter un autre compteur
                       </v-btn>
-                      <v-btn icon small color="red" @click="handleCounterDelete(item)">
-                        <v-icon>mdi-delete</v-icon>
-                      </v-btn>
-                    </template>
-                  </v-data-table>
+                    </v-row>
+                  </v-sheet>
+
+                  <!-- Formulaire pour ajouter/éditer un compteur -->
+                  <CounterInlineForm 
+                    v-if="showCounterForm" 
+                    v-model="currentCounter" 
+                    :existingPMs="existingPMs" 
+                    :typesPM="typesPM" 
+                    :consumables="consumables"
+                    :typesDocuments="typesDocuments" 
+                    :isEditMode="isEditMode"
+                    :isFirstCounter="formData.compteurs.length === 0"
+                    @save="saveCurrentCounter"
+                    @cancel="cancelCounterForm" 
+                  />
                 </v-stepper-window-item>
 
                 <!-- Navigation -->
@@ -200,6 +210,7 @@ import { API_BASE_URL, EQUIPMENT_CREATE_STEPS } from '@/utils/constants';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 import { EQUIPMENT_STATUS } from '@/utils/constants.js';
 import CounterForm from './Counters/CounterForm';
+import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
 import FabricantForm from '@/components/Forms/FabricantForm.vue';
 import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
@@ -301,8 +312,9 @@ const familles = ref([]);
 const typesPM = ref([]);
 const typesDocuments = ref([]);
 
-// Modales
+// Modales et formulaires inline
 const showCounterDialog = ref(false);
+const showCounterForm = ref(true); // true par défaut pour afficher le formulaire au premier chargement
 const showFabricantDialog = ref(false);
 const showFournisseurDialog = ref(false);
 const showModeleDialog = ref(false);
@@ -481,7 +493,7 @@ const handleCounterAdd = () => {
   editingCounterIndex.value = -1;
   isEditMode.value = false;
   currentCounter.value = getEmptyCounter();
-  showCounterDialog.value = true;
+  showCounterForm.value = true;
 };
 
 const handleCounterEdit = (counter) => {
@@ -503,7 +515,7 @@ const handleCounterEdit = (counter) => {
     }
   };
 
-  showCounterDialog.value = true;
+  showCounterForm.value = true;
 };
 
 const handleCounterDelete = (counter) => {
@@ -551,8 +563,21 @@ const saveCurrentCounter = () => {
     }
   }
 
-  // Fermer la dialog après la sauvegarde
-  closeCounterDialog();
+  // Fermer le formulaire inline après la sauvegarde
+  showCounterForm.value = false;
+  isEditMode.value = false;
+  editingCounterIndex.value = -1;
+  currentCounter.value = getEmptyCounter();
+};
+
+const cancelCounterForm = () => {
+  // Ne permettre l'annulation que s'il y a déjà au moins un compteur
+  if (formData.value.compteurs.length > 0) {
+    showCounterForm.value = false;
+    isEditMode.value = false;
+    editingCounterIndex.value = -1;
+    currentCounter.value = getEmptyCounter();
+  }
 };
 
 const updateExistingPM = (counterToSave) => {
