@@ -43,7 +43,7 @@
               </v-btn>
             </v-col>
             <v-col cols="6">
-              <v-btn color="success" block :disabled="!canClose" @click="openAcceptModal">
+              <v-btn color="success" block :disabled="!canAccept" @click="openAcceptModal">
                 Accepter la demande
               </v-btn>
             </v-col>
@@ -184,7 +184,7 @@ const documentHeaders = [
 
 const canClose = computed(() => FAILURE_STATUS[ defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 const canCreateIntervention = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
-const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
+const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE);
 
 const formattedEquipmentLabel = computed(() => {
   if (!defaillance.value?.equipement) return {};
