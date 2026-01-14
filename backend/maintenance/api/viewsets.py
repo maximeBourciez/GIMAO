@@ -104,6 +104,28 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(demande)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def transform_to_bon_travail(self, request, *args, **kwargs):
+        demande = self.get_object()
+        print(demande, request.data.get('responsable'))
+
+        # Création du bon de travail
+        bon_travail = BonTravail.objects.create(
+            demande_intervention=demande,
+            nom=demande.nom,
+            type="CORRECTIF",
+            commentaire=demande.commentaire,
+            responsable_id=request.data.get('responsable'),
+            statut='EN_ATTENTE'
+        )
+
+        demande.statut = 'TRANSFORMEE'
+        demande.date_changementStatut = timezone.now()
+        demande.save()
+        serializer = self.get_serializer(bon_travail)
+        return Response(serializer.data)
+
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         """Création d'une nouvelle demande d'intervention"""
