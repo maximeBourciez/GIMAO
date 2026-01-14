@@ -19,6 +19,7 @@ import FailureList from '@/views/Failures/FailureList.vue'
 // ---------------------------------------------------------------
 import InterventionDetail from '@/views/Interventions/InterventionDetail.vue'
 import CreateIntervention from '@/views/Interventions/CreateIntervention.vue'
+import EditIntervention from '@/views/Interventions/EditIntervention.vue'
 import AddDocumentIntervention from '@/views/Interventions/AddDocumentIntervention.vue'
 
 // ------------------------------------------------------------------
@@ -219,6 +220,14 @@ const routes = [
     name: 'CreateIntervention',
     component: CreateIntervention,
     meta: { title: 'Créer un bon de travail' }
+  },
+
+  {
+    path: '/EditIntervention/:id',
+    name: 'EditIntervention',
+    component: EditIntervention,
+    props: true,
+    meta: { title: 'Modifier un bon de travail' }
   },
 
   {

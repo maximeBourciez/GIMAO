@@ -36,6 +36,20 @@ export const BREADCRUMBS = {
             ];
         }
 
+		if (route.query.from === "intervention") {
+			return [
+				{ label: "Bons de travail", to: { name: "InterventionList" } },
+				{
+					label: `Bon de travail #${route.query.interventionId}`,
+					to: {
+						name: "InterventionDetail",
+						params: { id: route.query.interventionId },
+					},
+				},
+				{ label: `Équipement #${route.params.id}` },
+			];
+		}
+
         return [{
             label: "Équipements",
             to: { name: "EquipmentList" },
@@ -106,8 +120,8 @@ export const BREADCRUMBS = {
 
         // fallback : liste interventions
         return [
-            { label: "Interventions", to: { name: "InterventionList" } },
-            { label: `Intervention #${route.params.id}` },
+            { label: "Bons de travail", to: { name: "InterventionList" } },
+            { label: `Bon de travail #${route.params.id}` },
         ];
     },
 
