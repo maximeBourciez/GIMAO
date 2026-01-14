@@ -151,9 +151,14 @@
     </v-card>
 
     <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
-        <CounterForm v-model="counter" :existingPMs="existingPMs" :typesPM="typesPM" :consumables="consumables"
-            :typesDocuments="typesDocuments" :isEditMode="true" @save="saveCurrentCounter"
-            @close="closeCounterDialog" />
+        <v-card>
+            <v-card-title>Modifier le compteur</v-card-title>
+            <v-card-text>
+                <CounterInlineForm v-model="counter" :existingPMs="existingPMs" :typesPM="typesPM"
+                    :consumables="consumables" :typesDocuments="typesDocuments" @save="saveCurrentCounter"
+                    @cancel="closeCounterDialog" />
+            </v-card-text>
+        </v-card>
     </v-dialog>
 </template>
 
@@ -162,14 +167,12 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants'
-import CounterForm from './CounterForm.vue'
+import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue'
 
-/* ========= ROUTER ========= */
 const route = useRoute();
 const router = useRouter();
 const counterId = Number(route.params.id);
 
-/* ========= STATE ========= */
 const counter = ref(null)
 const originalCounter = ref(null)
 
@@ -182,10 +185,8 @@ const loading = ref(true)
 const errorMessage = ref('')
 const successMessage = ref('')
 
-/* ========= API ========= */
 const api = useApi(API_BASE_URL)
 
-/* ========= HELPERS ========= */
 const getFileName = (path) => path?.split('/').pop() || '—'
 
 const getPMTypeLabel = (id) => {
@@ -199,7 +200,6 @@ const getDocumentTypeLabel = (id) => {
     return typesDocuments.value.find(t => t.id === id)?.nomTypeDocument || '—'
 }
 
-/* ========= FETCH ========= */
 const fetchCounter = async () => {
     counter.value = await api.get(`compteurs/${counterId}`)
 }
@@ -218,19 +218,15 @@ const fetchReferentials = async () => {
 
 const fetchPMFiles = async () => {
     try {
-        // Créer un tableau de toutes les promises
         const fetchPromises = [];
 
         counter.value.planMaintenance?.documents.forEach(doc => {
             if (doc.path) {
-                // Créer une promise et la stocker
                 const promise = fetch(MEDIA_BASE_URL + doc.path)
                     .then(res => res.blob())
                     .then(blob => {
                         const filename = doc.titre || 'document';
                         const file = new File([blob], filename, { type: blob.type });
-                        console.log('Fichier récupéré pour le document:', filename, file);
-                        // Assigner le file directement au doc
                         doc.file = file;
                         return file;
                     })
@@ -242,9 +238,7 @@ const fetchPMFiles = async () => {
             }
         });
 
-        // Attendre que tous les fichiers soient téléchargés
         await Promise.all(fetchPromises);
-        console.log('Tous les fichiers ont été récupérés');
 
     } catch (error) {
         console.error('Erreur lors du chargement des documents:', error);
@@ -278,7 +272,6 @@ onMounted(async () => {
     fetchPMFiles();
 });
 
-/* ========= EDIT FORM ========= */
 const showCounterDialog = ref(false)
 
 const showEditForm = () => {
@@ -293,7 +286,6 @@ const closeCounterDialog = () => {
 const saveCurrentCounter = async () => {
     closeCounterDialog();
 
-    // Détecter les changements
     const { hasChanges, changes } = detectChanges();
 
     if (!hasChanges) {
@@ -307,26 +299,18 @@ const saveCurrentCounter = async () => {
     try {
         const fd = new FormData();
 
-        // 1. Copie profonde du compteur pour JSON
         const counterCopy = JSON.parse(JSON.stringify(counter.value));
 
-        // Ajouter les index aux pm
         counterCopy.planMaintenance.documents.forEach((doc, index) => {
             doc.index = index;
         });
 
-        console.log("Compteur : ", counter.value);
-
-        // 2. Ajouter compteur modifié
         fd.append('compteur', JSON.stringify(counterCopy));
         fd.append('changes', JSON.stringify(changes));
 
-        // 4. Ajouter fichiers binaires
         const pmDocsChanged = changes['planMaintenance.documents'].modifications;
-        console.log('Documents modifiés:', pmDocsChanged);
         pmDocsChanged.forEach((doc, index) => {
             if (doc.nouvelle) {
-                // Nouveaux documents 
                 fd.append(`file_planMaintenance.documents_${doc.nouvelle.id}`, doc.nouvelle.file);
             }
         })
@@ -334,13 +318,10 @@ const saveCurrentCounter = async () => {
         const pmDocsAdded = changes['planMaintenance.documents'].ajouts;
         pmDocsAdded.forEach((doc, index) => {
             if (doc.file) {
-                console.log('Ajout du fichier pour le document ajouté:', doc);
                 fd.append(`file_planMaintenance.documents_${index}`, doc.file);
             }
         });
 
-        // 5. Envoyer PUT
-        console.log('Envoi des données de modification du compteur:');
         await api.put(`compteurs/${counter.value.id}/`, fd, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -364,17 +345,10 @@ const saveCurrentCounter = async () => {
     }
 };
 
-
-
-/* ========= CHANGEMENTS ========= */
 function detectChanges() {
     let changes = {};
     let hasChanges = false;
 
-    console.log('Compteur actuel:', counter.value);
-    console.log('Compteur original:', originalCounter.value);
-
-    // Champs du compteur 
     const fieldsToCheck = ['nom', 'description', 'intervalle', 'unite', 'valeurCourante', 'estGlissant', 'estPrincipal', 'habElec', 'permisFeu'];
 
     for (let key of fieldsToCheck) {
@@ -402,11 +376,8 @@ function detectChanges() {
             hasChanges = true;
         }
 
-        // Documents
         const currentDocs = counter.value.planMaintenance.documents || [];
         const originalDocs = originalCounter.value.planMaintenance.documents || [];
-
-        
 
         if (!changes['planMaintenance.documents']) {
             changes['planMaintenance.documents'] = {
@@ -425,15 +396,11 @@ function detectChanges() {
             hasChanges = true;
         }
 
-
-        // Vérifier les changements détaillés des documents
         for (let i = 0; i < currentDocs.length; i++) {
             const docStr = JSON.stringify({ titre: currentDocs[i].titre, type: currentDocs[i].type });
             const originalDocStr = JSON.stringify({ titre: originalDocs[i]?.titre, type: originalDocs[i]?.type });
 
             if (!currentDocs[i].id && originalDocs[i] === undefined) {
-                // Nouveau document sans id (ajouté)
-                console.log('Nouveau document détecté:', currentDocs[i]);
                 changes['planMaintenance.documents'].ajouts.push(currentDocs[i]);
                 hasChanges = true;
             }
@@ -442,9 +409,7 @@ function detectChanges() {
                 hasChanges = true;
             }
 
-            // Si les 2 ont des fichiers, vérifier si le fichier a changé
             else if (currentDocs[i].file && originalDocs[i].file) {
-                // Comparer nom, taille et type
                 if (currentDocs[i].file.name !== originalDocs[i].file.name ||
                     currentDocs[i].file.size !== originalDocs[i].file.size ||
                     currentDocs[i].file.type !== originalDocs[i].file.type) {
@@ -452,18 +417,13 @@ function detectChanges() {
                     hasChanges = true;
                 }
             }
-            // Si l'original n'a pas de fichier mais le courant en a un
             else if ((!originalDocs[i].file && originalDocs[i].file === undefined) && currentDocs[i].file) {
-                // Nouveau fichier ajouté
-                console.log('Nouveau fichier ajouté au document:', currentDocs[i]);
                 changes['planMaintenance.documents'].ajouts.push(currentDocs[i]);
                 hasChanges = true;
             }
         }
 
     }
-
-    console.log('Changements détectés:', changes);
 
     return { hasChanges, changes };
 }

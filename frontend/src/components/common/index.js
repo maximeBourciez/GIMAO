@@ -14,6 +14,17 @@ export { default as FormAlert } from "./FormAlert.vue";
 export { default as FormActions } from "./FormActions.vue";
 export { default as FormContainer } from "./FormContainer.vue";
 
+// Ré-exporter tous les composants de saisie depuis inputType
+export { 
+    FormField, 
+    FormSelect, 
+    FormFileInput,
+    FormTextarea,
+    FormCheckbox,
+    FormRadio,
+    FormDatePicker
+} from "../Forms/inputType";
+
 // Export des composants principaux
 export { default as BaseForm } from "./BaseForm.vue";
 export { default as BaseListView } from "./BaseListView.vue";

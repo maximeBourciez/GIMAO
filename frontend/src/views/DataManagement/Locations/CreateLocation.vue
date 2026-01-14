@@ -1,188 +1,109 @@
 <template>
-  <v-app>
-    <v-main>
-      <v-container>
-        <v-form @submit.prevent="submit_form">
-
-          <!-- Error Message with v-alert at the top -->
-          <v-alert v-if="error_message" type="error" class="mt-4">
-            {{ error_message }}
-          </v-alert>
-
-          <v-text-field
-            v-model="form_data.location_name"
-            label="Nom du Lieu"
-            required
-            outlined
-            dense
-            class="mb-4"
-          ></v-text-field>
-
-          <v-text-field
-            v-model="form_data.location_type"
-            label="Type du lieu"
-            required
-            outlined
-            dense
-            class="mb-4"
-          ></v-text-field>
-
-          <div>
-            <p v-if="!places_with_all || places_with_all.length === 0">Pas de données disponibles.</p>
-            <v-treeview
-              v-else
-              :items="places_with_all"
-              item-key="id"
-              :open-on-click="false"
-              item-text="nomLieu"
-              rounded
-              hoverable
-              activatable
-              dense
-            >
-              <template v-slot:prepend="{ item, open }">
-                <v-icon
-                  v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
-                  @click.stop="toggle_node(item)"
-                  :class="{ 'rotate-icon': open }"
-                >
-                  {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
-                </v-icon>
-                <span v-else class="tree-icon-placeholder"></span>
-                <span @click="on_click_location(item)">{{ item.nomLieu }}</span>
-              </template>
-              <template v-slot:label="{ item }">
-                <span class="text-caption ml-2">{{ item.typeLieu }}</span>
-              </template>
-            </v-treeview>
-          </div>
-
-          <v-row justify="end">
-            <v-btn color="secondary" class="mt-4 rounded" @click="go_back" style="border-radius: 0; margin-right: 35px;" large>
-              Annuler
-            </v-btn>
-            <v-btn type="submit" color="primary" class="mt-4 rounded" :disabled="!is_form_valid" style="border-radius: 0 ;margin-right: 35px;" large>
-              Ajouter Lieu
-            </v-btn>
-          </v-row>
-
-        </v-form>
-      </v-container>
-    </v-main>
-  </v-app>
+  <BaseForm title="Créer un nouveau lieu" :loading="loading" :errorMessage="errorMessage"
+    :successMessage="successMessage" :dismissibleAlerts="true" :submitButtonText="'Créer le lieu'" @submit="onSubmit">
+    <v-container>
+      <v-row>
+        <v-col cols="12" md="6">
+          <v-text-field v-model="formData.nomLieu" label="Nom du lieu*"
+            :rules="[v => !!v || 'Le nom du lieu est requis']" required>
+          </v-text-field>
+        </v-col>
+        <v-col cols="12" md="6">
+          <v-text-field v-model="formData.typeLieu" label="Type de lieu (pièce, étage, bâtiment, etc.)*"
+            :rules="[v => !!v || 'Le type de lieu est requis']" required>
+          </v-text-field>
+        </v-col>
+        <v-col cols="12" md="6">
+          <v-select v-model="formData.parentId" :items="locationOptions" item-title="nomLieu" item-value="id"
+            label="Lieu parent" clearable>
+          </v-select>
+        </v-col>
+      </v-row>
+    </v-container>
+  </BaseForm>
 </template>
 
+<script setup>
+import { onMounted, ref, watch } from 'vue';
+import BaseForm from '@/components/common/BaseForm.vue';
+import { useApi } from '@/composables/useApi.js';
+import { API_BASE_URL } from '@/utils/constants.js';
+import { useRoute, useRouter } from 'vue-router';
 
-<script>
-import { useApi } from '@/composables/useApi';
-import { ref, computed, reactive, onMounted, toRefs } from 'vue';
-import { useRouter } from 'vue-router';
-import { VTreeView } from 'vuetify/labs/components';
-import { API_BASE_URL } from '@/utils/constants';
+const route = useRoute();
+const router = useRouter();
 
-export default {
-  name: 'CreateLocation',
-  components: {
-    VTreeView,
-  },
-  setup() {
-    const router = useRouter();
-    const createApi = useApi(API_BASE_URL);
-    const locationsApi = useApi(API_BASE_URL);
-    const state = reactive({
-      form_data: {
-        location_name: "",
-        location_type: "",
-        location: null,
-        header: [
-          { title: 'Location', value: 'location.nomLieu', sortable: true, align: 'center' },
-        ],
-        open_nodes: new Set(),
-      },
-      locations: [],
-      error_message: "" // Add error message state
-    });
 
-    const places_with_all = computed(() => {
-      return [...state.locations];
-    });
+// Données du formulaire
+const formData = ref({
+  nomLieu: '',
+  typeLieu: '',
+  parentId: null, // Simple valeur numérique (ID)
+});
 
-    const on_click_location = (item) => {
-      if (state.form_data.location && state.form_data.location.id === item.id) {
-        state.form_data.location = null;
-      } else {
-        state.form_data.location = item;
-      }
-    };
+const locationOptions = ref([]);
+const loading = ref(false);
+const errorMessage = ref('');
+const successMessage = ref('');
 
-    const toggle_node = (item) => {
-      if (state.open_nodes.has(item.id)) {
-        state.open_nodes.delete(item.id);
-      } else {
-        state.open_nodes.add(item.id);
-      }
-    };
+const api = useApi(API_BASE_URL);
 
-    const is_form_valid = computed(() => {
-      return state.form_data.location_name &&
-             state.form_data.location_type;
-    });
+const fetchAvailableLocations = async () => {
+  try {
+    locationOptions.value = await api.get('lieux/');
 
-    const submit_form = async () => {
-      if (!is_form_valid.value) {
-        state.error_message = 'Veuillez remplir tous les champs requis.';
-        return;
-      }
-
-      state.error_message = ""; // Clear error message if form is valid
-
-      const form_data = new FormData();
-      form_data.append('nomLieu', state.form_data.location_name);
-      form_data.append('typeLieu', state.form_data.location_type);
-
-      if (state.form_data.location) {
-        form_data.append('lieuParent', state.form_data.location.id);
-      }
-
-      try {
-        const responseLieu = await createApi.post('lieux/', form_data);
-        if (responseLieu) {
-          go_back();
-        } else {
-          state.error_message = 'Une erreur est survenue lors de la création du lieu.';
-        }
-      } catch (error) {
-        console.error('Error creating lieu:', error);
-        state.error_message = 'Une erreur est survenue lors de la création du lieu.';
-      }
-    };
-
-    const fetch_data = async () => {
-      try {
-        await locationsApi.get('lieux-hierarchy/');
-        state.locations = locationsApi.data.value;
-      } catch (error) {
-        console.error('Error loading data:', error);
-      }
-    };
-
-    const go_back = () => {
-      router.go(-1);
-    };
-
-    onMounted(() => {
-      fetch_data();
-    });
-
-    return {
-      ...toRefs(state),
-      submit_form,
-      places_with_all,
-      on_click_location,
-      toggle_node,
-      go_back,
-      is_form_valid
-    };
-  },
+    // Une fois les lieux chargés, définir le parent si présent dans la route
+    const parentIdFromRoute = route.query.parentId;
+    if (parentIdFromRoute && parentIdFromRoute !== 'root') {
+      // Convertir en nombre si c'est une chaîne
+      formData.value.parentId = parseInt(parentIdFromRoute, 10);
+      console.log("Parent ID défini depuis la route:", formData.value.parentId);
+    }
+  } catch (error) {
+    console.error("Erreur lors de la récupération des lieux :", error);
+  }
 };
+
+// Gestionnaire de soumission du formulaire
+const onSubmit = async () => {
+  loading.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+
+  try {
+    // Préparer les données à envoyer
+    const dataToSend = {
+      nomLieu: formData.value.nomLieu,
+      typeLieu: formData.value.typeLieu,
+      parentId: formData.value.parentId || null, // Directement l'ID numérique ou null
+    };
+
+    console.log("Données envoyées:", dataToSend);
+
+    await api.post('lieux/', dataToSend);
+    successMessage.value = 'Lieu créé avec succès !';
+
+    // Rediriger après un court délai
+    setTimeout(() => {
+      router.push({ name: 'LocationList' });
+    }, 1500);
+
+  } catch (error) {
+    console.error("Erreur lors de la création du lieu :", error);
+    errorMessage.value = error.message || 'Une erreur est survenue lors de la création du lieu.';
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(async () => {
+  await fetchAvailableLocations();
+  console.log("CreateLocation mounted. Route params:", route);
+  console.log("Form data:", formData.value);
+});
+
+// Watch pour déboguer les changements
+watch(() => formData.value.parentId, (newVal) => {
+  console.log("parentId changé:", newVal, "Type:", typeof newVal);
+});
 </script>

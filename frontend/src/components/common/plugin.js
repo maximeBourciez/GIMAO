@@ -17,6 +17,7 @@ import FormActions from "./FormActions.vue";
 import FormContainer from "./FormContainer.vue";
 import BaseListView from "./BaseListView.vue";
 import BaseDetailView from "./BaseDetailView.vue";
+import { FormField, FormSelect, FormFileInput, FormTextarea, FormCheckbox, FormRadio, FormDatePicker } from "../Forms/inputType";
 
 export default {
   install(app) {
@@ -27,6 +28,13 @@ export default {
     app.component("FormContainer", FormContainer);
     app.component("BaseListView", BaseListView);
     app.component("BaseDetailView", BaseDetailView);
+    app.component("FormField", FormField);
+    app.component("FormSelect", FormSelect);
+    app.component("FormFileInput", FormFileInput);
+    app.component("FormTextarea", FormTextarea);
+    app.component("FormCheckbox", FormCheckbox);
+    app.component("FormRadio", FormRadio);
+    app.component("FormDatePicker", FormDatePicker);
   },
 };
 

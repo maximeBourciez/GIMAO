@@ -1,5 +1,5 @@
 <template>
-  <BaseDetailView :data="defaillance" :loading="loading" :error-message="errorMessage"
+  <BaseDetailView :data="defaillance" :loading="loading" :error-message="errorMessage" :title="'Détail de la demande d\'intervention'"
     :success-message="successMessage" :auto-display="false" :show-edit-button="false"
     @delete="handleDelete" @clear-error="errorMessage = ''" @clear-success="successMessage = ''">
     <!-- Contenu personnalisé -->
@@ -7,8 +7,6 @@
       <v-row v-if="data">
         <!-- Colonne gauche: Demande d'intervention -->
         <v-col cols="12" md="6">
-          <h1 class="text-h4 text-primary">Détail de la demande d'intervention</h1>
-
           <h3 class="text-h6 mb-4 text-primary">{{ data.nom }}</h3>
 
           <div class="detail-field">
@@ -20,7 +18,7 @@
             <label class="detail-label">Statut</label>
             <div class="detail-value">
               <v-chip :color="data.statut ? FAILURE_STATUS_COLORS[data.statut] : 'grey'" dark>
-                {{ data.statut }}
+                {{ FAILURE_STATUS[data.statut] }}
               </v-chip>
             </div>
           </div>
@@ -39,18 +37,18 @@
           
           <v-row>
             <v-col cols="12">
-              <v-btn color="primary" block :disabled="!canCreateIntervention" @click="handleCreateIntervention">
+              <v-btn color="primary" block :disabled="!canCreateIntervention" @click="openCreateInterventionModal">
                 <v-icon class="mx-2" left>mdi-wrench</v-icon>
                 Transformer en bon de travail
               </v-btn>
             </v-col>
             <v-col cols="6">
-              <v-btn color="success" block :disabled="!canClose" @click="handleCloseFailure">
+              <v-btn color="success" block :disabled="!canAccept" @click="openAcceptModal">
                 Accepter la demande
               </v-btn>
             </v-col>
             <v-col cols="6">
-              <v-btn color="error" block :disabled="!canClose" @click="handleCloseFailure">
+              <v-btn color="error" block :disabled="!canClose" @click="openRejectModal">
                 Refuser la demande
               </v-btn>
             </v-col>
@@ -126,15 +124,60 @@
       </v-row>
     </template>
   </BaseDetailView>
+
+  <!-- Modale de confirmation pour accepter la demande -->
+  <ConfirmationModal
+    v-model="showAcceptModal"
+    type="success"
+    title="Accepter la demande"
+    message="Êtes-vous sûr de vouloir accepter cette demande d'intervention ? \n\nCette action changera le statut de la demande."
+    confirm-text="Accepter"
+    cancel-text="Annuler"
+    confirm-icon="mdi-check"
+    :loading="acceptLoading"  
+    @confirm="handleChangeStatusFailure('ACCEPTEE')"
+    @cancel="showAcceptModal = false"
+  />
+
+  <!-- Modale de confirmation pour rejeter la demande -->
+  <ConfirmationModal
+    v-model="showRejectModal"
+    type="error"
+    title="Rejeter la demande"
+    message="Êtes-vous sûr de vouloir rejeter cette demande d'intervention ? \n\nCette action changera le statut de la demande."
+    confirm-text="Rejeter"
+    cancel-text="Annuler"
+    confirm-icon="mdi-check"
+    :loading="rejectLoading"  
+    @confirm="handleChangeStatusFailure('REFUSEE')"
+    @cancel="showRejectModal = false"
+  />
+
+  <!-- Modale de confirmation pour rejeter la demande -->
+  <ConfirmationModal
+    v-model="showCreateInterventionModal"
+    type="success"
+    title="Transformer la demande"
+    message="Êtes-vous sûr de vouloir transformer cette demande d'intervention en bon de travail ? \n\nCette action changera le statut de la demande."
+    confirm-text="Transformer"
+    cancel-text="Annuler"
+    confirm-icon="mdi-check" 
+    :loading="createInterventionLoading"  
+    @confirm="handleCreateIntervention()"
+    @cancel="showCreateInterventionModal = false"
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
+import { useStore } from 'vuex';
 
+const store = useStore();
 const router = useRouter();
 const route = useRoute();
 const failureApi = useApi(API_BASE_URL);
@@ -149,7 +192,12 @@ const showEquipmentDetails = ref(false);
 const showDocumentsDetails = ref(false);
 const actionMode = ref('download');
 const selectedStatus = ref('pas de changement');
-
+const showAcceptModal = ref(false);
+const acceptLoading = ref(false);
+const showRejectModal = ref(false);
+const rejectLoading = ref(false);
+const showCreateInterventionModal = ref(false);
+const createInterventionLoading = ref(false);
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Non spécifié';
@@ -169,7 +217,7 @@ const documentHeaders = [
 
 const canClose = computed(() => FAILURE_STATUS[ defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 const canCreateIntervention = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
-const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
+const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE);
 
 const formattedEquipmentLabel = computed(() => {
   if (!defaillance.value?.equipement) return {};
@@ -221,21 +269,65 @@ const handleDelete = async () => {
   }
 };
 
-const handleCloseFailure = async () => {
+const handleChangeStatusFailure = async (newStatus) => {
+  rejectLoading.value = true;
+  acceptLoading.value = true;
   try {
-    await patchApi.patch(`demandes-intervention/${route.params.id}/`, {
-      statut: "Refusé",
-      date_changementStatut: new Date().toISOString()
+    await patchApi.patch(`demandes-intervention/${route.params.id}/updateStatus/`, {
+      statut: newStatus
     });
-    successMessage.value = 'Défaillance mise en attente';
+    successMessage.value = 'Demande d\'intervention ' + FAILURE_STATUS[newStatus] + ' avec succès';
+    showRejectModal.value = false;
+    showAcceptModal.value = false;
     await fetchData();
   } catch (error) {
-    errorMessage.value = 'Erreur lors de la mise à jour';
+    switch (newStatus) {
+      case 'ACCEPTEE':
+          errorMessage.value = 'Erreur lors de l\'acceptation de la demande';
+        break;
+      case 'REFUSEE':
+          errorMessage.value = 'Erreur lors du rejet de la demande';
+        break;
+      default:
+        errorMessage.value = 'Erreur lors du changement du statut de la demande';
+    }
+    
+  } finally {
+    rejectLoading.value = false;
+    acceptLoading.value = false;
   }
 };
 
-const handleCreateIntervention = () => {
-  router.push({ name: 'CreateIntervention', params: { id: route.params.id } });
+const handleCreateIntervention = async () => {
+  createInterventionLoading.value = true;
+  try {
+    const response =await patchApi.post(`demandes-intervention/${route.params.id}/transform_to_bon_travail/`, 
+      {
+        responsable: store.getters.currentUser.id
+      }
+    );
+    successMessage.value = 'Demande d\'intervention transformée avec succès';
+    showCreateInterventionModal.value = false;
+
+    setTimeout(() => {
+      router.push({ name: 'InterventionDetail', params: { id: response.id } });
+    }, 1500);
+  } catch (error) {
+    errorMessage.value = 'Erreur lors de la transformation de la demande';
+  } finally {
+    createInterventionLoading.value = false;
+  }
+};
+
+// Fonctions pour les modales
+const openAcceptModal = () => {
+  showAcceptModal.value = true;
+};
+const openRejectModal = () => {
+  showRejectModal.value = true;
+};
+const openCreateInterventionModal = () => {
+  showCreateInterventionModal.value = true;
 };
 
 const openEquipment = () => {

@@ -84,7 +84,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { VTreeview } from 'vuetify/labs/VTreeview';
+import { VTreeview } from 'vuetify/labs/components'
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';
@@ -157,7 +157,7 @@ const fetchData = async () => {
   try {
     await Promise.all([
       equipmentsApi.get('equipements/'),
-      locationsApi.get('lieux-hierarchy/'),
+      locationsApi.get('lieux/hierarchy/'),
       modelsApi.get('modele-equipements/')
     ]);
     emit('equipments-loaded', equipments.value);

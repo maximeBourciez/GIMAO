@@ -25,6 +25,15 @@ export const EQUIPMENT_STATUS_COLORS = {
     HORS_SERVICE: "grey",
 };
 
+export const EQUIPMENT_CREATE_STEPS = [
+    "Informations Générales",
+    "Modèle d'Équipement",
+    "Lieu d'Installation",
+    "Statut de l'Équipement",
+    "Consommables",
+    "Compteurs",
+];
+
 // ============================================
 // NIVEAUX DE DÉFAILLANCE
 // ============================================
@@ -32,7 +41,7 @@ export const EQUIPMENT_STATUS_COLORS = {
 export const FAILURE_STATUS = {
     EN_ATTENTE: "En attente",
     ACCEPTEE: "Acceptée",
-    REFUSEE: "Refusée",
+    REFUSEE: "Rejetée",
     TRANSFORMEE: "Transformée",
 };
 
@@ -56,11 +65,11 @@ export const INTERVENTION_STATUS = {
 
 // Couleurs (tokens Vuetify) associées aux statuts de BT
 export const INTERVENTION_STATUS_COLORS = {
-    EN_ATTENTE: 'orange',
-    EN_COURS: 'primary',
-    TERMINE: 'green',
-    EN_RETARD: 'red',
-    CLOTURE: 'grey',
+    EN_ATTENTE: "orange",
+    EN_COURS: "primary",
+    TERMINE: "green",
+    EN_RETARD: "red",
+    CLOTURE: "grey",
 };
 
 // ============================================
@@ -68,10 +77,11 @@ export const INTERVENTION_STATUS_COLORS = {
 // ============================================
 
 export const TABLE_HEADERS = {
-      /********************************
+    /********************************
      *  DEMANDES D'INTERVENTION
      *******************************/
-      FAILURES_SUPER_LIGHT: [
+
+    FAILURES_SUPER_LIGHT: [
         {
             title: "N°",
             align: "start",
@@ -265,191 +275,298 @@ export const TABLE_HEADERS = {
         },
     ],
 
-  /********************************
-   *  ÉQUIPEMENTS
-   *******************************/
+    /********************************
+     *  ÉQUIPEMENTS
+     *******************************/
 
-  EQUIPMENTS: [
-    {
-      title: "Désignation",
-      value: "modeleEquipement.nomModeleEquipement",
-      sortable: true,
-      align: "center",
-    },
-    {
-      title: "Lieu",
-      value: "lieu.nomLieu",
-      sortable: true,
-      align: "center",
-    },
-    {
-      title: "Statut",
-      value: "statut.statutEquipement",
-      sortable: true,
-      align: "center",
-    },
-  ],
+    EQUIPMENTS: [
+        {
+            title: "Désignation",
+            value: "modeleEquipement.nomModeleEquipement",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Lieu",
+            value: "lieu.nomLieu",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Statut",
+            value: "statut.statutEquipement",
+            sortable: true,
+            align: "center",
+        },
+    ],
 
-  INTERVENTIONS_EQUIPMENT: [
-    {
-        title: "N°",
-        align: "center",
-        sortable: true,
-        value: "id",
-    },
-    {
-        title: "Nom",
-        align: "start",
-        sortable: true,
-        value: "nom",
-    },
-    {
-        title: "Date d'assignation",
-        align: "center",
-        sortable: true,
-        value: "date_assignation",
-    },
-    {
-        title: "Statut",
-        align: "center",
-        sortable: true,
-        value: "statut",
-    },
-    {
-        title: "Visualiser",
-        align: "center",
-        sortable: false,
-        value: "action",
-    }
-  ],
+    INTERVENTIONS_EQUIPMENT: [
+        {
+            title: "N°",
+            align: "center",
+            sortable: true,
+            value: "id",
+        },
+        {
+            title: "Nom",
+            align: "start",
+            sortable: true,
+            value: "nom",
+        },
+        {
+            title: "Date d'assignation",
+            align: "center",
+            sortable: true,
+            value: "date_assignation",
+        },
+        {
+            title: "Statut",
+            align: "center",
+            sortable: true,
+            value: "statut",
+        },
+        {
+            title: "Visualiser",
+            align: "center",
+            sortable: false,
+            value: "action",
+        },
+    ],
 
-  COUNTER: [
-    {
-      title: "ID",
-      value: "id",
-      sortable: true,
-      align: "center",
-    },
-    {
-      title: "Nom du compteur",
-      value: "nom",
-      sortable: false,
-      align: "center",
-    },
-    {
-      title: "Valeur Courante",
-      value: "valeurCourante",
-      sortable: false,
-      align: "center",
-    },
-    {
-      title: "Prochaine Maintenance",
-      value: "prochaineMaintenance",
-      sortable: false,
-      align: "center",
-    },
-    {
-      title: "Unité",
-      value: "unite",
-      sortable: false,
-      align: "center",
-    },
-    {
-      title: "Visualiser",
-      value: "action",
-      sortable: false,
-      align: "center",
-    },
-  ],
+    COUNTER: [
+        {
+            title: "ID",
+            value: "id",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Nom du compteur",
+            value: "nom",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Valeur Courante",
+            value: "valeurCourante",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Prochaine Maintenance",
+            value: "prochaineMaintenance",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Unité",
+            value: "unite",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Visualiser",
+            value: "action",
+            sortable: false,
+            align: "center",
+        },
+    ],
 
-  COUNTERS: [
-    { 
-        title: "Nom du compteur", 
-        value: "nom", 
-        sortable: true, 
-        align: "center" 
-    },
-    { 
-        title: "Intervalle de maintenance", 
-        value: "intervalle", 
-        sortable: false, 
-        align: "center" 
-    },
-    { 
-        title: "Unité", 
-        value: "unite", 
-        sortable: false, 
-        align: "center" 
-    },
-    { 
-        title: "Valeur actuelle", 
-        value: "valeurCourante", 
-        sortable: false, 
-        align: "center" 
-    },
-    { 
-        title: "Dernière intervention", 
-        value: "derniereIntervention", 
-        sortable: false, 
-        align: "center" 
-    },
-    { 
-        title: "Plan de maintenance", 
-        value: "planMaintenance", 
-        sortable: false, 
-        align: "center" 
-    },
-    { 
-        title: "Options", 
-        value: "options", 
-        sortable: false, 
-        align: "center" 
-    },
-    { 
-        title: "Actions", 
-        value: "actions", 
-        sortable: false, 
-        align: "center" 
-    },
-  ],
+    COUNTERS: [
+        {
+            title: "Nom du compteur",
+            value: "nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Intervalle de maintenance",
+            value: "intervalle",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Unité",
+            value: "unite",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Valeur actuelle",
+            value: "valeurCourante",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Dernière intervention",
+            value: "derniereIntervention",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Plan de maintenance",
+            value: "planMaintenance",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Options",
+            value: "options",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Actions",
+            value: "actions",
+            sortable: false,
+            align: "center",
+        },
+    ],
 
-  CONSUMABLES: [
-    {
-      title: "Désignation",
-      value: "designation",
-      sortable: true,
-      align: "center",
-    },
-    {
-      title: "Fabricant",
-      value: "fabricant",
-      sortable: true,
-      align: "center",
-    },
-  ],
+    CONSUMABLES: [
+        {
+            title: "Désignation",
+            value: "designation",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Fabricant",
+            value: "fabricant",
+            sortable: true,
+            align: "center",
+        },
+    ],
 
-  /********************************
-   * DOCUMENTS
-   *******************************/
-  DOCUMENTS: [
-    {
-      title: "Doucument",
-      value: "nomDocument",
-      sortable: false,
-      align: "center",
-    },
-    {
-      title: "Type",
-      value: "typeDocument",
-      sortable: true,
-      align: "center",
-    },
-    {
-      title: "Télécharger",
-      value: "action",
-      sortable: false,
-      align: "center",
-    },
-  ],
+    /********************************
+     * DOCUMENTS
+     *******************************/
+    DOCUMENTS: [
+        {
+            title: "Doucument",
+            value: "nomDocument",
+            sortable: false,
+            align: "center",
+        },
+        {
+            title: "Type",
+            value: "typeDocument",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Télécharger",
+            value: "action",
+            sortable: false,
+            align: "center",
+        },
+    ],
 
+    /********************************
+     * DONNEES SECONDAIRES
+     *******************************/
+    SUPPLIERS: [
+        {
+            title: "Nom",
+            value: "nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Email",
+            value: "email",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Téléphone",
+            value: "numTelephone",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "SAV",
+            value: "serviceApresVente",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Pays",
+            value: "adresse.pays",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Actions",
+            value: "actions",
+            sortable: false,
+            align: "center",
+        }
+    ],
+
+    MANUFACTURERS: [
+        {
+            title: "Nom",
+            value: "nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Email",
+            value: "email",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Téléphone",
+            value: "numTelephone",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "SAV",
+            value: "serviceApresVente",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Pays",
+            value: "adresse.pays",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Actions",
+            value: "actions",
+            sortable: false,
+            align: "center",
+        }
+    ],
+
+    MODEL_EQUIPMENTS: [
+        {
+            title: "ID",
+            value: "id",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Nom du modèle",
+            value: "nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Fabricant",
+            value: "fabricant.nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Visualiser",
+            value: "action",
+            sortable: false,
+            align: "center",
+        },
+    ]
 };

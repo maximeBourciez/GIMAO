@@ -25,12 +25,13 @@
     <v-spacer v-if="spacer"></v-spacer>
 
     <v-btn
-      type="submit"
+      type="button"
       :color="submitButtonColor"
       :class="submitButtonClass"
       :disabled="submitDisabled"
       :loading="loading"
       :variant="submitButtonVariant"
+      @click="$emit('submit')"
     >
       {{ submitButtonText }}
     </v-btn>
@@ -131,7 +132,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['cancel', 'reset']);
+const emit = defineEmits(['cancel', 'reset', 'submit']);
 const router = useRouter();
 
 const handleCancel = () => {

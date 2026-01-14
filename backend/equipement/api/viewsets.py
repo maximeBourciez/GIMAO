@@ -672,6 +672,82 @@ class ModeleEquipementViewSet(viewsets.ModelViewSet):
     queryset = ModeleEquipement.objects.all()
     serializer_class = ModeleEquipementSerializer
 
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        """Mise à jour d'un modèle d'équipement - gère aussi les consommables associés"""
+        modele = self.get_object()
+        data = request.data
+        print(f"Data reçue : {data}")
+        
+        changes = data
+        print(f"Changes : {changes}")
+        
+        # Récupérer l'utilisateur
+        user_id = changes.get('user')
+        if not user_id:
+            return Response(
+                {"error": "User ID is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            utilisateur = Utilisateur.objects.get(id=user_id)
+            print(f"Utilisateur trouvé : {utilisateur.id}")
+        except Utilisateur.DoesNotExist:
+            return Response(
+                {"error": "User not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Mise à jour des champs du modèle
+        if 'nom' in changes:
+            field_data = changes['nom']
+            nouvelle_valeur = field_data.get('nouvelle')
+            ancienne_valeur = field_data.get('ancienne')
+                        
+            if nouvelle_valeur is not None:
+                old_value = modele.nom
+                
+                if str(old_value) != str(nouvelle_valeur):
+                    modele.nom = nouvelle_valeur
+                    Log.objects.create(
+                        type='modification',
+                        nomTable='modele_equipement',
+                        idCible={'modele_equipement_id': modele.id},
+                        champsModifies={'nom': {'ancien': ancienne_valeur, 'nouveau': nouvelle_valeur}},
+                        utilisateur=utilisateur
+                    )
+
+        
+        if 'fabricant' in changes:
+            field_data = changes['fabricant']
+            nouvelle_valeur = field_data.get('nouvelle')
+            ancienne_valeur = field_data.get('ancienne')
+                        
+            if nouvelle_valeur is not None:
+                old_value = modele.fabricant_id
+                
+                if old_value != nouvelle_valeur:
+                    modele.fabricant_id = nouvelle_valeur
+                    Log.objects.create(
+                        type='modification',
+                        nomTable='modele_equipement',
+                        idCible={'modele_equipement_id': modele.id},
+                        champsModifies={'fabricant': {'ancien': ancienne_valeur, 'nouveau': nouvelle_valeur}},
+                        utilisateur=utilisateur
+                    )
+        
+        # Vérifier s'il y a eu des changements (excluant 'user')
+        has_changes = any(key in changes for key in ['nom', 'fabricant'])
+        
+        if has_changes:
+            modele.save()
+
+        return Response(
+            ModeleEquipementSerializer(modele).data,
+            status=status.HTTP_200_OK
+        )
+
 
 class CompteurViewSet(viewsets.ModelViewSet):
     queryset = Compteur.objects.all()

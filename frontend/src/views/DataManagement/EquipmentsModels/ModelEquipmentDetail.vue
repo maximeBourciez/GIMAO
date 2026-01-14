@@ -1,85 +1,121 @@
 <template>
-  <v-app>
-    <v-main>
-      <v-container>
-        <v-card v-if="modelEquipment">
-          <v-card-title>Détails du modèle équipement</v-card-title>
-          <v-card-text>
-            <v-list>
-              <v-list-item>
-                <v-list-item-content>
-                  <v-list-item-title>Nom du modèle équipement</v-list-item-title>
-                  <v-list-item-subtitle>{{ modelEquipment.nomModeleEquipement }}</v-list-item-subtitle>
-                </v-list-item-content>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-content>
-                  <v-list-item-title>Fabricant</v-list-item-title>
-                  <v-list-item-subtitle>{{ manufacturer_name }}</v-list-item-subtitle>
-                </v-list-item-content>
-              </v-list-item>
-            </v-list>
-          </v-card-text>
-        </v-card>
-        <v-alert v-else type="error">Modèle Equipement non trouvé</v-alert>
-        <v-btn color="primary" class="mt-4" @click="go_back">Retour</v-btn>
-      </v-container>
-    </v-main>
-  </v-app>
+  <BaseDetailView 
+    :data="modelEquipment" 
+    :loading="isLoading" 
+    :error-message="errorMessage"
+    :success-message="successMessage" 
+    :title="'Détail du modèle d\'équipement'" 
+    :auto-display="false"
+    :show-edit-button="false" 
+    @delete="handleDelete" 
+    @clear-error="errorMessage = ''"
+    @clear-success="successMessage = ''">
+    
+    <template #default>
+      <v-row v-if="modelEquipment" dense>
+        <v-col cols="12">
+          <h3 class="text-h6 mb-3">Informations générales</h3>
+        </v-col>
+        <v-col cols="12" md="6">
+          <strong>Nom du modèle d'équipement</strong>
+          <div>{{ modelEquipment.nom || '-' }}</div>
+        </v-col>
+        <v-col cols="12" md="6">
+          <strong>Fabricant</strong>
+          <div>{{ modelEquipment.fabricant?.nom || '-' }}</div>
+        </v-col>
+      </v-row>
+      
+      <v-row v-else>
+        <v-col cols="12">
+          <p v-if="isLoading">Chargement en cours...</p>
+          <p v-else>Aucune donnée disponible.</p>
+        </v-col>
+      </v-row>
+    </template>
+  </BaseDetailView>
+
+  <!-- Bouton de modification -->
+  <v-btn color="primary" size="large" icon class="floating-edit-button" elevation="4" @click="editModelEquipment">
+    <v-icon size="large">mdi-pencil</v-icon>
+    <v-tooltip activator="parent" location="left">
+      Modifier le modèle d'équipement
+    </v-tooltip>
+  </v-btn>
 </template>
 
-<script>
-import { useApi } from '@/composables/useApi';
-import { ref, computed, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useApi } from '@/composables/useApi.js';
 import { API_BASE_URL } from '@/utils/constants';
+import BaseDetailView from '@/components/common/BaseDetailView.vue';
 
-export default {
-  name: 'ModelEquipmentDetail',
-  setup() {
-    const router = useRouter();
-    const route = useRoute();
-    const modelApi = useApi(API_BASE_URL);
-    const manufacturerApi = useApi(API_BASE_URL);
-    const modelEquipment = computed(() => modelApi.data.value);
-    const manufacturer = computed(() => manufacturerApi.data.value);
+const route = useRoute();
+const router = useRouter();
+const api = useApi(API_BASE_URL);
 
-    const manufacturer_name = computed(() => {
-      return manufacturer.value ? manufacturer.value.nomFabricant : 'Non spécifié';
-    });
+const modelEquipment = ref(null);
+const isLoading = ref(true);
+const errorMessage = ref('');
+const successMessage = ref('');
 
-    const fetch_modelEquipment = async () => {
-      try {
-        const response = await modelApi.get(`modele-equipements/${route.params.id}/`);
-        if (response.fabricant) {
-          await get_manufacturer(response.fabricant);
-        }
-      } catch (error) {
-        console.error('Error loading the modelEquipment:', error);
-      }
-    };
+const loadModelEquipment = async () => {
+  console.log("loadModelEquipment appelée !");
+  isLoading.value = true;
+  try {
+    const id = route.params.id;
+    console.log("ID récupéré :", id);
+    
+    const response = await api.get(`modele-equipements/${id}/`);
+    console.log("Réponse API :", response);
+    
+    modelEquipment.value = response || null;
+  } catch (error) {
+    console.error("Erreur API :", error);
+    errorMessage.value = 'Erreur lors du chargement du modèle d\'équipement.';
+    modelEquipment.value = null;
+  } finally {
+    isLoading.value = false;
+  }
+};
 
-    const get_manufacturer = async (id) => {
-      try {
-        await manufacturerApi.get(`fabricants/${id}/`);
-      } catch (error) {
-        console.error('Error fetching fabricant:', error);
-      }
-    };
+const handleDelete = () => {
+  // Implémente ta logique de suppression
+  console.log('Delete clicked');
+};
 
-    const go_back = () => {
-      router.go(-1);
-    };
+onMounted(async () => {
+  await loadModelEquipment();
+});
 
-    onMounted(() => {
-      fetch_modelEquipment();
-    });
 
-    return {
-      modelEquipment,
-      manufacturer_name,
-      go_back,
-    };
-  },
+const editModelEquipment = () => {
+  const id = route.params.id;
+  router.push({ name: 'EditModelEquipment', params: { id: id } });
 };
 </script>
+
+<style scoped>
+.detail-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-size: 1rem;
+  color: #333;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.floating-edit-button {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+</style>

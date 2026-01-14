@@ -1,99 +1,86 @@
 <template>
-  <v-container>
-    <v-row class="mb-4">
-      <!-- Search Bar -->
-      <v-col cols="9">
-        <v-text-field
-          v-model="search_query"
-          label="Rechercher un modele d'equipement"
-          prepend-icon="mdi-magnify"
-          clearable
-        ></v-text-field>
-      </v-col>
-      <v-col cols="3" class="align-center">
-        <v-btn 
-          color="primary"
-          @click="$router.push('/CreateModelEquipment')"
-          class="ml-2"
-          height="50%"
-        >
-          Creer un modele d'equipement
-        </v-btn>
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col 
-        v-for="model_equipment in filtered_model_equipment" 
-        :key="model_equipment.id" 
-        cols="12" 
-        sm="6" 
-        md="4"
-      >
-        <v-card @click="go_to_model_equipment_details(model_equipment.id)">
-          <v-card-title>{{ model_equipment.nomModeleEquipement }}</v-card-title>
-          <v-card-text>
-            <p>Fabricant : {{ model_equipment.manufacturer_name }}</p>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+  <BaseListView :title="title" :items="modelEquipments" :loading="loading" :error-message="errorMessage"
+    :headers="TABLE_HEADERS.MODEL_EQUIPMENTS" @row-click="goToModelEquipmentDetail($event.id)"
+    @create-button-click="goToModelEquipmentCreation" :show-create-button="false">
+
+    <template #item.fabricant="{ item }">
+      {{ item.fabricant?.nom }}
+    </template>
+
+
+    <template #item.action="{ item }">
+      <v-btn icon size="small" @click.stop="goToModelEquipmentDetail(item.id)">
+        <v-icon>mdi-eye</v-icon>
+      </v-btn>
+    </template>
+
+  </BaseListView>
+
+  <!-- Bouton flottant en bas à droite -->
+  <v-btn color="primary" size="large" icon class="floating-add-button" elevation="4"
+    @click="goToModelEquipmentCreation">
+    <v-icon size="large">mdi-plus</v-icon>
+    <v-tooltip activator="parent" location="left">
+      {{ createButtonText }}
+    </v-tooltip>
+  </v-btn>
 </template>
 
-<script>
-import { useApi } from '@/composables/useApi';
-import { ref, computed, onMounted } from 'vue';
+<script setup>
+import BaseListView from '@/components/common/BaseListView.vue';
+import { useStore } from 'vuex';
+import { ref, onMounted } from 'vue';
+import { useApi } from '@/composables/useApi.js';
+import { API_BASE_URL, TABLE_HEADERS } from '@/utils/constants';
 import { useRouter } from 'vue-router';
-import { API_BASE_URL } from '@/utils/constants';
 
-export default {
-  name: 'ModelEquipmentList',
-  setup() {
-    const router = useRouter();
-    const modelsApi = useApi(API_BASE_URL);
-    const manufacturersApi = useApi(API_BASE_URL);
-    const model_equipments = computed(() => modelsApi.data.value || []);
-    const manufacturers = computed(() => manufacturersApi.data.value || []);
-    const search_query = ref('');
-    
-    const go_to_model_equipment_details = (id) => {
-      router.push(`/ModelEquipmentDetail/${id}`);
-    };
-    
-    onMounted(async () => {
-      await Promise.all([
-        modelsApi.get('modele-equipements/'),
-        manufacturersApi.get('fabricants/')
-      ]);
-    });
-    
-    return {
-      model_equipments,
-      manufacturers,
-      search_query,
-      go_to_model_equipment_details
-    };
-  },
-  computed: {
+// Données
+const title = 'Liste des modèles d\'équipements';
+const api = useApi(API_BASE_URL);
+const modelEquipments = ref([]);
+const loading = ref(true);
+const errorMessage = ref('');
+const router = useRouter();
+const createButtonText = 'Créer un nouveau modèle d\'équipement';
+const store = useStore();
 
-    model_equipment_with_manufacturers() {
-      return this.model_equipments.map(model_equipement => {
-        const manufacturer = this.manufacturers.find(f => f.id === model_equipement.fabricant);
-        return {
-          ...model_equipement,
-          manufacturer_name: manufacturer ? manufacturer.nomFabricant : 'Inconnu'
-        };
-      });
-    },
-    filtered_model_equipment() {
-      if (!this.search_query) {
-        return this.model_equipment_with_manufacturers;
-      }
-      const searchLower = this.search_query.toLowerCase();
-      return this.model_equipment_with_manufacturers.filter(model_equipement => 
-        model_equipement.nomModeleEquipement.toLowerCase().includes(searchLower)
-      );
-    },
+
+
+// Récup des données
+onMounted(async () => {
+  console.log('Headers : ', TABLE_HEADERS.MODEL_EQUIPMENTS);
+  loadModelEquipments();
+})
+
+const loadModelEquipments = async () => {
+  try {
+    modelEquipments.value = await api.get('modele-equipements/');
+    loading.value = false;
+  } catch (error) {
+    errorMessage.value = 'Erreur lors du chargement des modèles d\'équipements.';
+  } finally {
+    loading.value = false;
   }
-}
+};
+
+// Navigation
+const goToModelEquipmentDetail = (id) => {
+  router.push({
+    name: 'ModelEquipmentDetail',
+    params: { id: id },
+  })
+
+};
+const goToModelEquipmentCreation = () => {
+  router.push({ name: 'CreateModelEquipment' });
+};
 </script>
+
+<style scoped>
+.floating-add-button {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+</style>

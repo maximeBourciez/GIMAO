@@ -14,6 +14,7 @@
     :title-class="titleClass"
     :subtitle-class="subtitleClass"
     :content-class="contentClass"
+    :showActions="true"
   >
     <!-- Alerts -->
     <FormAlert
@@ -38,11 +39,11 @@
       @close="$emit('clear-success')"
     />
 
-    <!-- Form -->
+    <!-- Form - Utilise v-form seulement si pas de validationSchema (formulaires simples) -->
     <v-form 
+      v-if="!validationSchema || Object.keys(validationSchema).length === 0"
       ref="formRef" 
-      v-model="formValid" 
-      @submit.prevent="handleSubmit"
+      v-model="formValid"
     >
       <!-- Slot pour le contenu du formulaire -->
       <slot 
@@ -51,6 +52,8 @@
         :is-valid="formValid"
         :reset-form="resetForm"
         :reset-validation="resetValidation"
+        :validation="validation"
+        :is-field-required="validation?.isFieldRequired"
       ></slot>
 
       <!-- Actions -->
@@ -76,14 +79,58 @@
         :custom-cancel-action="customCancelAction"
         @cancel="handleCancel"
         @reset="handleReset"
+        @submit="handleSubmit"
+        v-if="showActions"
       />
     </v-form>
+
+    <!-- Pour les formulaires avec validationSchema (steppers), pas de v-form wrapper -->
+    <div v-else>
+      <!-- Slot pour le contenu du formulaire -->
+      <slot 
+        :form-data="formData"
+        :is-loading="loading"
+        :is-valid="formValid"
+        :reset-form="resetForm"
+        :reset-validation="resetValidation"
+        :validation="validation"
+        :is-field-required="validation?.isFieldRequired"
+      ></slot>
+
+      <!-- Actions -->
+      <FormActions
+        :submit-button-text="submitButtonText"
+        :submit-button-color="submitButtonColor"
+        :submit-button-class="submitButtonClass"
+        :submit-button-variant="submitButtonVariant"
+        :submit-disabled="loading || customDisabled"
+        :show-cancel-button="showCancelButton"
+        :cancel-button-text="cancelButtonText"
+        :cancel-button-color="cancelButtonColor"
+        :cancel-button-class="cancelButtonClass"
+        :cancel-button-variant="cancelButtonVariant"
+        :show-reset-button="showResetButton"
+        :reset-button-text="resetButtonText"
+        :reset-button-color="resetButtonColor"
+        :reset-button-class="resetButtonClass"
+        :reset-button-variant="resetButtonVariant"
+        :loading="loading"
+        :container-class="actionsContainerClass"
+        :spacer="actionsSpacer"
+        :custom-cancel-action="customCancelAction"
+        @cancel="handleCancel"
+        @reset="handleReset"
+        @submit="handleSubmit"
+        v-if="showActions"
+      />
+    </div>
   </FormContainer>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { FormAlert, FormActions, FormContainer } from '.';
+import { useFormValidation } from '@/composables/useFormValidation';
 
 const props = defineProps({
   // Titre et sous-titre
@@ -251,6 +298,10 @@ const props = defineProps({
   },
 
   // Validation
+  validationSchema: {
+    type: Object,
+    default: () => ({})
+  },
   customValidation: {
     type: Function,
     default: () => true
@@ -264,6 +315,12 @@ const props = defineProps({
   handleSubmit: {
     type: Function,
     default: false
+  },
+
+  // Affichage des actions
+  showActions: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -277,7 +334,24 @@ const formData = computed({
   set: (value) => emit('update:modelValue', value)
 });
 
+// Initialiser la validation si un schéma est fourni
+const validation = props.validationSchema && Object.keys(props.validationSchema).length > 0
+  ? useFormValidation(props.validationSchema)
+  : null;
+
+// Fournir validation et isFieldRequired aux composants enfants
+import { provide } from 'vue';
+if (validation) {
+  provide('validation', validation);
+  provide('isFieldRequired', validation.isFieldRequired);
+}
+
 const handleSubmit = () => {
+  // Valider avec le schéma si disponible
+  if (validation && !validation.validateAll(formData.value)) {
+    return;
+  }
+
   // Si une fonction personnalisée est fournie, l'utiliser
   if (props.handleSubmit && typeof props.handleSubmit === 'function') {
     props.handleSubmit(formData.value);
@@ -309,11 +383,17 @@ const resetForm = () => {
   if (formRef.value) {
     formRef.value.reset();
   }
+  if (validation) {
+    validation.clearErrors();
+  }
 };
 
 const resetValidation = () => {
   if (formRef.value) {
     formRef.value.resetValidation();
+  }
+  if (validation) {
+    validation.clearErrors();
   }
 };
 
@@ -321,9 +401,18 @@ defineExpose({
   resetForm,
   resetValidation,
   formRef,
-  formValid
+  formValid,
+  validation
 });
 </script>
 
 <style scoped>
+/* Style global pour les labels de champs */
+:deep(.field-label) {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.87);
+}
 </style>

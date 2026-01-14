@@ -49,6 +49,7 @@ class ConstituerSerializer(serializers.ModelSerializer):
 
 
 class ModeleEquipementSerializer(serializers.ModelSerializer):
+    fabricant = FabricantSimpleSerializer(read_only=True)
     class Meta:
         model = ModeleEquipement
         fields = '__all__'
@@ -129,7 +130,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         model = Equipement
         fields = [
             'id', 'numSerie', 'reference', 'dateCreation', 'designation',
-            'dateMiseEnService', 'prixAchat', 'lienImage', 'preventifGlissant',
+            'dateMiseEnService', 'prixAchat', 'lienImage',
             'createurEquipement', 'x', 'y', 'fabricant', 'fournisseur',
             'lieu', 'modele', 'famille', 'dernier_statut',
             'compteurs', 'documents', 'consommables', 'bons_travail'
@@ -239,7 +240,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             {
                 'id': r.consommable.id,
                 'designation': r.consommable.designation,
-                'fabricant': r.consommable.fabricant.nom if r.consommable.fabricant else None,
+                'fabricant': r.consommable.fabricant.nom if hasattr(r.consommable, 'fabricant') and r.consommable.fabricant else None,
             }
             for r in relations
         ]
