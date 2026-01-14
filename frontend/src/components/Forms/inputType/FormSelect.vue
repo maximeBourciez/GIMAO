@@ -1,11 +1,15 @@
 <template>
-    <v-select v-bind="$attrs" :label="computedLabel" :rules="fieldRules" variant="outlined" density="comfortable"
-        hide-details="auto">
-        <!-- Passer tous les slots au v-select parent -->
-        <template v-for="(_, slot) in $slots" v-slot:[slot]="scope">
-            <slot :name="slot" v-bind="scope || {}" />
-        </template>
-    </v-select>
+    <div>
+        <label v-if="label" class="field-label">
+            {{ label }} <span v-if="isRequired" class="required-star">*</span>
+        </label>
+        <v-select v-bind="$attrs" :rules="fieldRules" variant="outlined" density="comfortable"
+            hide-details="auto">
+            <template v-for="(_, slot) in $slots" v-slot:[slot]="scope">
+                <slot :name="slot" v-bind="scope || {}" />
+            </template>
+        </v-select>
+    </div>
 </template>
 
 <script setup>
@@ -38,12 +42,6 @@ const isFieldRequired = inject('isFieldRequired', null);
 const isRequired = computed(() => {
     if (!isFieldRequired) return false;
     return isFieldRequired(props.fieldName, props.step);
-});
-
-// Label avec étoile si requis
-const computedLabel = computed(() => {
-    if (!props.label) return '';
-    return isRequired.value ? `${props.label} *` : props.label;
 });
 
 // Récupérer les règles de validation
