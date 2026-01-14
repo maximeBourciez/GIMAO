@@ -1,9 +1,19 @@
 <template>
-    <v-select v-bind="$attrs" :label="computedLabel" :rules="fieldRules" />
+    <v-select v-bind="$attrs" :label="computedLabel" :rules="fieldRules" variant="outlined" density="comfortable"
+        hide-details="auto">
+        <!-- Passer tous les slots au v-select parent -->
+        <template v-for="(_, slot) in $slots" v-slot:[slot]="scope">
+            <slot :name="slot" v-bind="scope || {}" />
+        </template>
+    </v-select>
 </template>
 
 <script setup>
 import { computed, inject } from 'vue';
+
+defineOptions({
+    inheritAttrs: false
+});
 
 const props = defineProps({
     label: {

@@ -11,6 +11,10 @@
 <script setup>
 import { computed, inject } from 'vue';
 
+defineOptions({
+    inheritAttrs: false
+});
+
 const props = defineProps({
     label: {
         type: String,
