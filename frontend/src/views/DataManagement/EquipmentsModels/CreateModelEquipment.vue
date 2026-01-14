@@ -1,111 +1,86 @@
 <template>
-  <v-app>
-    <v-main>
-      <v-container>
-        <v-form @submit.prevent="submit_form">
-
-          <!-- Error Alert -->
-          <v-alert v-if="error_message" type="error" class="mb-4">
-            {{ error_message }}
-          </v-alert>
-
+  <BaseForm
+    title="Créer un modèle d'équipement"
+    :model-value="model"
+    :loading="false"
+    :error-message="errorMessage"
+    :success-message="successMessage"
+    submit-button-text="Créer le modèle"
+    @submit="saveModelEquipment"
+    @clear-error=""
+    @clear-success=""
+  >
+    <template #default="{ formData }">
+      <v-row v-if="formData">
+        <v-col cols="12">
           <v-text-field
-            v-model="form_data.nomModeleEquipement"
-            label="Nom du modéle d'équipement"
+            v-model="formData.nom"
+            label="Nom du modèle"
+            :rules="[(value) => !!value || 'Ce champ est requis']"
             required
-            outlined
-            dense
-            class="mb-4"
-          ></v-text-field>
-
+          />
+        </v-col>
+        <v-col cols="12">
           <v-select
-            v-model="form_data.fabricant"
-            :items="manufacturers"
-            item-text="nom"
+            v-model="formData.fabricant"
+            :items="fabricants"
             item-title="nom"
             item-value="id"
             label="Fabricant"
-            outlined
-            dense
-            class="mb-4"
-          ></v-select>
-
-          <v-row justify="end">
-            <v-btn color="secondary" class="mt-4 rounded" @click="go_back" style="border-radius: 0; margin-right: 35px;" large>
-              Annuler
-            </v-btn>
-            <v-btn type="submit" color="primary" class="mt-4 rounded" style="border-radius: 0 ;margin-right: 35px;" large>
-              Ajouter un modéle d'équipement
-            </v-btn>
-          </v-row>
-        </v-form>
-      </v-container>
-    </v-main>
-  </v-app>
+            :rules="[(value) => !!value || 'Ce champ est requis']"
+            return-object
+            required
+          />
+        </v-col>
+      </v-row>
+    </template>
+  </BaseForm>
 </template>
 
-<script>
-import { useApi } from '@/composables/useApi';
-import { ref, computed, reactive, onMounted, toRefs } from 'vue';
-import { useRouter } from 'vue-router';
-import { API_BASE_URL } from '@/utils/constants';
+<script setup>
+import { useApi } from "@/composables/useApi";
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { API_BASE_URL } from "@/utils/constants";
+import BaseForm from "@/components/common/BaseForm.vue";
 
-export default {
-  name: 'CreateModelEquipment',
-  setup() {
-    const router = useRouter();
-    const createApi = useApi(API_BASE_URL);
-    const manufacturersApi = useApi(API_BASE_URL);
-    const state = reactive({
-      form_data: {
-        nomModeleEquipement: "",
-        fabricant: null,
-      },
-      manufacturers: [],
-      error_message: "" // Add error message state
-    });
+// Données
+const model = ref({});
+const fabricants = ref([]);
+const api = useApi(API_BASE_URL);
+const router = useRouter();
+const successMessage = ref("");
+const errorMessage = ref("");
 
-    const submit_form = async () => {
-      const form_data = new FormData();
-      form_data.append('nomModeleEquipement', state.form_data.nomModeleEquipement);
-      form_data.append('fabricant', state.form_data.fabricant);
+const loadFabricants = async () => {
+  try {
+    fabricants.value = await api.get("fabricants/");
+  } catch (error) {
+    console.error("Error loading manufacturers:", error);
+    errorMessage.value = "Erreur lors du chargement des fabricants.";
+  }
+};
 
-      try {
-        const response = await createApi.post('modele-equipements/', form_data);
-        if (response) {
-          go_back();
-        } else {
-          state.error_message = 'Erreur lors de la création du modèle d\'équipement.';
-        }
-      } catch (error) {
-        console.error('Error submitting the form:', error);
-        state.error_message = 'Une erreur est survenue lors de la soumission du formulaire.';
-      }
-    };
+onMounted(() => {
+  loadFabricants();
+});
 
-    const fetch_data = async () => {
-      try {
-        await manufacturersApi.get('fabricants/');
-        manufacturers = manufacturersApi.value;
-      } catch (error) {
-        console.error('Error loading data:', error);
-        state.error_message = 'Erreur lors du chargement des fabricants.';
-      }
-    };
+const saveModelEquipment = async (formData) => {
+  try {
+    const response = await api.post(`modele-equipements/`, formData);
+    console.log("Model equipment updated:", response);
 
-    const go_back = () => {
-      router.go(-1);
-    };
+    successMessage.value = "Modèle d'équipement créé avec succès.";
 
-    onMounted(() => {
-      fetch_data();
-    });
-
-    return {
-      ...toRefs(state),
-      submit_form,
-      go_back,
-    };
-  },
+    setTimeout(() => {
+      router.push({
+        name: "ModelEquipmentDetail",
+        params: { id: response.id },
+      });
+    }, 2000);
+  } catch (error) {
+    console.error("Error creating model equipment:", error);
+    errorMessage.value = "Erreur lors de la création du modèle d'équipement.";
+  }
 };
 </script>

@@ -56,7 +56,6 @@ const loadModelEquipmentData = async () => {
         const response = await api.get(`modele-equipements/${route.params.id}/`);
         console.log('Données chargées:', response);
         modelEquipment.value = response || {};
-        // Clone profond pour conserver l'original
         originalData.value = JSON.parse(JSON.stringify(modelEquipment.value));
     } catch (error) {
         console.error('Error loading model equipment:', error);
@@ -89,9 +88,11 @@ const updateModelEquipment = async (values) => {
         console.log('Modèle mis à jour:', response);
         successMessage.value = 'Modèle d\'équipement mis à jour avec succès';
 
-        // Rediriger après quelques secondes
         setTimeout(() => {
-            router.go(-1);
+            router.push({
+                name: "ModelEquipmentDetail",
+                params: { id: response.id}
+            })
         }, 2000);
     } catch (error) {
         console.error('Error updating model equipment:', error);
