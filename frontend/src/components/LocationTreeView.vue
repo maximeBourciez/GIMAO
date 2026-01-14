@@ -1,7 +1,13 @@
 <template>
   <div>
+  <v-row align="center" class="mb-2" justify="space-between">
+    
     <h3 class="mb-3" v-if="showTitle">Sélectionner un lieu</h3>
-
+    <v-btn v-if="showCreateButton" color="primary" @click="createWithoutParent">
+      <v-icon left>mdi-plus</v-icon>
+      Créer un nouveau lieu
+    </v-btn>
+  </v-row>
     <p v-if="!items || items.length === 0" class="text-caption">
       Pas de données disponibles.
     </p>
@@ -65,6 +71,10 @@ const onSelect = (item) => {
 const onCreate = (item) => {
   console.log("Create location under parent:", item); // Debug
   emit("create", item.id);
+};
+
+const createWithoutParent = () => {
+  emit("create", null);
 };
 
 
