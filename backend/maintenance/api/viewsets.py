@@ -3,13 +3,19 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Prefetch, Q
 from django.utils import timezone
+from django.db import transaction
+import json
+from donnees.models import Document
+from equipement.models import Equipement
+from utilisateur.models import Utilisateur
 
 from maintenance.models import (
     DemandeIntervention,
     BonTravail,
     TypePlanMaintenance,
     PlanMaintenance,
-    PlanMaintenanceConsommable
+    PlanMaintenanceConsommable,
+    DemandeInterventionDocument
 )
 from maintenance.api.serializers import (
     DemandeInterventionSerializer,
@@ -88,6 +94,111 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         demande.save()
         serializer = self.get_serializer(demande)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'])
+    def updateStatus(self, request, pk=None):
+        demande = self.get_object()
+        demande.statut = request.data.get('statut', demande.statut)
+        demande.date_changementStatut = timezone.now()
+        demande.save()
+        serializer = self.get_serializer(demande)
+        return Response(serializer.data)
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Création d'une nouvelle demande d'intervention"""
+        data = dict(request.data)
+
+        # Extraire les valeurs uniques des listes
+        for key, value in data.items():
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+
+        # Validation serializer
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        # Récupération de l'utilisateur
+        utilisateur_id = data.get("utilisateur_id")
+        utilisateur = None
+        if utilisateur_id:
+            try:
+                utilisateur = Utilisateur.objects.get(id=utilisateur_id)
+            except (Utilisateur.DoesNotExist, ValueError):
+                pass
+        
+        if not utilisateur and request.user.is_authenticated:
+            utilisateur = request.user
+            
+        if not utilisateur:
+            return Response(
+                {'error': 'Utilisateur non identifié'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Récupération de l'équipement
+        equipement_id = data.get("equipement_id")
+        try:
+            equipement = Equipement.objects.get(id=equipement_id)
+        except Equipement.DoesNotExist:
+            return Response(
+                {'error': 'Équipement invalide'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Création de la demande
+        demande = DemandeIntervention.objects.create(
+            nom=data["nom"],
+            commentaire=data.get("commentaire", ""),
+            statut="EN_ATTENTE",
+            date_creation=timezone.now(),
+            date_changementStatut=timezone.now(),
+            utilisateur=utilisateur,
+            equipement=equipement
+        )
+
+        # Gestion des documents
+        documents_data = data.get("documents", [])
+        if isinstance(documents_data, str):
+            try:
+                documents_data = json.loads(documents_data)
+            except ValueError:
+                documents_data = []
+
+        if documents_data:
+            for index, doc_data in enumerate(documents_data):
+                if not isinstance(doc_data, dict):
+                    continue
+                
+                type_doc_id = doc_data.get("typeDocument_id")
+                if not type_doc_id:
+                    continue
+
+                # Récupération du fichier
+                # On check 'document_{index}' (convention possible) ou directement dans data si parsé
+                uploaded_file = request.FILES.get(f"document_{index}")
+                if not uploaded_file:
+                    # Fallback: check si 'cheminAcces' contient le fichier (si parsé par DRF)
+                    file_obj = doc_data.get("cheminAcces")
+                    if hasattr(file_obj, 'read'):
+                        uploaded_file = file_obj
+
+                if uploaded_file:
+                    document = Document.objects.create(
+                        nomDocument=doc_data.get("nomDocument", uploaded_file.name),
+                        cheminAcces=uploaded_file,
+                        typeDocument_id=type_doc_id
+                    )
+                    
+                    DemandeInterventionDocument.objects.create(
+                        demande_intervention=demande,
+                        document=document
+                    )
+
+        return Response(
+            DemandeInterventionSerializer(demande).data,
+            status=status.HTTP_201_CREATED
+        )
 
 
 class BonTravailViewSet(viewsets.ModelViewSet):

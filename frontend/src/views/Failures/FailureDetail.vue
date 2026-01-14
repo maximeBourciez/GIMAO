@@ -1,5 +1,5 @@
 <template>
-  <BaseDetailView :data="defaillance" :loading="loading" :error-message="errorMessage"
+  <BaseDetailView :data="defaillance" :loading="loading" :error-message="errorMessage" :title="'Détail de la demande d\'intervention'"
     :success-message="successMessage" :auto-display="false" :show-edit-button="false"
     @delete="handleDelete" @clear-error="errorMessage = ''" @clear-success="successMessage = ''">
     <!-- Contenu personnalisé -->
@@ -7,8 +7,6 @@
       <v-row v-if="data">
         <!-- Colonne gauche: Demande d'intervention -->
         <v-col cols="12" md="6">
-          <h1 class="text-h4 text-primary">Détail de la demande d'intervention</h1>
-
           <h3 class="text-h6 mb-4 text-primary">{{ data.nom }}</h3>
 
           <div class="detail-field">
@@ -20,7 +18,7 @@
             <label class="detail-label">Statut</label>
             <div class="detail-value">
               <v-chip :color="data.statut ? FAILURE_STATUS_COLORS[data.statut] : 'grey'" dark>
-                {{ data.statut }}
+                {{ FAILURE_STATUS[data.statut] }}
               </v-chip>
             </div>
           </div>
@@ -45,7 +43,7 @@
               </v-btn>
             </v-col>
             <v-col cols="6">
-              <v-btn color="success" block :disabled="!canClose" @click="handleCloseFailure">
+              <v-btn color="success" block :disabled="!canAccept" @click="openAcceptModal">
                 Accepter la demande
               </v-btn>
             </v-col>
@@ -126,12 +124,27 @@
       </v-row>
     </template>
   </BaseDetailView>
+
+  <!-- Modale de confirmation pour accepter la demande -->
+  <ConfirmationModal
+    v-model="showAcceptModal"
+    type="success"
+    title="Accepter la demande"
+    message="Êtes-vous sûr de vouloir accepter cette demande d'intervention ? \n\nCette action changera le statut de la demande."
+    confirm-text="Accepter"
+    cancel-text="Annuler"
+    confirm-icon="mdi-check"
+    :loading="acceptLoading"  
+    @confirm="handleChangeStatusFailure('ACCEPTEE')"
+    @cancel="showAcceptModal = false"
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
 
@@ -149,6 +162,8 @@ const showEquipmentDetails = ref(false);
 const showDocumentsDetails = ref(false);
 const actionMode = ref('download');
 const selectedStatus = ref('pas de changement');
+const showAcceptModal = ref(false);
+const acceptLoading = ref(false);
 
 
 const formatDate = (dateString) => {
@@ -169,7 +184,7 @@ const documentHeaders = [
 
 const canClose = computed(() => FAILURE_STATUS[ defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 const canCreateIntervention = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
-const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
+const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE);
 
 const formattedEquipmentLabel = computed(() => {
   if (!defaillance.value?.equipement) return {};
@@ -221,21 +236,29 @@ const handleDelete = async () => {
   }
 };
 
-const handleCloseFailure = async () => {
+const handleChangeStatusFailure = async (newStatus) => {
+  acceptLoading.value = true;
   try {
-    await patchApi.patch(`demandes-intervention/${route.params.id}/`, {
-      statut: "Refusé",
-      date_changementStatut: new Date().toISOString()
+    await patchApi.patch(`demandes-intervention/${route.params.id}/updateStatus/`, {
+      statut: newStatus
     });
-    successMessage.value = 'Défaillance mise en attente';
+    successMessage.value = 'Demande d\'intervention acceptée avec succès';
+    showAcceptModal.value = false;
     await fetchData();
   } catch (error) {
-    errorMessage.value = 'Erreur lors de la mise à jour';
+    errorMessage.value = 'Erreur lors de l\'acceptation de la demande';
+  } finally {
+    acceptLoading.value = false;
   }
 };
 
 const handleCreateIntervention = () => {
   router.push({ name: 'CreateIntervention', params: { id: route.params.id } });
+};
+
+// Fonctions pour la modale d'acceptation
+const openAcceptModal = () => {
+  showAcceptModal.value = true;
 };
 
 const openEquipment = () => {
