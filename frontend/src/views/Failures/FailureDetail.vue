@@ -37,7 +37,7 @@
           
           <v-row>
             <v-col cols="12">
-              <v-btn color="primary" block :disabled="!canCreateIntervention" @click="handleCreateIntervention">
+              <v-btn color="primary" block :disabled="!canCreateIntervention" @click="openCreateInterventionModal">
                 <v-icon class="mx-2" left>mdi-wrench</v-icon>
                 Transformer en bon de travail
               </v-btn>
@@ -152,6 +152,20 @@
     @confirm="handleChangeStatusFailure('REFUSEE')"
     @cancel="showRejectModal = false"
   />
+
+  <!-- Modale de confirmation pour rejeter la demande -->
+  <ConfirmationModal
+    v-model="showCreateInterventionModal"
+    type="success"
+    title="Transformer la demande"
+    message="Êtes-vous sûr de vouloir transformer cette demande d'intervention en bon de travail ? \n\nCette action changera le statut de la demande."
+    confirm-text="Transformer"
+    cancel-text="Annuler"
+    confirm-icon="mdi-check" 
+    :loading="createInterventionLoading"  
+    @confirm="handleCreateIntervention()"
+    @cancel="showCreateInterventionModal = false"
+  />
 </template>
 
 <script setup>
@@ -161,7 +175,9 @@ import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
+import { useStore } from 'vuex';
 
+const store = useStore();
 const router = useRouter();
 const route = useRoute();
 const failureApi = useApi(API_BASE_URL);
@@ -180,7 +196,8 @@ const showAcceptModal = ref(false);
 const acceptLoading = ref(false);
 const showRejectModal = ref(false);
 const rejectLoading = ref(false);
-
+const showCreateInterventionModal = ref(false);
+const createInterventionLoading = ref(false);
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Non spécifié';
@@ -281,8 +298,25 @@ const handleChangeStatusFailure = async (newStatus) => {
   }
 };
 
-const handleCreateIntervention = () => {
-  router.push({ name: 'CreateIntervention', params: { id: route.params.id } });
+const handleCreateIntervention = async () => {
+  createInterventionLoading.value = true;
+  try {
+    const response =await patchApi.post(`demandes-intervention/${route.params.id}/transform_to_bon_travail/`, 
+      {
+        responsable: store.getters.currentUser.id
+      }
+    );
+    successMessage.value = 'Demande d\'intervention transformée avec succès';
+    showCreateInterventionModal.value = false;
+
+    setTimeout(() => {
+      router.push({ name: 'InterventionDetail', params: { id: response.id } });
+    }, 1500);
+  } catch (error) {
+    errorMessage.value = 'Erreur lors de la transformation de la demande';
+  } finally {
+    createInterventionLoading.value = false;
+  }
 };
 
 // Fonctions pour les modales
@@ -291,6 +325,9 @@ const openAcceptModal = () => {
 };
 const openRejectModal = () => {
   showRejectModal.value = true;
+};
+const openCreateInterventionModal = () => {
+  showCreateInterventionModal.value = true;
 };
 
 const openEquipment = () => {
