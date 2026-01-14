@@ -1,9 +1,19 @@
 <template>
-    <v-select v-bind="$attrs" :label="computedLabel" :rules="fieldRules" />
+    <div>
+        <label v-if="label" class="field-label">
+            {{ label }} <span v-if="isRequired" class="required-star">*</span>
+        </label>
+        <v-textarea v-bind="$attrs" :rules="fieldRules" variant="outlined" density="comfortable"
+            hide-details="auto" />
+    </div>
 </template>
 
 <script setup>
 import { computed, inject } from 'vue';
+
+defineOptions({
+    inheritAttrs: false
+});
 
 const props = defineProps({
     label: {
@@ -30,15 +40,24 @@ const isRequired = computed(() => {
     return isFieldRequired(props.fieldName, props.step);
 });
 
-// Label avec étoile si requis
-const computedLabel = computed(() => {
-    if (!props.label) return '';
-    return isRequired.value ? `${props.label} *` : props.label;
-});
-
 // Récupérer les règles de validation
 const fieldRules = computed(() => {
     if (!validation) return [];
     return validation.getFieldRules(props.fieldName, props.step);
 });
 </script>
+
+<style scoped>
+.field-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
+}
+
+.required-star {
+    color: #d32f2f;
+    margin-left: 2px;
+}
+</style>
