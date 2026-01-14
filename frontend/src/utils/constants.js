@@ -41,7 +41,7 @@ export const EQUIPMENT_CREATE_STEPS = [
 export const FAILURE_STATUS = {
     EN_ATTENTE: "En attente",
     ACCEPTEE: "Acceptée",
-    REFUSEE: "Refusée",
+    REFUSEE: "Rejetée",
     TRANSFORMEE: "Transformée",
 };
 
@@ -80,6 +80,7 @@ export const TABLE_HEADERS = {
     /********************************
      *  DEMANDES D'INTERVENTION
      *******************************/
+
     FAILURES_SUPER_LIGHT: [
         {
             title: "N°",

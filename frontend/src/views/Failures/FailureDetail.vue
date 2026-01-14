@@ -48,7 +48,7 @@
               </v-btn>
             </v-col>
             <v-col cols="6">
-              <v-btn color="error" block :disabled="!canClose" @click="handleCloseFailure">
+              <v-btn color="error" block :disabled="!canClose" @click="openRejectModal">
                 Refuser la demande
               </v-btn>
             </v-col>
@@ -138,6 +138,20 @@
     @confirm="handleChangeStatusFailure('ACCEPTEE')"
     @cancel="showAcceptModal = false"
   />
+
+  <!-- Modale de confirmation pour rejeter la demande -->
+  <ConfirmationModal
+    v-model="showRejectModal"
+    type="error"
+    title="Rejeter la demande"
+    message="Êtes-vous sûr de vouloir rejeter cette demande d'intervention ? \n\nCette action changera le statut de la demande."
+    confirm-text="Rejeter"
+    cancel-text="Annuler"
+    confirm-icon="mdi-check"
+    :loading="rejectLoading"  
+    @confirm="handleChangeStatusFailure('REFUSEE')"
+    @cancel="showRejectModal = false"
+  />
 </template>
 
 <script setup>
@@ -164,6 +178,8 @@ const actionMode = ref('download');
 const selectedStatus = ref('pas de changement');
 const showAcceptModal = ref(false);
 const acceptLoading = ref(false);
+const showRejectModal = ref(false);
+const rejectLoading = ref(false);
 
 
 const formatDate = (dateString) => {
@@ -237,17 +253,30 @@ const handleDelete = async () => {
 };
 
 const handleChangeStatusFailure = async (newStatus) => {
+  rejectLoading.value = true;
   acceptLoading.value = true;
   try {
     await patchApi.patch(`demandes-intervention/${route.params.id}/updateStatus/`, {
       statut: newStatus
     });
-    successMessage.value = 'Demande d\'intervention acceptée avec succès';
+    successMessage.value = 'Demande d\'intervention ' + FAILURE_STATUS[newStatus] + ' avec succès';
+    showRejectModal.value = false;
     showAcceptModal.value = false;
     await fetchData();
   } catch (error) {
-    errorMessage.value = 'Erreur lors de l\'acceptation de la demande';
+    switch (newStatus) {
+      case 'ACCEPTEE':
+          errorMessage.value = 'Erreur lors de l\'acceptation de la demande';
+        break;
+      case 'REFUSEE':
+          errorMessage.value = 'Erreur lors du rejet de la demande';
+        break;
+      default:
+        errorMessage.value = 'Erreur lors du changement du statut de la demande';
+    }
+    
   } finally {
+    rejectLoading.value = false;
     acceptLoading.value = false;
   }
 };
@@ -256,9 +285,12 @@ const handleCreateIntervention = () => {
   router.push({ name: 'CreateIntervention', params: { id: route.params.id } });
 };
 
-// Fonctions pour la modale d'acceptation
+// Fonctions pour les modales
 const openAcceptModal = () => {
   showAcceptModal.value = true;
+};
+const openRejectModal = () => {
+  showRejectModal.value = true;
 };
 
 const openEquipment = () => {
