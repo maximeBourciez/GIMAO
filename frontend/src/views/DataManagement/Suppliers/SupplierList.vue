@@ -1,86 +1,92 @@
 <template>
-  <v-container>
-    <v-row class="mb-4">
-      <!-- Search bar -->
-      <v-col cols="9">
-        <v-text-field
-          v-model="search_query"
-          label="Rechercher un fournisseur"
-          prepend-icon="mdi-magnify"
-          clearable
-        ></v-text-field>
-      </v-col>
-      <v-col cols="3" class="align-center">
-        <v-btn 
-          color="primary"
-          @click="$router.push('/CreateSupplier')"
-          class="ml-2"
-          height="50%"
-        >
-          Créer un fournisseur
-        </v-btn>
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col v-for="supplier in filtered_suppliers" :key="supplier.id" cols="12" sm="6" md="4">
-        <v-card @click="go_to_supplier_details(supplier.id)">
-          <v-card-title>{{ supplier.nomFournisseur }}</v-card-title>
-          <v-card-text>
-            <p>Ville: {{ supplier.ville }}</p>
-            <p>Pays: {{ supplier.paysFournisseur }}</p>
-            <p>Email: {{ supplier.mailFournisseur }}</p>
-            <p>Service Après-Vente: {{ supplier.serviceApresVente ? 'Oui' : 'Non' }}</p>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+  <BaseListView :title="title" :headers="TABLE_HEADERS.SUPPLIERS" :items="suppliers" :loading="loading"
+    :error-message="errorMessage" :show-search="true" :show-create-button="false"
+    no-data-icon="mdi-package-variant-closed" @row-click="goToSupplierDetail($event.id)"
+    @clear-error="errorMessage = ''" :internal-search="true">
+
+    <template #item.serviceApresVente="{ item }">
+      <v-chip :color="item.serviceApresVente ? 'success' : 'error'" variant="outlined" size="small">
+        {{ item.serviceApresVente ? 'Oui' : 'Non' }}
+      </v-chip>
+    </template>
+
+    <template #item.actions="{ item }">
+      <v-btn icon size="small" @click.stop="goToSupplierDetail(item.id)">
+        <v-icon>mdi-eye</v-icon>
+      </v-btn>
+    </template>
+  </BaseListView>
+
+  <!-- Bouton flottant en bas à droite -->
+  <v-btn color="primary" size="large" icon class="floating-add-button" elevation="4" @click="goToSupplierCreation">
+    <v-icon size="large">mdi-plus</v-icon>
+    <v-tooltip activator="parent" location="left">
+      {{ createButtonText }}
+    </v-tooltip>
+  </v-btn>
 </template>
 
-<script>
-import { ref, computed, onMounted } from 'vue';
+
+<script setup>
+import BaseListView from '@/components/common/BaseListView.vue';
+import { ref, onMounted } from 'vue';
+import { useApi } from '@/composables/useApi.js';
+import { API_BASE_URL, TABLE_HEADERS } from '@/utils/constants';
 import { useRouter } from 'vue-router';
-import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
 
+// Données 
+const title = 'Liste des fournisseurs';
 const api = useApi(API_BASE_URL);
+const suppliers = ref([]);
+const loading = ref(true);
+const errorMessage = ref('');
+const router = useRouter();
+const createButtonText = 'Créer un nouveau fournisseur';
 
-export default {
-  name: 'SupplierList',
-  data() {
-    return {
-      suppliers: [],
-      search_query: ''
-    };
-  },
-  computed: {
-    filtered_suppliers() {
-      if (!this.search_query) {
-        return this.suppliers;
-      }
-      const search_lower = this.search_query.toLowerCase();
-      return this.suppliers.filter(supplier => 
-        supplier.nomFournisseur.toLowerCase().includes(search_lower) ||
-        supplier.ville.toLowerCase().includes(search_lower) ||
-        supplier.paysFournisseur.toLowerCase().includes(search_lower)
-      );
-    }
-  },
-  methods: {
-    async fetch_suppliers() {
-      try {
-        const response = await api.get('fournisseurs/');
-        this.suppliers = response;
-      } catch (error) {
-        console.error('Erreur lors de la récupération des fournisseurs:', error);
-      }
-    },
-    go_to_supplier_details(id) {
-      this.$router.push(`/SupplierDetail/${id}`);
-    }
-  },
-  created() {
-    this.fetch_suppliers();
+
+
+// Récup des données
+onMounted(async () => {
+  loadSuppliers();
+})
+
+
+const loadSuppliers = async () => {
+  try {
+    suppliers.value = await api.get('fournisseurs/');
+    loading.value = false;
+  } catch (error) {
+    errorMessage.value = 'Erreur lors du chargement des fournisseurs.';
+  } finally {
+    loading.value = false;
   }
-}
+};
+
+
+// Navigation
+const goToSupplierDetail = (id) => {
+  router.push({
+    name: 'SupplierDetail',
+    params: { id: id },
+  })
+};
+
+const goToSupplierCreation = () => {
+  router.push({ name: 'CreateSupplier' });
+};
+
 </script>
+
+<style scoped>
+.floating-add-button {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+}
+
+.floating-add-button:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+</style>

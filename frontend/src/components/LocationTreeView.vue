@@ -1,54 +1,36 @@
 <template>
   <div>
-    <h3 class="mb-3">Sélectionner un lieu</h3>
-
+  <v-row align="center" class="mb-2" justify="space-between">
+    
+    <h3 class="mb-3" v-if="showTitle">Sélectionner un lieu</h3>
+    <v-btn v-if="showCreateButton" color="primary" @click="createWithoutParent">
+      <v-icon left>mdi-plus</v-icon>
+      Créer un nouveau lieu
+    </v-btn>
+  </v-row>
     <p v-if="!items || items.length === 0" class="text-caption">
       Pas de données disponibles.
     </p>
 
-    <VTreeview
-      v-else
-      :items="items"
-      item-key="id"
-      item-title="nomLieu"
-      :open.sync="openNodes"
-      activatable
-      hoverable
-      rounded
-      density="compact"
-    >
+    <VTreeview v-else :items="items" item-key="id" item-title="nomLieu" :open.sync="openNodes" activatable hoverable
+      rounded density="compact">
       <!-- Ligne personnalisée -->
       <template #prepend="{ item, open }">
-        <!-- Triangle -->
-        <v-icon
-          v-if="item.children && item.children.length > 0"
-          @click.stop="toggleNode(item)"
-          :class="{ 'rotate-icon': open }"
-        >
-          {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
-        </v-icon>
-
-        <span v-else class="tree-icon-placeholder"></span>
-
         <!-- Case à cocher -->
-        <v-checkbox
-          :model-value="isSelected(item)"
-          @update:model-value="() => onSelect(item)"
-          density="compact"
-          hide-details
-          :disabled="isLocked && !isSelected(item)"
-        ></v-checkbox>
+        <v-checkbox :model-value="isSelected(item)" @update:model-value="() => onSelect(item)" density="compact"
+          hide-details :disabled="isLocked && !isSelected(item)"></v-checkbox>
       </template>
+
+      <template #append="{ item }">
+        <v-btn v-if="showCreateButton" icon color="primary" class="tiny-btn" @click.stop="onCreate(item)">
+          <v-icon size="16">mdi-plus</v-icon>
+        </v-btn>
+      </template>
+
     </VTreeview>
 
     <!-- Chip avec le lieu -->
-    <v-chip
-      v-if="selected"
-      color="primary"
-      class="mt-2"
-      closable
-      @click:close="emit('update:selected', null)"
-    >
+    <v-chip v-if="selected" color="primary" class="mt-2" closable @click:close="emit('update:selected', null)">
       Lieu sélectionné : {{ selected.nomLieu }}
     </v-chip>
   </div>
@@ -62,9 +44,11 @@ const props = defineProps({
   items: Array,
   selected: Object,
   lockSelection: { type: Boolean, default: false },
+  showTitle: { type: Boolean, default: true },
+  showCreateButton: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["update:selected"]);
+const emit = defineEmits(["update:selected", "create"]);
 
 const openNodes = ref([]);
 
@@ -83,22 +67,26 @@ const onSelect = (item) => {
   emit("update:selected", isSelected(item) ? null : item);
 };
 
-// Gestion de l’ouverture des nœuds
-const toggleNode = (item) => {
-  const index = openNodes.value.indexOf(item.id);
-  if (index === -1) openNodes.value.push(item.id);
-  else openNodes.value.splice(index, 1);
+// Transmission de l’événement de création
+const onCreate = (item) => {
+  console.log("Create location under parent:", item); // Debug
+  emit("create", item.id);
 };
+
+const createWithoutParent = () => {
+  emit("create", null);
+};
+
+
 </script>
 
-<style scoped>
-.tree-icon-placeholder {
-  display: inline-block;
-  width: 24px;
-}
 
-.rotate-icon {
-  transform: rotate(90deg);
-  transition: transform 0.15s ease;
+<style scoped>
+.tiny-btn {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 20px !important;
+  padding: 0 !important;
 }
 </style>
+

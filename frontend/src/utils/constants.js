@@ -65,11 +65,11 @@ export const INTERVENTION_STATUS = {
 
 // Couleurs (tokens Vuetify) associées aux statuts de BT
 export const INTERVENTION_STATUS_COLORS = {
-    EN_ATTENTE: 'orange',
-    EN_COURS: 'primary',
-    TERMINE: 'green',
-    EN_RETARD: 'red',
-    CLOTURE: 'grey',
+    EN_ATTENTE: "orange",
+    EN_COURS: "primary",
+    TERMINE: "green",
+    EN_RETARD: "red",
+    CLOTURE: "grey",
 };
 
 // ============================================
@@ -78,8 +78,9 @@ export const INTERVENTION_STATUS_COLORS = {
 
 export const TABLE_HEADERS = {
     /********************************
-   *  DEMANDES D'INTERVENTION
-   *******************************/
+     *  DEMANDES D'INTERVENTION
+     *******************************/
+
     FAILURES_SUPER_LIGHT: [
         {
             title: "N°",
@@ -329,7 +330,7 @@ export const TABLE_HEADERS = {
             align: "center",
             sortable: false,
             value: "action",
-        }
+        },
     ],
 
     COUNTER: [
@@ -376,49 +377,49 @@ export const TABLE_HEADERS = {
             title: "Nom du compteur",
             value: "nom",
             sortable: true,
-            align: "center"
+            align: "center",
         },
         {
             title: "Intervalle de maintenance",
             value: "intervalle",
             sortable: false,
-            align: "center"
+            align: "center",
         },
         {
             title: "Unité",
             value: "unite",
             sortable: false,
-            align: "center"
+            align: "center",
         },
         {
             title: "Valeur actuelle",
             value: "valeurCourante",
             sortable: false,
-            align: "center"
+            align: "center",
         },
         {
             title: "Dernière intervention",
             value: "derniereIntervention",
             sortable: false,
-            align: "center"
+            align: "center",
         },
         {
             title: "Plan de maintenance",
             value: "planMaintenance",
             sortable: false,
-            align: "center"
+            align: "center",
         },
         {
             title: "Options",
             value: "options",
             sortable: false,
-            align: "center"
+            align: "center",
         },
         {
             title: "Actions",
             value: "actions",
             sortable: false,
-            align: "center"
+            align: "center",
         },
     ],
 
@@ -461,4 +462,111 @@ export const TABLE_HEADERS = {
         },
     ],
 
+    /********************************
+     * DONNEES SECONDAIRES
+     *******************************/
+    SUPPLIERS: [
+        {
+            title: "Nom",
+            value: "nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Email",
+            value: "email",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Téléphone",
+            value: "numTelephone",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "SAV",
+            value: "serviceApresVente",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Pays",
+            value: "adresse.pays",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Actions",
+            value: "actions",
+            sortable: false,
+            align: "center",
+        }
+    ],
+
+    MANUFACTURERS: [
+        {
+            title: "Nom",
+            value: "nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Email",
+            value: "email",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Téléphone",
+            value: "numTelephone",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "SAV",
+            value: "serviceApresVente",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Pays",
+            value: "adresse.pays",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Actions",
+            value: "actions",
+            sortable: false,
+            align: "center",
+        }
+    ],
+
+    MODEL_EQUIPMENTS: [
+        {
+            title: "ID",
+            value: "id",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Nom du modèle",
+            value: "nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Fabricant",
+            value: "fabricant.nom",
+            sortable: true,
+            align: "center",
+        },
+        {
+            title: "Visualiser",
+            value: "action",
+            sortable: false,
+            align: "center",
+        },
+    ]
 };

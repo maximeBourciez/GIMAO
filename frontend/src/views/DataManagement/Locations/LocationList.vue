@@ -1,73 +1,47 @@
 <template>
-  <v-container>
-    <v-row>
-      <v-card elevation="1" class="rounded-lg pa-4 mb-4" style="min-width: 800px; width: 100%; min-height: 400px;">
-        <v-card-title class="font-weight-bold text-uppercase text-primary d-flex justify-space-between align-center">
-          <span>Listes des Lieux</span>
-          <v-btn 
-            color="primary"
-            @click="go_to_add_location_page"
-            small
-            class="ml-4"
-          >
-            Ajouter un lieu
-          </v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        <LocationExplorer 
-          :lieux="locations" 
-          @select-lieu="on_location_select"
-        />
-      </v-card>
+  <v-container class="pa-4" fluid>
+    <v-row justify="center">
+      <v-col cols="12" md="8" lg="6">
+        <v-card class="pa-4">
+          <LocationTreeView :items="locations" :showCreateButton="true" @create="createLieu" />
+        </v-card>
+      </v-col>
     </v-row>
   </v-container>
 </template>
 
-<script>
-import { ref, onMounted, computed, reactive, toRefs } from 'vue';
+<script setup>
+import { ref, onMounted } from 'vue';
+import { API_BASE_URL } from '@/utils/constants.js';
+import { useApi } from '@/composables/useApi.js';
 import { useRouter } from 'vue-router';
-import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
-import LocationExplorer from '@/components/LocationExplorer.vue';
+import LocationTreeView from '@/components/LocationTreeView.vue';
 
-export default {
-  name: 'Locations',
-  components: {
-    LocationExplorer,
-  },
-  setup() {
-    const router = useRouter();
-    const api = useApi(API_BASE_URL);
-    const state = reactive({
-      locations: computed(() => api.data.value || []),
-      selected_location: null,
-    });
+const api = useApi(API_BASE_URL);
+const locations = ref([]);
+const router = useRouter();
 
-    const fetch_data = async () => {
-      try {
-        await api.get('lieux-hierarchy/');
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-    const go_to_add_location_page = () => router.push('/CreateLocation');
-
-    const on_location_select = (location) => {
-      state.selected_location = location;
-    };
-
-    onMounted(fetch_data);
-
-    return {
-      ...toRefs(state),
-      go_to_add_location_page,
-      on_location_select,
-    };
+const fetchLocations = async () => {
+  console.log("Fetching locations...");
+  try {
+    locations.value = await api.get('lieux/hierarchy/');
+  } catch (error) {
+    console.error(error);
   }
+  console.log("Locations fetched:", locations.value);
+};
+
+onMounted(async () => {
+  await fetchLocations();
+});
+
+// Création d'un nouveau lieu
+const createLieu = (parentItemId) => {
+  console.log("Creating location with parent:", parentItemId); // Debug
+
+  // Dans LocationList
+  router.push({ 
+    name: 'CreateLocation', 
+    query: { parentId: parentItemId ? parentItemId : null } });
 };
 </script>
-
-<style scoped>
-.pa-4 { padding: 32px; }
-</style>

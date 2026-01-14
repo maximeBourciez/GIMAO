@@ -107,6 +107,7 @@ const {
   router
 } = useEquipmentForm(true);
 
+
 const equipmentId = computed(() => route.params.id || null);
 
 

@@ -23,7 +23,4 @@ router.register(r'fournisseurs', FournisseurViewSet, basename='fournisseur')
 # URLs
 urlpatterns = [
     path('', include(router.urls)),
-    
-    # Routes spécifiques pour les affichages détaillés
-    path('lieux-hierarchy/', LieuViewSet.as_view({'get': 'hierarchy'})),
 ]

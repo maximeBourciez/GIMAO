@@ -46,16 +46,15 @@ import SupplierDetail from '@/views/DataManagement/Suppliers/SupplierDetail.vue'
 import CreateManufacturer from '@/views/DataManagement/Manufacturers/CreateManufacturer.vue'
 import ManufacturerList from '@/views/DataManagement/Manufacturers/ManufacturerList.vue'
 import ManufacturerDetail from '@/views/DataManagement/Manufacturers/ManufacturerDetail.vue'
-
-import ConsumableList from '@/views/DataManagement/Consumables/ConsumableList.vue'
-import CreateConsumable from '@/views/DataManagement/Consumables/CreateConsumable.vue'
-import ConsumableDetail from '@/views/DataManagement/Consumables/ConsumableDetail.vue'
+import EditManufacturer from '../views/DataManagement/Manufacturers/EditManufacturer.vue'
 
 import ModelEquipmentList from '@/views/DataManagement/EquipmentsModels/ModelEquipmentList.vue'
 import CreateModelEquipment from '@/views/DataManagement/EquipmentsModels/CreateModelEquipment.vue'
 import ModelEquipmentDetail from '@/views/DataManagement/EquipmentsModels/ModelEquipmentDetail.vue'
+import EditModelEquipment from '@/views/DataManagement/EquipmentsModels/EditModelEquipment.vue'
 
 import CounterDetail from '@/views/Equipments/Counters/CounterDetail.vue'
+import EditSupplier from '@/views/DataManagement/Suppliers/EditSupplier.vue'
 
 
 const routes = [
@@ -114,27 +113,7 @@ const routes = [
 
   // Consommables ------------------------------------------------------------------
 
-  {
-    path: '/ConsumableList',
-    name: 'ConsumableList',
-    component: ConsumableList,
-    meta: { title: 'Consommables' }
-  },
 
-  {
-    path: '/CreateConsumable',
-    name: 'CreateConsumable',
-    component: CreateConsumable,
-    meta: { title: 'Creer un Consommable' }
-  },
-
-  {
-    path: '/ConsumableDetail/:id',
-    name: 'ConsumableDetail',
-    component: ConsumableDetail,
-    props: true,
-    meta: { title: 'Détails d\'un consommable' }
-  },
 
 
   // Fabricants ------------------------------------------------------------------
@@ -160,7 +139,13 @@ const routes = [
     props: true,
     meta: { title: 'Détails d\'un fabricant' }
   },
-
+  {
+    path: '/EditManufacturer/:id',
+    name: 'EditManufacturer',
+    component: EditManufacturer,
+    props: true,
+    meta: { title: 'Modifier un Fabricant' }
+  },
 
   // Fournisseurs ------------------------------------------------------------------
 
@@ -184,6 +169,13 @@ const routes = [
     component: SupplierDetail,
     props: true,
     meta: { title: 'Détails d\'un Fournisseur' }
+  },
+  {
+    path: '/EditSupplier/:id',
+    name: 'EditSupplier',
+    component: EditSupplier,
+    props: true,
+    meta: { title: 'Modifier un Fournisseur' }
   },
 
 
@@ -348,6 +340,12 @@ const routes = [
     component: ModelEquipmentDetail,
     meta: { title: 'Detail du modele equipement' }
   },
+  {
+    path: '/EditModelEquipment/:id',
+    name: 'EditModelEquipment',
+    component: EditModelEquipment,
+    meta: { title: 'Modifier modele equipement' }
+  }
 
 
 ]
