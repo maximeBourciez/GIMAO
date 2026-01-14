@@ -184,10 +184,14 @@
   </v-btn>
 
   <!-- Dialog pour ajouter un compteur -->
-  <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
-    <CounterInlineForm v-if="showCounterDialog" v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM"
-      :consumables="consumables" :typesDocuments="typesDocuments" :isEditMode="false" :isFirstCounter="true"
-      @save="saveCounter" @cancel="closeCounterDialog" />
+  <v-dialog v-model="showCounterDialog" max-width="1000px" scrollable @click:outside="closeCounterDialog">
+    <v-card>
+      <v-card-text class="pa-0">
+        <CounterInlineForm v-if="showCounterDialog" v-model="currentCounter" :existingPMs="existingPMs"
+          :typesPM="typesPM" :consumables="consumables" :typesDocuments="typesDocuments" :isEditMode="false"
+          :isFirstCounter="true" @save="saveCounter" @cancel="closeCounterDialog" />
+      </v-card-text>
+    </v-card>
   </v-dialog>
 </template>
 
