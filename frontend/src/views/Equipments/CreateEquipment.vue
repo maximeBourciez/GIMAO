@@ -24,8 +24,9 @@
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="1" :show-location="false"
-                    :show-status="false" :show-consommables="false" :show-counters="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    :show-status="false" :show-consommables="false" :show-counters="false" :show-general="true"
+                    :show-model-info="false" @file-upload="handleFileUpload"
+                    @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 2: Fournisseur et Fabricant -->
@@ -33,8 +34,8 @@
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="2" :show-location="false"
-                    :show-status="false" :show-consommables="false" :show-counters="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    :show-status="false" :show-consommables="false" :show-counters="false" :show-general="false"
+                    :show-model-info="true" @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 3: Localisation -->
@@ -42,8 +43,8 @@
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="3" :show-status="false"
-                    :show-consommables="false" :show-counters="false" @file-upload="handleFileUpload"
-                    @location-created="handleLocationCreated" />
+                    :show-consommables="false" :show-counters="false" :show-general="false" :show-model-info="false"
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 4: Statut -->
@@ -51,8 +52,8 @@
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="4" :show-location="false"
-                    :show-consommables="false" :show-counters="false" @file-upload="handleFileUpload"
-                    @location-created="handleLocationCreated" />
+                    :show-consommables="false" :show-counters="false" :show-general="false" :show-model-info="false"
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
                 </v-stepper-window-item>
 
                 <!-- Étape 5: Consommables -->

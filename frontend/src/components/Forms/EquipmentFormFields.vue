@@ -1,61 +1,60 @@
 <template>
     <v-row>
-        <!-- Informations générales -->
-        <v-col cols="12" md="6">
-            <FormField v-model="modelValue.numSerie" field-name="numSerie" :step="step" label="Numéro de série"
-                placeholder="Saisir le numéro de série" counter="100" />
-        </v-col>
+        <template v-if="showGeneral">
+            <!-- Informations générales -->
+            <v-col cols="12" md="6">
+                <FormField v-model="modelValue.numSerie" field-name="numSerie" :step="step" label="Numéro de série"
+                    placeholder="Saisir le numéro de série" counter="100" />
+            </v-col>
 
-        <v-col cols="12" md="6">
-            <FormField v-model="modelValue.reference" field-name="reference" :step="step" label="Référence"
-                placeholder="Saisir la référence" counter="100" />
-        </v-col>
+            <v-col cols="12" md="6">
+                <FormField v-model="modelValue.reference" field-name="reference" :step="step" label="Référence"
+                    placeholder="Saisir la référence" counter="100" />
+            </v-col>
 
-        <v-col cols="12" md="6">
-            <FormField v-model="modelValue.designation" field-name="designation" :step="step" label="Désignation"
-                placeholder="Saisir la désignation" counter="100" />
-        </v-col>
+            <v-col cols="12" md="6">
+                <FormField v-model="modelValue.designation" field-name="designation" :step="step" label="Désignation"
+                    placeholder="Saisir la désignation" counter="100" />
+            </v-col>
 
-        <v-col cols="12" md="6">
-            <FormField v-model="modelValue.dateMiseEnService" field-name="dateMiseEnService" :step="step"
-                label="Date de mise en service" type="date" />
-        </v-col>
+            <v-col cols="12" md="6">
+                <FormField v-model="modelValue.dateMiseEnService" field-name="dateMiseEnService" :step="step"
+                    label="Date de mise en service" type="date" />
+            </v-col>
 
-        <v-col cols="12" md="6">
-            <FormField v-model="modelValue.prixAchat" field-name="prixAchat" :step="step" label="Prix d'achat"
-                placeholder="0.00" suffix="€" />
-        </v-col>
+            <v-col cols="12" md="6">
+                <FormField v-model="modelValue.prixAchat" field-name="prixAchat" :step="step" label="Prix d'achat"
+                    placeholder="0.00" suffix="€" />
+            </v-col>
 
-        <v-col cols="12" md="6">
-            <FormFileInput
-                label="Image de l'équipement"
-                placeholder="Sélectionner une image"
-                accept="image/*"
-                prepend-inner-icon="mdi-camera"
-                @update:model-value="handleFileUpload"
-            />
-        </v-col>
+            <v-col cols="12" md="6">
+                <FormFileInput label="Image de l'équipement" placeholder="Sélectionner une image" accept="image/*"
+                    prepend-inner-icon="mdi-camera" @update:model-value="handleFileUpload" />
+            </v-col>
+        </template>
 
-        <!-- Modèle, Fournisseur, Fabricant, Famille -->
-        <v-col cols="12" md="6">
-            <FormSelect v-model="modelValue.modeleEquipement" field-name="modeleEquipement" :step="step" label="Modèle"
-                :items="equipmentModels" item-title="nom" item-value="id" clearable />
-        </v-col>
+        <template v-if="showModelInfo">
+            <!-- Modèle, Fournisseur, Fabricant, Famille -->
+            <v-col cols="12" md="6">
+                <FormSelect v-model="modelValue.modeleEquipement" field-name="modeleEquipement" :step="step"
+                    label="Modèle" :items="equipmentModels" item-title="nom" item-value="id" clearable />
+            </v-col>
 
-        <v-col cols="12" md="6">
-            <FormSelect v-model="modelValue.fournisseur" field-name="fournisseur" :step="step" label="Fournisseur"
-                :items="fournisseurs" item-title="nom" item-value="id" clearable />
-        </v-col>
+            <v-col cols="12" md="6">
+                <FormSelect v-model="modelValue.fournisseur" field-name="fournisseur" :step="step" label="Fournisseur"
+                    :items="fournisseurs" item-title="nom" item-value="id" clearable />
+            </v-col>
 
-        <v-col cols="12" md="6">
-            <FormSelect v-model="modelValue.fabricant" field-name="fabricant" :step="step" label="Fabricant"
-                :items="fabricants" item-title="nom" item-value="id" clearable />
-        </v-col>
+            <v-col cols="12" md="6">
+                <FormSelect v-model="modelValue.fabricant" field-name="fabricant" :step="step" label="Fabricant"
+                    :items="fabricants" item-title="nom" item-value="id" clearable />
+            </v-col>
 
-        <v-col cols="12" md="6">
-            <FormSelect v-model="modelValue.famille" field-name="famille" :step="step" label="Famille" :items="familles"
-                item-title="nom" item-value="id" clearable />
-        </v-col>
+            <v-col cols="12" md="6">
+                <FormSelect v-model="modelValue.famille" field-name="famille" :step="step" label="Famille"
+                    :items="familles" item-title="nom" item-value="id" clearable />
+            </v-col>
+        </template>
 
         <!-- Localisation -->
         <v-col v-if="showLocation" cols="12" :md="showStatus ? 6 : 12">
@@ -95,7 +94,7 @@
                         {{ item.estGlissant && item.estPrincipal ? 'Glissant et Principal' :
                             item.estGlissant ? 'Glissant' :
                                 item.estPrincipal ? 'Principal' :
-                        'Aucune' }}
+                                    'Aucune' }}
                     </div>
                 </template>
                 <template #item.planMaintenance="{ item }">
@@ -176,6 +175,14 @@ const props = defineProps({
     showCounters: {
         type: Boolean,
         default: true
+    },
+    showGeneral: {
+        type: Boolean,
+        default: true
+    },
+    showModelInfo: {
+        type: Boolean,
+        default: true
     }
 });
 
@@ -190,5 +197,4 @@ const handleLocationCreated = (newLocation) => {
 };
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>
