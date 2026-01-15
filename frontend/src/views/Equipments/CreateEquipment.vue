@@ -31,7 +31,8 @@
                     @open-modele-dialog="showModeleDialog = true"
                     @open-fournisseur-dialog="showFournisseurDialog = true"
                     @open-fabricant-dialog="showFabricantDialog = true"
-                    @open-famille-dialog="showFamilleDialog = true" />
+                    @open-famille-dialog="showFamilleDialog = true"
+                    @open-lieu-dialog="handleOpenLieuDialog" />
                 </v-stepper-window-item>
 
                 <!-- Étape 2: Fournisseur et Fabricant -->
@@ -44,7 +45,8 @@
                     @open-modele-dialog="showModeleDialog = true"
                     @open-fournisseur-dialog="showFournisseurDialog = true"
                     @open-fabricant-dialog="showFabricantDialog = true"
-                    @open-famille-dialog="showFamilleDialog = true" />
+                    @open-famille-dialog="showFamilleDialog = true"
+                    @open-lieu-dialog="handleOpenLieuDialog" />
                 </v-stepper-window-item>
 
                 <!-- Étape 3: Localisation -->
@@ -57,7 +59,8 @@
                     @open-modele-dialog="showModeleDialog = true"
                     @open-fournisseur-dialog="showFournisseurDialog = true"
                     @open-fabricant-dialog="showFabricantDialog = true"
-                    @open-famille-dialog="showFamilleDialog = true" />
+                    @open-famille-dialog="showFamilleDialog = true"
+                    @open-lieu-dialog="handleOpenLieuDialog" />
                 </v-stepper-window-item>
 
                 <!-- Étape 4: Statut -->
@@ -70,7 +73,8 @@
                     @open-modele-dialog="showModeleDialog = true"
                     @open-fournisseur-dialog="showFournisseurDialog = true"
                     @open-fabricant-dialog="showFabricantDialog = true"
-                    @open-famille-dialog="showFamilleDialog = true" />
+                    @open-famille-dialog="showFamilleDialog = true"
+                    @open-lieu-dialog="handleOpenLieuDialog" />
                 </v-stepper-window-item>
 
                 <!-- Étape 5: Consommables -->
@@ -198,6 +202,14 @@
         </v-card-text>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="showLieuDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <LieuForm :parent-id="selectedParentLieuId" :locations="locations" @created="handleLieuCreated" @close="showLieuDialog = false" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
@@ -212,6 +224,7 @@ import FabricantForm from '@/components/Forms/FabricantForm.vue';
 import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
 import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue';
+import LieuForm from '@/components/Forms/LieuForm.vue';
 
 const {
   formData,
@@ -256,6 +269,8 @@ const step = ref(1);
 const visitedSteps = ref([1]);
 const showCounterForm = ref(true);
 const editingCounterIndex = ref(-1);
+const showLieuDialog = ref(false);
+const selectedParentLieuId = ref(null);
 
 //Règles de validation par étape
 const validationSchema = {
@@ -462,6 +477,19 @@ const isStepEditable = (stepNumber) => {
 const canGoToNextStep = (validation) => {
   if (!validation) return true;
   return validation.isStepValid(step.value, formData.value);
+};
+
+const handleOpenLieuDialog = (parentId) => {
+  selectedParentLieuId.value = parentId;
+  showLieuDialog.value = true;
+};
+
+const handleLieuCreated = async (newLieu) => {
+  console.log('Nouveau lieu créé:', newLieu);
+  // Rafraîchir la liste des lieux
+  await fetchData();
+  // Fermer la dialog
+  showLieuDialog.value = false;
 };
 
 onMounted(async () => {

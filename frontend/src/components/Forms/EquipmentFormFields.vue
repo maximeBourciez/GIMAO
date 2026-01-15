@@ -119,6 +119,7 @@
 
             <v-col v-if="showLocation" cols="12" :md="showStatus ? 6 : 12">
                 <LocationTreeView :items="locations" v-model:selected="modelValue.lieu"
+                    :show-create-button="true" @create="$emit('open-lieu-dialog', $event)"
                     @created="handleLocationCreated" />
             </v-col>
 
@@ -262,7 +263,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter', 'open-modele-dialog', 'open-fournisseur-dialog', 'open-fabricant-dialog', 'open-famille-dialog']);
+const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter', 'open-modele-dialog', 'open-fournisseur-dialog', 'open-fabricant-dialog', 'open-famille-dialog', 'open-lieu-dialog']);
 
 const handleFileUpload = (file) => {
     emit('file-upload', file);
