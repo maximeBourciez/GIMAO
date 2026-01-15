@@ -49,22 +49,62 @@
 
             <v-col cols="12" md="6">
                 <FormSelect v-model="modelValue.modeleEquipement" field-name="modeleEquipement" :step="step"
-                    label="Modèle" :items="equipmentModels" item-title="nom" item-value="id" clearable />
+                    label="Modèle" :items="equipmentModels" item-title="nom" item-value="id" clearable>
+                    <template #append-item>
+                        <v-divider class="mt-2" />
+                        <v-list-item @click="$emit('open-modele-dialog')">
+                            <template #prepend>
+                                <v-icon color="primary">mdi-plus</v-icon>
+                            </template>
+                            <v-list-item-title>Créer un nouveau modèle</v-list-item-title>
+                        </v-list-item>
+                    </template>
+                </FormSelect>
             </v-col>
 
             <v-col cols="12" md="6">
                 <FormSelect v-model="modelValue.fournisseur" field-name="fournisseur" :step="step" label="Fournisseur"
-                    :items="fournisseurs" item-title="nom" item-value="id" clearable />
+                    :items="fournisseurs" item-title="nom" item-value="id" clearable>
+                    <template #append-item>
+                        <v-divider class="mt-2" />
+                        <v-list-item @click="$emit('open-fournisseur-dialog')">
+                            <template #prepend>
+                                <v-icon color="primary">mdi-plus</v-icon>
+                            </template>
+                            <v-list-item-title>Créer un nouveau fournisseur</v-list-item-title>
+                        </v-list-item>
+                    </template>
+                </FormSelect>
             </v-col>
 
             <v-col cols="12" md="6">
                 <FormSelect v-model="modelValue.fabricant" field-name="fabricant" :step="step" label="Fabricant"
-                    :items="fabricants" item-title="nom" item-value="id" clearable />
+                    :items="fabricants" item-title="nom" item-value="id" clearable>
+                    <template #append-item>
+                        <v-divider class="mt-2" />
+                        <v-list-item @click="$emit('open-fabricant-dialog')">
+                            <template #prepend>
+                                <v-icon color="primary">mdi-plus</v-icon>
+                            </template>
+                            <v-list-item-title>Créer un nouveau fabricant</v-list-item-title>
+                        </v-list-item>
+                    </template>
+                </FormSelect>
             </v-col>
 
             <v-col cols="12" md="6">
                 <FormSelect v-model="modelValue.famille" field-name="famille" :step="step" label="Famille"
-                    :items="familles" item-title="nom" item-value="id" clearable />
+                    :items="familles" item-title="nom" item-value="id" clearable>
+                    <template #append-item>
+                        <v-divider class="mt-2" />
+                        <v-list-item @click="$emit('open-famille-dialog')">
+                            <template #prepend>
+                                <v-icon color="primary">mdi-plus</v-icon>
+                            </template>
+                            <v-list-item-title>Créer une nouvelle famille</v-list-item-title>
+                        </v-list-item>
+                    </template>
+                </FormSelect>
             </v-col>
         </template>
 
@@ -222,7 +262,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter']);
+const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter', 'open-modele-dialog', 'open-fournisseur-dialog', 'open-fabricant-dialog', 'open-famille-dialog']);
 
 const handleFileUpload = (file) => {
     emit('file-upload', file);
