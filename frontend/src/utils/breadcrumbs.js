@@ -164,6 +164,20 @@ export const BREADCRUMBS = {
         },
     ],
 
+    ModifierUser: (route) => [
+        {
+            label: "Gestion des comptes",
+            to: { name: "AccountManagement" },
+        },
+        {
+            label: `Utilisateur #${route.params.id}`,
+            to: { name: "AfficherUser", params: { id: route.params.id } },
+        },
+        {
+            label: "Modifier",
+        },
+    ],
+
     /***************************************
      * Gestion des données
      **************************************/

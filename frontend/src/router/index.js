@@ -12,6 +12,7 @@ import InterventionList from '@/views/Interventions/InterventionList.vue'
 import Technicians from '@/views/Technicians/Technicians.vue'
 import AccountManagement from '@/views/AccountManagement/AccountManagement.vue'
 import AfficherUser from '@/views/AccountManagement/AfficherUser.vue'
+import ModifierUser from '@/views/AccountManagement/ModifierUser.vue'
 import Orders from '@/views/Orders/Orders.vue'
 import Stocks from '@/views/Stocks/Stocks.vue'
 import FailureList from '@/views/Failures/FailureList.vue'
@@ -101,6 +102,14 @@ const routes = [
     component: AfficherUser,
     props: true,
     meta: { title: 'Afficher un utilisateur' }
+  },
+
+  {
+    path: '/ModifierUser/:id',
+    name: 'ModifierUser',
+    component: ModifierUser,
+    props: true,
+    meta: { title: 'Modifier un utilisateur' }
   },
 
   {

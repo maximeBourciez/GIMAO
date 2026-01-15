@@ -116,16 +116,32 @@
 			</v-row>
 		</template>
 	</BaseDetailView>
+
+	<!-- Bouton flottant pour modifier -->
+	<v-btn
+		color="primary"
+		size="large"
+		icon
+		class="floating-edit-button"
+		elevation="4"
+		@click="editUser"
+	>
+		<v-icon size="large">mdi-pencil</v-icon>
+		<v-tooltip activator="parent" location="left">
+			Modifier l'utilisateur
+		</v-tooltip>
+	</v-btn>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants.js';
 
 const route = useRoute();
+const router = useRouter();
 const userId = route.params.id;
 
 const userData = ref(null);
@@ -177,10 +193,29 @@ const loadUserData = async () => {
 onMounted(() => {
 	loadUserData();
 });
+
+const editUser = () => {
+	if (!userId) {
+		errorMessage.value = "Impossible de modifier l'utilisateur : id manquant dans l'URL.";
+		return;
+	}
+
+	router.push({
+		name: 'ModifierUser',
+		params: { id: userId },
+	});
+};
 </script>
 
 <style scoped>
 .gap-2 {
 	gap: 8px;
+}
+
+.floating-edit-button {
+	position: fixed;
+	bottom: 24px;
+	right: 24px;
+	z-index: 1000;
 }
 </style>
