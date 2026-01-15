@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEquipement, Compteur, FamilleEquipement
 from donnees.api.serializers import LieuSerializer, FabricantSimpleSerializer, FournisseurSimpleSerializer
-from maintenance.models import DemandeIntervention, BonTravail
+from maintenance.models import DemandeIntervention, BonTravail, PlanMaintenance
 from stock.models import PorterSur
 
 from maintenance.api.serializers import PlanMaintenanceDetailSerializer
@@ -224,16 +224,19 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         return compteurs_data
 
     def get_documents(self, obj):
-        return [
-            {
-                'id': d.id,
-                'nomDocument': d.nomDocument if hasattr(d, 'nomDocument') else '',
-                'cheminAcces': d.cheminAcces if hasattr(d, 'cheminAcces') else '',
-                'typeDocument': d.typeDocument.nomTypeDocument if hasattr(d, 'typeDocument') else ''
-
-            }
-            for d in obj.documents.all()
-        ]
+        docs_Pm = PlanMaintenance.objects.filter(
+            equipement=obj
+        ).prefetch_related('documents')
+        documents_list = []
+        for pm in docs_Pm:
+            for doc in pm.documents.all():
+                documents_list.append({
+                    'id': doc.id,
+                    'titre': doc.nomDocument,
+                    'path': doc.cheminAcces.name,
+                    'type': doc.typeDocument_id
+                })
+        return documents_list
 
     def get_consommables(self, obj):
         # Récupère tous les consommables liés à cet équipement
