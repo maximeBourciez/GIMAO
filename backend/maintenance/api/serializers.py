@@ -6,12 +6,10 @@ from maintenance.models import (
     PlanMaintenance,
     PlanMaintenanceConsommable
 )
-from equipement.models import Equipement, Compteur
+from equipement.models import Equipement, Compteur, StatutEquipement
 from utilisateur.models import Utilisateur
 from stock.models import Consommable
 from donnees.models import Document
-from donnees.api.serializers import DocumentSerializer
-
 from donnees.api.serializers import DocumentSerializer
 
 
@@ -26,12 +24,23 @@ class UtilisateurSimpleSerializer(serializers.ModelSerializer):
 
 
 class EquipementSimpleSerializer(serializers.ModelSerializer):
-    """Serializer simple pour Equipement"""
+    lieu = serializers.CharField(source='lieu.nomLieu')
+    dernier_statut = serializers.SerializerMethodField()
+
     class Meta:
         model = Equipement
-        fields = ['id', 'reference', 'designation', 'numSerie']
-        ref_name = 'MaintenanceEquipementSimple'
+        fields = ['id', 'reference', 'designation', 'lieu', 'dernier_statut']
+        ref_name = 'EquipementSimpleSerializer'
 
+    def get_dernier_statut(self, obj):
+        statut = obj.statuts.order_by('-dateChangement').first()
+        if statut:
+            return {
+                'id': statut.id,
+                'statut': statut.statut,
+                'dateChangement': statut.dateChangement
+            }
+        return None
 
 class ConsommableSimpleSerializer(serializers.ModelSerializer):
     """Serializer simple pour Consommable"""
