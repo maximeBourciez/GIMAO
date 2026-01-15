@@ -1,58 +1,167 @@
 <template>
-  <BaseDetailView title="Détail du Bon de Travail" :data="intervention" :loading="isLoading" :show-edit-button="false"
-    :show-delete-button="false">
-    <template #actions>
-      <v-btn color="warning" class="mx-1" @click="reopen_intervention" :disabled="!can_supprimer">
-        Refuser la clôture
-      </v-btn>
-      <v-btn color="success" class="mx-1" @click="close_intervention" :disabled="!can_cloturer">
-        Clôturer
-      </v-btn>
-    </template>
-
+  <BaseDetailView
+    :title="'Détail du bon de travail'"
+    :data="intervention"
+    :loading="loading"
+    :error-message="errorMessage"
+    :success-message="successMessage"
+    :auto-display="false"
+    :show-edit-button="false"
+    :show-delete-button="false"
+    @clear-error="errorMessage = ''"
+    @clear-success="successMessage = ''"
+  >
     <template #default="{ data }">
       <v-row v-if="data">
-        <!-- Left column with information -->
-        <v-col cols="12" md="6">
-          <h3 class="text-h6 mb-4 text-primary">Informations de l'intervention</h3>
-
-          <div v-for="(value, key) in format_label_intervention" :key="key" class="detail-field">
-            <label class="detail-label">{{ key }}</label>
-            <div class="detail-value">{{ value }}</div>
+        
+        <!-- Colonne gauche : champs du BT -->
+        <v-col cols="12" md="6" class="detail-column">
+          <h3 class="text-h6 mb-4 text-primary detail-title">{{ data.nom }}</h3>
+          <div class="detail-field">
+            <label class="detail-label">ID</label>
+            <div class="detail-value">{{ data.id || 'Non spécifié' }}</div>
           </div>
+
+          <div class="detail-field">
+            <label class="detail-label">Type</label>
+            <div class="detail-value">{{ INTERVENTION_TYPE[data.type] || data.type || 'Non spécifié' }}</div>
+          </div>
+
+          <div class="detail-field">
+            <label class="detail-label">Statut</label>
+            <div class="detail-value">
+              <v-chip
+                :color="getInterventionStatusColor(data.statut)"
+              >
+                {{ INTERVENTION_STATUS[data.statut] || data.statut || 'Non spécifié' }}
+              </v-chip>
+            </div>
+          </div>
+
+          <div class="detail-field">
+            <label class="detail-label">Diagnostic</label>
+            <div class="detail-value text-pre">{{ data.diagnostic || 'Non spécifié' }}</div>
+          </div>
+
+          <div class="detail-field">
+            <label class="detail-label">Date d'assignation</label>
+            <div class="detail-value">{{ formatDateTime(data.date_assignation) }}</div>
+          </div>
+
+          <div class="detail-field">
+            <label class="detail-label">Date prévue</label>
+            <div class="detail-value">{{ formatDateTime(data.date_prevue) }}</div>
+          </div>
+
+          <div class="detail-field">
+            <label class="detail-label">Date de début</label>
+            <div class="detail-value">{{ formatDateTime(data.date_debut) }}</div>
+          </div>
+
+          <div class="detail-field">
+            <label class="detail-label">Date de fin</label>
+            <div class="detail-value">{{ formatDateTime(data.date_fin) }}</div>
+          </div>
+
+          <div class="detail-field">
+            <label class="detail-label">Date de clôture</label>
+            <div class="detail-value">{{ formatDateTime(data.date_cloture) }}</div>
+          </div>
+
+          <!-- Boutons d'action -->
+          <v-row class="mt-6">
+            <v-col cols="12" md="6" class="py-1">
+              <v-btn color="info" block :disabled="!canStart" @click="openStartModal">Démarrer l'intervention</v-btn>
+            </v-col>
+            <v-col cols="12" md="6" class="py-1">
+              <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal">Terminer l'intervention</v-btn>
+            </v-col>
+            <v-col cols="12" md="6" class="py-1">
+              <v-btn color="success" block :disabled="!canClose" @click="openCloseModal">Clôturer le bon de travail</v-btn>
+            </v-col>
+            <v-col cols="12" md="6" class="py-1">
+              <v-btn color="warning" block :disabled="!canRefuseClose" @click="openRefuseCloseModal">Refuser la clôture du bon</v-btn>
+            </v-col>
+            <v-col cols="12" class="py-1">
+              <v-btn color="error" block @click="openDeleteModal">Supprimer le bon de travail</v-btn>
+            </v-col>
+          </v-row>
         </v-col>
 
-        <!-- Right column with additional information -->
-        <v-col cols="12" md="6">
-          <h3 class="text-h6 mb-4 text-primary">Commentaires</h3>
+        <!-- Colonne droite : commentaires + FK en sous-sections -->
+        <v-col cols="12" md="6" class="detail-column">
+          <!-- Spacer pour aligner avec le titre (nom) de la colonne gauche -->
+          <h3 class="text-h6 mb-4">&nbsp;</h3>
 
           <div class="detail-field">
             <label class="detail-label">Commentaire</label>
-            <div class="detail-value">{{ data.commentaire || 'Aucun commentaire' }}</div>
+            <div class="detail-value text-pre">{{ data.commentaire || 'Aucun commentaire' }}</div>
           </div>
 
-          <div v-if="data.commentaire_refus_cloture" class="detail-field">
+          <div class="detail-field">
             <label class="detail-label">Commentaire de refus de clôture</label>
-            <div class="detail-value">{{ data.commentaire_refus_cloture }}</div>
+            <div class="detail-value text-pre">{{ data.commentaire_refus_cloture || 'Non spécifié' }}</div>
           </div>
 
-          <!-- Section DI expandable -->
+          <!-- Section Affectation -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggle_defaillance_details">
-              Demande d'intervention
+            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="showAffectation = !showAffectation">
+              Affectation
               <v-spacer></v-spacer>
-              <v-btn color="primary" size="small" class="mr-2" @click.stop="open_failure" :disabled="!defaillance_id">
-                Ouvrir
-              </v-btn>
               <v-icon>
-                {{ show_defaillance_details ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                {{ showAffectation ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
               </v-icon>
             </v-card-title>
             <v-expand-transition>
-              <div v-show="show_defaillance_details">
+              <div v-show="showAffectation">
                 <v-divider></v-divider>
                 <v-card-text>
-                  <div v-for="(value, key) in format_label_defaillance" :key="key" class="detail-field">
+                  <div class="detail-field">
+                    <label class="detail-label">Responsable</label>
+                    <div class="detail-value">
+                      <span v-if="data.responsable">{{ data.responsable.prenom }} {{ data.responsable.nomFamille }}</span>
+                      <span v-else>Non spécifié</span>
+                    </div>
+                  </div>
+                  <div class="detail-field">
+                    <label class="detail-label">Utilisateurs assignés</label>
+                    <div class="detail-value">
+                      <div v-if="Array.isArray(data.utilisateur_assigne) && data.utilisateur_assigne.length">
+                        <div v-for="u in data.utilisateur_assigne" :key="u.id">
+                          - {{ u.prenom }} {{ u.nomFamille }}
+                        </div>
+                      </div>
+                      <div v-else>Non spécifié</div>
+                    </div>
+                  </div>
+                </v-card-text>
+              </div>
+            </v-expand-transition>
+          </v-card>
+
+          <!-- Section DI -->
+          <v-card class="mt-4" elevation="2">
+            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleDemandeDetails">
+              Demande d'intervention
+              <v-spacer></v-spacer>
+              <v-btn
+                color="primary"
+                size="small"
+                class="mr-2"
+                @click.stop="openFailure"
+                :disabled="!demandeId"
+              >
+                Ouvrir
+              </v-btn>
+              <v-icon>
+                {{ showDemandeDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+              </v-icon>
+            </v-card-title>
+            <v-expand-transition>
+              <div v-show="showDemandeDetails">
+                <v-divider></v-divider>
+                <v-card-text>
+                  <div v-for="(value, key) in formattedDemande" :key="key" class="detail-field">
                     <label class="detail-label">{{ key }}</label>
                     <div class="detail-value">{{ value }}</div>
                   </div>
@@ -61,36 +170,93 @@
             </v-expand-transition>
           </v-card>
 
+      <!-- Section Équipement (provient de la DI) -->
+      <v-card class="mt-4" elevation="2">
+        <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleEquipementDetails">
+          Équipement
+          <v-spacer></v-spacer>
+      <v-btn
+        color="primary"
+        size="small"
+        class="mr-2"
+        @click.stop="openEquipement"
+        :disabled="!equipementId"
+      >
+        Ouvrir
+      </v-btn>
+          <v-icon>
+            {{ showEquipementDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+          </v-icon>
+        </v-card-title>
+        <v-expand-transition>
+          <div v-show="showEquipementDetails">
+            <v-divider></v-divider>
+            <v-card-text>
+              <div v-if="!equipement">
+                Aucun équipement associé
+              </div>
+              <div v-else>
+                <div v-for="(value, key) in formattedEquipement" :key="key" class="detail-field">
+                  <label class="detail-label">{{ key }}</label>
+                  <div class="detail-value">{{ value }}</div>
+                </div>
+              </div>
+            </v-card-text>
+          </div>
+        </v-expand-transition>
+      </v-card>
+
           <!-- Section Documents -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggle_documents_details">
+            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleDocumentsDetails">
               Documents du bon de travail
               <v-spacer></v-spacer>
-              <v-btn color="primary" size="small" class="mr-2" @click.stop="add_document">
+              <v-btn color="primary" size="small" class="mr-2" @click.stop="addDocument">
                 Ajouter
               </v-btn>
               <v-icon>
-                {{ show_documents_details ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                {{ showDocumentsDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
               </v-icon>
             </v-card-title>
             <v-expand-transition>
-              <div v-show="show_documents_details">
+              <div v-show="showDocumentsDetails">
                 <v-divider></v-divider>
                 <v-card-text>
                   <v-toolbar flat class="mb-2">
                     <v-spacer></v-spacer>
-                    <v-btn color="primary" size="small" @click="toggle_action_mode">
-                      {{ action_mode === 'download' ? 'Mode suppression' : 'Mode téléchargement' }}
+                    <v-btn color="primary" size="small" @click="toggleActionMode">
+                      {{ actionMode === 'download' ? 'Mode suppression' : 'Mode téléchargement' }}
                     </v-btn>
                   </v-toolbar>
 
-                  <v-data-table :headers="headers" :items="data.liste_documents_intervention || []" class="elevation-1"
-                    hide-default-footer :items-per-page="-1">
-                    <template v-slot:item.actions="{ item }">
-                      <v-btn icon size="small" :color="action_mode === 'download' ? 'primary' : 'error'"
-                        @click="action_mode === 'download' ? download_document(item) : delete_document(item)">
+                  <v-data-table
+                    :headers="documentHeaders"
+                    :items="data.liste_documents_intervention || []"
+                    class="elevation-1"
+                    hide-default-footer
+                    :items-per-page="-1"
+                  >
+                    <template #item.nomDocumentIntervention="{ item }">
+                      {{ item.nomDocumentIntervention || item.titre || item.nomDocument || 'Document' }}
+                    </template>
+                    <template #item.actions="{ item }">
+                      <v-btn
+                        icon
+                        size="small"
+                        color="info"
+                        class="mr-1"
+                        @click="viewDocument(item)"
+                      >
+                        <v-icon size="small">mdi-eye</v-icon>
+                      </v-btn>
+                      <v-btn
+                        icon
+                        size="small"
+                        :color="actionMode === 'download' ? 'primary' : 'error'"
+                        @click="actionMode === 'download' ? downloadDocument(item) : deleteDocument(item)"
+                      >
                         <v-icon size="small">
-                          {{ action_mode === 'download' ? 'mdi-download' : 'mdi-delete' }}
+                          {{ actionMode === 'download' ? 'mdi-download' : 'mdi-delete' }}
                         </v-icon>
                       </v-btn>
                     </template>
@@ -103,188 +269,434 @@
       </v-row>
     </template>
   </BaseDetailView>
+
+    <!-- Bouton flottant : modifier le BT -->
+    <v-btn
+      v-if="intervention"
+      color="primary"
+      size="large"
+      icon
+      elevation="4"
+      class="floating-create-button"
+      @click="goToEditIntervention"
+    >
+      <v-icon>mdi-pencil</v-icon>
+    </v-btn>
+
+    <!-- Modales de confirmation (comme DI) -->
+    <ConfirmationModal
+      v-model="showStart"
+      type="info"
+      title="Démarrer l'intervention"
+      message="Êtes-vous sûr de vouloir démarrer cette intervention ?"
+      confirm-text="Démarrer"
+      confirm-icon="mdi-play"
+      :loading="actionLoading"
+      @confirm="startIntervention"
+      @cancel="showStart = false"
+    />
+    <ConfirmationModal
+      v-model="showFinish"
+      type="info"
+      title="Terminer l'intervention"
+      message="Êtes-vous sûr de vouloir terminer cette intervention ?"
+      confirm-text="Terminer"
+      confirm-icon="mdi-check"
+      :loading="actionLoading"
+      @confirm="finishIntervention"
+      @cancel="showFinish = false"
+    />
+    <ConfirmationModal
+      v-model="showClose"
+      type="success"
+      title="Clôturer le bon de travail"
+      message="Êtes-vous sûr de vouloir clôturer ce bon de travail ?"
+      confirm-text="Clôturer"
+      confirm-icon="mdi-check-circle-outline"
+      :loading="actionLoading"
+      @confirm="closeBonTravail"
+      @cancel="showClose = false"
+    />
+	<ConfirmationModal
+		v-model="showRefuseClose"
+		type="warning"
+		title="Refuser la clôture"
+		message="Êtes-vous sûr de vouloir refuser la clôture de ce bon de travail ?"
+		confirm-text="Refuser"
+		confirm-icon="mdi-close-circle-outline"
+		:loading="actionLoading"
+		@confirm="refuseCloseBonTravail"
+		@cancel="showRefuseClose = false"
+	/>
+    <ConfirmationModal
+      v-model="showDelete"
+      type="error"
+      title="Supprimer le bon de travail"
+      message="Êtes-vous sûr de vouloir supprimer ce bon de travail ?"
+      confirm-text="Supprimer"
+      confirm-icon="mdi-delete"
+      :loading="actionLoading"
+      @confirm="deleteBonTravail"
+      @cancel="showDelete = false"
+    />
+
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
+import { formatDateTime, getInterventionStatusColor } from '@/utils/helpers';
 
 const router = useRouter();
 const route = useRoute();
-const interventionApi = useApi(API_BASE_URL);
 
-const action_mode = ref('download');
+const api = useApi(API_BASE_URL);
+
 const intervention = ref(null);
-const isLoading = ref(false);
-const show_defaillance_details = ref(false);
-const show_documents_details = ref(false);
+const loading = ref(false);
+const actionLoading = ref(false);
+const errorMessage = ref('');
+const successMessage = ref('');
 
-const headers = [
+const actionMode = ref('download');
+const showDemandeDetails = ref(false);
+const showDocumentsDetails = ref(false);
+const showAffectation = ref(false);
+const showEquipementDetails = ref(false);
+
+const showStart = ref(false);
+const showFinish = ref(false);
+const showClose = ref(false);
+const showRefuseClose = ref(false);
+const showDelete = ref(false);
+
+const documentHeaders = [
   { title: 'Nom du document', value: 'nomDocumentIntervention' },
   { title: 'Actions', value: 'actions', sortable: false }
 ];
 
-const defaillance_id = computed(() => intervention.value?.demande_intervention?.id);
+const demandeId = computed(() => intervention.value?.demande_intervention?.id);
 
-const date_format = (dateString) => {
-  if (!dateString) return 'Non spécifié';
-  const date = new Date(dateString);
-  return date.toLocaleString('fr-FR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+const equipement = computed(() => intervention.value?.demande_intervention?.equipement || null);
+const equipementId = computed(() => equipement.value?.id);
+
+const formattedDemande = computed(() => {
+  const demande = intervention.value?.demande_intervention;
+  if (!demande) return {};
+  return {
+    'Nom de la demande': demande.nom || 'Non spécifié',
+    'Commentaire': demande.commentaire || 'Aucun commentaire',
+    'Demandeur': demande.utilisateur.prenom && demande.utilisateur.nomFamille
+      ? `${demande.utilisateur.prenom} ${demande.utilisateur.nomFamille}`
+      : 'Non spécifié',
+    'Date de creation': formatDateTime(demande.date_creation) || 'Non spécifié',
+  };
+});
+
+const formattedEquipement = computed(() => {
+	const e = equipement.value;
+	if (!e) return {};
+	return {
+    'Référence': e.reference || 'Non spécifié',
+    'Désignation': e.designation || 'Non spécifié',
+    'Lieu': e.lieu || 'Non spécifié',
+    'Statut': e.dernier_statut?.statut || 'Non spécifié'
+  };
+});
+
+const canClose = computed(() => !!intervention.value && !intervention.value.date_cloture);
+const canStart = computed(() => intervention.value?.statut === 'EN_ATTENTE');
+const canFinish = computed(() => intervention.value?.statut === 'EN_COURS');
+const canRefuseClose = computed(() => !!intervention.value && !intervention.value.date_cloture && intervention.value?.statut !== 'ANNULE');
+
+const openStartModal = () => {
+  showStart.value = true;
+};
+
+const openFinishModal = () => {
+  showFinish.value = true;
+};
+
+const openCloseModal = () => {
+  showClose.value = true;
+};
+
+const openRefuseCloseModal = () => {
+	showRefuseClose.value = true;
+};
+
+const openDeleteModal = () => {
+  showDelete.value = true;
+};
+
+const goToEditIntervention = () => {
+  const id = intervention.value?.id ?? route.params.id;
+  if (!id) return;
+  router.push({ name: 'EditIntervention', params: { id } });
+};
+
+const fetchData = async () => {
+  loading.value = true;
+  errorMessage.value = '';
+  try {
+    intervention.value = await api.get(`bons-travail/${route.params.id}`);
+  } catch (error) {
+    errorMessage.value = 'Erreur lors du chargement des données';
+  } finally {
+    loading.value = false;
+  }
+};
+
+const toggleActionMode = () => {
+  actionMode.value = actionMode.value === 'download' ? 'delete' : 'download';
+};
+
+const toggleDemandeDetails = () => {
+  showDemandeDetails.value = !showDemandeDetails.value;
+};
+
+const toggleDocumentsDetails = () => {
+  showDocumentsDetails.value = !showDocumentsDetails.value;
+};
+
+const toggleEquipementDetails = () => {
+	showEquipementDetails.value = !showEquipementDetails.value;
+};
+
+const openFailure = () => {
+  if (demandeId.value) {
+  router.push({
+    name: 'FailureDetail',
+    params: { id: demandeId.value },
+    query: { from: 'intervention', interventionId: route.params.id }
+  });
+  }
+};
+
+const openEquipement = () => {
+  if (!equipementId.value) return;
+  router.push({
+    name: 'EquipmentDetail',
+    params: { id: equipementId.value },
+    query: { from: 'intervention', interventionId: route.params.id }
   });
 };
 
-const format_label_intervention = computed(() => {
-  if (!intervention.value) return {};
-  return {
-    'Nom': intervention.value.nom,
-    'Type': intervention.value.type,
-    'Statut': intervention.value.statut,
-    'Date d\'assignation': date_format(intervention.value.date_assignation),
-    'Date de clôture': date_format(intervention.value.date_cloture),
-    'Date de début': date_format(intervention.value.date_debut),
-    'Date de fin': date_format(intervention.value.date_fin),
-  };
-});
+const addDocument = () => {
+  if (!intervention.value?.id) return;
+  router.push({ name: 'AddDocumentIntervention', params: { id: intervention.value.id } });
+};
 
-const format_label_defaillance = computed(() => {
-  if (!intervention.value || !intervention.value.demande_intervention) return {};
-  const demande = intervention.value.demande_intervention;
-  return {
-    'Nom de la demande': demande.nom,
-    'Date de commencement': date_format(demande.date_commencement),
-    'Date de traitement': date_format(demande.date_traitement),
-    'Commentaire': demande.commentaire || 'Aucun commentaire',
-  };
-});
-
-const can_supprimer = computed(() => intervention.value && !intervention.value.date_cloture);
-const can_cloturer = computed(() => intervention.value && !intervention.value.date_cloture);
-
-const fetch_data = async () => {
-  isLoading.value = true;
+const closeBonTravail = async () => {
+  if (!intervention.value?.id) return;
+  actionLoading.value = true;
   try {
-    const response = await interventionApi.get(`bons-travail/${route.params.id}`);
-    intervention.value = response;
+    await api.post(`bons-travail/${intervention.value.id}/cloturer`);
+    successMessage.value = 'Bon de travail clôturé';
+    showClose.value = false;
+    await fetchData();
   } catch (error) {
-    console.error('Erreur lors de la récupération des données:', error);
+    errorMessage.value = 'Erreur lors de la clôture du bon de travail';
   } finally {
-    isLoading.value = false;
+    actionLoading.value = false;
   }
 };
 
-const open_failure = () => {
-  if (defaillance_id.value) {
-    router.push({ name: 'FailureDetail', params: { id: defaillance_id.value } });
+const refuseCloseBonTravail = async () => {
+  if (!intervention.value?.id) return;
+  actionLoading.value = true;
+  try {
+    // Backend action existante: POST /bons-travail/{id}/annuler/
+    await api.post(`bons-travail/${intervention.value.id}/annuler`, { commentaire: '' });
+    successMessage.value = 'Clôture refusée';
+    showRefuseClose.value = false;
+    await fetchData();
+  } catch (error) {
+    errorMessage.value = 'Erreur lors du refus de clôture';
+  } finally {
+    actionLoading.value = false;
   }
 };
 
-const toggle_action_mode = () => {
-  action_mode.value = action_mode.value === 'download' ? 'delete' : 'download';
-};
-
-const reopen_intervention = async () => {
-  if (confirm('Êtes-vous sûr de vouloir refuser la clôture de ce bon de travail ?')) {
-    try {
-      await interventionApi.patch(`bons-travail/${intervention.value.id}/`, { date_cloture: null });
-      await fetch_data();
-    } catch (error) {
-      console.error('Erreur lors de la réouverture du bon de travail:', error);
-    }
+const startIntervention = async () => {
+  if (!intervention.value?.id) return;
+  actionLoading.value = true;
+  try {
+    await api.post(`bons-travail/${intervention.value.id}/demarrer`);
+    successMessage.value = 'Intervention démarrée';
+    showStart.value = false;
+    await fetchData();
+  } catch (error) {
+    errorMessage.value = 'Erreur lors du démarrage de l\'intervention';
+  } finally {
+    actionLoading.value = false;
   }
 };
 
-const close_intervention = async () => {
-  if (confirm('Êtes-vous sûr de vouloir clôturer ce bon de travail ?')) {
-    try {
-      await interventionApi.post(`bons-travail/${intervention.value.id}/cloturer`);
-      router.go(-1);
-    } catch (error) {
-      console.error('Erreur lors de la clôture du bon de travail:', error);
-    }
+const finishIntervention = async () => {
+  if (!intervention.value?.id) return;
+  actionLoading.value = true;
+  try {
+    await api.patch(`bons-travail/${intervention.value.id}/`, {
+      date_fin: new Date().toISOString(),
+      statut: 'TERMINE'
+    });
+    successMessage.value = 'Intervention terminée';
+    showFinish.value = false;
+    await fetchData();
+  } catch (error) {
+    errorMessage.value = 'Erreur lors de la fin de l\'intervention';
+  } finally {
+    actionLoading.value = false;
   }
 };
 
-const download_document = (item) => {
-  const cleanedLink = item.lienDocumentIntervention.startsWith('/media/')
-    ? item.lienDocumentIntervention
-    : `/media/${item.lienDocumentIntervention.split('/media/').pop()}`;
-  const fullUrl = `${BASE_URL}${cleanedLink}`;
+const deleteBonTravail = async () => {
+  if (!intervention.value?.id) return;
+  actionLoading.value = true;
+  try {
+    await api.delete(`bons-travail/${intervention.value.id}/`);
+    successMessage.value = 'Bon de travail supprimé';
+    showDelete.value = false;
+    setTimeout(() => router.push({ name: 'InterventionList' }), 800);
+  } catch (error) {
+    errorMessage.value = 'Erreur lors de la suppression du bon de travail';
+  } finally {
+    actionLoading.value = false;
+  }
+};
+
+const downloadDocument = (item) => {
+  const fullUrl = getDocumentUrl(item);
+  if (!fullUrl) return;
 
   fetch(fullUrl)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.blob();
     })
-    .then(blob => {
+    .then((blob) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = item.nomDocumentIntervention;
+      a.download = item.nomDocumentIntervention || item.titre || item.nomDocument || 'document';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
     })
-    .catch(error => {
-      console.error('Erreur lors du téléchargement:', error);
+    .catch(() => {
       alert('Erreur lors du téléchargement du fichier. Veuillez réessayer.');
     });
 };
 
-const delete_document = async (item) => {
-  if (confirm(`Êtes-vous sûr de vouloir supprimer le document "${item.nomDocumentIntervention}" ?`)) {
-    try {
-      await fetch_data();
-      alert(`Le document "${item.nomDocumentIntervention}" a été supprimé avec succès.`);
-    } catch (error) {
-      console.error('Erreur lors de la suppression du document:', error);
-      alert('Une erreur est survenue lors de la suppression du document.');
-    }
+const getDocumentUrl = (item) => {
+  const raw = item?.lienDocumentIntervention || item?.path || item?.cheminAcces;
+  if (!raw) return null;
+
+  if (typeof raw === 'string' && (raw.startsWith('http://') || raw.startsWith('https://'))) return raw;
+
+  const rawString = String(raw);
+  const cleaned = rawString.startsWith('/media/')
+    ? rawString.slice('/media/'.length)
+    : rawString.replace(/^\/+/, '').split('/media/').pop();
+
+  return `${BASE_URL}/media/${cleaned}`;
+};
+
+const viewDocument = (item) => {
+  const url = getDocumentUrl(item);
+  if (!url) return;
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
+
+const deleteDocument = async (item) => {
+  const name = item?.nomDocumentIntervention || item?.titre || item?.nomDocument || 'ce document';
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer le document "${name}" ?`)) return;
+
+  const documentId = item?.id ?? item?.idDocumentIntervention ?? item?.document_id;
+  if (!documentId) {
+    errorMessage.value = "Impossible de supprimer : ID du document manquant.";
+    return;
+  }
+
+  try {
+    // L'écran d'ajout poste sur 'document-interventions/' : suppression via DELETE /document-interventions/{id}/
+    await api.delete(`document-interventions/${documentId}/`);
+    successMessage.value = 'Document supprimé';
+    await fetchData();
+  } catch (error) {
+    errorMessage.value = 'Erreur lors de la suppression du document';
   }
 };
 
-const toggle_defaillance_details = () => {
-  show_defaillance_details.value = !show_defaillance_details.value;
-};
-
-const toggle_documents_details = () => {
-  show_documents_details.value = !show_documents_details.value;
-};
-
-const add_document = () => {
-  router.push({ name: 'AddDocumentIntervention', params: { id: intervention.value.id } });
-};
-
-onMounted(fetch_data);
+onMounted(fetchData);
 </script>
 
 <style scoped>
+.detail-column {
+  min-width: 0;
+}
+
 .detail-field {
   margin-bottom: 16px;
+  min-width: 0;
+}
+
+.detail-title {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 
 .detail-label {
-  font-weight: 600;
-  color: rgb(var(--v-theme-primary));
   display: block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #666;
   margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .detail-value {
-  color: rgba(0, 0, 0, 0.87);
+  font-size: 1rem;
+  color: #333;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+.text-pre {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  display: block;
+  width: 100%;
+}
+
+.floating-create-button {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
 }
 </style>

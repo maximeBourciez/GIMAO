@@ -72,6 +72,11 @@ export const INTERVENTION_STATUS_COLORS = {
     CLOTURE: "grey",
 };
 
+export const INTERVENTION_TYPE = {
+    PREVENTIF: "Préventif",
+    CORRECTIF: "Correctif",
+};
+
 // ============================================
 // HEADERS DE TABLEAUX
 // ============================================

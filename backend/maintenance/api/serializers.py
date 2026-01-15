@@ -167,7 +167,7 @@ class BonTravailSerializer(serializers.ModelSerializer):
 
 class BonTravailDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour BonTravail"""
-    demande_intervention = DemandeInterventionSerializer(read_only=True)
+    demande_intervention = DemandeInterventionDetailSerializer(read_only=True)
     responsable = UtilisateurSimpleSerializer(read_only=True)
     utilisateur_assigne = UtilisateurSimpleSerializer(many=True, read_only=True)
     

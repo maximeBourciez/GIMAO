@@ -62,8 +62,7 @@ class BonTravail(models.Model):
     
     TYPE_CHOICES = [
         ('CORRECTIF', 'Correctif'),
-        ('PREVENTIF', 'Préventif'),
-        ('AMELIORATIF', 'Amélioratif'),
+        ('PREVENTIF', 'Préventif')
     ]
     
     nom = models.CharField(max_length=255)
