@@ -154,6 +154,16 @@ export const BREADCRUMBS = {
         },
     ],
 
+    AfficherUser: (route) => [
+        {
+            label: "Gestion des comptes",
+            to: { name: "AccountManagement" },
+        },
+        {
+            label: `Utilisateur #${route.params.id}`,
+        },
+    ],
+
     /***************************************
      * Gestion des données
      **************************************/
