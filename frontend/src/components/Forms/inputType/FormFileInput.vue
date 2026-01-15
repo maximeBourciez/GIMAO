@@ -3,7 +3,7 @@
     <label v-if="label" class="field-label">{{ label }}</label>
     <v-file-input
       :model-value="modelValue"
-      @update:model-value="$emit('update:modelValue', $event)"
+      @update:model-value="handleFileChange"
       :placeholder="placeholder"
       :accept="accept"
       :multiple="multiple"
@@ -28,15 +28,29 @@
         <slot name="selection"></slot>
       </template>
     </v-file-input>
+
+    <!-- Prévisualisation de l'image -->
+    <v-card v-if="previewUrl" class="mt-3" elevation="2" max-width="300">
+      <v-img :src="previewUrl" aspect-ratio="16/9" cover>
+        <template #placeholder>
+          <v-row class="fill-height ma-0" align="center" justify="center">
+            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+          </v-row>
+        </template>
+      </v-img>
+      <v-card-subtitle class="text-caption">Aperçu de l'image</v-card-subtitle>
+    </v-card>
   </div>
 </template>
 
 <script setup>
+import { ref, watch, onBeforeUnmount } from 'vue';
+
 defineOptions({
   inheritAttrs: false
 });
 
-defineProps({
+const props = defineProps({
   modelValue: {
     type: [File, Array],
     default: null
@@ -107,7 +121,52 @@ defineProps({
   }
 });
 
-defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue']);
+
+const previewUrl = ref(null);
+
+const isImageFile = (file) => {
+  if (!file) return false;
+  return file.type && file.type.startsWith('image/');
+};
+
+const createPreview = (file) => {
+  // Nettoyer l'ancienne URL si elle existe
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value);
+    previewUrl.value = null;
+  }
+
+  // Créer une nouvelle URL de prévisualisation pour les images
+  if (file && isImageFile(file)) {
+    previewUrl.value = URL.createObjectURL(file);
+  }
+};
+
+const handleFileChange = (file) => {
+  emit('update:modelValue', file);
+  createPreview(file);
+};
+
+// Watcher pour gérer les changements de fichier externes
+watch(() => props.modelValue, (newFile) => {
+  if (!newFile) {
+    // Si le fichier est supprimé, nettoyer la prévisualisation
+    if (previewUrl.value) {
+      URL.revokeObjectURL(previewUrl.value);
+      previewUrl.value = null;
+    }
+  } else if (newFile instanceof File) {
+    createPreview(newFile);
+  }
+});
+
+// Nettoyer l'URL lors de la destruction du composant
+onBeforeUnmount(() => {
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value);
+  }
+});
 </script>
 
 <style scoped>
