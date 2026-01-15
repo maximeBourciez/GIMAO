@@ -138,13 +138,13 @@ onMounted(() => {
 
 const goToAfficherUser = (id) => {
   router.push({
-    name: 'AfficherUser',
+    name: 'UserDetail',
     params: { id },
   });
 };
 
 const goToCreerUser = () => {
-  router.push({ name: 'CreerUser' });
+  router.push({ name: 'CreateUser' });
 };
 </script>
 

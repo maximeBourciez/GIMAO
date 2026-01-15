@@ -230,7 +230,7 @@ const handleSubmit = async () => {
 
 		successMessage.value = 'Utilisateur modifié avec succès.';
 		setTimeout(() => {
-			router.push({ name: 'AfficherUser', params: { id: userId } });
+			router.push({ name: 'UserDetail', params: { id: userId } });
 		}, 800);
 	} catch (e) {
 		console.error('Error updating user:', e);
@@ -314,10 +314,10 @@ const handlePasswordUpdate = async () => {
 
 const goBack = () => {
 	if (!userId) {
-		router.push({ name: 'AccountManagement' });
+		router.push({ name: 'UserList' });
 		return;
 	}
-	router.push({ name: 'AfficherUser', params: { id: userId } });
+	router.push({ name: 'UserDetail', params: { id: userId } });
 };
 
 onMounted(async () => {

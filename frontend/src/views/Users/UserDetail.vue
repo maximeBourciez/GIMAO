@@ -201,7 +201,7 @@ const editUser = () => {
 	}
 
 	router.push({
-		name: 'ModifierUser',
+		name: 'EditUser',
 		params: { id: userId },
 	});
 };

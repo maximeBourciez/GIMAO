@@ -140,9 +140,9 @@ const handleSubmit = async () => {
 		successMessage.value = 'Utilisateur créé avec succès.';
 		setTimeout(() => {
 			if (created?.id) {
-				router.push({ name: 'AfficherUser', params: { id: created.id } });
+				router.push({ name: 'UserDetail', params: { id: created.id } });
 			} else {
-				router.push({ name: 'AccountManagement' });
+				router.push({ name: 'UserList' });
 			}
 		}, 800);
 	} catch (e) {
@@ -154,7 +154,7 @@ const handleSubmit = async () => {
 };
 
 const goBack = () => {
-	router.push({ name: 'AccountManagement' });
+	router.push({ name: 'UserList' });
 };
 
 onMounted(() => {
