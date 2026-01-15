@@ -74,7 +74,8 @@
               <v-card-text v-show="showEquipmentDetails" v-if="data.equipement">
                 <div class="detail-field" v-for="(value, key) in formattedEquipmentLabel" :key="key">
                   <label class="detail-label">{{ key }}</label>
-                  <div class="detail-value">{{ value }}</div>
+                  <div v-if="key !== 'Statut'" class="detail-value">{{ value }}</div>
+                  <v-chip v-else :color="getStatusColor(value)" variant="tonal">{{ getStatusLabel(value) }}</v-chip>
                 </div>
               </v-card-text>
             </v-expand-transition>
@@ -100,7 +101,7 @@
                 <v-data-table :headers="documentHeaders" :items="data.documentsDI || []"
                   class="elevation-1" hide-default-footer :items-per-page="-1">
                   <template #item.name="{ item }">
-                    {{ item.nomDocument }}
+                    {{ item.titre }}
                   </template>
                   <template #item.actions="{ item }">
                     <v-btn icon size="small" :color="'primary'" class="mr-2"
@@ -153,7 +154,7 @@
     @cancel="showRejectModal = false"
   />
 
-  <!-- Modale de confirmation pour rejeter la demande -->
+  <!-- Modale de confirmation pour transformer la demande -->
   <ConfirmationModal
     v-model="showCreateInterventionModal"
     type="success"
@@ -166,6 +167,22 @@
     @confirm="handleCreateIntervention()"
     @cancel="showCreateInterventionModal = false"
   />
+
+  <!-- Bouton modifier -->
+  <v-btn
+    v-if="canEditFailure"
+    color="primary"
+    size="large"
+    icon
+    class="floating-edit-button"
+    elevation="4"
+    @click="editCurrentFailure()"
+  >
+    <v-icon size="large">mdi-pencil</v-icon>
+    <v-tooltip activator="parent" location="left">
+      Modifier la demande
+    </v-tooltip>
+  </v-btn>
 </template>
 
 <script setup>
@@ -174,8 +191,9 @@ import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
+import { API_BASE_URL, MEDIA_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
 import { useStore } from 'vuex';
+import { getStatusColor, getStatusLabel } from '@/utils/helpers';
 
 const store = useStore();
 const router = useRouter();
@@ -183,6 +201,10 @@ const route = useRoute();
 const failureApi = useApi(API_BASE_URL);
 const equipmentApi = useApi(API_BASE_URL);
 const patchApi = useApi(API_BASE_URL);
+
+// Récupération de l'utilisateur connecté
+const currentUser = computed(() => store.getters.currentUser);
+const userRole = computed(() => store.getters.userRole);
 
 const defaillance = ref(null);
 const loading = ref(false);
@@ -219,14 +241,22 @@ const canClose = computed(() => FAILURE_STATUS[ defaillance.value?.statut] === F
 const canCreateIntervention = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE);
 
+// Permission de modification: rôle "Opérateur" OU créateur de la demande
+const canEditFailure = computed(() => {
+  if (!currentUser.value || !defaillance.value) return false;
+  const isOperateur = userRole.value === 'Opérateur';
+  const isCreator = defaillance.value.utilisateur?.id === currentUser.value.id;
+  return isOperateur || isCreator;
+});
+
 const formattedEquipmentLabel = computed(() => {
   if (!defaillance.value?.equipement) return {};
   const eq = defaillance.value.equipement;
   return {
     'Référence': eq.reference || 'Non spécifié',
     'Désignation': eq.designation || 'Non spécifié',
-    'Lieu': eq.lieu?.nomLieu || 'Non spécifié',
-    'Statut': eq.dernier_statut?.statutEquipement || 'Non spécifié'
+    'Lieu': eq.lieu || 'Non spécifié',
+    'Statut': eq.dernier_statut?.statut || 'Non spécifié'
   };
 });
 
@@ -353,13 +383,13 @@ const toggleActionMode = () => {
 
 const downloadDocument = async (item) => {
   try {
-    const response = await fetch(`${item.cheminAcces}`);
+    const response = await fetch(`${MEDIA_BASE_URL}${item.path}`);
     const blob = await response.blob(); 
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    a.download = item.cheminAcces.split('/').pop();
+    a.download = item.path.split('/').pop();
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -371,15 +401,26 @@ const downloadDocument = async (item) => {
 };
 
 const deleteDocument = async (item) => {
-  if (confirm(`Êtes-vous sûr de vouloir supprimer le document "${item.nomDocumentDefaillance}" ?`)) {
+  if (confirm(`Êtes-vous sûr de vouloir supprimer le document "${item.titre}" ?`)) {
     try {
-      // TODO: Implémenter l'API de suppression de document
+      console.log("kawabunga");
+      const response = await failureApi.patch(`demandes-intervention/${route.params.id}/delink_document/`, {
+        document_id: item.id
+      });
+      console.log(response);
       await fetchData();
       successMessage.value = 'Document supprimé';
     } catch (error) {
       errorMessage.value = 'Erreur lors de la suppression du document';
     }
   }
+};
+
+const editCurrentFailure = () => {
+  router.push({
+    name: 'EditFailure',
+    params: { id: route.params.id },
+  });
 };
 
 onMounted(() => {
@@ -407,5 +448,15 @@ onMounted(() => {
   color: #333;
   padding: 8px 0;
   border-bottom: 1px solid #e0e0e0;
+}
+
+/*****************
+  Bouton flottant
+*****************/
+.floating-edit-button {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
 }
 </style>
