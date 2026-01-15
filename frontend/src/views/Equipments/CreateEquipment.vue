@@ -80,7 +80,17 @@
                 <!-- Étape 5: Consommables -->
                 <v-stepper-window-item :value="5">
                   <v-select v-model="formData.consommables" :items="consumables" item-title="designation"
-                    item-value="id" multiple chips label="Consommables" />
+                    item-value="id" multiple chips label="Consommables">
+                    <template #append-item>
+                      <v-divider />
+                      <v-list-item @click="showConsommableDialog = true">
+                        <template #prepend>
+                          <v-icon color="primary">mdi-plus</v-icon>
+                        </template>
+                        <v-list-item-title>Ajouter un consommable</v-list-item-title>
+                      </v-list-item>
+                    </template>
+                  </v-select>
                 </v-stepper-window-item>
 
                 <!-- Étape 6: Compteurs -->
@@ -210,6 +220,14 @@
         </v-card-text>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="showConsommableDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <ConsommableForm :magasins="magasins" @created="handleConsommableCreated" @close="showConsommableDialog = false" @magasin-created="handleMagasinCreated" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
@@ -225,6 +243,7 @@ import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
 import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue';
 import LieuForm from '@/components/Forms/LieuForm.vue';
+import ConsommableForm from '@/components/Forms/ConsommableForm.vue';
 
 const {
   formData,
@@ -271,6 +290,8 @@ const showCounterForm = ref(true);
 const editingCounterIndex = ref(-1);
 const showLieuDialog = ref(false);
 const selectedParentLieuId = ref(null);
+const showConsommableDialog = ref(false);
+const magasins = ref([]);
 
 //Règles de validation par étape
 const validationSchema = {
@@ -492,8 +513,36 @@ const handleLieuCreated = async (newLieu) => {
   showLieuDialog.value = false;
 };
 
+const handleConsommableCreated = async (newConsommable) => {
+  console.log('Nouveau consommable créé:', newConsommable);
+  // Rafraîchir la liste des consommables
+  await fetchData();
+  // Ajouter le consommable à la sélection
+  if (!formData.value.consommables.includes(newConsommable.id)) {
+    formData.value.consommables.push(newConsommable.id);
+  }
+  // Fermer la dialog
+  showConsommableDialog.value = false;
+};
+
+const handleMagasinCreated = async (newMagasin) => {
+  console.log('Nouveau magasin créé:', newMagasin);
+  // Rafraîchir la liste des magasins
+  await fetchMagasins();
+};
+
+const fetchMagasins = async () => {
+  try {
+    const data = await api.get('magasins/');
+    magasins.value = data;
+  } catch (error) {
+    console.error('Erreur lors du chargement des magasins:', error);
+  }
+};
+
 onMounted(async () => {
-  await fetchData()
+  await fetchData();
+  await fetchMagasins();
 });
 </script>
 
