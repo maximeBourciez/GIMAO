@@ -236,7 +236,19 @@
                     hide-default-footer
                     :items-per-page="-1"
                   >
+                    <template #item.nomDocumentIntervention="{ item }">
+                      {{ item.nomDocumentIntervention || item.titre || item.nomDocument || 'Document' }}
+                    </template>
                     <template #item.actions="{ item }">
+                      <v-btn
+                        icon
+                        size="small"
+                        color="info"
+                        class="mr-1"
+                        @click="viewDocument(item)"
+                      >
+                        <v-icon size="small">mdi-eye</v-icon>
+                      </v-btn>
                       <v-btn
                         icon
                         size="small"
@@ -559,10 +571,8 @@ const deleteBonTravail = async () => {
 };
 
 const downloadDocument = (item) => {
-  const link = item?.lienDocumentIntervention;
-  if (!link) return;
-  const cleanedLink = link.startsWith('/media/') ? link : `/media/${link.split('/media/').pop()}`;
-  const fullUrl = `${BASE_URL}${cleanedLink}`;
+  const fullUrl = getDocumentUrl(item);
+  if (!fullUrl) return;
 
   fetch(fullUrl)
     .then((response) => {
@@ -574,7 +584,7 @@ const downloadDocument = (item) => {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = item.nomDocumentIntervention || 'document';
+      a.download = item.nomDocumentIntervention || item.titre || item.nomDocument || 'document';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -584,10 +594,44 @@ const downloadDocument = (item) => {
     });
 };
 
+const getDocumentUrl = (item) => {
+  const raw = item?.lienDocumentIntervention || item?.path || item?.cheminAcces;
+  if (!raw) return null;
+
+  if (typeof raw === 'string' && (raw.startsWith('http://') || raw.startsWith('https://'))) return raw;
+
+  const rawString = String(raw);
+  const cleaned = rawString.startsWith('/media/')
+    ? rawString.slice('/media/'.length)
+    : rawString.replace(/^\/+/, '').split('/media/').pop();
+
+  return `${BASE_URL}/media/${cleaned}`;
+};
+
+const viewDocument = (item) => {
+  const url = getDocumentUrl(item);
+  if (!url) return;
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
+
 const deleteDocument = async (item) => {
-  if (!confirm(`Êtes-vous sûr de vouloir supprimer le document "${item.nomDocumentIntervention}" ?`)) return;
-  // TODO: impl API suppression document
-  await fetchData();
+  const name = item?.nomDocumentIntervention || item?.titre || item?.nomDocument || 'ce document';
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer le document "${name}" ?`)) return;
+
+  const documentId = item?.id ?? item?.idDocumentIntervention ?? item?.document_id;
+  if (!documentId) {
+    errorMessage.value = "Impossible de supprimer : ID du document manquant.";
+    return;
+  }
+
+  try {
+    // L'écran d'ajout poste sur 'document-interventions/' : suppression via DELETE /document-interventions/{id}/
+    await api.delete(`document-interventions/${documentId}/`);
+    successMessage.value = 'Document supprimé';
+    await fetchData();
+  } catch (error) {
+    errorMessage.value = 'Erreur lors de la suppression du document';
+  }
 };
 
 onMounted(fetchData);
