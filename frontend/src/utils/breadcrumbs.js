@@ -134,6 +134,33 @@ export const BREADCRUMBS = {
         },
     ],
 
+    CreateFailure: (route) => [
+        {
+            label: "Demandes d'intervention",
+            to: { name: "FailureList" },
+        },
+        {
+            label: `Créer`,
+        },
+    ],
+
+    EditFailure: (route) => [
+        {
+            label: "Demandes d'intervention",
+            to: { name: "FailureList" },
+        },
+        {
+            label: `Demande d'intervention #${route.params.id}`,
+            to: {
+                name: "FailureDetail",
+                params: { id: route.params.id },
+            },
+        },
+        {
+            label: `Modifier`,
+        },
+    ],
+
     /***************************************
      * Magasin
      **************************************/
@@ -311,7 +338,7 @@ export const BREADCRUMBS = {
         },
     ],
 
-    EditManufacturer: (route) => [  
+    EditManufacturer: (route) => [
         {
             label: "Gestion des données",
             to: { name: "DataManagement" },
