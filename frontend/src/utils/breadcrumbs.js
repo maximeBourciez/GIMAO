@@ -147,10 +147,44 @@ export const BREADCRUMBS = {
     /***************************************
      * Gestion des comptes
      **************************************/
-    AccountManagement: (route) => [
+    UserList: (route) => [
         {
             label: "Gestion des comptes",
-            to: { name: "AccountManagement" },
+            to: { name: "UserList" },
+        },
+    ],
+
+    CreateUser: (route) => [
+        {
+            label: "Gestion des comptes",
+            to: { name: "UserList" },
+        },
+        {
+            label: "Créer un utilisateur",
+        },
+    ],
+
+    UserDetail: (route) => [
+        {
+            label: "Gestion des comptes",
+            to: { name: "UserList" },
+        },
+        {
+            label: `Utilisateur #${route.params.id}`,
+        },
+    ],
+
+    EditUser: (route) => [
+        {
+            label: "Gestion des comptes",
+            to: { name: "UserList" },
+        },
+        {
+            label: `Utilisateur #${route.params.id}`,
+            to: { name: "UserDetail", params: { id: route.params.id } },
+        },
+        {
+            label: "Modifier",
         },
     ],
 

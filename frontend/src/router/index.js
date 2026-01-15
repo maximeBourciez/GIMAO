@@ -10,7 +10,10 @@ import Dashboard from '@/views/Dashboard/Dashboard.vue'
 import EquipmentList from '@/views/Equipments/EquipmentList.vue'
 import InterventionList from '@/views/Interventions/InterventionList.vue'
 import Technicians from '@/views/Technicians/Technicians.vue'
-import AccountManagement from '@/views/AccountManagement/AccountManagement.vue'
+import AccountManagement from '@/views/Users/UserList.vue'
+import AfficherUser from '@/views/Users/UserDetail.vue'
+import ModifierUser from '@/views/Users/EditUser.vue'
+import CreerUser from '@/views/Users/CreateUser.vue'
 import Orders from '@/views/Orders/Orders.vue'
 import Stocks from '@/views/Stocks/Stocks.vue'
 import FailureList from '@/views/Failures/FailureList.vue'
@@ -88,10 +91,33 @@ const routes = [
   },
 
   {
-    path: '/AccountManagement',
-    name: 'AccountManagement',
+    path: '/UserList',
+    name: 'UserList',
     component: AccountManagement,
     meta: { title: 'Gestion des Comptes' }
+  },
+
+  {
+    path: '/UserDetail/:id',
+    name: 'UserDetail',
+    component: AfficherUser,
+    props: true,
+    meta: { title: 'Afficher un utilisateur' }
+  },
+
+  {
+    path: '/EditUser/:id',
+    name: 'EditUser',
+    component: ModifierUser,
+    props: true,
+    meta: { title: 'Modifier un utilisateur' }
+  },
+
+  {
+    path: '/CreateUser',
+    name: 'CreateUser',
+    component: CreerUser,
+    meta: { title: 'Créer un utilisateur' }
   },
 
   {
