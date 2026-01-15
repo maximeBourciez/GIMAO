@@ -14,15 +14,16 @@
                 <v-col cols="12">
                 <FormField
                     v-model="formData.nom"
-                    name="nom"
+                    field-name="nom"
                     label="Nom de la famille"
+                    placeholder="Saisir le nom de la famille"
                 />
             </v-col>
 
             <v-col cols="12">
                 <FormSelect
                     v-model="formData.parent"
-                    name="parent"
+                    field-name="parent"
                     label="Famille parente (optionnel)"
                     :items="families"
                     item-title="nom"

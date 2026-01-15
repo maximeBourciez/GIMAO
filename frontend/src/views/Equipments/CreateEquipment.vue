@@ -27,7 +27,11 @@
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="1" :show-location="false"
                     :show-status="false" :show-consommables="false" :show-counters="false" :show-general="true"
                     :show-model-info="false" @file-upload="handleFileUpload"
-                    @location-created="handleLocationCreated" />
+                    @location-created="handleLocationCreated" 
+                    @open-modele-dialog="showModeleDialog = true"
+                    @open-fournisseur-dialog="showFournisseurDialog = true"
+                    @open-fabricant-dialog="showFabricantDialog = true"
+                    @open-famille-dialog="showFamilleDialog = true" />
                 </v-stepper-window-item>
 
                 <!-- Étape 2: Fournisseur et Fabricant -->
@@ -36,7 +40,11 @@
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="2" :show-location="false"
                     :show-status="false" :show-consommables="false" :show-counters="false" :show-general="false"
-                    :show-model-info="true" @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    :show-model-info="true" @file-upload="handleFileUpload" @location-created="handleLocationCreated" 
+                    @open-modele-dialog="showModeleDialog = true"
+                    @open-fournisseur-dialog="showFournisseurDialog = true"
+                    @open-fabricant-dialog="showFabricantDialog = true"
+                    @open-famille-dialog="showFamilleDialog = true" />
                 </v-stepper-window-item>
 
                 <!-- Étape 3: Localisation -->
@@ -45,7 +53,11 @@
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="3" :show-status="false"
                     :show-consommables="false" :show-counters="false" :show-general="false" :show-model-info="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" 
+                    @open-modele-dialog="showModeleDialog = true"
+                    @open-fournisseur-dialog="showFournisseurDialog = true"
+                    @open-fabricant-dialog="showFabricantDialog = true"
+                    @open-famille-dialog="showFamilleDialog = true" />
                 </v-stepper-window-item>
 
                 <!-- Étape 4: Statut -->
@@ -54,7 +66,11 @@
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="4" :show-location="false"
                     :show-consommables="false" :show-counters="false" :show-general="false" :show-model-info="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" 
+                    @open-modele-dialog="showModeleDialog = true"
+                    @open-fournisseur-dialog="showFournisseurDialog = true"
+                    @open-fabricant-dialog="showFabricantDialog = true"
+                    @open-famille-dialog="showFamilleDialog = true" />
                 </v-stepper-window-item>
 
                 <!-- Étape 5: Consommables -->
@@ -150,21 +166,37 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="showFabricantDialog" max-width="80%">
-      <FabricantForm @created="handleFabricantCreated" @close="showFabricantDialog = false" />
+    <v-dialog v-model="showFabricantDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <FabricantForm @created="handleFabricantCreated" @close="showFabricantDialog = false" />
+        </v-card-text>
+      </v-card>
     </v-dialog>
 
-    <v-dialog v-model="showFournisseurDialog" max-width="80%">
-      <FournisseurForm @created="handleFournisseurCreated" @close="showFournisseurDialog = false" />
+    <v-dialog v-model="showFournisseurDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <FournisseurForm @created="handleFournisseurCreated" @close="showFournisseurDialog = false" />
+        </v-card-text>
+      </v-card>
     </v-dialog>
 
-    <v-dialog v-model="showModeleDialog" max-width="80%">
-      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="showModeleDialog = false"
-        @fabricant-created="handleFabricantCreated" />
+    <v-dialog v-model="showModeleDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="showModeleDialog = false"
+            @fabricant-created="handleFabricantCreated" />
+        </v-card-text>
+      </v-card>
     </v-dialog>
 
-    <v-dialog v-model="showFamilleDialog" max-width="50%">
-      <FamilleEquipementForm :families="familles" @created="handleFamilleCreated" @close="showFamilleDialog = false" />
+    <v-dialog v-model="showFamilleDialog" max-width="500" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <FamilleEquipementForm :families="familles" @created="handleFamilleCreated" @close="showFamilleDialog = false" />
+        </v-card-text>
+      </v-card>
     </v-dialog>
   </v-app>
 </template>

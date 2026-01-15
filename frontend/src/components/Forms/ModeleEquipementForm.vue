@@ -15,8 +15,9 @@
                 <v-col cols="12">
                     <FormField
                         v-model="formData.nom"
-                        name="nom"
+                        field-name="nom"
                         label="Nom du modèle"
+                        placeholder="Saisir le nom du modèle"
                     />
                 </v-col>
 
@@ -24,7 +25,7 @@
                 <v-col cols="12">
                     <FormSelect
                         v-model="formData.fabricant"
-                        name="fabricant"
+                        field-name="fabricant"
                         label="Fabricant"
                         :items="fabricants"
                         item-title="nom"
@@ -100,7 +101,7 @@ const save = async () => {
 
     const payload = {
         nom: formData.value.nom,
-        fabricant: formData.value.fabricant.id
+        fabricant: formData.value.fabricant?.id || formData.value.fabricant
     }
 
     console.log('payload : ', payload)
@@ -110,7 +111,7 @@ const save = async () => {
         const modeleCreated = {
             id: response.id,
             nom: formData.value.nom,
-            fabricant: formData.value.fabricant.id
+            fabricant: formData.value.fabricant?.id || formData.value.fabricant
         }
         console.log('Modele transmis : ', modeleCreated)
         successMessage.value = 'Modèle créé avec succès'

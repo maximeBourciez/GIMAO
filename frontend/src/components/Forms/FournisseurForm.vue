@@ -18,14 +18,14 @@
             <v-col cols="12" md="6">
                 <FormField
                     v-model="formData.nom"
-                    name="nom"
+                    field-name="nom"
                     label="Nom du fournisseur"
                 />
             </v-col>
             <v-col cols="12" md="6">
                 <FormField
                     v-model="formData.email"
-                    name="email"
+                    field-name="email"
                     label="Email"
                     type="email"
                 />
@@ -36,14 +36,14 @@
             <v-col cols="6">
                 <FormField
                     v-model="formData.numTelephone"
-                    name="numTelephone"
+                    field-name="numTelephone"
                     label="Téléphone"
                 />
             </v-col>
             <v-col cols="6" class="d-flex align-center">
                 <FormCheckbox
                     v-model="formData.serviceApresVente"
-                    name="serviceApresVente"
+                    field-name="serviceApresVente"
                     label="Service après-vente"
                 />
             </v-col>
@@ -59,14 +59,14 @@
             <v-col cols="4">
                 <FormField
                     v-model="formData.adresse.numero"
-                    name="adresse.numero"
+                    field-name="adresse.numero"
                     label="N°"
                 />
             </v-col>
             <v-col cols="8">
                 <FormField
                     v-model="formData.adresse.rue"
-                    name="adresse.rue"
+                    field-name="adresse.rue"
                     label="Rue"
                 />
             </v-col>
@@ -76,14 +76,14 @@
             <v-col cols="6">
                 <FormField
                     v-model="formData.adresse.ville"
-                    name="adresse.ville"
+                    field-name="adresse.ville"
                     label="Ville"
                 />
             </v-col>
             <v-col cols="6">
                 <FormField
                     v-model="formData.adresse.code_postal"
-                    name="adresse.code_postal"
+                    field-name="adresse.code_postal"
                     label="Code postal"
                 />
             </v-col>
@@ -93,7 +93,7 @@
             <v-col cols="12">
                 <FormField
                     v-model="formData.adresse.pays"
-                    name="adresse.pays"
+                    field-name="adresse.pays"
                     label="Pays"
                 />
             </v-col>
@@ -103,7 +103,7 @@
             <v-col cols="12">
                 <FormField
                     v-model="formData.adresse.complement"
-                    name="adresse.complement"
+                    field-name="adresse.complement"
                     label="Complément"
                 />
             </v-col>
