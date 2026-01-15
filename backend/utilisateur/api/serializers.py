@@ -118,11 +118,23 @@ class UtilisateurDetailSerializer(serializers.ModelSerializer):
     
     def get_avoirs(self, obj):
         """Retourne les rôles supplémentaires de l'utilisateur"""
-        avoirs = obj.avoirs.prefetch_related('roles').all()
-        return [{
-            'id': avoir.id,
-            'roles': [{'id': r.id, 'nomRole': r.nomRole} for r in avoir.roles.all()]
-        } for avoir in avoirs]
+        # Certains schémas n'ont pas de relation "avoirs" sur Utilisateur.
+        # On sécurise pour éviter un 500 sur l'endpoint retrieve.
+        if not hasattr(obj, 'avoirs'):
+            return []
+
+        try:
+            avoirs = obj.avoirs.prefetch_related('roles').all()
+        except Exception:
+            return []
+
+        return [
+            {
+                'id': avoir.id,
+                'roles': [{'id': r.id, 'nomRole': r.nomRole} for r in avoir.roles.all()],
+            }
+            for avoir in avoirs
+        ]
 
 
 class UtilisateurSimpleSerializer(serializers.ModelSerializer):

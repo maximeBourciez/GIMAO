@@ -10,6 +10,7 @@
     no-data-icon="mdi-account-off"
     :internal-search="true"
     @clear-error="errorMessage = ''"
+    @row-click="goToAfficherUser($event.id)"
   >
     <template #before-table>
       <v-card elevation="1" class="rounded-lg pa-3 mb-4">
@@ -43,9 +44,11 @@ import BaseListView from '@/components/common/BaseListView.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
+import { useRouter } from 'vue-router';
 
 // Données
 const title = 'Gestion des comptes';
+const router = useRouter();
 
 // Headers Vuetify 3 (même format que dans TABLE_HEADERS)
 const headers = [
@@ -89,6 +92,7 @@ const loadData = async () => {
 
   if (usersResult.status === 'fulfilled' && Array.isArray(usersResult.value)) {
     users.value = usersResult.value.map((u) => ({
+      id: u?.id,
       nom: `${u?.prenom ?? ''} ${u?.nomFamille ?? ''}`.trim() || '-',
       role: u?.role?.nomRole || u?.role || '-',
     }));
@@ -115,6 +119,13 @@ const loadData = async () => {
 onMounted(() => {
   loadData();
 });
+
+const goToAfficherUser = (id) => {
+  router.push({
+    name: 'AfficherUser',
+    params: { id },
+  });
+};
 </script>
 
 <style scoped>
