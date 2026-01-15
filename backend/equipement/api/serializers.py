@@ -2,6 +2,7 @@ from rest_framework import serializers
 from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEquipement, Compteur, FamilleEquipement
 from donnees.api.serializers import LieuSerializer, FabricantSimpleSerializer, FournisseurSimpleSerializer
 from maintenance.models import DemandeIntervention, BonTravail
+from stock.models import PorterSur
 
 from maintenance.api.serializers import PlanMaintenanceDetailSerializer
 
@@ -235,15 +236,23 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         ]
 
     def get_consommables(self, obj):
+        # Récupère tous les consommables liés à cet équipement
         relations = Constituer.objects.filter(equipement=obj).select_related('consommable')
-        return [
-            {
-                'id': r.consommable.id,
-                'designation': r.consommable.designation,
-                'fabricant': r.consommable.fabricant.nom if hasattr(r.consommable, 'fabricant') and r.consommable.fabricant else None,
-            }
-            for r in relations
-        ]
+        
+        consommables_list = []
+        for r in relations:
+            consommable = r.consommable
+            
+            fabricant = consommable.fournitures.values_list('fabricant__nom', flat=True).first()
+            
+            consommables_list.append({
+                'id': consommable.id,
+                'designation': consommable.designation,
+                'fabricant': fabricant if fabricant else None
+            })
+        
+        return consommables_list
+
 
     def get_bons_travail(self, obj):
         bons = BonTravail.objects.filter(
