@@ -104,6 +104,33 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(demande)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['patch'])
+    def delink_document(self, request, pk=None):
+        demande = self.get_object()
+        document_id = request.data.get('document_id')
+        
+        if not document_id:
+            document_id = request.query_params.get('document_id')
+            
+        if not document_id:
+            return Response(
+                {'error': 'Le paramètre document_id est requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Vérification si le document est bien lié à la demande
+        if not demande.documents.filter(id=document_id).exists():
+            return Response(
+                {'error': 'Ce document n\'est pas lié à cette demande'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        demande.documents.remove(document_id)
+        
+        # On utilise le serializer détaillé pour renvoyer la liste des documents mise à jour
+        serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def transform_to_bon_travail(self, request, *args, **kwargs):

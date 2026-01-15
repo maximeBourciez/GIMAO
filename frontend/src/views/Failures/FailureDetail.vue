@@ -403,7 +403,11 @@ const downloadDocument = async (item) => {
 const deleteDocument = async (item) => {
   if (confirm(`Êtes-vous sûr de vouloir supprimer le document "${item.titre}" ?`)) {
     try {
-      // TODO: Implémenter l'API de suppression de document
+      console.log("kawabunga");
+      const response = await failureApi.patch(`demandes-intervention/${route.params.id}/delink_document/`, {
+        document_id: item.id
+      });
+      console.log(response);
       await fetchData();
       successMessage.value = 'Document supprimé';
     } catch (error) {
