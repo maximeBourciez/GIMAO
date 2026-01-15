@@ -45,13 +45,15 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création d'utilisateur avec mot de passe"""
     motDePasse = serializers.CharField(
         write_only=True,
-        required=True,
+        required=False,
+        allow_blank=True,
         style={'input_type': 'password'},
         min_length=8
     )
     motDePasse_confirmation = serializers.CharField(
         write_only=True,
-        required=True,
+        required=False,
+        allow_blank=True,
         style={'input_type': 'password'}
     )
     
@@ -71,7 +73,20 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """Vérifie que les mots de passe correspondent"""
-        if data.get('motDePasse') != data.get('motDePasse_confirmation'):
+        mot_de_passe = data.get('motDePasse')
+        confirmation = data.get('motDePasse_confirmation')
+
+        # Si aucun mot de passe n'est fourni, on autorise la création sans mot de passe.
+        if mot_de_passe in (None, '') and confirmation in (None, ''):
+            return data
+
+        # Si l'un des deux est fourni, on exige les deux + égalité.
+        if mot_de_passe in (None, '') or confirmation in (None, ''):
+            raise serializers.ValidationError({
+                'motDePasse_confirmation': 'Confirmation du mot de passe requise'
+            })
+
+        if mot_de_passe != confirmation:
             raise serializers.ValidationError({
                 'motDePasse_confirmation': 'Les mots de passe ne correspondent pas'
             })
@@ -79,8 +94,13 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """Crée un utilisateur avec un mot de passe hashé"""
-        validated_data.pop('motDePasse_confirmation')
-        validated_data['motDePasse'] = make_password(validated_data['motDePasse'])
+        validated_data.pop('motDePasse_confirmation', None)
+
+        mot_de_passe = validated_data.get('motDePasse')
+        if mot_de_passe in (None, ''):
+            validated_data['motDePasse'] = None
+        else:
+            validated_data['motDePasse'] = make_password(mot_de_passe)
         return super().create(validated_data)
 
 

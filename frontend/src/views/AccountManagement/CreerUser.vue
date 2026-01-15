@@ -71,28 +71,6 @@
 					<v-col cols="12" md="6" class="d-flex align-center">
 						<v-checkbox v-model="form.actif" label="Compte actif" dense />
 					</v-col>
-
-					<v-col cols="12" md="6">
-						<v-text-field
-							v-model="form.motDePasse"
-							label="Mot de passe *"
-							type="password"
-							outlined
-							dense
-							:rules="[(v) => (!!v && v.length >= 8) || '8 caractères minimum']"
-						/>
-					</v-col>
-
-					<v-col cols="12" md="6">
-						<v-text-field
-							v-model="form.motDePasse_confirmation"
-							label="Confirmation mot de passe *"
-							type="password"
-							outlined
-							dense
-							:rules="[(v) => v === form.motDePasse || 'Les mots de passe ne correspondent pas']"
-						/>
-					</v-col>
 				</v-row>
 			</v-sheet>
 		</template>
@@ -122,8 +100,6 @@ const form = ref({
 	email: '',
 	actif: true,
 	role: null,
-	motDePasse: '',
-	motDePasse_confirmation: '',
 });
 
 const roleOptions = computed(() =>
@@ -159,8 +135,6 @@ const handleSubmit = async () => {
 			email: form.value.email,
 			actif: form.value.actif,
 			role: form.value.role,
-			motDePasse: form.value.motDePasse,
-			motDePasse_confirmation: form.value.motDePasse_confirmation,
 		});
 
 		successMessage.value = 'Utilisateur créé avec succès.';
