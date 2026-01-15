@@ -60,51 +60,6 @@
 					<strong>Date de création</strong>
 					<div>{{ formatDateTime(data.dateCreation) }}</div>
 				</v-col>
-
-				<!-- Rôles supplémentaires -->
-				<v-col cols="12" class="mt-4">
-					<h3 class="text-h6 mb-3">Rôles supplémentaires</h3>
-				</v-col>
-
-				<v-col cols="12">
-					<div v-if="Array.isArray(data.avoirs) && data.avoirs.length" class="d-flex flex-wrap gap-2">
-						<template v-for="avoir in data.avoirs" :key="avoir.id">
-							<v-chip
-								v-for="role in (avoir.roles || [])"
-								:key="`${avoir.id}-${role.id}`"
-								color="secondary"
-								variant="outlined"
-								size="small"
-							>
-								{{ role.nomRole }}
-							</v-chip>
-						</template>
-					</div>
-					<v-alert v-else type="info" variant="outlined">
-						Aucun rôle supplémentaire.
-					</v-alert>
-				</v-col>
-
-				<!-- Logs récents -->
-				<v-col cols="12" class="mt-4">
-					<h3 class="text-h6 mb-3">Logs récents</h3>
-				</v-col>
-
-				<v-col cols="12">
-					<v-list v-if="Array.isArray(data.logs_recents) && data.logs_recents.length" density="compact">
-						<v-list-item v-for="log in data.logs_recents" :key="log.id">
-							<v-list-item-title>
-								{{ log.type }} — {{ log.nomTable }}
-							</v-list-item-title>
-							<v-list-item-subtitle>
-								{{ formatDateTime(log.date) }}
-							</v-list-item-subtitle>
-						</v-list-item>
-					</v-list>
-					<v-alert v-else type="info" variant="outlined">
-						Aucun log récent.
-					</v-alert>
-				</v-col>
 			</v-row>
 
 			<v-row v-else>
@@ -208,10 +163,6 @@ const editUser = () => {
 </script>
 
 <style scoped>
-.gap-2 {
-	gap: 8px;
-}
-
 .floating-edit-button {
 	position: fixed;
 	bottom: 24px;

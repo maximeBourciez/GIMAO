@@ -36,6 +36,16 @@
         {{ item.role || '-' }}
       </v-chip>
     </template>
+
+    <template #item.actif="{ item }">
+      <v-chip
+        variant="outlined"
+        size="small"
+        :color="item.actif ? 'success' : 'grey'"
+      >
+        {{ item.actif ? 'Oui' : 'Non' }}
+      </v-chip>
+    </template>
   </BaseListView>
 
   <!-- Bouton flottant en bas à droite -->
@@ -68,8 +78,10 @@ const createButtonText = "Créer un nouvel utilisateur";
 
 // Headers Vuetify 3 (même format que dans TABLE_HEADERS)
 const headers = [
+  { title: "Nom d'utilisateur", value: 'nomUtilisateur', sortable: true, align: 'start' },
   { title: 'Nom', value: 'nom', sortable: true, align: 'start' },
   { title: 'Rôle', value: 'role', sortable: true, align: 'center' },
+  { title: 'Actif', value: 'actif', sortable: true, align: 'end' },
 ];
 
 // États
@@ -109,8 +121,10 @@ const loadData = async () => {
   if (usersResult.status === 'fulfilled' && Array.isArray(usersResult.value)) {
     users.value = usersResult.value.map((u) => ({
       id: u?.id,
+      nomUtilisateur: u?.nomUtilisateur ?? '-',
       nom: `${u?.prenom ?? ''} ${u?.nomFamille ?? ''}`.trim() || '-',
       role: u?.role?.nomRole || u?.role || '-',
+      actif: Boolean(u?.actif),
     }));
   } else {
     users.value = [];
