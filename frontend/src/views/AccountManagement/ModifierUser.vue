@@ -73,6 +73,57 @@
 					</v-col>
 				</v-row>
 			</v-sheet>
+
+			<v-sheet class="pa-4 mt-4" elevation="1" rounded>
+				<h4 class="mb-3">Mot de passe</h4>
+				<v-row dense>
+					<v-col cols="12" md="6">
+						<v-text-field
+							v-model="passwordForm.ancien"
+							label="Ancien mot de passe"
+							type="password"
+							outlined
+							dense
+							hint="Laisser vide si l'utilisateur n'a pas encore de mot de passe (première définition)."
+							persistent-hint
+						/>
+					</v-col>
+
+					<v-col cols="12" md="6">
+						<v-text-field
+							v-model="passwordForm.nouveau"
+							label="Nouveau mot de passe"
+							type="password"
+							outlined
+							dense
+							:rules="[(v) => !v || v.length >= 8 || '8 caractères minimum']"
+						/>
+					</v-col>
+
+					<v-col cols="12" md="6">
+						<v-text-field
+							v-model="passwordForm.confirmation"
+							label="Confirmation nouveau mot de passe"
+							type="password"
+							outlined
+							dense
+							:rules="[(v) => !passwordForm.nouveau || v === passwordForm.nouveau || 'Les mots de passe ne correspondent pas']"
+						/>
+					</v-col>
+
+					<v-col cols="12" class="d-flex justify-end">
+						<v-btn
+							color="primary"
+							:loading="isChangingPassword"
+							:disabled="isSaving || isChangingPassword"
+							type="button"
+							@click="handlePasswordUpdate"
+						>
+							Mettre à jour le mot de passe
+						</v-btn>
+					</v-col>
+				</v-row>
+			</v-sheet>
 		</template>
 	</BaseForm>
 </template>
@@ -91,6 +142,7 @@ const api = useApi(API_BASE_URL);
 const userId = route.params.id;
 
 const isSaving = ref(false);
+const isChangingPassword = ref(false);
 const saveErrorMessage = ref('');
 const successMessage = ref('');
 
@@ -104,6 +156,12 @@ const form = ref({
 	email: '',
 	actif: true,
 	role_id: null,
+});
+
+const passwordForm = ref({
+	ancien: '',
+	nouveau: '',
+	confirmation: '',
 });
 
 const roleOptions = computed(() =>
@@ -179,6 +237,78 @@ const handleSubmit = async () => {
 		saveErrorMessage.value = "Erreur lors de la modification de l'utilisateur.";
 	} finally {
 		isSaving.value = false;
+	}
+};
+
+const handlePasswordUpdate = async () => {
+	if (!userId) {
+		saveErrorMessage.value = "Impossible de modifier le mot de passe : id manquant dans l'URL.";
+		return;
+	}
+
+	saveErrorMessage.value = '';
+	successMessage.value = '';
+
+	const ancien = passwordForm.value.ancien;
+	const nouveau = passwordForm.value.nouveau;
+	const confirmation = passwordForm.value.confirmation;
+
+	const anyPasswordFieldFilled = !!(ancien || nouveau || confirmation);
+	if (!anyPasswordFieldFilled) {
+		saveErrorMessage.value = 'Veuillez renseigner au moins le nouveau mot de passe.';
+		return;
+	}
+
+	if (!nouveau || nouveau.length < 8) {
+		saveErrorMessage.value = 'Le nouveau mot de passe doit contenir au moins 8 caractères.';
+		return;
+	}
+
+	if (!confirmation) {
+		saveErrorMessage.value = 'La confirmation du nouveau mot de passe est requise.';
+		return;
+	}
+
+	if (nouveau !== confirmation) {
+		saveErrorMessage.value = 'Les mots de passe ne correspondent pas.';
+		return;
+	}
+
+	isChangingPassword.value = true;
+	try {
+		// Si l'ancien mot de passe est fourni, on utilise l'endpoint de changement.
+		if (ancien && ancien.trim() !== '') {
+			await api.post(`utilisateurs/${userId}/changer_mot_de_passe/`, {
+				ancien_motDePasse: ancien,
+				nouveau_motDePasse: nouveau,
+				nouveau_motDePasse_confirmation: confirmation,
+			});
+			successMessage.value = 'Mot de passe mis à jour avec succès.';
+		} else {
+			// Sinon, on tente la première définition (utilisateur sans mot de passe, jamais connecté).
+			if (!form.value.nomUtilisateur) {
+				saveErrorMessage.value = "Nom d'utilisateur manquant : impossible de définir un mot de passe.";
+				return;
+			}
+
+			await api.post('utilisateurs/definir_mot_de_passe/', {
+				nomUtilisateur: form.value.nomUtilisateur,
+				nouveau_motDePasse: nouveau,
+				nouveau_motDePasse_confirmation: confirmation,
+			});
+			successMessage.value = 'Mot de passe défini avec succès.';
+		}
+
+		passwordForm.value = { ancien: '', nouveau: '', confirmation: '' };
+	} catch (e) {
+		const detail = e?.response?.data?.detail;
+		if (typeof detail === 'string' && detail.trim() !== '') {
+			saveErrorMessage.value = detail;
+		} else {
+			saveErrorMessage.value = "Erreur lors de la mise à jour du mot de passe.";
+		}
+	} finally {
+		isChangingPassword.value = false;
 	}
 };
 
