@@ -37,6 +37,21 @@
       </v-chip>
     </template>
   </BaseListView>
+
+  <!-- Bouton flottant en bas à droite -->
+  <v-btn
+    color="primary"
+    size="large"
+    icon
+    class="floating-add-button"
+    elevation="4"
+    @click="goToCreerUser"
+  >
+    <v-icon size="large">mdi-plus</v-icon>
+    <v-tooltip activator="parent" location="left">
+      {{ createButtonText }}
+    </v-tooltip>
+  </v-btn>
 </template>
 
 <script setup>
@@ -49,6 +64,7 @@ import { useRouter } from 'vue-router';
 // Données
 const title = 'Gestion des comptes';
 const router = useRouter();
+const createButtonText = "Créer un nouvel utilisateur";
 
 // Headers Vuetify 3 (même format que dans TABLE_HEADERS)
 const headers = [
@@ -126,6 +142,10 @@ const goToAfficherUser = (id) => {
     params: { id },
   });
 };
+
+const goToCreerUser = () => {
+  router.push({ name: 'CreerUser' });
+};
 </script>
 
 <style scoped>
@@ -152,5 +172,17 @@ h1 {
 
 .role-chip-group {
   max-width: 100%;
+}
+
+.floating-add-button {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+}
+
+.floating-add-button:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
 }
 </style>

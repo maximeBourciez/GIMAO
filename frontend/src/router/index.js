@@ -13,6 +13,7 @@ import Technicians from '@/views/Technicians/Technicians.vue'
 import AccountManagement from '@/views/AccountManagement/AccountManagement.vue'
 import AfficherUser from '@/views/AccountManagement/AfficherUser.vue'
 import ModifierUser from '@/views/AccountManagement/ModifierUser.vue'
+import CreerUser from '@/views/AccountManagement/CreerUser.vue'
 import Orders from '@/views/Orders/Orders.vue'
 import Stocks from '@/views/Stocks/Stocks.vue'
 import FailureList from '@/views/Failures/FailureList.vue'
@@ -110,6 +111,13 @@ const routes = [
     component: ModifierUser,
     props: true,
     meta: { title: 'Modifier un utilisateur' }
+  },
+
+  {
+    path: '/CreerUser',
+    name: 'CreerUser',
+    component: CreerUser,
+    meta: { title: 'Créer un utilisateur' }
   },
 
   {

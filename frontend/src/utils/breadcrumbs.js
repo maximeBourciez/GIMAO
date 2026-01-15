@@ -154,6 +154,16 @@ export const BREADCRUMBS = {
         },
     ],
 
+    CreerUser: (route) => [
+        {
+            label: "Gestion des comptes",
+            to: { name: "AccountManagement" },
+        },
+        {
+            label: "Créer un utilisateur",
+        },
+    ],
+
     AfficherUser: (route) => [
         {
             label: "Gestion des comptes",
