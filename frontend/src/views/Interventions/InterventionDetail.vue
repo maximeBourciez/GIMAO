@@ -13,10 +13,10 @@
   >
     <template #default="{ data }">
       <v-row v-if="data">
+        
         <!-- Colonne gauche : champs du BT -->
-        <v-col cols="12" md="6">
-          <h3 class="text-h6 mb-4 text-primary">{{ data.nom }}</h3>
-
+        <v-col cols="12" md="6" class="detail-column">
+          <h3 class="text-h6 mb-4 text-primary detail-title">{{ data.nom }}</h3>
           <div class="detail-field">
             <label class="detail-label">ID</label>
             <div class="detail-value">{{ data.id || 'Non spécifié' }}</div>
@@ -24,7 +24,7 @@
 
           <div class="detail-field">
             <label class="detail-label">Type</label>
-            <div class="detail-value">{{ data.type || 'Non spécifié' }}</div>
+            <div class="detail-value">{{ INTERVENTION_TYPE[data.type] || data.type || 'Non spécifié' }}</div>
           </div>
 
           <div class="detail-field">
@@ -73,16 +73,16 @@
           <!-- Boutons d'action -->
           <v-row class="mt-6">
             <v-col cols="12" md="6" class="py-1">
-              <v-btn color="warning" block :disabled="!canStart" @click="openStartModal">Démarrer l'intervention</v-btn>
+              <v-btn color="info" block :disabled="!canStart" @click="openStartModal">Démarrer l'intervention</v-btn>
             </v-col>
             <v-col cols="12" md="6" class="py-1">
-              <v-btn color="warning" block :disabled="!canFinish" @click="openFinishModal">Terminer l'intervention</v-btn>
-            </v-col>
-            <v-col cols="12" md="6" class="py-1">
-              <v-btn color="primary" block @click="goToEditIntervention">Modifier le bon de travail</v-btn>
+              <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal">Terminer l'intervention</v-btn>
             </v-col>
             <v-col cols="12" md="6" class="py-1">
               <v-btn color="success" block :disabled="!canClose" @click="openCloseModal">Clôturer le bon de travail</v-btn>
+            </v-col>
+            <v-col cols="12" md="6" class="py-1">
+              <v-btn color="warning" block :disabled="!canRefuseClose" @click="openRefuseCloseModal">Refuser la clôture du bon</v-btn>
             </v-col>
             <v-col cols="12" class="py-1">
               <v-btn color="error" block @click="openDeleteModal">Supprimer le bon de travail</v-btn>
@@ -91,8 +91,10 @@
         </v-col>
 
         <!-- Colonne droite : commentaires + FK en sous-sections -->
-        <v-col cols="12" md="6">
-          <h3 class="text-h6 mb-4 text-primary">Commentaires</h3>
+        <v-col cols="12" md="6" class="detail-column">
+          <!-- Spacer pour aligner avec le titre (nom) de la colonne gauche -->
+          <h3 class="text-h6 mb-4">&nbsp;</h3>
+
           <div class="detail-field">
             <label class="detail-label">Commentaire</label>
             <div class="detail-value text-pre">{{ data.commentaire || 'Aucun commentaire' }}</div>
@@ -258,23 +260,23 @@
     </template>
   </BaseDetailView>
 
-    <!-- Bouton flottant (+) : créer un nouveau BT -->
+    <!-- Bouton flottant : modifier le BT -->
     <v-btn
-      v-if="demandeId"
+      v-if="intervention"
       color="primary"
       size="large"
       icon
       elevation="4"
       class="floating-create-button"
-      @click="handleCreateBonTravail"
+      @click="goToEditIntervention"
     >
-      <v-icon>mdi-plus</v-icon>
+      <v-icon>mdi-pencil</v-icon>
     </v-btn>
 
     <!-- Modales de confirmation (comme DI) -->
     <ConfirmationModal
       v-model="showStart"
-      type="warning"
+      type="info"
       title="Démarrer l'intervention"
       message="Êtes-vous sûr de vouloir démarrer cette intervention ?"
       confirm-text="Démarrer"
@@ -285,7 +287,7 @@
     />
     <ConfirmationModal
       v-model="showFinish"
-      type="warning"
+      type="info"
       title="Terminer l'intervention"
       message="Êtes-vous sûr de vouloir terminer cette intervention ?"
       confirm-text="Terminer"
@@ -305,6 +307,17 @@
       @confirm="closeBonTravail"
       @cancel="showClose = false"
     />
+	<ConfirmationModal
+		v-model="showRefuseClose"
+		type="warning"
+		title="Refuser la clôture"
+		message="Êtes-vous sûr de vouloir refuser la clôture de ce bon de travail ?"
+		confirm-text="Refuser"
+		confirm-icon="mdi-close-circle-outline"
+		:loading="actionLoading"
+		@confirm="refuseCloseBonTravail"
+		@cancel="showRefuseClose = false"
+	/>
     <ConfirmationModal
       v-model="showDelete"
       type="error"
@@ -325,7 +338,7 @@ import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS } from '@/utils/constants';
+import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
 import { formatDateTime, getInterventionStatusColor } from '@/utils/helpers';
 
 const router = useRouter();
@@ -348,6 +361,7 @@ const showEquipementDetails = ref(false);
 const showStart = ref(false);
 const showFinish = ref(false);
 const showClose = ref(false);
+const showRefuseClose = ref(false);
 const showDelete = ref(false);
 
 const documentHeaders = [
@@ -385,6 +399,7 @@ const formattedEquipement = computed(() => {
 const canClose = computed(() => !!intervention.value && !intervention.value.date_cloture);
 const canStart = computed(() => intervention.value?.statut === 'EN_ATTENTE');
 const canFinish = computed(() => intervention.value?.statut === 'EN_COURS');
+const canRefuseClose = computed(() => !!intervention.value && !intervention.value.date_cloture && intervention.value?.statut !== 'ANNULE');
 
 const openStartModal = () => {
   showStart.value = true;
@@ -398,6 +413,10 @@ const openCloseModal = () => {
   showClose.value = true;
 };
 
+const openRefuseCloseModal = () => {
+	showRefuseClose.value = true;
+};
+
 const openDeleteModal = () => {
   showDelete.value = true;
 };
@@ -406,11 +425,6 @@ const goToEditIntervention = () => {
   const id = intervention.value?.id ?? route.params.id;
   if (!id) return;
   router.push({ name: 'EditIntervention', params: { id } });
-};
-
-const handleCreateBonTravail = () => {
-  if (!demandeId.value) return;
-  router.push({ name: 'CreateIntervention', params: { id: demandeId.value } });
 };
 
 const fetchData = async () => {
@@ -475,6 +489,22 @@ const closeBonTravail = async () => {
     await fetchData();
   } catch (error) {
     errorMessage.value = 'Erreur lors de la clôture du bon de travail';
+  } finally {
+    actionLoading.value = false;
+  }
+};
+
+const refuseCloseBonTravail = async () => {
+  if (!intervention.value?.id) return;
+  actionLoading.value = true;
+  try {
+    // Backend action existante: POST /bons-travail/{id}/annuler/
+    await api.post(`bons-travail/${intervention.value.id}/annuler`, { commentaire: '' });
+    successMessage.value = 'Clôture refusée';
+    showRefuseClose.value = false;
+    await fetchData();
+  } catch (error) {
+    errorMessage.value = 'Erreur lors du refus de clôture';
   } finally {
     actionLoading.value = false;
   }
@@ -564,8 +594,23 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
+.detail-column {
+  min-width: 0;
+}
+
 .detail-field {
   margin-bottom: 16px;
+  min-width: 0;
+}
+
+.detail-title {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 
 .detail-label {
@@ -583,6 +628,13 @@ onMounted(fetchData);
   color: #333;
   padding: 8px 0;
   border-bottom: 1px solid #e0e0e0;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 
 .cursor-pointer {
@@ -590,7 +642,11 @@ onMounted(fetchData);
 }
 
 .text-pre {
-  white-space: pre-wrap;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  display: block;
+  width: 100%;
 }
 
 .floating-create-button {

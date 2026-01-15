@@ -136,10 +136,23 @@ export const BREADCRUMBS = {
     ],
 
     FailureDetail: (route) => [
-        {
-            label: "Demandes d'intervention",
-            to: { name: "FailureList" },
-        },
+        ...(route.query.from === "intervention" && route.query.interventionId
+            ? [
+                { label: "Bons de travail", to: { name: "InterventionList" } },
+                {
+                    label: `Bon de travail #${route.query.interventionId}`,
+                    to: {
+                        name: "InterventionDetail",
+                        params: { id: route.query.interventionId },
+                    },
+                },
+            ]
+            : [
+                {
+                    label: "Demandes d'intervention",
+                    to: { name: "FailureList" },
+                },
+            ]),
         {
             label: `Demande d'intervention #${route.params.id}`,
         },
