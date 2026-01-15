@@ -32,8 +32,6 @@
             <div class="detail-value">
               <v-chip
                 :color="getInterventionStatusColor(data.statut)"
-                dark
-                size="small"
               >
                 {{ INTERVENTION_STATUS[data.statut] || data.statut || 'Non spécifié' }}
               </v-chip>
@@ -379,9 +377,11 @@ const formattedDemande = computed(() => {
   if (!demande) return {};
   return {
     'Nom de la demande': demande.nom || 'Non spécifié',
-    'Date de commencement': formatDateTime(demande.date_commencement),
-    'Date de traitement': formatDateTime(demande.date_traitement),
-    'Commentaire': demande.commentaire || 'Aucun commentaire'
+    'Commentaire': demande.commentaire || 'Aucun commentaire',
+    'Demandeur': demande.utilisateur.prenom && demande.utilisateur.nomFamille
+      ? `${demande.utilisateur.prenom} ${demande.utilisateur.nomFamille}`
+      : 'Non spécifié',
+    'Date de creation': formatDateTime(demande.date_creation) || 'Non spécifié',
   };
 });
 
@@ -389,11 +389,11 @@ const formattedEquipement = computed(() => {
 	const e = equipement.value;
 	if (!e) return {};
 	return {
-		'Désignation': e.designation || 'Non spécifié',
-		'Code': e.code || e.identifiant || 'Non spécifié',
-		'Localisation': e.localisation || e.emplacement || 'Non spécifié',
-		'État': e.etat || 'Non spécifié'
-	};
+    'Référence': e.reference || 'Non spécifié',
+    'Désignation': e.designation || 'Non spécifié',
+    'Lieu': e.lieu || 'Non spécifié',
+    'Statut': e.dernier_statut?.statut || 'Non spécifié'
+  };
 });
 
 const canClose = computed(() => !!intervention.value && !intervention.value.date_cloture);

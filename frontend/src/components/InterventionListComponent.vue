@@ -60,8 +60,6 @@
 			<v-chip
 				v-if="item.statut"
 				:color="getInterventionStatusColor(item.statut)"
-				variant="tonal"
-				size="small"
 			>
 				{{ INTERVENTION_STATUS[item.statut] || item.statut }}
 			</v-chip>
