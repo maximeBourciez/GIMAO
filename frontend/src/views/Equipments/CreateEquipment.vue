@@ -5,7 +5,8 @@
         <BaseForm v-model="formData" title="Créer un Équipement" :loading="loading" :error-message="errorMessage"
           :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
           :validation-schema="validationSchema" submit-button-text="Créer un Équipement" :handleSubmit="handleSubmit"
-          actions-container-class="d-flex justify-end gap-2" :showActions="step === 6">
+          actions-container-class="d-flex justify-end gap-2 mt-3" submit-button-class="mt-3"
+          cancel-button-class="mt-3 mr-3" :showActions="step === 6">
           <template #default="{ validation }">
             <v-stepper v-model="step" :steps="6" justify="center" alt-labels>
               <v-stepper-header class="justify-center">
@@ -18,7 +19,7 @@
                 </v-stepper-item>
               </v-stepper-header>
 
-              <v-stepper-window v-model="step" :steps="6" class="mb-4">
+              <v-stepper-window v-model="step" :steps="6" class="mb-8">
                 <!-- Étape 1: Informations générales -->
                 <v-stepper-window-item :value="1">
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
@@ -65,9 +66,11 @@
                 <!-- Étape 6: Compteurs -->
                 <v-stepper-window-item :value="6">
                   <!-- Liste des compteurs déjà ajoutés -->
-                  <v-sheet v-if="formData.compteurs.length > 0 && !showCounterForm" class="pa-4 mb-4" elevation="2"
+                  <v-sheet v-if="formData.compteurs.length > 0 && !showCounterForm" class="pa-4 mb-4" elevation="0"
                     rounded>
-                    <h4 class="mb-3">Compteurs ajoutés ({{ formData.compteurs.length }})</h4>
+                    <v-card-subtitle class="text-h6 font-weight-bold px-0 pb-2">
+                      Compteurs ajoutés ({{ formData.compteurs.length }})
+                    </v-card-subtitle>
 
                     <v-list dense>
                       <v-list-item v-for="(compteur, index) in formData.compteurs" :key="index" class="mb-2 pa-3"
@@ -99,24 +102,25 @@
 
                     <v-divider class="my-4" />
 
-                    <!-- Boutons d'action -->
-                    <v-row class="mt-4" justify="center">
-                      <v-btn color="primary" size="large" @click="handleCounterAdd" class="mr-2">
-                        <v-icon left>mdi-plus</v-icon>
+                    <!-- Bouton d'ajout -->
+                    <div class="d-flex justify-center">
+                      <v-btn color="primary" variant="text" prepend-icon="mdi-plus" @click="handleCounterAdd">
                         Ajouter un autre compteur
                       </v-btn>
-                    </v-row>
+                    </div>
                   </v-sheet>
 
                   <!-- Formulaire pour ajouter/éditer un compteur -->
-                  <CounterInlineForm v-if="showCounterForm" v-model="currentCounter" :existingPMs="existingPMs"
-                    :typesPM="typesPM" :consumables="consumables" :typesDocuments="typesDocuments"
-                    :isEditMode="editingCounterIndex >= 0" :isFirstCounter="formData.compteurs.length === 0"
-                    @save="internalSaveCurrentCounter" @cancel="cancelCounterForm" />
+                  <div v-if="showCounterForm" class="mb-6">
+                    <CounterInlineForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM"
+                      :consumables="consumables" :typesDocuments="typesDocuments"
+                      :isEditMode="editingCounterIndex >= 0" :isFirstCounter="formData.compteurs.length === 0"
+                      @save="internalSaveCurrentCounter" @cancel="cancelCounterForm" />
+                  </div>
                 </v-stepper-window-item>
 
                 <!-- Navigation -->
-                <v-row justify="space-between" class="mt-4">
+                <v-row justify="space-between" class="mt-6 mb-2">
                   <v-btn type="button" variant="text" @click="prevStep" :disabled="step === 1">
                     Précédent
                   </v-btn>
