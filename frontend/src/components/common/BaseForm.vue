@@ -211,8 +211,8 @@ const props = defineProps({
     default: 'elevated'
   },
   customCancelAction: {
-    type: Boolean,
-    default: false
+    type: Function,
+    default: null
   },
 
   // Bouton de réinitialisation
@@ -371,7 +371,11 @@ const handleSubmit = () => {
 };
 
 const handleCancel = () => {
-  emit('cancel');
+  if (props.customCancelAction && typeof props.customCancelAction === 'function') {
+    props.customCancelAction();
+  } else {
+    emit('cancel');
+  }
 };
 
 const handleReset = () => {
