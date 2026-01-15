@@ -153,7 +153,7 @@
     @cancel="showRejectModal = false"
   />
 
-  <!-- Modale de confirmation pour rejeter la demande -->
+  <!-- Modale de confirmation pour transformer la demande -->
   <ConfirmationModal
     v-model="showCreateInterventionModal"
     type="success"
@@ -166,6 +166,22 @@
     @confirm="handleCreateIntervention()"
     @cancel="showCreateInterventionModal = false"
   />
+
+  <!-- Bouton modifier -->
+  <v-btn
+    v-if="canEditFailure"
+    color="primary"
+    size="large"
+    icon
+    class="floating-edit-button"
+    elevation="4"
+    @click="editCurrentFailure()"
+  >
+    <v-icon size="large">mdi-pencil</v-icon>
+    <v-tooltip activator="parent" location="left">
+      Modifier la demande
+    </v-tooltip>
+  </v-btn>
 </template>
 
 <script setup>
@@ -183,6 +199,10 @@ const route = useRoute();
 const failureApi = useApi(API_BASE_URL);
 const equipmentApi = useApi(API_BASE_URL);
 const patchApi = useApi(API_BASE_URL);
+
+// Récupération de l'utilisateur connecté
+const currentUser = computed(() => store.getters.currentUser);
+const userRole = computed(() => store.getters.userRole);
 
 const defaillance = ref(null);
 const loading = ref(false);
@@ -218,6 +238,14 @@ const documentHeaders = [
 const canClose = computed(() => FAILURE_STATUS[ defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 const canCreateIntervention = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE);
+
+// Permission de modification: rôle "Opérateur" OU créateur de la demande
+const canEditFailure = computed(() => {
+  if (!currentUser.value || !defaillance.value) return false;
+  const isOperateur = userRole.value === 'Opérateur';
+  const isCreator = defaillance.value.utilisateur?.id === currentUser.value.id;
+  return isOperateur || isCreator;
+});
 
 const formattedEquipmentLabel = computed(() => {
   if (!defaillance.value?.equipement) return {};
@@ -382,6 +410,13 @@ const deleteDocument = async (item) => {
   }
 };
 
+const editCurrentFailure = () => {
+  router.push({
+    name: 'EditFailure',
+    params: { id: route.params.id },
+  });
+};
+
 onMounted(() => {
   fetchData();
 });
@@ -407,5 +442,15 @@ onMounted(() => {
   color: #333;
   padding: 8px 0;
   border-bottom: 1px solid #e0e0e0;
+}
+
+/*****************
+  Bouton flottant
+*****************/
+.floating-edit-button {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
 }
 </style>

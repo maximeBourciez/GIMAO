@@ -29,6 +29,7 @@ import EditEquipment from '@/views/Equipments/EditEquipment.vue'
 // ------------------------------------------------------------------
 import CreateFailure from '@/views/Failures/CreateFailure.vue'
 import FailureDetail from '@/views/Failures/FailureDetail.vue'
+import EditFailure from '@/views/Failures/EditFailure.vue'
 import AddDocumentFailure from '@/views/Failures/AddDocumentFailure.vue'
 
 // ------------------------------------------------------------------
@@ -202,7 +203,7 @@ const routes = [
     path: '/intervention/:id',
     name: 'InterventionDetail',
     component: InterventionDetail,
-    props: true, 
+    props: true,
     meta: { title: 'Détails du bon de travail' }
   },
 
@@ -258,7 +259,7 @@ const routes = [
     path: '/CounterDetail/:id',
     name: 'CounterDetail',
     component: CounterDetail,
-    meta: { title: 'Détails du compteur'}
+    meta: { title: 'Détails du compteur' }
   },
 
   // Defaillance ---------------------------------------------------------------
@@ -283,6 +284,14 @@ const routes = [
     component: FailureDetail,
     props: true,
     meta: { title: 'Détails de la demande ' }
+  },
+
+  {
+    path: '/Failure/:id/edit',
+    name: 'EditFailure',
+    component: EditFailure,
+    props: true,
+    meta: { title: 'Modifier la demande d\'intervention' }
   },
 
   {
@@ -358,19 +367,19 @@ const router = createRouter({
 // Protection des routes
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('user')
-  
+
   // Si la route est publique, laisser passer
   if (to.meta.public) {
     next()
     return
   }
-  
+
   // Si non authentifié, rediriger vers login
   if (!isAuthenticated) {
     next('/login')
     return
   }
-  
+
   next()
 })
 
