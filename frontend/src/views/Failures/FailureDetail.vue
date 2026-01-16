@@ -24,6 +24,11 @@
           </div>
 
           <div class="detail-field">
+            <label class="detail-label">Créateur</label>
+            <div class="detail-value">{{ data.utilisateur.prenom ?? ''}} {{data.utilisateur.nomFamille ?? '' }}</div>
+          </div>
+
+          <div class="detail-field">
             <label class="detail-label">Date de création</label>
             <div class="detail-value">{{ formatDate(data.date_creation) }}</div>
           </div>
