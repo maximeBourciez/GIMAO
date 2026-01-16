@@ -22,7 +22,7 @@
 				@dragleave.prevent="onPhotoDragLeave"
 				@drop.prevent="onPhotoDrop"
 			>
-				<div class="d-flex align-center justify-space-between">
+				<div class="d-flex align-center justify-space-between user-photo-header">
 					<div class="d-flex align-center" style="min-width: 0;">
 						<v-avatar size="64" color="grey lighten-3" class="mr-3">
 							<v-img v-if="displayPhotoUrl" :src="displayPhotoUrl" cover />
@@ -37,7 +37,7 @@
 						</div>
 					</div>
 
-					<div class="d-flex align-center" style="gap: 8px;">
+					<div class="d-flex align-center user-photo-actions">
 						<template v-if="hasPhoto">
 							<v-btn icon small title="Supprimer la photo" @click.stop="deletePhoto">
 								<v-icon>mdi-delete</v-icon>
@@ -563,5 +563,22 @@ onBeforeUnmount(() => {
 .user-photo-dropzone--active {
 	border-color: #1976d2 !important;
 	background-color: rgba(25, 118, 210, 0.05);
+}
+
+.user-photo-actions {
+	gap: 8px;
+}
+
+@media (max-width: 600px) {
+	.user-photo-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.user-photo-actions {
+		width: 100%;
+		justify-content: flex-end;
+		margin-top: 10px;
+	}
 }
 </style>
