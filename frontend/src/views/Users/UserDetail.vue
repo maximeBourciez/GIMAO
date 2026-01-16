@@ -100,7 +100,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
@@ -108,7 +108,7 @@ import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants.js';
 
 const route = useRoute();
 const router = useRouter();
-const userId = route.params.id;
+const userId = computed(() => route.params.id);
 
 const userData = ref(null);
 const isLoading = ref(true);
@@ -143,7 +143,7 @@ const loadUserData = async () => {
 	isLoading.value = true;
 	errorMessage.value = '';
 
-	if (!userId) {
+	if (!userId.value) {
 		errorMessage.value = "Impossible d'afficher l'utilisateur : id manquant dans l'URL.";
 		userData.value = null;
 		isLoading.value = false;
@@ -152,7 +152,7 @@ const loadUserData = async () => {
 
 	try {
 		// DRF DefaultRouter utilise des URLs avec slash final : /api/utilisateurs/:id/
-		userData.value = await api.get(`utilisateurs/${userId}/`);
+		userData.value = await api.get(`utilisateurs/${userId.value}/`);
 	} catch (error) {
 		console.error('Error loading user data:', error);
 		errorMessage.value = "Erreur lors du chargement de l'utilisateur.";
@@ -162,19 +162,19 @@ const loadUserData = async () => {
 	}
 };
 
-onMounted(() => {
+watch(userId, () => {
 	loadUserData();
-});
+}, { immediate: true });
 
 const editUser = () => {
-	if (!userId) {
+	if (!userId.value) {
 		errorMessage.value = "Impossible de modifier l'utilisateur : id manquant dans l'URL.";
 		return;
 	}
 
 	router.push({
 		name: 'EditUser',
-		params: { id: userId },
+		params: { id: userId.value },
 	});
 };
 </script>
