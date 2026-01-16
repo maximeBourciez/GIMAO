@@ -63,7 +63,7 @@
         <v-divider></v-divider>
         
         <v-list dense>
-          <v-list-item class="py-2">
+          <v-list-item class="py-2" style="cursor: pointer" @click="goToMyUserDetail">
             <template v-slot:prepend>
               <v-avatar size="36" color="primary">
                 <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
@@ -119,6 +119,7 @@ export default {
       
       if (currentUser) {
         return {
+          id: currentUser.id,
           name: `${currentUser.prenom} ${currentUser.nomFamille}`,
           role: currentUser.role?.nomRole || 'Utilisateur',
           photoProfil: currentUser.photoProfil || null,
@@ -131,6 +132,7 @@ export default {
         try {
           const userData = JSON.parse(userFromStorage);
           return {
+            id: userData.id,
             name: `${userData.prenom} ${userData.nomFamille}`,
             role: userData.role?.nomRole || 'Utilisateur',
             photoProfil: userData.photoProfil || null,
@@ -141,6 +143,7 @@ export default {
       }
       
       return {
+        id: null,
         name: 'Utilisateur',
         role: 'Non défini',
         photoProfil: null,
@@ -181,6 +184,13 @@ export default {
       
       // Rediriger vers login avec un reload complet pour nettoyer tout le state
       window.location.href = '/login';
+    },
+
+    goToMyUserDetail() {
+      const id = this.user?.id;
+      if (!id) return;
+      this.drawer = false;
+      this.$router.push({ name: 'UserDetail', params: { id } });
     }
   }
 };

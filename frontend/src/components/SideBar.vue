@@ -50,7 +50,7 @@
             <v-divider />
 
             <v-list dense>
-                <v-list-item class="py-2">
+                <v-list-item class="py-2 user-info-item" @click="goToMyUserDetail">
                     <template #prepend>
                         <v-avatar size="36" :color="userPhotoUrl ? 'transparent' : 'primary'">
                             <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
@@ -174,6 +174,12 @@ export default {
             
             // Rediriger vers login avec un reload complet pour nettoyer tout le state
             window.location.href = '/login';
+        },
+
+        goToMyUserDetail() {
+            const id = this.currentUserRaw?.id;
+            if (!id) return;
+            this.$router.push({ name: 'UserDetail', params: { id } });
         }
     }
 };
@@ -236,6 +242,10 @@ export default {
 ========================= */
 .logout-item:hover {
     background-color: #f5f5f5;
+}
+
+.user-info-item {
+    cursor: pointer;
 }
 
 /* =========================
