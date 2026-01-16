@@ -51,6 +51,12 @@ class Utilisateur(models.Model):
         unique=True,
         help_text="Adresse email de l'utilisateur"
     )
+    photoProfil = models.FileField(
+        upload_to='utilisateur_photos/',
+        null=True,
+        blank=True,
+        help_text="Photo de profil de l'utilisateur"
+    )
     derniereConnexion = models.DateTimeField(
         null=True,
         blank=True,

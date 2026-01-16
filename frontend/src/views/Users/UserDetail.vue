@@ -13,6 +13,17 @@
 	>
 		<template #default="{ data }">
 			<v-row v-if="data" dense>
+				<v-col cols="12" class="d-flex align-center mb-2">
+					<v-avatar size="72" class="mr-3" color="grey-lighten-3">
+						<v-img v-if="data.photoProfil" :src="profilePhotoUrl" cover />
+						<v-icon v-else>mdi-account</v-icon>
+					</v-avatar>
+					<div>
+						<div class="text-h6">{{ fullName || '-' }}</div>
+						<div class="text-body-2 text-medium-emphasis">{{ data.nomUtilisateur || '-' }}</div>
+					</div>
+				</v-col>
+
 				<!-- Informations générales -->
 				<v-col cols="12">
 					<h3 class="text-h6 mb-3">Informations générales</h3>
@@ -93,7 +104,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants.js';
+import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -110,6 +121,12 @@ const fullName = computed(() => {
 	const prenom = userData.value?.prenom ?? '';
 	const nomFamille = userData.value?.nomFamille ?? '';
 	return `${prenom} ${nomFamille}`.trim();
+});
+
+const profilePhotoUrl = computed(() => {
+	const path = userData.value?.photoProfil;
+	if (!path) return '';
+	return `${MEDIA_BASE_URL}${path}`;
 });
 
 const formatDateTime = (value) => {
