@@ -13,7 +13,7 @@
     @clear-error="errorMessage = ''">
     <!-- Colonne Createur -->
     <template #item.createur="{ item }">
-      {{ item.utilisateur.nomUtilisateur }}
+      {{ item.utilisateur.prenom ?? ''}} {{item.utilisateur.nomFamille ?? '' }}
     </template>
 
     <template #item.commentaire="{ item }">
