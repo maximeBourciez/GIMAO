@@ -60,7 +60,7 @@
         <v-col cols="12" md="8">
           <!-- Section image -->
           <v-card elevation="2" class="mb-4">
-            <v-img v-if="data.lienImage" :src="data.lienImage" aspect-ratio="4/3" class="rounded-lg"
+            <v-img v-if="data.lienImage" :src="`http://localhost:8000/media/${data.lienImage}`" aspect-ratio="4/3" class="rounded-lg"
               style="max-height: 30vh; object-fit: cover;" alt="Image de l'équipement">
               <template v-slot:placeholder>
                 <v-row class="fill-height ma-0" align="center" justify="center">
@@ -184,10 +184,14 @@
   </v-btn>
 
   <!-- Dialog pour ajouter un compteur -->
-  <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
-    <CounterInlineForm v-if="showCounterDialog" v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM"
-      :consumables="consumables" :typesDocuments="typesDocuments" :isEditMode="false" :isFirstCounter="true"
-      @save="saveCounter" @cancel="closeCounterDialog" />
+  <v-dialog v-model="showCounterDialog" max-width="1000px" scrollable @click:outside="closeCounterDialog">
+    <v-card>
+      <v-card-text class="pa-0">
+        <CounterInlineForm v-if="showCounterDialog" v-model="currentCounter" :existingPMs="existingPMs"
+          :typesPM="typesPM" :consumables="consumables" :typesDocuments="typesDocuments" :isEditMode="false"
+          :isFirstCounter="true" @save="saveCounter" @cancel="closeCounterDialog" />
+      </v-card-text>
+    </v-card>
   </v-dialog>
 </template>
 

@@ -1,236 +1,143 @@
 <template>
-    <v-card>
-        <v-card-title class="text-h6">
-            Ajouter un fabricant
-        </v-card-title>
-
-        <v-card-text>
+    <BaseForm v-model="formData" title="Ajouter un fabricant" :validation-schema="validationSchema"
+        :handleSubmit="save" :error-message="errorMessage" :success-message="successMessage" :loading="loading"
+        submit-button-text="Créer" :custom-cancel-action="true" @cancel="close" elevation="0">
+        <template #default>
             <!-- Infos fabricant -->
-            <v-sheet class="pa-4 mb-4" elevation="1" rounded>
-                <h4 class="mb-3">Fabricant</h4>
+            <v-card-subtitle class="text-h6 font-weight-bold px-0 pb-2">
+                Informations du fabricant
+            </v-card-subtitle>
 
-                <v-row dense>
-                    <v-col cols="12" md="6">
-                        <v-text-field 
-                            v-model="fabricant.nom" 
-                            label="Nom du fabricant *" 
-                            outlined 
-                            dense 
-                            :error="submitted && !fabricant.nom.trim()" 
-                            :error-messages="submitted && !fabricant.nom.trim() ? 'Le nom du fabricant est requis' : ''" 
-                        />
-                    </v-col>
+            <v-row dense>
+                <v-col cols="12" md="6">
+                    <FormField v-model="formData.nom" field-name="nom" label="Nom du fabricant"
+                        placeholder="Saisir le nom" />
+                </v-col>
 
-                    <v-col cols="12" md="6">
-                        <v-text-field 
-                            v-model="fabricant.email" 
-                            label="Email" 
-                            outlined 
-                            dense 
-                            :error="submitted && fabricant.email && !isValidEmail(fabricant.email)"
-                            :error-messages="submitted && fabricant.email && !isValidEmail(fabricant.email) ? 'Email invalide' : ''"
-                        />
-                    </v-col>
-                </v-row>
+                <v-col cols="12" md="6">
+                    <FormField v-model="formData.email" field-name="email" label="Email" type="email"
+                        placeholder="exemple@email.com" />
+                </v-col>
 
-                <v-row dense>
-                    <v-col cols="6">
-                        <v-text-field 
-                            v-model="fabricant.numTelephone" 
-                            label="Téléphone" 
-                            outlined 
-                            dense 
-                            :error="submitted && fabricant.numTelephone && !isValidPhone(fabricant.numTelephone)"
-                            :error-messages="submitted && fabricant.numTelephone && !isValidPhone(fabricant.numTelephone) ? 'Téléphone invalide' : ''"
-                        />
-                    </v-col>
+                <v-col cols="12" md="6">
+                    <FormField v-model="formData.numTelephone" field-name="numTelephone" label="Téléphone"
+                        placeholder="06 12 34 56 78" />
+                </v-col>
 
-                    <v-col cols="6" class="d-flex align-center">
-                        <v-checkbox v-model="fabricant.serviceApresVente" label="Service après-vente" dense />
-                    </v-col>
-                </v-row>
-            </v-sheet>
+                <v-col cols="12" md="6">
+                    <FormCheckbox v-model="formData.serviceApresVente" field-name="serviceApresVente"
+                        label="Service après-vente" />
+                </v-col>
+            </v-row>
+
+            <v-divider class="my-6"></v-divider>
 
             <!-- Adresse -->
-            <v-sheet class="pa-4" elevation="1" rounded>
-                <h4 class="mb-3">Adresse</h4>
+            <v-card-subtitle class="text-h6 font-weight-bold px-0 pb-2">
+                Adresse
+            </v-card-subtitle>
 
-                <v-row dense>
-                    <v-col cols="4">
-                        <v-text-field 
-                            v-model="adresse.numero" 
-                            label="N°" 
-                            outlined 
-                            dense 
-                            :error="submitted && adresse.numero && adresse.numero.trim().length < 1"
-                            :error-messages="submitted && adresse.numero && adresse.numero.trim().length < 1 ? 'Le numéro doit contenir au moins 1 caractère' : ''"
-                        />
-                    </v-col>
+            <v-row dense>
+                <v-col cols="12" md="4">
+                    <FormField v-model="formData.adresse.numero" field-name="adresse.numero" label="N°"
+                        placeholder="123" />
+                </v-col>
 
-                    <v-col cols="8">
-                        <v-text-field 
-                            v-model="adresse.rue" 
-                            label="Rue" 
-                            outlined 
-                            dense 
-                            :error="submitted && adresse.rue && adresse.rue.trim().length < 2"
-                            :error-messages="submitted && adresse.rue && adresse.rue.trim().length < 2 ? 'La rue doit contenir au moins 2 caractères' : ''"
-                        />
-                    </v-col>
-                </v-row>
+                <v-col cols="12" md="8">
+                    <FormField v-model="formData.adresse.rue" field-name="adresse.rue" label="Rue"
+                        placeholder="Rue de la République" />
+                </v-col>
 
-                <v-row dense>
-                    <v-col cols="6">
-                        <v-text-field 
-                            v-model="adresse.ville" 
-                            label="Ville" 
-                            outlined 
-                            dense 
-                            :error="submitted && adresse.ville && adresse.ville.trim().length < 2"
-                            :error-messages="submitted && adresse.ville && adresse.ville.trim().length < 2 ? 'La ville doit contenir au moins 2 caractères' : ''"
-                        />
-                    </v-col>
+                <v-col cols="12" md="6">
+                    <FormField v-model="formData.adresse.ville" field-name="adresse.ville" label="Ville"
+                        placeholder="Paris" />
+                </v-col>
 
-                    <v-col cols="6">
-                        <v-text-field 
-                            v-model="adresse.code_postal" 
-                            label="Code postal" 
-                            outlined 
-                            dense 
-                            :error="submitted && adresse.code_postal && !isValidPostalCode(adresse.code_postal)"
-                            :error-messages="submitted && adresse.code_postal && !isValidPostalCode(adresse.code_postal) ? 'Code postal invalide' : ''"
-                        />
-                    </v-col>
-                </v-row>
+                <v-col cols="12" md="6">
+                    <FormField v-model="formData.adresse.code_postal" field-name="adresse.code_postal"
+                        label="Code postal" placeholder="75001" />
+                </v-col>
 
-                <v-row dense>
-                    <v-col cols="12">
-                        <v-text-field 
-                            v-model="adresse.pays" 
-                            label="Pays" 
-                            outlined 
-                            dense 
-                            :error="submitted && adresse.pays && adresse.pays.trim().length < 2"
-                            :error-messages="submitted && adresse.pays && adresse.pays.trim().length < 2 ? 'Le pays doit contenir au moins 2 caractères' : ''"
-                        />
-                    </v-col>
-                </v-row>
+                <v-col cols="12" md="6">
+                    <FormField v-model="formData.adresse.pays" field-name="adresse.pays" label="Pays"
+                        placeholder="France" />
+                </v-col>
 
-                <v-text-field v-model="adresse.complement" label="Complément" outlined dense />
-            </v-sheet>
-        </v-card-text>
-
-        <v-card-actions>
-            <v-spacer />
-            <v-btn text @click="close">Annuler</v-btn>
-            <v-btn color="primary" @click="save">
-                Créer
-            </v-btn>
-        </v-card-actions>
-    </v-card>
+                <v-col cols="12" md="6">
+                    <FormField v-model="formData.adresse.complement" field-name="adresse.complement"
+                        label="Complément" placeholder="Bâtiment A, 2ème étage" />
+                </v-col>
+            </v-row>
+        </template>
+    </BaseForm>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
+import { BaseForm, FormField, FormCheckbox } from '@/components/common'
+import { useApi } from '@/composables/useApi'
+import { API_BASE_URL } from '@/utils/constants'
 
 const emit = defineEmits(['close', 'created'])
-const submitted = ref(false)
 
-const fabricant = ref({
+const formData = ref({
     nom: '',
-    email: null,
-    numTelephone: null,
-    serviceApresVente: false
+    email: '',
+    numTelephone: '',
+    serviceApresVente: false,
+    adresse: {
+        numero: '',
+        rue: '',
+        ville: '',
+        code_postal: '',
+        pays: '',
+        complement: ''
+    }
 })
 
-const adresse = ref({
-    numero: '',
-    rue: '',
-    ville: '',
-    code_postal: '',
-    pays: '',
-    complement: null
-})
-
-// Fonctions de validation
-const isValidEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+const validationSchema = {
+    nom: ['required', { name: 'minLength', params: [2] }],
+    email: ['email'],
+    numTelephone: ['phone'],
+    'adresse.numero': [{ name: 'minLength', params: [1] }],
+    'adresse.rue': [{ name: 'minLength', params: [2] }],
+    'adresse.ville': [{ name: 'minLength', params: [2] }],
+    'adresse.code_postal': [{ name: 'pattern', params: [/^[0-9]{4,6}$/], message: 'Code postal invalide (4-6 chiffres)' }],
+    'adresse.pays': [{ name: 'minLength', params: [2] }]
 }
 
-const isValidPhone = (phone) => {
-    return /^\+?[0-9\s\-()]{7,15}$/.test(phone)
-}
-
-const isValidPostalCode = (code) => {
-    return /^[0-9]{4,6}$/.test(code.replace(/\s/g, ''))
-}
+const loading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
 
 const close = () => {
     emit('close')
 }
 
-const validateForm = () => {
-    // Fabricant - nom obligatoire
-    if (!fabricant.value.nom.trim()) {
-        return false
-    }
-    
-    // Email optionnel mais doit être valide si renseigné
-    if (fabricant.value.email && !isValidEmail(fabricant.value.email)) {
-        return false
-    }
-    
-    // Téléphone optionnel mais doit être valide si renseigné
-    if (fabricant.value.numTelephone && !isValidPhone(fabricant.value.numTelephone)) {
-        return false
-    }
-
-    // Adresse - tous les champs sont optionnels mais doivent être valides si renseignés
-    if( adresse.value.numero && isNaN(adresse.value.numero)) {
-        return false
-    }
-    if (adresse.value.code_postal && !isValidPostalCode(adresse.value.code_postal)) {
-        return false
-    }
-    
-    if (adresse.value.pays && adresse.value.pays.trim().length < 2) {
-        return false
-    }
-    
-    if (adresse.value.ville && adresse.value.ville.trim().length < 2) {
-        return false
-    }
-    
-    if (adresse.value.rue && adresse.value.rue.trim().length < 2) {
-        return false
-    }
-    
-    return true
-}
-
 const save = async () => {
-    submitted.value = true
+    loading.value = true
+    errorMessage.value = ''
 
-    if (!validateForm()) return
+    try {
+        const api = useApi(API_BASE_URL)
+        const response = await api.post('fabricants/', formData.value)
 
-    const api = useApi(API_BASE_URL);
+        const newFabricant = {
+            id: response.id,
+            nom: response.nom
+        }
 
-    api.post('fabricants/', {
-        ...fabricant.value,
-        adresse: adresse.value
-    })
-        .then(response => {
-            const newFabricant = {
-                id: response.id,
-                nom: response.nom  // Utilisez response.nom pour être cohérent
-            };
-            emit('created', newFabricant);
-            emit('close');
-        })
-        .catch(error => {
-            console.error('Erreur lors de la création du fabricant:', error);
-        });
+        successMessage.value = 'Fabricant créé avec succès'
+        emit('created', newFabricant)
+        
+        setTimeout(() => {
+            emit('close')
+        }, 1000)
+    } catch (error) {
+        console.error('Erreur lors de la création du fabricant:', error)
+        errorMessage.value = 'Erreur lors de la création du fabricant'
+    } finally {
+        loading.value = false
+    }
 }
 </script>

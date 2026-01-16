@@ -127,8 +127,8 @@ const props = defineProps({
 
   // Navigation personnalisée
   customCancelAction: {
-    type: Boolean,
-    default: false
+    type: Function,
+    default: null
   }
 });
 
@@ -136,8 +136,10 @@ const emit = defineEmits(['cancel', 'reset', 'submit']);
 const router = useRouter();
 
 const handleCancel = () => {
-  emit('cancel');
-  if (!props.customCancelAction) {
+  if (props.customCancelAction && typeof props.customCancelAction === 'function') {
+    props.customCancelAction();
+  } else {
+    emit('cancel');
     router.go(-1);
   }
 };

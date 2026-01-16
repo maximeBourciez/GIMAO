@@ -5,7 +5,8 @@
         <BaseForm v-model="formData" title="Créer un Équipement" :loading="loading" :error-message="errorMessage"
           :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
           :validation-schema="validationSchema" submit-button-text="Créer un Équipement" :handleSubmit="handleSubmit"
-          actions-container-class="d-flex justify-end gap-2" :showActions="step === 6">
+          actions-container-class="d-flex justify-end gap-2 mt-3" submit-button-class="mt-3"
+          cancel-button-class="mt-3 mr-3" :showActions="step === 6">
           <template #default="{ validation }">
             <v-stepper v-model="step" :steps="6" justify="center" alt-labels>
               <v-stepper-header class="justify-center">
@@ -18,7 +19,7 @@
                 </v-stepper-item>
               </v-stepper-header>
 
-              <v-stepper-window v-model="step" :steps="6" class="mb-4">
+              <v-stepper-window v-model="step" :steps="6" class="mb-8">
                 <!-- Étape 1: Informations générales -->
                 <v-stepper-window-item :value="1">
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
@@ -26,7 +27,12 @@
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="1" :show-location="false"
                     :show-status="false" :show-consommables="false" :show-counters="false" :show-general="true"
                     :show-model-info="false" @file-upload="handleFileUpload"
-                    @location-created="handleLocationCreated" />
+                    @location-created="handleLocationCreated" 
+                    @open-modele-dialog="showModeleDialog = true"
+                    @open-fournisseur-dialog="showFournisseurDialog = true"
+                    @open-fabricant-dialog="showFabricantDialog = true"
+                    @open-famille-dialog="showFamilleDialog = true"
+                    @open-lieu-dialog="handleOpenLieuDialog" />
                 </v-stepper-window-item>
 
                 <!-- Étape 2: Fournisseur et Fabricant -->
@@ -35,7 +41,12 @@
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="2" :show-location="false"
                     :show-status="false" :show-consommables="false" :show-counters="false" :show-general="false"
-                    :show-model-info="true" @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    :show-model-info="true" @file-upload="handleFileUpload" @location-created="handleLocationCreated" 
+                    @open-modele-dialog="showModeleDialog = true"
+                    @open-fournisseur-dialog="showFournisseurDialog = true"
+                    @open-fabricant-dialog="showFabricantDialog = true"
+                    @open-famille-dialog="showFamilleDialog = true"
+                    @open-lieu-dialog="handleOpenLieuDialog" />
                 </v-stepper-window-item>
 
                 <!-- Étape 3: Localisation -->
@@ -44,7 +55,12 @@
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="3" :show-status="false"
                     :show-consommables="false" :show-counters="false" :show-general="false" :show-model-info="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" 
+                    @open-modele-dialog="showModeleDialog = true"
+                    @open-fournisseur-dialog="showFournisseurDialog = true"
+                    @open-fabricant-dialog="showFabricantDialog = true"
+                    @open-famille-dialog="showFamilleDialog = true"
+                    @open-lieu-dialog="handleOpenLieuDialog" />
                 </v-stepper-window-item>
 
                 <!-- Étape 4: Statut -->
@@ -53,21 +69,38 @@
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="4" :show-location="false"
                     :show-consommables="false" :show-counters="false" :show-general="false" :show-model-info="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" />
+                    @file-upload="handleFileUpload" @location-created="handleLocationCreated" 
+                    @open-modele-dialog="showModeleDialog = true"
+                    @open-fournisseur-dialog="showFournisseurDialog = true"
+                    @open-fabricant-dialog="showFabricantDialog = true"
+                    @open-famille-dialog="showFamilleDialog = true"
+                    @open-lieu-dialog="handleOpenLieuDialog" />
                 </v-stepper-window-item>
 
                 <!-- Étape 5: Consommables -->
                 <v-stepper-window-item :value="5">
                   <v-select v-model="formData.consommables" :items="consumables" item-title="designation"
-                    item-value="id" multiple chips label="Consommables" />
+                    item-value="id" multiple chips label="Consommables">
+                    <template #append-item>
+                      <v-divider />
+                      <v-list-item @click="showConsommableDialog = true">
+                        <template #prepend>
+                          <v-icon color="primary">mdi-plus</v-icon>
+                        </template>
+                        <v-list-item-title>Ajouter un consommable</v-list-item-title>
+                      </v-list-item>
+                    </template>
+                  </v-select>
                 </v-stepper-window-item>
 
                 <!-- Étape 6: Compteurs -->
                 <v-stepper-window-item :value="6">
                   <!-- Liste des compteurs déjà ajoutés -->
-                  <v-sheet v-if="formData.compteurs.length > 0 && !showCounterForm" class="pa-4 mb-4" elevation="2"
+                  <v-sheet v-if="formData.compteurs.length > 0 && !showCounterForm" class="pa-4 mb-4" elevation="0"
                     rounded>
-                    <h4 class="mb-3">Compteurs ajoutés ({{ formData.compteurs.length }})</h4>
+                    <v-card-subtitle class="text-h6 font-weight-bold px-0 pb-2">
+                      Compteurs ajoutés ({{ formData.compteurs.length }})
+                    </v-card-subtitle>
 
                     <v-list dense>
                       <v-list-item v-for="(compteur, index) in formData.compteurs" :key="index" class="mb-2 pa-3"
@@ -99,24 +132,25 @@
 
                     <v-divider class="my-4" />
 
-                    <!-- Boutons d'action -->
-                    <v-row class="mt-4" justify="center">
-                      <v-btn color="primary" size="large" @click="handleCounterAdd" class="mr-2">
-                        <v-icon left>mdi-plus</v-icon>
+                    <!-- Bouton d'ajout -->
+                    <div class="d-flex justify-center">
+                      <v-btn color="primary" variant="text" prepend-icon="mdi-plus" @click="handleCounterAdd">
                         Ajouter un autre compteur
                       </v-btn>
-                    </v-row>
+                    </div>
                   </v-sheet>
 
                   <!-- Formulaire pour ajouter/éditer un compteur -->
-                  <CounterInlineForm v-if="showCounterForm" v-model="currentCounter" :existingPMs="existingPMs"
-                    :typesPM="typesPM" :consumables="consumables" :typesDocuments="typesDocuments"
-                    :isEditMode="editingCounterIndex >= 0" :isFirstCounter="formData.compteurs.length === 0"
-                    @save="internalSaveCurrentCounter" @cancel="cancelCounterForm" />
+                  <div v-if="showCounterForm" class="mb-6">
+                    <CounterInlineForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM"
+                      :consumables="consumables" :typesDocuments="typesDocuments"
+                      :isEditMode="editingCounterIndex >= 0" :isFirstCounter="formData.compteurs.length === 0"
+                      @save="internalSaveCurrentCounter" @cancel="cancelCounterForm" />
+                  </div>
                 </v-stepper-window-item>
 
                 <!-- Navigation -->
-                <v-row justify="space-between" class="mt-4">
+                <v-row justify="space-between" class="mt-6 mb-2">
                   <v-btn type="button" variant="text" @click="prevStep" :disabled="step === 1">
                     Précédent
                   </v-btn>
@@ -146,21 +180,53 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="showFabricantDialog" max-width="80%">
-      <FabricantForm @created="handleFabricantCreated" @close="showFabricantDialog = false" />
+    <v-dialog v-model="showFabricantDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <FabricantForm @created="handleFabricantCreated" @close="showFabricantDialog = false" />
+        </v-card-text>
+      </v-card>
     </v-dialog>
 
-    <v-dialog v-model="showFournisseurDialog" max-width="80%">
-      <FournisseurForm @created="handleFournisseurCreated" @close="showFournisseurDialog = false" />
+    <v-dialog v-model="showFournisseurDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <FournisseurForm @created="handleFournisseurCreated" @close="showFournisseurDialog = false" />
+        </v-card-text>
+      </v-card>
     </v-dialog>
 
-    <v-dialog v-model="showModeleDialog" max-width="80%">
-      <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="showModeleDialog = false"
-        @fabricant-created="handleFabricantCreated" />
+    <v-dialog v-model="showModeleDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <ModeleEquipementForm :fabricants="fabricants" @created="handleModeleCreated" @close="showModeleDialog = false"
+            @fabricant-created="handleFabricantCreated" />
+        </v-card-text>
+      </v-card>
     </v-dialog>
 
-    <v-dialog v-model="showFamilleDialog" max-width="50%">
-      <FamilleEquipementForm :families="familles" @created="handleFamilleCreated" @close="showFamilleDialog = false" />
+    <v-dialog v-model="showFamilleDialog" max-width="500" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <FamilleEquipementForm :families="familles" @created="handleFamilleCreated" @close="showFamilleDialog = false" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showLieuDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <LieuForm :parent-id="selectedParentLieuId" :locations="locations" @created="handleLieuCreated" @close="showLieuDialog = false" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showConsommableDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <ConsommableForm :magasins="magasins" @created="handleConsommableCreated" @close="showConsommableDialog = false" @magasin-created="handleMagasinCreated" />
+        </v-card-text>
+      </v-card>
     </v-dialog>
   </v-app>
 </template>
@@ -176,6 +242,8 @@ import FabricantForm from '@/components/Forms/FabricantForm.vue';
 import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
 import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue';
+import LieuForm from '@/components/Forms/LieuForm.vue';
+import ConsommableForm from '@/components/Forms/ConsommableForm.vue';
 
 const {
   formData,
@@ -220,6 +288,10 @@ const step = ref(1);
 const visitedSteps = ref([1]);
 const showCounterForm = ref(true);
 const editingCounterIndex = ref(-1);
+const showLieuDialog = ref(false);
+const selectedParentLieuId = ref(null);
+const showConsommableDialog = ref(false);
+const magasins = ref([]);
 
 //Règles de validation par étape
 const validationSchema = {
@@ -428,8 +500,49 @@ const canGoToNextStep = (validation) => {
   return validation.isStepValid(step.value, formData.value);
 };
 
+const handleOpenLieuDialog = (parentId) => {
+  selectedParentLieuId.value = parentId;
+  showLieuDialog.value = true;
+};
+
+const handleLieuCreated = async (newLieu) => {
+  console.log('Nouveau lieu créé:', newLieu);
+  // Rafraîchir la liste des lieux
+  await fetchData();
+  // Fermer la dialog
+  showLieuDialog.value = false;
+};
+
+const handleConsommableCreated = async (newConsommable) => {
+  console.log('Nouveau consommable créé:', newConsommable);
+  // Rafraîchir la liste des consommables
+  await fetchData();
+  // Ajouter le consommable à la sélection
+  if (!formData.value.consommables.includes(newConsommable.id)) {
+    formData.value.consommables.push(newConsommable.id);
+  }
+  // Fermer la dialog
+  showConsommableDialog.value = false;
+};
+
+const handleMagasinCreated = async (newMagasin) => {
+  console.log('Nouveau magasin créé:', newMagasin);
+  // Rafraîchir la liste des magasins
+  await fetchMagasins();
+};
+
+const fetchMagasins = async () => {
+  try {
+    const data = await api.get('magasins/');
+    magasins.value = data;
+  } catch (error) {
+    console.error('Erreur lors du chargement des magasins:', error);
+  }
+};
+
 onMounted(async () => {
-  await fetchData()
+  await fetchData();
+  await fetchMagasins();
 });
 </script>
 

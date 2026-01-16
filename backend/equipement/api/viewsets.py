@@ -673,6 +673,48 @@ class ModeleEquipementViewSet(viewsets.ModelViewSet):
     serializer_class = ModeleEquipementSerializer
 
     @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Création d'un nouveau modèle d'équipement"""
+        data = request.data
+        print(f"Data reçue pour création modèle : {data}")
+        
+        # Extraire le nom et le fabricant_id
+        nom = data.get('nom')
+        fabricant_id = data.get('fabricant')
+        
+        if not nom:
+            return Response(
+                {"error": "Le nom du modèle est requis"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not fabricant_id:
+            return Response(
+                {"error": "Le fabricant est requis"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Créer le modèle
+        try:
+            modele = ModeleEquipement.objects.create(
+                nom=nom,
+                fabricant_id=fabricant_id
+            )
+            
+            # Retourner le modèle créé avec le serializer
+            serializer = self.get_serializer(modele)
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            print(f"Erreur lors de la création du modèle : {str(e)}")
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         """Mise à jour d'un modèle d'équipement - gère aussi les consommables associés"""
         modele = self.get_object()

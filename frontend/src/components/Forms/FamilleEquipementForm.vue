@@ -1,37 +1,45 @@
 <template>
-    <v-card>
-        <v-card-title>
-            Ajouter une famille d’équipement
-        </v-card-title>
-
-        <v-card-text>
-            <v-row dense>
+    <BaseForm
+        v-model="formData"
+        title="Ajouter une famille d'équipement"
+        :validation-schema="validationSchema"
+        :loading="loading"
+        :error-message="errorMessage"
+        :success-message="successMessage"
+        :handleSubmit="save"
+        :custom-cancel-action="close"
+        elevation="0"
+    >
+        <v-row dense>
                 <v-col cols="12">
-                    <v-text-field v-model="family.nom" label="Nom de la famille *" outlined dense
-                        :error="submitted && !family.nom.trim()" :error-messages="submitted && !family.nom.trim() ? 'Le nom de la famille est requis' : ''" />
-                </v-col>
+                <FormField
+                    v-model="formData.nom"
+                    field-name="nom"
+                    label="Nom de la famille"
+                    placeholder="Saisir le nom de la famille"
+                />
+            </v-col>
 
-                <v-col cols="12">
-                    <v-select v-model="family.parent" :items="families" item-title="nom" item-value="id"
-                        label="Famille parente (optionnel)" outlined dense clearable />
-                </v-col>
-            </v-row>
-        </v-card-text>
-
-        <v-card-actions>
-            <v-spacer />
-            <v-btn text @click="$emit('close')">Annuler</v-btn>
-            <v-btn color="primary" @click="submit">
-                Enregistrer
-            </v-btn>
-        </v-card-actions>
-    </v-card>
+            <v-col cols="12">
+                <FormSelect
+                    v-model="formData.parent"
+                    field-name="parent"
+                    label="Famille parente (optionnel)"
+                    :items="families"
+                    item-title="nom"
+                    item-value="id"
+                    clearable
+                />
+            </v-col>
+        </v-row>
+    </BaseForm>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
+import { BaseForm, FormField, FormSelect } from '@/components/common'
+import { useApi } from '@/composables/useApi'
+import { API_BASE_URL } from '@/utils/constants'
 
 const props = defineProps({
     families: {
@@ -42,33 +50,49 @@ const props = defineProps({
 
 const emit = defineEmits(['created', 'close'])
 
-const submitted = ref(false)
-
-const family = ref({
+const formData = ref({
     nom: '',
     parent: null
 })
 
-const submit = () => {
-    submitted.value = true
-    if (!family.value.nom.trim()) return
+const validationSchema = {
+    nom: ['required', { name: 'minLength', params: [2] }, { name: 'maxLength', params: [100] }],
+    parent: []
+}
 
-    const api = useApi(API_BASE_URL);
+const loading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
 
-    api.post('famille-equipements/', family.value)
-        .then(response => {
-            console.log('Famille créée avec succès:', response);
-            const newFamily = {
-                id: response.id,
-                nom: family.value.nom,
-                parent: family.value.parent
-            };
-            emit('created', newFamily);
-            emit('close');
-        })
-        .catch(error => {
-            console.error(error);
-        });
+const save = async () => {
+    loading.value = true
+    errorMessage.value = ''
+    successMessage.value = ''
+
+    const api = useApi(API_BASE_URL)
+
+    try {
+        const response = await api.post('famille-equipements/', formData.value)
+        const newFamily = {
+            id: response.id,
+            nom: formData.value.nom,
+            parent: formData.value.parent
+        }
+        successMessage.value = 'Famille créée avec succès'
+        emit('created', newFamily)
+        setTimeout(() => {
+            emit('close')
+        }, 500)
+    } catch (error) {
+        console.error('Erreur lors de la création de la famille:', error)
+        errorMessage.value = error.message || 'Une erreur est survenue lors de la création de la famille'
+    } finally {
+        loading.value = false
+    }
+}
+
+const close = () => {
+    emit('close')
 }
 
 </script>

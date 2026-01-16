@@ -1,13 +1,17 @@
 <template>
   <div>
-  <v-row align="center" class="mb-2" justify="space-between">
-    
-    <h3 class="mb-3" v-if="showTitle">Sélectionner un lieu</h3>
-    <v-btn v-if="showCreateButton" color="primary" @click="createWithoutParent">
-      <v-icon left>mdi-plus</v-icon>
-      Créer un nouveau lieu
-    </v-btn>
-  </v-row>
+    <v-row align="center" class="mb-2" justify="space-between">
+      <v-col v-if="showTitle" cols="auto">
+        <h3 class="mb-0">Sélectionner un lieu</h3>
+      </v-col>
+      <v-col v-if="showCreateButton" cols="auto">
+        <v-btn color="primary" @click="createWithoutParent">
+          <v-icon left>mdi-plus</v-icon>
+          Créer un nouveau lieu
+        </v-btn>
+      </v-col>
+    </v-row>
+
     <p v-if="!items || items.length === 0" class="text-caption">
       Pas de données disponibles.
     </p>
