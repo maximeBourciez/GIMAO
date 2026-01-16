@@ -207,6 +207,7 @@ const successMessage = ref('');
 
 const roles = ref([]);
 const original = ref(null);
+const originalPhotoPath = ref('');
 
 const form = ref({
 	nomUtilisateur: '',
@@ -404,6 +405,7 @@ const loadUser = async () => {
 			photoProfil: null,
 		};
 		existingPhotoPath.value = data?.photoProfil ?? '';
+		originalPhotoPath.value = data?.photoProfil ?? '';
 		removeExistingPhoto.value = false;
 		revokePhotoPreviewUrl();
 		photoError.value = '';
@@ -412,6 +414,28 @@ const loadUser = async () => {
 		console.error('Error loading user for edit:', e);
 		saveErrorMessage.value = "Erreur lors du chargement de l'utilisateur.";
 	}
+};
+
+const hasUserChanges = () => {
+	// Si on n'a pas de snapshot, on préfère tenter l'update.
+	if (!original.value) return true;
+
+	const normalizeString = (v) => (typeof v === 'string' ? v.trim() : v);
+
+	const fieldsChanged = [
+		'nomUtilisateur',
+		'prenom',
+		'nomFamille',
+		'email',
+	].some((key) => normalizeString(form.value?.[key]) !== normalizeString(original.value?.[key]));
+
+	const activeChanged = !!form.value.actif !== !!original.value.actif;
+	const roleChanged = String(form.value.role_id ?? '') !== String(original.value.role_id ?? '');
+
+	const photoChanged = (form.value.photoProfil instanceof File)
+		|| (removeExistingPhoto.value && !!originalPhotoPath.value);
+
+	return fieldsChanged || activeChanged || roleChanged || photoChanged;
 };
 
 const handleSubmit = async () => {
@@ -423,6 +447,12 @@ const handleSubmit = async () => {
 	isSaving.value = true;
 	saveErrorMessage.value = '';
 	successMessage.value = '';
+
+	if (!hasUserChanges()) {
+		isSaving.value = false;
+		saveErrorMessage.value = 'Aucune modification détectée.';
+		return;
+	}
 
 	try {
 		const payloadHasFile = form.value.photoProfil instanceof File;
