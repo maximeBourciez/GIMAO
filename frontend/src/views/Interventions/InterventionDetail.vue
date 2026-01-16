@@ -70,16 +70,16 @@
 
           <!-- Boutons d'action -->
           <v-row class="mt-6">
-            <v-col cols="12" md="6" class="py-1">
+            <v-col cols="12" lg="6" class="py-1">
               <v-btn color="info" block :disabled="!canStart" @click="openStartModal">Démarrer l'intervention</v-btn>
             </v-col>
-            <v-col cols="12" md="6" class="py-1">
+            <v-col cols="12" lg="6" class="py-1">
               <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal">Terminer l'intervention</v-btn>
             </v-col>
-            <v-col cols="12" md="6" class="py-1">
+            <v-col cols="12" lg="6" class="py-1">
               <v-btn color="success" block :disabled="!canClose" @click="openCloseModal">Clôturer le BT</v-btn>
             </v-col>
-            <v-col cols="12" md="6" class="py-1">
+            <v-col cols="12" lg="6" class="py-1">
               <v-btn color="warning" block :disabled="!canRefuseClose" @click="openRefuseCloseModal">Refuser la clôture du BT</v-btn>
             </v-col>
           </v-row>
@@ -206,7 +206,7 @@
           <!-- Section Documents -->
           <v-card class="mt-4" elevation="2">
             <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleDocumentsDetails">
-              Documents du bon de travail
+              Documents du BT
               <v-spacer></v-spacer>
               <v-btn color="primary" size="small" class="mr-2" @click.stop="addDocument">
                 Ajouter
@@ -314,39 +314,72 @@
       @confirm="closeBonTravail"
       @cancel="showClose = false"
     />
-	<ConfirmationModal
-		v-model="showRefuseClose"
-		type="warning"
-		title="Refuser la clôture"
-		message="Êtes-vous sûr de vouloir refuser la clôture de ce bon de travail ?"
-		confirm-text="Refuser"
-		confirm-icon="mdi-close-circle-outline"
-		:loading="actionLoading"
-		@confirm="refuseCloseBonTravail"
-		@cancel="showRefuseClose = false"
-	/>
+
+    <!-- Refuser la clôture : formulaire (commentaire obligatoire) -->
+    <v-dialog v-model="showRefuseClose" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <BaseForm
+            v-model="refuseCloseFormData"
+            title="Refuser la clôture"
+            :validation-schema="refuseCloseValidationSchema"
+            :loading="actionLoading"
+            :error-message="errorMessage"
+            :success-message="successMessage"
+            submit-button-text="Refuser"
+            submit-button-color="warning"
+            cancel-button-text="Annuler"
+            :custom-cancel-action="() => (showRefuseClose = false)"
+            :handleSubmit="refuseCloseBonTravail"
+            @clear-error="errorMessage = ''"
+            @clear-success="successMessage = ''"
+            elevation="0"
+          >
+            <template #default>
+              <v-row dense>
+                <v-col cols="12">
+                  <FormTextarea
+                    v-model="refuseCloseFormData.commentaire_refus_cloture"
+                    field-name="commentaire_refus_cloture"
+                    label="Commentaire de refus"
+                    rows="4"
+                  />
+                </v-col>
+              </v-row>
+            </template>
+          </BaseForm>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { useStore } from 'vuex';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
+import { BaseForm, FormTextarea } from '@/components/common';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
 import { formatDateTime, getInterventionStatusColor } from '@/utils/helpers';
 
 const router = useRouter();
 const route = useRoute();
+const store = useStore();
 
 const api = useApi(API_BASE_URL);
+
+const currentUser = computed(() => store.getters.currentUser);
 
 const intervention = ref(null);
 const loading = ref(false);
 const actionLoading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
+
+const MESSAGE_TIMEOUT_MS = 3000;
 
 const actionMode = ref('download');
 const showDemandeDetails = ref(false);
@@ -358,6 +391,14 @@ const showStart = ref(false);
 const showFinish = ref(false);
 const showClose = ref(false);
 const showRefuseClose = ref(false);
+
+const refuseCloseFormData = ref({
+  commentaire_refus_cloture: ''
+});
+
+const refuseCloseValidationSchema = {
+  commentaire_refus_cloture: ['required', { name: 'maxLength', params: [500] }]
+};
 
 const documentHeaders = [
   { title: 'Nom du document', value: 'nomDocumentIntervention' },
@@ -396,7 +437,7 @@ const formattedEquipement = computed(() => {
 const canClose = computed(() => !!intervention.value && !intervention.value.date_cloture);
 const canStart = computed(() => ['EN_ATTENTE', 'EN_RETARD'].includes(intervention.value?.statut));
 const canFinish = computed(() => intervention.value?.statut === 'EN_COURS');
-const canRefuseClose = computed(() => intervention.value?.statut === 'CLOTURE');
+const canRefuseClose = computed(() => intervention.value?.statut === 'TERMINE');
 
 const openStartModal = () => {
   showStart.value = true;
@@ -411,7 +452,8 @@ const openCloseModal = () => {
 };
 
 const openRefuseCloseModal = () => {
-	showRefuseClose.value = true;
+  refuseCloseFormData.value = { commentaire_refus_cloture: '' };
+  showRefuseClose.value = true;
 };
 
 const goToEditIntervention = () => {
@@ -427,6 +469,7 @@ const fetchData = async () => {
     intervention.value = await api.get(`bons-travail/${route.params.id}`);
   } catch (error) {
     errorMessage.value = 'Erreur lors du chargement des données';
+    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
   } finally {
     loading.value = false;
   }
@@ -476,12 +519,17 @@ const closeBonTravail = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'CLOTURE' });
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
+      statut: 'CLOTURE',
+      user: currentUser.value?.id
+    });
     successMessage.value = 'Bon de travail clôturé';
+    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
     showClose.value = false;
     await fetchData();
   } catch (error) {
     errorMessage.value = 'Erreur lors de la clôture du bon de travail';
+    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
   } finally {
     actionLoading.value = false;
   }
@@ -491,12 +539,18 @@ const refuseCloseBonTravail = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'EN_COURS' });
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
+      statut: 'EN_COURS',
+      commentaire_refus_cloture: refuseCloseFormData.value.commentaire_refus_cloture,
+      user: currentUser.value?.id
+    });
     successMessage.value = 'Clôture refusée';
+    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
     showRefuseClose.value = false;
     await fetchData();
   } catch (error) {
     errorMessage.value = 'Erreur lors du refus de clôture';
+    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
   } finally {
     actionLoading.value = false;
   }
@@ -506,12 +560,17 @@ const startIntervention = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'EN_COURS' });
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
+      statut: 'EN_COURS',
+      user: currentUser.value?.id
+    });
     successMessage.value = 'Intervention démarrée';
+    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
     showStart.value = false;
     await fetchData();
   } catch (error) {
-    errorMessage.value = 'Erreur lors du démarrage de l\'intervention';
+    errorMessage.value = "Erreur lors du démarrage de l'intervention";
+    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
   } finally {
     actionLoading.value = false;
   }
@@ -521,12 +580,17 @@ const finishIntervention = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'TERMINE' });
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
+      statut: 'TERMINE',
+      user: currentUser.value?.id
+    });
     successMessage.value = 'Intervention terminée';
+    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
     showFinish.value = false;
     await fetchData();
   } catch (error) {
-    errorMessage.value = 'Erreur lors de la fin de l\'intervention';
+    errorMessage.value = "Erreur lors de la fin de l'intervention";
+    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
   } finally {
     actionLoading.value = false;
   }
@@ -582,7 +646,8 @@ const deleteDocument = async (item) => {
 
   const documentId = item?.id ?? item?.idDocumentIntervention ?? item?.document_id;
   if (!documentId) {
-    errorMessage.value = "Impossible de supprimer : ID du document manquant.";
+    errorMessage.value = 'Impossible de supprimer : ID du document manquant.';
+    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
     return;
   }
 
@@ -590,9 +655,11 @@ const deleteDocument = async (item) => {
     // L'écran d'ajout poste sur 'document-interventions/' : suppression via DELETE /document-interventions/{id}/
     await api.delete(`document-interventions/${documentId}/`);
     successMessage.value = 'Document supprimé';
+    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
     await fetchData();
   } catch (error) {
     errorMessage.value = 'Erreur lors de la suppression du document';
+    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
   }
 };
 

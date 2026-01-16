@@ -271,23 +271,14 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     ).prefetch_related('utilisateur_assigne')
     serializer_class = BonTravailSerializer
 
-    def _get_utilisateur(self, request):
-        """Récupère l'utilisateur à partir de la requête"""
-        if hasattr(request, 'user') and request.user.is_authenticated:
-            try:
-                return Utilisateur.objects.get(user=request.user)
-            except Utilisateur.DoesNotExist:
-                return None
-        return None
-
-    def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur):
+    def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
         """Crée une entrée de log"""
         Log.objects.create(
             type=type_action,
             nomTable=nom_table,
             idCible=id_cible,
             champsModifies=champs_modifies,
-            utilisateur=utilisateur
+            utilisateur_id=utilisateur_id
         )
 
     def _build_champs_modifies(self, bon_avant, bon_apres, fields):
@@ -365,18 +356,35 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        utilisateur_id = request.data.get('user')
+
         bon_avant = BonTravail.objects.get(pk=bon.pk)
 
         # Règles spécifiques (on étendra au fur et à mesure)
         if new_statut == 'EN_COURS':
-            # Démarrage
-            if bon.statut not in ['EN_ATTENTE', 'EN_RETARD']:
+            # Deux cas :
+            # - Démarrage: EN_ATTENTE/EN_RETARD -> EN_COURS (date_debut = now)
+            # - Refus de clôture: TERMINE -> EN_COURS (date_fin = null + commentaire_refus_cloture)
+            if bon.statut in ['EN_ATTENTE', 'EN_RETARD']:
+                bon.statut = 'EN_COURS'
+                bon.date_debut = timezone.now()
+            elif bon.statut == 'TERMINE':
+                commentaire_refus_cloture = request.data.get('commentaire_refus_cloture')
+                if not commentaire_refus_cloture or not str(commentaire_refus_cloture).strip():
+                    return Response(
+                        {'error': 'Le commentaire de refus de clôture est requis'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                bon.statut = 'EN_COURS'
+                bon.date_fin = None
+                bon.date_cloture = None
+                bon.commentaire_refus_cloture = str(commentaire_refus_cloture).strip()
+            else:
                 return Response(
-                    {'error': 'Le bon doit être en attente ou en retard pour être démarré'},
+                    {'error': 'Le bon doit être en attente, en retard ou terminé pour passer en cours'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            bon.statut = 'EN_COURS'
-            bon.date_debut = timezone.now()
         elif new_statut == 'TERMINE':
             # Terminer l'intervention (date_fin = now)
             if bon.statut != 'EN_COURS':
@@ -397,7 +405,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         bon.save()
 
-        utilisateur = self._get_utilisateur(request)
         champs_modifies = self._build_champs_modifies(
             bon_avant,
             bon,
@@ -409,7 +416,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                 nom_table='bon_travail',
                 id_cible={'bon_travail_id': bon.id},
                 champs_modifies=champs_modifies,
-                utilisateur=utilisateur
+                utilisateur_id=utilisateur_id
             )
 
         serializer = self.get_serializer(bon)
@@ -425,7 +432,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         # Recharger l'instance après save
         bon_apres = BonTravail.objects.get(pk=instance.pk)
         if 'statut' in request.data and bon_avant.statut != bon_apres.statut:
-            utilisateur = self._get_utilisateur(request)
+            utilisateur_id = request.data.get('user')
             champs_modifies = self._build_champs_modifies(
                 bon_avant,
                 bon_apres,
@@ -437,7 +444,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                     nom_table='bon_travail',
                     id_cible={'bon_travail_id': bon_apres.id},
                     champs_modifies=champs_modifies,
-                    utilisateur=utilisateur
+                    utilisateur_id=utilisateur_id
                 )
 
         return response
