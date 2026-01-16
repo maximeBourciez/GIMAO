@@ -260,7 +260,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     - GET /bons-travail/{id}/ : Détail d'un bon
     - PUT/PATCH /bons-travail/{id}/ : Modifie un bon
     - DELETE /bons-travail/{id}/ : Supprime un bon
-    - GET /bons-travail/par_statut/?statut=EN_COURS : Filtre par statut
     - GET /bons-travail/mes_bons/ : Bons assignés à l'utilisateur connecté
     - PATCH /bons-travail/{id}/updateStatus/ : Change le statut (endpoint unique)
     """
@@ -306,22 +305,23 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             return BonTravailDetailSerializer
         return BonTravailSerializer
 
-    @action(detail=False, methods=['get'])
-    def par_statut(self, request):
+    def get_queryset(self):
+        """Par défaut, on n'affiche pas les BT clôturés.
+
+        Query param: cloture (optionnel)
+        - cloture=true (ou 1) => inclut les BT au statut CLOTURE
         """
-        Filtre les bons de travail par statut
-        Query param: statut (EN_ATTENTE, EN_COURS, TERMINE, EN_RETARD, CLOTURE)
-        """
-        statut = request.query_params.get('statut')
-        if not statut:
-            return Response(
-                {'error': 'Le paramètre statut est requis'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        bons = self.queryset.filter(statut=statut)
-        serializer = self.get_serializer(bons, many=True)
-        return Response(serializer.data)
+        queryset = super().get_queryset()
+
+        if getattr(self, 'action', None) != 'list':
+            return queryset
+
+        cloture_raw = str(self.request.query_params.get('cloture', 'false')).strip().lower()
+        include_cloture = cloture_raw in ['true', '1']
+        if include_cloture:
+            return queryset
+
+        return queryset.exclude(statut='CLOTURE')
 
     @action(detail=False, methods=['get'])
     def mes_bons(self, request):

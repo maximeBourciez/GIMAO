@@ -165,11 +165,7 @@ const fetchBonsTravail = async () => {
 
 	errorMessage.value = '';
 	try {
-		if (props.statut) {
-			await api.get('bons-travail/par_statut', { statut: props.statut });
-		} else {
-			await api.get('bons-travail');
-		}
+		await api.get('bons-travail');
 
 		emit('loaded', displayItems.value);
 	} catch (error) {
@@ -182,7 +178,7 @@ const onRowClick = (item) => {
 };
 
 watch(
-	() => [props.statut, props.fetchOnMount],
+	() => [props.fetchOnMount],
 	() => {
 		fetchBonsTravail();
 	}
