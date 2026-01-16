@@ -70,9 +70,14 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
             'actif',
             'role'
         ]
+        read_only_fields = ['id']
         extra_kwargs = {
+            'nomUtilisateur': {'required': True, 'allow_blank': False},
             'prenom': {'required': True, 'allow_blank': False},
             'nomFamille': {'required': True, 'allow_blank': False},
+            'email': {'required': True, 'allow_blank': False},
+            'actif': {'required': True},
+            'role': {'required': True, 'allow_null': False},
         }
     
     def validate(self, data):
