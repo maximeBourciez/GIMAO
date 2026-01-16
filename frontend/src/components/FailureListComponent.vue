@@ -29,7 +29,7 @@
 
     <!-- Colonne Equipement -->
     <template #item.equipement="{ item }">
-      {{ item.equipement.reference }}
+      {{ item.equipement.designation }}
     </template>
     
     
