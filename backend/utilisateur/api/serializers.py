@@ -70,6 +70,10 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
             'actif',
             'role'
         ]
+        extra_kwargs = {
+            'prenom': {'required': True, 'allow_blank': False},
+            'nomFamille': {'required': True, 'allow_blank': False},
+        }
     
     def validate(self, data):
         """Vérifie que les mots de passe correspondent"""
