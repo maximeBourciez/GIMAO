@@ -82,10 +82,6 @@ export default {
 .v-card {
   background-color: #FFFFFF;
 }
-.v-btn {
-  background-color: #F1F5FF;
-  border-radius: 50%;
-}
 h1 {
   color: #05004E;
 }

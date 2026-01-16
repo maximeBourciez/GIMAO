@@ -1,13 +1,15 @@
 <template>
     <BaseForm
         v-model="formData"
-        title="Ajouter un fournisseur"
+        :title="title"
         :validation-schema="validationSchema"
         :loading="loading"
         :error-message="errorMessage"
         :success-message="successMessage"
         :handleSubmit="save"
-        :custom-cancel-action="close"
+        :submit-button-text="submitButtonText"
+        :custom-cancel-action="true"
+        @cancel="close"
         elevation="0"
     >
         <v-card-subtitle class="text-h6 font-weight-bold px-0 pb-2">
@@ -20,6 +22,7 @@
                     v-model="formData.nom"
                     field-name="nom"
                     label="Nom du fournisseur"
+                    placeholder="Ex: Legrand, ABB, Hager..."
                 />
             </v-col>
             <v-col cols="12" md="6">
@@ -28,6 +31,7 @@
                     field-name="email"
                     label="Email"
                     type="email"
+                    placeholder="contact@fournisseur.fr"
                 />
             </v-col>
         </v-row>
@@ -38,6 +42,7 @@
                     v-model="formData.numTelephone"
                     field-name="numTelephone"
                     label="Téléphone"
+                    placeholder="01 23 45 67 89"
                 />
             </v-col>
             <v-col cols="6" class="d-flex align-center">
@@ -61,6 +66,7 @@
                     v-model="formData.adresse.numero"
                     field-name="adresse.numero"
                     label="N°"
+                    placeholder="45"
                 />
             </v-col>
             <v-col cols="8">
@@ -68,6 +74,7 @@
                     v-model="formData.adresse.rue"
                     field-name="adresse.rue"
                     label="Rue"
+                    placeholder="Boulevard Voltaire"
                 />
             </v-col>
         </v-row>
@@ -78,6 +85,7 @@
                     v-model="formData.adresse.ville"
                     field-name="adresse.ville"
                     label="Ville"
+                    placeholder="Marseille"
                 />
             </v-col>
             <v-col cols="6">
@@ -85,6 +93,7 @@
                     v-model="formData.adresse.code_postal"
                     field-name="adresse.code_postal"
                     label="Code postal"
+                    placeholder="13001"
                 />
             </v-col>
         </v-row>
@@ -95,6 +104,7 @@
                     v-model="formData.adresse.pays"
                     field-name="adresse.pays"
                     label="Pays"
+                    placeholder="France"
                 />
             </v-col>
         </v-row>
@@ -105,6 +115,7 @@
                     v-model="formData.adresse.complement"
                     field-name="adresse.complement"
                     label="Complément"
+                    placeholder="Étage 3, Bureau 12"
                 />
             </v-col>
         </v-row>
@@ -112,12 +123,35 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { BaseForm, FormField, FormCheckbox } from '@/components/common'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
 
-const emit = defineEmits(['created', 'close'])
+const props = defineProps({
+    title: {
+        type: String,
+        default: 'Ajouter un fournisseur'
+    },
+    submitButtonText: {
+        type: String,
+        default: 'Créer'
+    },
+    isEdit: {
+        type: Boolean,
+        default: false
+    },
+    initialData: {
+        type: Object,
+        default: () => ({})
+    },
+    connectedUserId: {
+        type: Number,
+        default: null
+    }
+})
+
+const emit = defineEmits(['created', 'updated', 'close'])
 
 const formData = ref({
     nom: '',
@@ -134,6 +168,8 @@ const formData = ref({
     }
 })
 
+const originalData = ref(null)
+
 const validationSchema = {
     nom: ['required', { name: 'minLength', params: [2] }],
     email: ['email'],
@@ -149,8 +185,67 @@ const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
+// Initialiser les données
+watch(() => props.initialData, (newData) => {
+    if (newData && Object.keys(newData).length > 0) {
+        formData.value = {
+            nom: newData.nom || '',
+            email: newData.email || null,
+            numTelephone: newData.numTelephone || null,
+            serviceApresVente: newData.serviceApresVente || false,
+            adresse: {
+                numero: newData.adresse?.numero || '',
+                rue: newData.adresse?.rue || '',
+                ville: newData.adresse?.ville || '',
+                code_postal: newData.adresse?.code_postal || '',
+                pays: newData.adresse?.pays || '',
+                complement: newData.adresse?.complement || null
+            }
+        }
+        if (props.isEdit) {
+            originalData.value = JSON.parse(JSON.stringify(formData.value))
+        }
+    }
+}, { immediate: true, deep: true })
+
 const close = () => {
     emit('close')
+}
+
+const detectChanges = () => {
+    if (!props.isEdit || !originalData.value) return null
+
+    const changes = {}
+    changes.adresse = {}
+
+    // Champs simples
+    const simpleFields = ['nom', 'email', 'numTelephone', 'serviceApresVente']
+    simpleFields.forEach((field) => {
+        if (formData.value[field] !== originalData.value[field]) {
+            changes[field] = {
+                ancienne: originalData.value[field],
+                nouvelle: formData.value[field]
+            }
+        }
+    })
+
+    // Adresse
+    const addressFields = ['numero', 'rue', 'ville', 'code_postal', 'pays', 'complement']
+    addressFields.forEach((field) => {
+        if (formData.value.adresse[field] !== originalData.value.adresse[field]) {
+            changes.adresse[field] = {
+                ancienne: originalData.value.adresse[field],
+                nouvelle: formData.value.adresse[field]
+            }
+        }
+    })
+
+    // Supprimer adresse si vide
+    if (Object.keys(changes.adresse).length === 0) {
+        delete changes.adresse
+    }
+
+    return changes
 }
 
 const save = async () => {
@@ -159,22 +254,47 @@ const save = async () => {
     successMessage.value = ''
 
     const api = useApi(API_BASE_URL)
-    
+
     try {
-        const response = await api.post('fournisseurs/', formData.value)
-        console.log('Fournisseur créé avec succès:', response)
-        const newFournisseur = {
-            id: response.id,
-            nom: response.nom
+        if (props.isEdit) {
+            // Mode édition
+            const changes = detectChanges()
+
+            if (!changes || Object.keys(changes).length === 0) {
+                errorMessage.value = 'Aucun changement détecté'
+                loading.value = false
+                return
+            }
+
+            if (props.connectedUserId) {
+                changes.user = props.connectedUserId
+            }
+
+            const response = await api.put(`fournisseurs/${props.initialData.id}/`, changes)
+            console.log('Fournisseur modifié avec succès:', response)
+
+            successMessage.value = 'Fournisseur modifié avec succès'
+            emit('updated', response)
+        } else {
+            // Mode création
+            const response = await api.post('fournisseurs/', formData.value)
+            console.log('Fournisseur créé avec succès:', response)
+            
+            const newFournisseur = {
+                id: response.id,
+                nom: response.nom
+            }
+            
+            successMessage.value = 'Fournisseur créé avec succès'
+            emit('created', newFournisseur)
         }
-        successMessage.value = 'Fournisseur créé avec succès'
-        emit('created', newFournisseur)
+
         setTimeout(() => {
             emit('close')
-        }, 500)
+        }, 1500)
     } catch (error) {
-        console.error('Erreur lors de la création du fournisseur:', error)
-        errorMessage.value = error.message || 'Une erreur est survenue lors de la création du fournisseur'
+        console.error('Erreur lors de l\'enregistrement du fournisseur:', error)
+        errorMessage.value = 'Erreur lors de l\'enregistrement du fournisseur'
     } finally {
         loading.value = false
     }

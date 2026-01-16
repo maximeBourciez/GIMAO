@@ -1,109 +1,67 @@
 <template>
-  <BaseForm title="Créer un nouveau lieu" :loading="loading" :errorMessage="errorMessage"
-    :successMessage="successMessage" :dismissibleAlerts="true" :submitButtonText="'Créer le lieu'" @submit="onSubmit">
-    <v-container>
-      <v-row>
-        <v-col cols="12" md="6">
-          <v-text-field v-model="formData.nomLieu" label="Nom du lieu*"
-            :rules="[v => !!v || 'Le nom du lieu est requis']" required>
-          </v-text-field>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field v-model="formData.typeLieu" label="Type de lieu (pièce, étage, bâtiment, etc.)*"
-            :rules="[v => !!v || 'Le type de lieu est requis']" required>
-          </v-text-field>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-select v-model="formData.parentId" :items="locationOptions" item-title="nomLieu" item-value="id"
-            label="Lieu parent" clearable>
-          </v-select>
-        </v-col>
-      </v-row>
-    </v-container>
-  </BaseForm>
+  <v-container>
+    <v-alert v-if="loadingData" type="info" variant="tonal" class="mb-4">
+      <v-progress-circular indeterminate size="20" class="mr-2"></v-progress-circular>
+      Chargement des données...
+    </v-alert>
+
+    <LieuForm
+      v-if="!loadingData"
+      title="Créer un nouveau lieu"
+      submit-button-text="Créer le lieu"
+      :use-tree-view="false"
+      :location-options="locationOptions"
+      :parent-id="parentIdFromRoute"
+      :show-lien-plan="false"
+      @created="handleCreated"
+      @close="handleClose"
+    />
+  </v-container>
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-import BaseForm from '@/components/common/BaseForm.vue';
-import { useApi } from '@/composables/useApi.js';
-import { API_BASE_URL } from '@/utils/constants.js';
-import { useRoute, useRouter } from 'vue-router';
+import { onMounted, ref } from 'vue'
+import LieuForm from '@/components/Forms/LieuForm.vue'
+import { useApi } from '@/composables/useApi.js'
+import { API_BASE_URL } from '@/utils/constants.js'
+import { useRoute, useRouter } from 'vue-router'
 
-const route = useRoute();
-const router = useRouter();
+const route = useRoute()
+const router = useRouter()
+const api = useApi(API_BASE_URL)
 
-
-// Données du formulaire
-const formData = ref({
-  nomLieu: '',
-  typeLieu: '',
-  parentId: null, // Simple valeur numérique (ID)
-});
-
-const locationOptions = ref([]);
-const loading = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
-
-const api = useApi(API_BASE_URL);
+const locationOptions = ref([])
+const loadingData = ref(false)
+const parentIdFromRoute = ref(null)
 
 const fetchAvailableLocations = async () => {
+  loadingData.value = true
+  
   try {
-    locationOptions.value = await api.get('lieux/');
+    locationOptions.value = await api.get('lieux/')
 
-    // Une fois les lieux chargés, définir le parent si présent dans la route
-    const parentIdFromRoute = route.query.parentId;
-    if (parentIdFromRoute && parentIdFromRoute !== 'root') {
-      // Convertir en nombre si c'est une chaîne
-      formData.value.parentId = parseInt(parentIdFromRoute, 10);
-      console.log("Parent ID défini depuis la route:", formData.value.parentId);
+    // Définir le parent si présent dans la route
+    const parentIdParam = route.query.parentId
+    if (parentIdParam && parentIdParam !== 'root') {
+      parentIdFromRoute.value = parseInt(parentIdParam, 10)
+      console.log("Parent ID défini depuis la route:", parentIdFromRoute.value)
     }
   } catch (error) {
-    console.error("Erreur lors de la récupération des lieux :", error);
-  }
-};
-
-// Gestionnaire de soumission du formulaire
-const onSubmit = async () => {
-  loading.value = true;
-  errorMessage.value = '';
-  successMessage.value = '';
-
-  try {
-    // Préparer les données à envoyer
-    const dataToSend = {
-      nomLieu: formData.value.nomLieu,
-      typeLieu: formData.value.typeLieu,
-      parentId: formData.value.parentId || null, // Directement l'ID numérique ou null
-    };
-
-    console.log("Données envoyées:", dataToSend);
-
-    await api.post('lieux/', dataToSend);
-    successMessage.value = 'Lieu créé avec succès !';
-
-    // Rediriger après un court délai
-    setTimeout(() => {
-      router.push({ name: 'LocationList' });
-    }, 1500);
-
-  } catch (error) {
-    console.error("Erreur lors de la création du lieu :", error);
-    errorMessage.value = error.message || 'Une erreur est survenue lors de la création du lieu.';
+    console.error("Erreur lors de la récupération des lieux :", error)
   } finally {
-    loading.value = false;
+    loadingData.value = false
   }
-};
+}
 
-onMounted(async () => {
-  await fetchAvailableLocations();
-  console.log("CreateLocation mounted. Route params:", route);
-  console.log("Form data:", formData.value);
-});
+const handleCreated = (newLocation) => {
+  router.push({ name: 'LocationList' })
+}
 
-// Watch pour déboguer les changements
-watch(() => formData.value.parentId, (newVal) => {
-  console.log("parentId changé:", newVal, "Type:", typeof newVal);
-});
+const handleClose = () => {
+  router.push({ name: 'LocationList' })
+}
+
+onMounted(() => {
+  fetchAvailableLocations()
+})
 </script>
