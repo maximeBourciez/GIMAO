@@ -166,8 +166,10 @@ export function useFormValidation(schema, options = {}) {
     } 
     // Sinon formulaire simple
     else {
+      console.log('Validating simple form');
       Object.keys(schema).forEach(fieldName => {
         const fieldValid = validateField(fieldName, formData[fieldName]);
+        console.log(`Field ${fieldName} valid: ${fieldValid}`);
         if (!fieldValid) {
           isValid = false;
         }

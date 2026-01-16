@@ -39,6 +39,20 @@ export const BREADCRUMBS = {
             ];
         }
 
+		if (route.query.from === "intervention") {
+			return [
+				{ label: "Bons de travail", to: { name: "InterventionList" } },
+				{
+					label: `Bon de travail #${route.query.interventionId}`,
+					to: {
+						name: "InterventionDetail",
+						params: { id: route.query.interventionId },
+					},
+				},
+				{ label: `Équipement #${route.params.id}` },
+			];
+		}
+
         return [{
             label: "Équipements",
             to: { name: "EquipmentList" },
@@ -109,8 +123,8 @@ export const BREADCRUMBS = {
 
         // fallback : liste interventions
         return [
-            { label: "Interventions", to: { name: "InterventionList" } },
-            { label: `Intervention #${route.params.id}` },
+            { label: "Bons de travail", to: { name: "InterventionList" } },
+            { label: `Bon de travail #${route.params.id}` },
         ];
     },
 
@@ -125,12 +139,52 @@ export const BREADCRUMBS = {
     ],
 
     FailureDetail: (route) => [
+        ...(route.query.from === "intervention" && route.query.interventionId
+            ? [
+                { label: "Bons de travail", to: { name: "InterventionList" } },
+                {
+                    label: `Bon de travail #${route.query.interventionId}`,
+                    to: {
+                        name: "InterventionDetail",
+                        params: { id: route.query.interventionId },
+                    },
+                },
+            ]
+            : [
+                {
+                    label: "Demandes d'intervention",
+                    to: { name: "FailureList" },
+                },
+            ]),
+        {
+            label: `Demande d'intervention #${route.params.id}`,
+        },
+    ],
+
+    CreateFailure: (route) => [
+        {
+            label: "Demandes d'intervention",
+            to: { name: "FailureList" },
+        },
+        {
+            label: `Créer`,
+        },
+    ],
+
+    EditFailure: (route) => [
         {
             label: "Demandes d'intervention",
             to: { name: "FailureList" },
         },
         {
             label: `Demande d'intervention #${route.params.id}`,
+            to: {
+                name: "FailureDetail",
+                params: { id: route.params.id },
+            },
+        },
+        {
+            label: `Modifier`,
         },
     ],
 
@@ -147,10 +201,44 @@ export const BREADCRUMBS = {
     /***************************************
      * Gestion des comptes
      **************************************/
-    AccountManagement: (route) => [
+    UserList: (route) => [
         {
             label: "Gestion des comptes",
-            to: { name: "AccountManagement" },
+            to: { name: "UserList" },
+        },
+    ],
+
+    CreateUser: (route) => [
+        {
+            label: "Gestion des comptes",
+            to: { name: "UserList" },
+        },
+        {
+            label: "Créer un utilisateur",
+        },
+    ],
+
+    UserDetail: (route) => [
+        {
+            label: "Gestion des comptes",
+            to: { name: "UserList" },
+        },
+        {
+            label: `Utilisateur #${route.params.id}`,
+        },
+    ],
+
+    EditUser: (route) => [
+        {
+            label: "Gestion des comptes",
+            to: { name: "UserList" },
+        },
+        {
+            label: `Utilisateur #${route.params.id}`,
+            to: { name: "UserDetail", params: { id: route.params.id } },
+        },
+        {
+            label: "Modifier",
         },
     ],
 
@@ -311,7 +399,7 @@ export const BREADCRUMBS = {
         },
     ],
 
-    EditManufacturer: (route) => [  
+    EditManufacturer: (route) => [
         {
             label: "Gestion des données",
             to: { name: "DataManagement" },

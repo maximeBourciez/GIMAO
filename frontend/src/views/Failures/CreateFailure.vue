@@ -4,7 +4,7 @@
       <v-container>
         <BaseForm v-model="formData" title="Créer une Demande d'intervention" :loading="loading" :error-message="errorMessage"
           :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
-          :custom-validation="validateForm" submit-button-text="Valider" submit-button-color="success" @submit="handleSubmit">
+          :customValidation="validateForm" submit-button-text="Valider" submit-button-color="success" @submit="handleSubmit">
           <template #default="{ formData }">
 
 
@@ -118,7 +118,7 @@ const validation = useFormValidation(formData, {
 });
 
 const validateForm = () => {
-  return validation.checkRequiredFields(['nom', 'equipement_id']);
+  return validation.validateAll(formData.value);
 };
 
 const addDocument = () => {

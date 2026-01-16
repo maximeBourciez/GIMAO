@@ -7,7 +7,7 @@
 		:loading="loading"
 		:error-message="errorMessage"
 		:show-search="showSearch"
-		:show-create-button="showCreateButton"
+		:show-create-button="false"
 		:create-button-text="createButtonText"
 		:internal-search="internalSearch"
 		table-class="bt-table"
@@ -60,14 +60,28 @@
 			<v-chip
 				v-if="item.statut"
 				:color="getInterventionStatusColor(item.statut)"
-				variant="tonal"
-				size="small"
 			>
 				{{ INTERVENTION_STATUS[item.statut] || item.statut }}
 			</v-chip>
 			<span v-else>-</span>
 		</template>
 	</BaseListView>
+
+	<!-- Bouton flottant en bas à droite (comme DI) -->
+	<v-btn
+		v-if="showCreateButton"
+		color="primary"
+		size="large"
+		icon
+		class="floating-add-button"
+		elevation="4"
+		@click="$emit('create')"
+	>
+		<v-icon size="large">mdi-plus</v-icon>
+		<v-tooltip activator="parent" location="left">
+			{{ createButtonText }}
+		</v-tooltip>
+	</v-btn>
 </template>
 
 <script setup>
@@ -179,6 +193,20 @@ watch(
 
 onMounted(fetchBonsTravail);
 </script>
+
+<style scoped>
+.floating-add-button {
+	position: fixed !important;
+	bottom: 24px;
+	right: 24px;
+	z-index: 100;
+}
+
+.floating-add-button:hover {
+	transform: scale(1.1);
+	transition: transform 0.2s ease;
+}
+</style>
 
 <style scoped>
 .bt-diagnostic-truncate {
