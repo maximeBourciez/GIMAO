@@ -99,6 +99,12 @@ class BonTravail(models.Model):
         blank=True,
         related_name='bons_travail_responsable'
     )
+    consommables = models.ManyToManyField(
+        Consommable,
+        through='BonTravailConsommable',
+        related_name='bons_travail',
+        blank=True
+    )
 
     class Meta:
         db_table = 'bon_travail'
@@ -244,3 +250,29 @@ class DemandeInterventionDocument(models.Model):
     
     def __str__(self):
         return f"{self.demande_intervention} - {self.document}"
+
+
+class BonTravailConsommable(models.Model):
+    """Table d'association entre BonTravail et Consommable"""
+    bon_travail = models.ForeignKey(
+        BonTravail,
+        on_delete=models.CASCADE
+    )
+    consommable = models.ForeignKey(
+        Consommable,
+        on_delete=models.CASCADE
+    )
+    quantite_utilisee = models.IntegerField(
+        validators=[MinValueValidator(0)],
+        default=0,
+        help_text="Quantité utilisée pour ce bon"
+    )
+    
+    class Meta:
+        db_table = 'gimao_bon_travail_consommable'
+        unique_together = ['bon_travail', 'consommable']
+        verbose_name = 'Consommable utilisé'
+        verbose_name_plural = 'Consommables utilisés'
+    
+    def __str__(self):
+        return f"{self.bon_travail} - {self.consommable} (x{self.quantite_utilisee})"
