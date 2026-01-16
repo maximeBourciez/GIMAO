@@ -193,7 +193,7 @@ const loadManufacturerData = async () => {
 
 // Fonctions de validation
 const isValidEmail = (email) => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 };
 
 const isValidPhone = (phone) => {

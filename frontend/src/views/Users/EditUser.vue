@@ -174,7 +174,7 @@ const roleOptions = computed(() =>
 );
 
 const isValidEmail = (email) => {
-	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+	return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 };
 
 const loadRoles = async () => {

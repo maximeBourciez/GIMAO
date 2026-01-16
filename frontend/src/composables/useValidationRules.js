@@ -24,7 +24,7 @@ export function useValidationRules() {
   const email = (message = 'Email invalide') => {
     return (value) => {
       if (!value) return true; // Permet les champs vides (utiliser required séparément)
-      const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	  const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
       return pattern.test(value) || message;
     };
   };
