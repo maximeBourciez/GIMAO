@@ -70,16 +70,16 @@
 
           <!-- Boutons d'action -->
           <v-row class="mt-6">
-            <v-col cols="12" lg="6" class="py-1">
+            <v-col cols="12" xl="6" class="py-1">
               <v-btn color="info" block :disabled="!canStart" @click="openStartModal">Démarrer l'intervention</v-btn>
             </v-col>
-            <v-col cols="12" lg="6" class="py-1">
+            <v-col cols="12" xl="6" class="py-1">
               <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal">Terminer l'intervention</v-btn>
             </v-col>
-            <v-col cols="12" lg="6" class="py-1">
+            <v-col cols="12" xl="6" class="py-1">
               <v-btn color="success" block :disabled="!canClose" @click="openCloseModal">Clôturer le BT</v-btn>
             </v-col>
-            <v-col cols="12" lg="6" class="py-1">
+            <v-col cols="12" xl="6" class="py-1">
               <v-btn color="warning" block :disabled="!canRefuseClose" @click="openRefuseCloseModal">Refuser la clôture du BT</v-btn>
             </v-col>
           </v-row>
