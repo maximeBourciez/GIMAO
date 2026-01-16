@@ -188,12 +188,14 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants';
 
 const route = useRoute();
 const router = useRouter();
+const store = useStore();
 const api = useApi(API_BASE_URL);
 
 const userId = route.params.id;
@@ -218,6 +220,26 @@ const form = ref({
 
 const existingPhotoPath = ref('');
 const removeExistingPhoto = ref(false);
+
+const syncCurrentUserIfNeeded = (updatedUser) => {
+	if (!updatedUser || typeof updatedUser !== 'object') return;
+
+	const currentFromStore = store.getters.currentUser;
+	let currentFromStorage = null;
+	try {
+		currentFromStorage = JSON.parse(localStorage.getItem('user') || 'null');
+	} catch {
+		currentFromStorage = null;
+	}
+
+	const currentUser = currentFromStore || currentFromStorage;
+	if (!currentUser?.id || !updatedUser?.id) return;
+
+	if (String(currentUser.id) !== String(updatedUser.id)) return;
+
+	store.commit('setUser', updatedUser);
+	localStorage.setItem('user', JSON.stringify(updatedUser));
+};
 
 const photoInput = ref(null);
 const isPhotoDragActive = ref(false);
@@ -427,7 +449,8 @@ const handleSubmit = async () => {
 		}
 
 		// Envoi simple DRF : JSON si pas de fichier, sinon multipart
-		await api.put(`utilisateurs/${userId}/`, payload);
+		const updatedUser = await api.put(`utilisateurs/${userId}/`, payload);
+		syncCurrentUserIfNeeded(updatedUser);
 
 		successMessage.value = 'Utilisateur modifié avec succès.';
 		setTimeout(() => {
