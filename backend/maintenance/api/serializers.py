@@ -224,7 +224,6 @@ class PlanMaintenanceConsommableSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanMaintenanceConsommable
         fields = [
-            'id',
             'consommable',
             'consommable_id',
             'quantite_necessaire'
@@ -235,7 +234,6 @@ class PlanMaintenanceSerializer(serializers.ModelSerializer):
     """Serializer pour PlanMaintenance"""
     type_plan_maintenance = TypePlanMaintenanceSerializer(read_only=True)
     equipement = EquipementSimpleSerializer(read_only=True)
-    compteur = CompteurSimpleSerializer(read_only=True)
     
     type_plan_maintenance_id = serializers.PrimaryKeyRelatedField(
         queryset=TypePlanMaintenance.objects.all(),
@@ -247,24 +245,21 @@ class PlanMaintenanceSerializer(serializers.ModelSerializer):
         source='equipement',
         write_only=True
     )
-    compteur_id = serializers.PrimaryKeyRelatedField(
-        queryset=Compteur.objects.all(),
-        source='compteur',
-        write_only=True
-    )
+    documents = DocumentSerializer(many=True, read_only=True)
+    consommables = PlanMaintenanceConsommableSerializer(many=True, read_only=True)
     
     class Meta:
         model = PlanMaintenance
         fields = [
             'id',
             'nom',
-            'contenu',
+            'commentaire',
             'type_plan_maintenance',
             'equipement',
-            'compteur',
             'type_plan_maintenance_id',
             'equipement_id',
-            'compteur_id'
+            'documents',
+            'consommables'
         ]
 
 

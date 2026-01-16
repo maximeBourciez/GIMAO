@@ -187,9 +187,12 @@
   <v-dialog v-model="showCounterDialog" max-width="1000px" scrollable @click:outside="closeCounterDialog">
     <v-card>
       <v-card-text class="pa-0">
-        <CounterInlineForm v-if="showCounterDialog" v-model="currentCounter" :existingPMs="existingPMs"
-          :typesPM="typesPM" :consumables="consumables" :typesDocuments="typesDocuments" :isEditMode="false"
-          :isFirstCounter="true" @save="saveCounter" @cancel="closeCounterDialog" />
+        <CounterForm 
+          :counter="currentCounter" 
+          :isCounterEdit="false"
+          @close="closeCounterDialog" 
+          @submit="saveCounter"
+        />
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -199,7 +202,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
-import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
+import CounterForm from './Counters/CounterForm.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';
 import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, TABLE_HEADERS } from '@/utils/constants';
@@ -227,21 +230,9 @@ const existingPMs = ref([]);
 
 const getEmptyCounter = () => ({
   nom: '',
-  description: '',
-  intervalle: '',
   unite: '',
   valeurCourante: null,
-  derniereIntervention: null,
-  estGlissant: false,
   estPrincipal: false,
-  habElec: false,
-  permisFeu: false,
-  planMaintenance: {
-    nom: '',
-    type: null,
-    consommables: [],
-    documents: []
-  }
 });
 
 const technicalDocumentsHeaders = [
@@ -315,7 +306,7 @@ const equipmentDetails = computed(() => {
 const fetchEquipmentData = async () => {
   errorMessage.value = '';
   try {
-    await api.get(`equipement/${route.params.id}/affichage/`);
+    await api.get(`equipement/${route.params.id}/affichage/?seuils_lite=true`);
     await fetchCounterFormData();
   } catch (error) {
     console.error("Erreur lors de la récupération des données de l'équipement:", error);

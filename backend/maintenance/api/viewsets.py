@@ -403,8 +403,7 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
     """
     queryset = PlanMaintenance.objects.select_related(
         'type_plan_maintenance',
-        'equipement',
-        'compteur'
+        'equipement'
     ).prefetch_related('documents', 'consommables')
     serializer_class = PlanMaintenanceSerializer
 

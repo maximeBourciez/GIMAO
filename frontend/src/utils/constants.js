@@ -358,14 +358,14 @@ export const TABLE_HEADERS = {
             align: "center",
         },
         {
-            title: "Prochaine Maintenance",
-            value: "prochaineMaintenance",
+            title: "Unité",
+            value: "unite",
             sortable: false,
             align: "center",
         },
         {
-            title: "Unité",
-            value: "unite",
+            title: "Type",
+            value: "type",
             sortable: false,
             align: "center",
         },

@@ -797,291 +797,69 @@ class CompteurViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
-        """Mise à jour d'un compteur - gère aussi le plan de maintenance"""
+        """ Mise à jour d'un compteur """      
+        changes = request.data
         compteur = self.get_object()
-        data = request.data
+        print(f"Data reçue pour mise à jour du compteur {compteur.id} : {changes}")    
 
-        compteurData = data.get("compteur")
-        rawChanges = data.get("changes")
+        # Récupérer l'utilisateur
+        user_id = changes.get('user')
+        utilisateur = None
+        if not user_id:
+            return Response(
+                {"error": "User ID is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        print(f" Changes - {rawChanges}")
-        print(f"📁 Fichiers reçus - {list(request.FILES.keys())}")
+            try:
+                utilisateur = Utilisateur.objects.get(id=user_id)
+                print(f"Utilisateur trouvé : {utilisateur.id}")
+            except Utilisateur.DoesNotExist:
+                return Response(
+                    {"error": "User not found"}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )    
 
-        try:
-            changes = json.loads(rawChanges) if rawChanges else {}
-        except json.JSONDecodeError:
-            changes = {}
+        if len(changes.keys()) == 0:
+            return Response(
+                {"message": "Aucune modification détectée."},
+                status=status.HTTP_200_OK
+            )
 
-        PLAN_MAINTENANCE_KEYS = [
-            'planMaintenance.nom',
-            'planMaintenance.type',
-            'planMaintenance.consommables',
-            'planMaintenance.documents' 
-        ]
-
-        COMPTEUR_KEYS = [
-            'nom',
-            'description',
-            'valeurCourante',
-            'intervalle',
-            'unite',
-            'derniereIntervention',
-            'estPrincipal',
-            'estGlissant',
-            'habElec',
-            'permisFeu'
-        ]
-
+        # Mettre à jour les champs du compteur
         field_mapping = {
             'nom': 'nomCompteur',
-            'description': 'descriptifMaintenance',
             'valeurCourante': 'valeurCourante',
-            'intervalle': 'ecartInterventions',
             'unite': 'unite',
-            'derniereIntervention': 'derniereIntervention',
-            'estPrincipal': 'estPrincipal',
-            'estGlissant': 'estGlissant',
-            'habElec': 'necessiteHabilitationElectrique',
-            'permisFeu': 'necessitePermisFeu'
+            'estPrincipal': 'estPrincipal'
         }
 
-        # Mise à jour des champs du compteur
-        for field in COMPTEUR_KEYS:
+        for field, model_field in field_mapping.items():
             if field in changes:
                 field_data = changes[field]
-                print(f" Champ à mettre à jour: {field} - {field_data}")
                 nouvelle_valeur = field_data.get('nouvelle')
+                ancienne_valeur = field_data.get('ancienne')
+                
                 if nouvelle_valeur is not None:
-                    old_value = getattr(compteur, field_mapping.get(field, field))
-                    print(f"  Ancienne valeur: {old_value}, Nouvelle valeur: {nouvelle_valeur}")
+                    old_value = getattr(compteur, model_field)
+                    
                     if str(old_value) != str(nouvelle_valeur):
-                        setattr(compteur, field_mapping.get(field, field), nouvelle_valeur)
-                        print(f"  {field}: {old_value} -> {nouvelle_valeur}")
-                        # Créer un log
+                        setattr(compteur, model_field, nouvelle_valeur)
+                        
+                        # Créer une entrée de log pour chaque champ modifié
                         self._create_log_entry(
                             type_action='modification',
                             nom_table='compteur',
-                            id_cible={'compteur_id': compteur.id},
-                            champs_modifies={field: {'ancien': old_value, 'nouveau': nouvelle_valeur}},
-                            utilisateur=Utilisateur.objects.get(id=3)
+                            id_cible={'id': compteur.id},
+                            champs_modifies={field: {'ancien': ancienne_valeur, 'nouveau': nouvelle_valeur}},
+                            utilisateur=utilisateur
                         )
-        
 
-        self._update_plan_maintenance_from_changes(compteur, changes, request)
-
-        
-
+        compteur.save()
         return Response(
             CompteurSerializer(compteur).data,
             status=status.HTTP_200_OK
         )
-    
-    def _update_plan_maintenance_from_changes(self, compteur, modifications, request):
-        """Met à jour le plan de maintenance d'un compteur"""
-        print(f" Traitement du plan de maintenance pour compteur {compteur.id}")
-    
-        # Vérifier si un plan existe, sinon en créer un
-        if not compteur.planMaintenance or compteur.planMaintenance is None:
-            print(" Création d'un nouveau plan de maintenance")
-            self._createNewPlan(compteur, modifications, request)
-        
-        plan = compteur.planMaintenance
-        
-        # Mise à jour du nom
-        if 'planMaintenance.nom' in modifications:
-            new_name = modifications['planMaintenance.nom'].get('nouvelle')
-            if new_name and plan.nom != new_name:
-                print(f"  Nom du plan: {plan.nom} -> {new_name}")
-                plan.nom = new_name
-
-                self._create_log_entry(
-                    type_action='modification',
-                    nom_table='plan_maintenance',
-                    id_cible={'plan_maintenance_id': plan.id},
-                    champs_modifies={'nom': {'ancien': plan.nom , 'nouveau': new_name}},
-                    utilisateur=Utilisateur.objects.get(id=3)
-                )
-        
-        # Mise à jour du type
-        if 'planMaintenance.type' in modifications:
-            new_type = modifications['planMaintenance.type'].get('nouvelle')
-            if new_type and plan.type_plan_maintenance_id != new_type:
-                print(f"  📝 Type du plan: {plan.type_plan_maintenance_id} -> {new_type}")
-                plan.type_plan_maintenance_id = new_type
-                self._create_log_entry(
-                    type_action='modification',
-                    nom_table='plan_maintenance',
-                    id_cible={'plan_maintenance_id': plan.id},
-                    champs_modifies={'type_plan_maintenance': {'ancien': plan.type_plan_maintenance_id  , 'nouveau': new_type}},
-                    utilisateur=Utilisateur.objects.get(id=3)
-                )
-        
-        # Mise à jour des consommables
-        if 'planMaintenance.consommables' in modifications:
-            consommables_data = modifications['planMaintenance.consommables']
-            
-            consommables_existants = plan.planmaintenanceconsommable_set.all()
-            consommables_existants_ids = set(consommable.consommable_id for consommable in consommables_existants)
-
-            nouveaux_consommables = consommables_data.get('nouvelle', [])
-
-            for conso in nouveaux_consommables:
-                conso_id = conso.get('consommable')
-                quantite = conso.get('quantite', 1)
-
-                if conso_id not in consommables_existants_ids:
-                    # Ajouter le nouveau consommable
-                    PlanMaintenanceConsommable.objects.create(
-                        plan_maintenance=plan,
-                        consommable_id=conso_id,
-                        quantite_necessaire=quantite
-                    )
-                    print(f"  Consommable ajouté: {conso_id} (Quantité: {quantite})")
-
-                    self._create_log_entry(
-                        type_action='ajout',
-                        nom_table='plan_maintenance_consommable',
-                        id_cible={'plan_maintenance_id': plan.id, 'consommable_id': conso_id},
-                        champs_modifies={'quantite_necessaire': quantite},
-                        utilisateur=Utilisateur.objects.get(id=3)   
-                    )
-
-                else:
-                    # Mettre à jour la quantité si nécessaire
-                    conso_obj = consommables_existants.get(consommable_id=conso_id)
-                    if conso_obj.quantite_necessaire != quantite:
-                        old_quantity = conso_obj.quantite_necessaire
-                        conso_obj.quantite_necessaire = quantite
-                        conso_obj.save()
-                        print(f"  Consommable mis à jour: {conso_id} (Quantité: {old_quantity} -> {quantite})")
-
-                        self._create_log_entry(
-                            type_action='modification',
-                            nom_table='plan_maintenance_consommable',
-                            id_cible={'plan_maintenance_id': plan.id, 'consommable_id': conso_id},
-                            champs_modifies={'quantite_necessaire': {'ancien': old_quantity, 'nouveau': quantite}},
-                            utilisateur=Utilisateur.objects.get(id=3)   
-                        )
-                
-            for old_conso in consommables_existants:
-                if old_conso.consommable_id not in [c.get('consommable') for c in nouveaux_consommables]:
-                    # Supprimer le consommable retiré
-                    old_conso.delete()
-                    print(f"  Consommable supprimé: {old_conso.consommable_id}")
-
-                    self._create_log_entry(
-                        type_action='suppression',
-                        nom_table='plan_maintenance_consommable',
-                        id_cible={'plan_maintenance_id': plan.id, 'consommable_id': old_conso.consommable_id},
-                        champs_modifies={},
-                        utilisateur=Utilisateur.objects.get(id=3)   
-                    )
-
-        # Mise à jour des documents
-        if 'planMaintenance.documents' in modifications:
-            documents_data = modifications['planMaintenance.documents']
-
-            ajouts = documents_data.get('ajouts', [])
-            modifications_docs = documents_data.get('modifications', [])
-            suppressions = documents_data.get('suppressions', [])
-
-            print(f"  Documents: {len(ajouts)} ajout(s), {len(modifications_docs)} modification(s), {len(suppressions)} suppression(s)")
-
-            # ====== Mapping des fichiers reçus ======
-            file_mapping = {}
-            for key, file in request.FILES.items():
-                if key.startswith('file_planMaintenance.documents_'):
-                    try:
-                        index = int(key.split('_')[-1])
-                        file_mapping[index] = file
-                    except ValueError:
-                        continue
-
-            # ====== AJOUTS ======
-            for index, doc_data in enumerate(ajouts):
-                file = file_mapping.get(index)
-
-                if not file:
-                    print(f"  Ajout sans fichier ignoré: {doc_data}")
-                    continue
-
-                document = Document.objects.create( 
-                    nomDocument=doc_data.get('titre', file.name),
-                    cheminAcces=file,
-                    typeDocument_id=doc_data.get('type')
-                )
-
-                PlanMaintenanceDocument.objects.create(
-                    plan_maintenance=plan,
-                    document=document
-                )
-
-                self._create_log_entry(
-                    type_action='ajout',
-                    nom_table='document',
-                    id_cible={'document_id': document.id},
-                    champs_modifies={'titre': doc_data.get('titre')},
-                    utilisateur=Utilisateur.objects.get(id=3)
-                )
-
-                print(f"  📎 Document ajouté: {document.nomDocument}")
-
-            # ====== MODIFICATIONS ======
-            for index, modif in enumerate(modifications_docs):
-                ancienne = modif.get('ancienne')
-                nouvelle = modif.get('nouvelle')
-
-                if not ancienne or not nouvelle:
-                    continue
-
-                doc_id = nouvelle.get('id')
-                file = file_mapping.get(index)
-
-                try:
-                    document = Document.objects.get(id=doc_id)
-                except Document.DoesNotExist:
-                    continue
-
-                if file:
-                    document.cheminAcces = file
-
-                if ancienne.get('titre') != nouvelle.get('titre'):
-                    document.nomDocument = nouvelle.get('titre')
-
-                if ancienne.get('type') != nouvelle.get('type'):
-                    document.typeDocument_id = nouvelle.get('type')
-
-                document.save()
-
-                self._create_log_entry(
-                    type_action='modification',
-                    nom_table='document',
-                    id_cible={'document_id': document.id},
-                    champs_modifies={'avant': ancienne, 'apres': nouvelle},
-                    utilisateur=Utilisateur.objects.get(id=3)
-                )
-
-                print(f"  Document modifié: {document.nomDocument}")
-
-            # ====== SUPPRESSIONS ======
-            for doc_id in suppressions:
-                try:
-                    document = Document.objects.get(id=doc_id)
-                    document.delete()
-
-                    self._create_log_entry(
-                        type_action='suppression',
-                        nom_table='document',
-                        id_cible={'document_id': doc_id},
-                        champs_modifies={},
-                        utilisateur=Utilisateur.objects.get(id=3)
-                    )
-
-                    print(f"  Document supprimé ID={doc_id}")
-                except Document.DoesNotExist:
-                    continue
-
-        plan.save()                
     
     def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur):
         """Crée une entrée de log"""
