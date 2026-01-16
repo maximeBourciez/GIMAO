@@ -396,7 +396,7 @@ const formattedEquipement = computed(() => {
 const canClose = computed(() => !!intervention.value && !intervention.value.date_cloture);
 const canStart = computed(() => ['EN_ATTENTE', 'EN_RETARD'].includes(intervention.value?.statut));
 const canFinish = computed(() => intervention.value?.statut === 'EN_COURS');
-const canRefuseClose = computed(() => !!intervention.value && !intervention.value.date_cloture && intervention.value?.statut !== 'ANNULE');
+const canRefuseClose = computed(() => intervention.value?.statut === 'CLOTURE');
 
 const openStartModal = () => {
   showStart.value = true;
@@ -476,7 +476,7 @@ const closeBonTravail = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'TERMINE' });
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'CLOTURE' });
     successMessage.value = 'Bon de travail clôturé';
     showClose.value = false;
     await fetchData();
@@ -491,9 +491,7 @@ const refuseCloseBonTravail = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
-      statut: 'ANNULE'
-    });
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'EN_COURS' });
     successMessage.value = 'Clôture refusée';
     showRefuseClose.value = false;
     await fetchData();
@@ -523,10 +521,7 @@ const finishIntervention = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    await api.patch(`bons-travail/${intervention.value.id}/`, {
-      date_fin: new Date().toISOString(),
-      statut: 'TERMINE'
-    });
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'TERMINE' });
     successMessage.value = 'Intervention terminée';
     showFinish.value = false;
     await fetchData();

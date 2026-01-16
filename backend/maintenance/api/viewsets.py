@@ -303,7 +303,10 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             avant = getattr(bon_avant, field, None)
             apres = getattr(bon_apres, field, None)
             if avant != apres:
-                champs[field] = _to_json_value(apres)
+                champs[field] = {
+                    'ancien': _to_json_value(avant),
+                    'nouveau': _to_json_value(apres)
+                }
         return champs
 
     def get_serializer_class(self):
@@ -349,8 +352,10 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     def updateStatus(self, request, pk=None):
         """Endpoint unique pour gérer les changements de statut d'un bon de travail.
 
-        Payload attendu: {"statut": "EN_COURS"|"TERMINE"|"ANNULE"|...}
+        Payload attendu: {"statut": "EN_COURS"|"TERMINE"|"CLOTURE"|...}
         - EN_COURS (démarrer): date_debut = now
+        - TERMINE (terminer): date_fin = now
+        - CLOTURE (clôturer): date_cloture = now (et date_fin si manquante)
         """
         bon = self.get_object()
         new_statut = request.data.get('statut')
@@ -373,18 +378,20 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             bon.statut = 'EN_COURS'
             bon.date_debut = timezone.now()
         elif new_statut == 'TERMINE':
-            # Clôture (date_cloture) + date_fin si manquante
+            # Terminer l'intervention (date_fin = now)
+            if bon.statut != 'EN_COURS':
+                return Response(
+                    {'error': 'Le bon doit être en cours pour être terminé'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             bon.statut = 'TERMINE'
+            bon.date_fin = timezone.now()
+        elif new_statut == 'CLOTURE':
+            # Clôturer le bon de travail
+            bon.statut = 'CLOTURE'
             bon.date_cloture = timezone.now()
             if not bon.date_fin:
                 bon.date_fin = timezone.now()
-        elif new_statut == 'ANNULE':
-            # Refus / Annulation
-            commentaire = request.data.get('commentaire_refus_cloture')
-            if commentaire is None:
-                commentaire = request.data.get('commentaire', '')
-            bon.statut = 'ANNULE'
-            bon.commentaire_refus_cloture = commentaire
         else:
             bon.statut = new_statut
 
