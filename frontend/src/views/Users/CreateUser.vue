@@ -83,6 +83,7 @@ import { useRouter } from 'vue-router';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
+import { getUserCreateErrorMessage } from '@/utils/drfErrors';
 
 const router = useRouter();
 const api = useApi(API_BASE_URL);
@@ -147,7 +148,7 @@ const handleSubmit = async () => {
 		}, 800);
 	} catch (e) {
 		console.error('Error creating user:', e);
-		saveErrorMessage.value = "Erreur lors de la création de l'utilisateur.";
+		saveErrorMessage.value = getUserCreateErrorMessage(e);
 	} finally {
 		isSaving.value = false;
 	}
