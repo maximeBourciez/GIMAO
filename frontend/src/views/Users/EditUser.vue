@@ -12,6 +12,61 @@
 		actions-container-class="d-flex justify-end gap-2 mt-2"
 	>
 		<template #default>
+			<v-sheet
+				class="pa-4 mb-4 user-photo-dropzone"
+				elevation="1"
+				rounded
+				:class="{ 'user-photo-dropzone--active': isPhotoDragActive }"
+				@dragenter.prevent="onPhotoDragEnter"
+				@dragover.prevent="onPhotoDragOver"
+				@dragleave.prevent="onPhotoDragLeave"
+				@drop.prevent="onPhotoDrop"
+			>
+				<div class="d-flex align-center justify-space-between user-photo-header">
+					<div class="d-flex align-center" style="min-width: 0;">
+						<v-avatar size="64" color="grey lighten-3" class="mr-3">
+							<v-img v-if="displayPhotoUrl" :src="displayPhotoUrl" cover />
+							<v-icon v-else color="grey darken-1">mdi-account</v-icon>
+						</v-avatar>
+
+						<div style="min-width: 0;">
+							<div class="text-body-1 font-weight-medium">Photo de profil</div>
+							<div class="caption" :class="photoError ? 'error--text' : 'grey--text'">
+								{{ photoError || photoFileLabel }}
+							</div>
+						</div>
+					</div>
+
+					<div class="d-flex align-center user-photo-actions">
+						<template v-if="hasPhoto">
+							<v-btn icon small title="Supprimer la photo" @click.stop="deletePhoto">
+								<v-icon>mdi-delete</v-icon>
+							</v-btn>
+
+							<v-btn icon small title="Télécharger la photo" @click.stop="downloadPhoto">
+								<v-icon>mdi-download</v-icon>
+							</v-btn>
+
+							<v-btn icon small title="Modifier la photo" @click.stop="triggerPhotoPicker">
+								<v-icon>mdi-pencil</v-icon>
+							</v-btn>
+						</template>
+
+						<v-btn v-else icon small title="Téléverser une photo" @click.stop="triggerPhotoPicker">
+							<v-icon>mdi-upload</v-icon>
+						</v-btn>
+					</div>
+				</div>
+
+				<input
+					ref="photoInput"
+					type="file"
+					accept="image/*"
+					class="d-none"
+					@change="onPhotoPicked"
+				/>
+			</v-sheet>
+
 			<v-sheet class="pa-4" elevation="1" rounded>
 				<h4 class="mb-3">Utilisateur</h4>
 				<v-row dense>
@@ -131,14 +186,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants';
 
 const route = useRoute();
 const router = useRouter();
+const store = useStore();
 const api = useApi(API_BASE_URL);
 
 const userId = route.params.id;
@@ -150,6 +207,7 @@ const successMessage = ref('');
 
 const roles = ref([]);
 const original = ref(null);
+const originalPhotoPath = ref('');
 
 const form = ref({
 	nomUtilisateur: '',
@@ -158,7 +216,150 @@ const form = ref({
 	email: '',
 	actif: true,
 	role_id: null,
+	photoProfil: null,
 });
+
+const existingPhotoPath = ref('');
+const removeExistingPhoto = ref(false);
+
+const syncCurrentUserIfNeeded = (updatedUser) => {
+	if (!updatedUser || typeof updatedUser !== 'object') return;
+
+	const currentFromStore = store.getters.currentUser;
+	let currentFromStorage = null;
+	try {
+		currentFromStorage = JSON.parse(localStorage.getItem('user') || 'null');
+	} catch {
+		currentFromStorage = null;
+	}
+
+	const currentUser = currentFromStore || currentFromStorage;
+	if (!currentUser?.id || !updatedUser?.id) return;
+
+	if (String(currentUser.id) !== String(updatedUser.id)) return;
+
+	store.commit('setUser', updatedUser);
+	localStorage.setItem('user', JSON.stringify(updatedUser));
+};
+
+const photoInput = ref(null);
+const isPhotoDragActive = ref(false);
+const photoPreviewUrl = ref('');
+const photoError = ref('');
+
+const existingPhotoUrl = computed(() => {
+	if (!existingPhotoPath.value) return '';
+	return `${MEDIA_BASE_URL}${existingPhotoPath.value}`;
+});
+
+const displayPhotoUrl = computed(() => {
+	if (photoPreviewUrl.value) return photoPreviewUrl.value;
+	if (removeExistingPhoto.value) return '';
+	return existingPhotoUrl.value;
+});
+
+const canDeletePhoto = computed(() => {
+	return !!photoPreviewUrl.value || (!!existingPhotoPath.value && !removeExistingPhoto.value);
+});
+
+const photoFileLabel = computed(() => {
+	const file = form.value.photoProfil;
+	if (file instanceof File) return file.name;
+	if (existingPhotoPath.value && !removeExistingPhoto.value) return existingPhotoPath.value.split('/').pop();
+	return 'Aucun fichier';
+});
+
+const hasPhoto = computed(() => {
+	return !!displayPhotoUrl.value;
+});
+
+const revokePhotoPreviewUrl = () => {
+	if (photoPreviewUrl.value) {
+		URL.revokeObjectURL(photoPreviewUrl.value);
+		photoPreviewUrl.value = '';
+	}
+};
+
+const setPhotoFile = (file) => {
+	photoError.value = '';
+	if (!file) {
+		form.value.photoProfil = null;
+		revokePhotoPreviewUrl();
+		if (photoInput.value) photoInput.value.value = '';
+		return;
+	}
+
+	if (!file.type || !file.type.startsWith('image/')) {
+		photoError.value = 'Le fichier doit être une image.';
+		return;
+	}
+
+	form.value.photoProfil = file;
+	removeExistingPhoto.value = false;
+	revokePhotoPreviewUrl();
+	photoPreviewUrl.value = URL.createObjectURL(file);
+};
+
+const triggerPhotoPicker = () => {
+	photoError.value = '';
+	photoInput.value?.click?.();
+};
+
+const clearPhoto = () => {
+	setPhotoFile(null);
+};
+
+const deletePhoto = () => {
+	// Si une nouvelle photo est sélectionnée (preview), on la retire.
+	if (photoPreviewUrl.value) {
+		clearPhoto();
+		return;
+	}
+
+	// Sinon on marque la suppression de la photo existante.
+	if (existingPhotoPath.value) {
+		removeExistingPhoto.value = true;
+		existingPhotoPath.value = '';
+	}
+};
+
+const downloadPhoto = () => {
+	const url = displayPhotoUrl.value;
+	if (!url) return;
+	const filename = form.value.photoProfil instanceof File
+		? form.value.photoProfil.name
+		: existingPhotoPath.value
+			? existingPhotoPath.value.split('/').pop()
+			: 'photo-profil';
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = filename;
+	link.rel = 'noopener';
+	link.target = '_blank';
+	document.body.appendChild(link);
+	link.click();
+	link.remove();
+};
+
+const onPhotoPicked = (e) => {
+	const file = e?.target?.files?.[0];
+	setPhotoFile(file || null);
+};
+
+const onPhotoDragEnter = () => {
+	isPhotoDragActive.value = true;
+};
+const onPhotoDragOver = () => {
+	isPhotoDragActive.value = true;
+};
+const onPhotoDragLeave = () => {
+	isPhotoDragActive.value = false;
+};
+const onPhotoDrop = (e) => {
+	isPhotoDragActive.value = false;
+	const file = e?.dataTransfer?.files?.[0];
+	setPhotoFile(file || null);
+};
 
 const passwordForm = ref({
 	ancien: '',
@@ -174,7 +375,7 @@ const roleOptions = computed(() =>
 );
 
 const isValidEmail = (email) => {
-	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+	return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 };
 
 const loadRoles = async () => {
@@ -201,12 +402,40 @@ const loadUser = async () => {
 			email: data?.email ?? '',
 			actif: !!data?.actif,
 			role_id: data?.role?.id ?? null,
+			photoProfil: null,
 		};
+		existingPhotoPath.value = data?.photoProfil ?? '';
+		originalPhotoPath.value = data?.photoProfil ?? '';
+		removeExistingPhoto.value = false;
+		revokePhotoPreviewUrl();
+		photoError.value = '';
 		original.value = JSON.parse(JSON.stringify(form.value));
 	} catch (e) {
 		console.error('Error loading user for edit:', e);
 		saveErrorMessage.value = "Erreur lors du chargement de l'utilisateur.";
 	}
+};
+
+const hasUserChanges = () => {
+	// Si on n'a pas de snapshot, on préfère tenter l'update.
+	if (!original.value) return true;
+
+	const normalizeString = (v) => (typeof v === 'string' ? v.trim() : v);
+
+	const fieldsChanged = [
+		'nomUtilisateur',
+		'prenom',
+		'nomFamille',
+		'email',
+	].some((key) => normalizeString(form.value?.[key]) !== normalizeString(original.value?.[key]));
+
+	const activeChanged = !!form.value.actif !== !!original.value.actif;
+	const roleChanged = String(form.value.role_id ?? '') !== String(original.value.role_id ?? '');
+
+	const photoChanged = (form.value.photoProfil instanceof File)
+		|| (removeExistingPhoto.value && !!originalPhotoPath.value);
+
+	return fieldsChanged || activeChanged || roleChanged || photoChanged;
 };
 
 const handleSubmit = async () => {
@@ -219,16 +448,39 @@ const handleSubmit = async () => {
 	saveErrorMessage.value = '';
 	successMessage.value = '';
 
+	if (!hasUserChanges()) {
+		isSaving.value = false;
+		saveErrorMessage.value = 'Aucune modification détectée.';
+		return;
+	}
+
 	try {
-		// Envoi d'un payload simple compatible DRF (pas de structure {ancienne/nouvelle})
-		await api.put(`utilisateurs/${userId}/`, {
-			nomUtilisateur: form.value.nomUtilisateur,
-			prenom: form.value.prenom,
-			nomFamille: form.value.nomFamille,
-			email: form.value.email,
-			actif: form.value.actif,
-			role_id: form.value.role_id,
-		});
+		const payloadHasFile = form.value.photoProfil instanceof File;
+		const payload = payloadHasFile ? new FormData() : {};
+
+		const setField = (key, value) => {
+			if (payload instanceof FormData) {
+				payload.append(key, value);
+			} else {
+				payload[key] = value;
+			}
+		};
+
+		setField('nomUtilisateur', form.value.nomUtilisateur);
+		setField('prenom', form.value.prenom);
+		setField('nomFamille', form.value.nomFamille);
+		setField('email', form.value.email);
+		setField('actif', String(!!form.value.actif));
+		setField('role_id', String(form.value.role_id));
+		if (payloadHasFile) {
+			payload.append('photoProfil', form.value.photoProfil);
+		} else if (removeExistingPhoto.value) {
+			setField('photoProfil', null);
+		}
+
+		// Envoi simple DRF : JSON si pas de fichier, sinon multipart
+		const updatedUser = await api.put(`utilisateurs/${userId}/`, payload);
+		syncCurrentUserIfNeeded(updatedUser);
 
 		successMessage.value = 'Utilisateur modifié avec succès.';
 		setTimeout(() => {
@@ -325,4 +577,38 @@ const goBack = () => {
 onMounted(async () => {
 	await Promise.all([loadRoles(), loadUser()]);
 });
+
+onBeforeUnmount(() => {
+	revokePhotoPreviewUrl();
+});
 </script>
+
+<style scoped>
+.user-photo-dropzone {
+	border-style: dashed !important;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.user-photo-dropzone--active {
+	border-color: #1976d2 !important;
+	background-color: rgba(25, 118, 210, 0.05);
+}
+
+.user-photo-actions {
+	gap: 8px;
+}
+
+@media (max-width: 600px) {
+	.user-photo-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.user-photo-actions {
+		width: 100%;
+		justify-content: flex-end;
+		margin-top: 10px;
+	}
+}
+</style>

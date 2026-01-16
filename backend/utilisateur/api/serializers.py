@@ -17,6 +17,7 @@ class RoleSerializer(serializers.ModelSerializer):
 
 class UtilisateurSerializer(serializers.ModelSerializer):
     """Serializer pour le modèle Utilisateur"""
+    photoProfil = serializers.FileField(required=False, allow_null=True, use_url=False)
     role = RoleSerializer(read_only=True)
     role_id = serializers.PrimaryKeyRelatedField(
         queryset=Role.objects.all(),
@@ -32,6 +33,7 @@ class UtilisateurSerializer(serializers.ModelSerializer):
             'prenom',
             'nomFamille',
             'email',
+            'photoProfil',
             'derniereConnexion',
             'dateCreation',
             'actif',
@@ -43,6 +45,7 @@ class UtilisateurSerializer(serializers.ModelSerializer):
 
 class UtilisateurCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création d'utilisateur avec mot de passe"""
+    photoProfil = serializers.FileField(required=False, allow_null=True, use_url=False)
     motDePasse = serializers.CharField(
         write_only=True,
         required=False,
@@ -67,9 +70,19 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
             'prenom',
             'nomFamille',
             'email',
+            'photoProfil',
             'actif',
             'role'
         ]
+        read_only_fields = ['id']
+        extra_kwargs = {
+            'nomUtilisateur': {'required': True, 'allow_blank': False},
+            'prenom': {'required': True, 'allow_blank': False},
+            'nomFamille': {'required': True, 'allow_blank': False},
+            'email': {'required': True, 'allow_blank': False},
+            'actif': {'required': True},
+            'role': {'required': True, 'allow_null': False},
+        }
     
     def validate(self, data):
         """Vérifie que les mots de passe correspondent"""
@@ -106,6 +119,7 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
 
 class UtilisateurDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé avec logs et rôles supplémentaires"""
+    photoProfil = serializers.FileField(required=False, allow_null=True, use_url=False)
     role = RoleSerializer(read_only=True)
     logs_recents = serializers.SerializerMethodField()
     avoirs = serializers.SerializerMethodField()
@@ -118,6 +132,7 @@ class UtilisateurDetailSerializer(serializers.ModelSerializer):
             'prenom',
             'nomFamille',
             'email',
+            'photoProfil',
             'derniereConnexion',
             'dateCreation',
             'actif',
@@ -162,7 +177,7 @@ class UtilisateurSimpleSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Utilisateur
-        fields = ['id', 'nomUtilisateur', 'prenom', 'nomFamille', 'email']
+        fields = ['id', 'nomUtilisateur', 'prenom', 'nomFamille', 'email', 'photoProfil']
 
 
 # ==================== AUTHENTIFICATION ====================

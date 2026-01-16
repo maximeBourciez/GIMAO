@@ -12,7 +12,8 @@
       
       <!-- User avatar -->
       <v-avatar size="36" color="primary" class="mr-2">
-        <span class="text-white">{{ userInitials }}</span>
+        <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
+        <span v-else class="text-white">{{ userInitials }}</span>
       </v-avatar>
     </v-app-bar>
     
@@ -62,10 +63,11 @@
         <v-divider></v-divider>
         
         <v-list dense>
-          <v-list-item class="py-2">
+          <v-list-item class="py-2" style="cursor: pointer" @click="goToMyUserDetail">
             <template v-slot:prepend>
               <v-avatar size="36" color="primary">
-                <span class="text-white">{{ userInitials }}</span>
+                <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
+                <span v-else class="text-white">{{ userInitials }}</span>
               </v-avatar>
             </template>
             <v-list-item-title>{{ user.name }}</v-list-item-title>
@@ -85,6 +87,8 @@
 </template>
 
 <script>
+import { MEDIA_BASE_URL } from "@/utils/constants";
+
 export default {
   name: "TopBar",
   
@@ -115,8 +119,10 @@ export default {
       
       if (currentUser) {
         return {
+          id: currentUser.id,
           name: `${currentUser.prenom} ${currentUser.nomFamille}`,
-          role: currentUser.role?.nomRole || 'Utilisateur'
+          role: currentUser.role?.nomRole || 'Utilisateur',
+          photoProfil: currentUser.photoProfil || null,
         };
       }
       
@@ -126,8 +132,10 @@ export default {
         try {
           const userData = JSON.parse(userFromStorage);
           return {
+            id: userData.id,
             name: `${userData.prenom} ${userData.nomFamille}`,
-            role: userData.role?.nomRole || 'Utilisateur'
+            role: userData.role?.nomRole || 'Utilisateur',
+            photoProfil: userData.photoProfil || null,
           };
         } catch (e) {
           console.error('Error parsing user from localStorage:', e);
@@ -135,9 +143,16 @@ export default {
       }
       
       return {
+        id: null,
         name: 'Utilisateur',
-        role: 'Non défini'
+        role: 'Non défini',
+        photoProfil: null,
       };
+    },
+
+    userPhotoUrl() {
+      if (!this.user?.photoProfil) return null;
+      return `${MEDIA_BASE_URL}${this.user.photoProfil}`;
     },
     
     userInitials() {
@@ -169,6 +184,13 @@ export default {
       
       // Rediriger vers login avec un reload complet pour nettoyer tout le state
       window.location.href = '/login';
+    },
+
+    goToMyUserDetail() {
+      const id = this.user?.id;
+      if (!id) return;
+      this.drawer = false;
+      this.$router.push({ name: 'UserDetail', params: { id } });
     }
   }
 };

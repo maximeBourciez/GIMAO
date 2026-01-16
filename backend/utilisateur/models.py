@@ -51,6 +51,12 @@ class Utilisateur(models.Model):
         unique=True,
         help_text="Adresse email de l'utilisateur"
     )
+    photoProfil = models.FileField(
+        upload_to='utilisateur_photos/',
+        null=True,
+        blank=True,
+        help_text="Photo de profil de l'utilisateur"
+    )
     derniereConnexion = models.DateTimeField(
         null=True,
         blank=True,
@@ -70,6 +76,36 @@ class Utilisateur(models.Model):
         related_name="utilisateurs",
         help_text="Rôle attribué à l'utilisateur"
     )
+
+    def save(self, *args, **kwargs):
+        old_file = None
+        if self.pk:
+            try:
+                old = Utilisateur.objects.only('photoProfil').get(pk=self.pk)
+                old_file = old.photoProfil if old and old.photoProfil else None
+            except Utilisateur.DoesNotExist:
+                old_file = None
+
+        super().save(*args, **kwargs)
+
+        # Si la photo a été remplacée ou supprimée, on supprime l'ancien fichier.
+        try:
+            current_name = self.photoProfil.name if self.photoProfil else ''
+            old_name = old_file.name if old_file else ''
+            if old_name and old_name != current_name:
+                old_file.delete(save=False)
+        except Exception:
+            # Ne pas casser une sauvegarde d'utilisateur si le fichier n'est plus présent.
+            pass
+
+    def delete(self, *args, **kwargs):
+        file_to_delete = self.photoProfil if self.photoProfil else None
+        super().delete(*args, **kwargs)
+        try:
+            if file_to_delete and file_to_delete.name:
+                file_to_delete.delete(save=False)
+        except Exception:
+            pass
 
     def set_password(self, raw_password):
         if raw_password:

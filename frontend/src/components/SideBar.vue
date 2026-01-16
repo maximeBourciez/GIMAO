@@ -50,10 +50,11 @@
             <v-divider />
 
             <v-list dense>
-                <v-list-item class="py-2">
+                <v-list-item class="py-2 user-info-item" @click="goToMyUserDetail">
                     <template #prepend>
-                        <v-avatar size="36" color="primary">
-                            <span class="text-white">{{ userInitials }}</span>
+                        <v-avatar size="36" :color="userPhotoUrl ? 'transparent' : 'primary'">
+                            <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
+                            <span v-else class="text-white">{{ userInitials }}</span>
                         </v-avatar>
                     </template>
 
@@ -78,6 +79,8 @@
 </template>
 
 <script>
+import { MEDIA_BASE_URL } from '@/utils/constants';
+
 export default {
     name: "Sidebar",
 
@@ -110,35 +113,40 @@ export default {
             return this.displayTitles ? 280 : 80;
         },
 
-        user() {
+        currentUserRaw() {
             const currentUser = this.$store.getters.currentUser;
-            
-            if (currentUser) {
-                return {
-                    name: `${currentUser.prenom} ${currentUser.nomFamille}`,
-                    role: currentUser.role?.nomRole || 'Utilisateur'
-                };
-            }
-            
-            // Fallback: essayer de lire depuis localStorage
+            if (currentUser) return currentUser;
+
             const userFromStorage = localStorage.getItem('user');
-            if (userFromStorage) {
-                try {
-                    const userData = JSON.parse(userFromStorage);
-                    console.log('User from localStorage:', userData);
-                    return {
-                        name: `${userData.prenom} ${userData.nomFamille}`,
-                        role: userData.role?.nomRole || 'Utilisateur'
-                    };
-                } catch (e) {
-                    console.error('Error parsing user from localStorage:', e);
-                }
+            if (!userFromStorage) return null;
+            try {
+                return JSON.parse(userFromStorage);
+            } catch (e) {
+                console.error('Error parsing user from localStorage:', e);
+                return null;
             }
-            
+        },
+
+        user() {
+            const raw = this.currentUserRaw;
+            if (!raw) {
+                return { name: 'Utilisateur', role: 'Non défini' };
+            }
+
+            const prenom = raw?.prenom ?? '';
+            const nomFamille = raw?.nomFamille ?? '';
+            const displayName = `${prenom} ${nomFamille}`.trim() || raw?.nomUtilisateur || 'Utilisateur';
             return {
-                name: 'Utilisateur',
-                role: 'Non défini'
+                name: displayName,
+                role: raw?.role?.nomRole || 'Utilisateur'
             };
+        },
+
+        userPhotoUrl() {
+            const raw = this.currentUserRaw;
+            const path = raw?.photoProfil;
+            if (!path || typeof path !== 'string' || path.trim() === '') return '';
+            return `${MEDIA_BASE_URL}${path}`;
         },
 
         userInitials() {
@@ -166,6 +174,12 @@ export default {
             
             // Rediriger vers login avec un reload complet pour nettoyer tout le state
             window.location.href = '/login';
+        },
+
+        goToMyUserDetail() {
+            const id = this.currentUserRaw?.id;
+            if (!id) return;
+            this.$router.push({ name: 'UserDetail', params: { id } });
         }
     }
 };
@@ -228,6 +242,10 @@ export default {
 ========================= */
 .logout-item:hover {
     background-color: #f5f5f5;
+}
+
+.user-info-item {
+    cursor: pointer;
 }
 
 /* =========================

@@ -13,6 +13,17 @@
 	>
 		<template #default="{ data }">
 			<v-row v-if="data" dense>
+				<v-col cols="12" class="d-flex align-center mb-2">
+					<v-avatar size="72" class="mr-3" color="grey-lighten-3">
+						<v-img v-if="data.photoProfil" :src="profilePhotoUrl" cover />
+						<v-icon v-else>mdi-account</v-icon>
+					</v-avatar>
+					<div>
+						<div class="text-h6">{{ fullName || '-' }}</div>
+						<div class="text-body-2 text-medium-emphasis">{{ data.nomUtilisateur || '-' }}</div>
+					</div>
+				</v-col>
+
 				<!-- Informations générales -->
 				<v-col cols="12">
 					<h3 class="text-h6 mb-3">Informations générales</h3>
@@ -89,15 +100,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants.js';
+import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants.js';
 
 const route = useRoute();
 const router = useRouter();
-const userId = route.params.id;
+const userId = computed(() => route.params.id);
 
 const userData = ref(null);
 const isLoading = ref(true);
@@ -110,6 +121,12 @@ const fullName = computed(() => {
 	const prenom = userData.value?.prenom ?? '';
 	const nomFamille = userData.value?.nomFamille ?? '';
 	return `${prenom} ${nomFamille}`.trim();
+});
+
+const profilePhotoUrl = computed(() => {
+	const path = userData.value?.photoProfil;
+	if (!path) return '';
+	return `${MEDIA_BASE_URL}${path}`;
 });
 
 const formatDateTime = (value) => {
@@ -126,7 +143,7 @@ const loadUserData = async () => {
 	isLoading.value = true;
 	errorMessage.value = '';
 
-	if (!userId) {
+	if (!userId.value) {
 		errorMessage.value = "Impossible d'afficher l'utilisateur : id manquant dans l'URL.";
 		userData.value = null;
 		isLoading.value = false;
@@ -135,7 +152,7 @@ const loadUserData = async () => {
 
 	try {
 		// DRF DefaultRouter utilise des URLs avec slash final : /api/utilisateurs/:id/
-		userData.value = await api.get(`utilisateurs/${userId}/`);
+		userData.value = await api.get(`utilisateurs/${userId.value}/`);
 	} catch (error) {
 		console.error('Error loading user data:', error);
 		errorMessage.value = "Erreur lors du chargement de l'utilisateur.";
@@ -145,19 +162,19 @@ const loadUserData = async () => {
 	}
 };
 
-onMounted(() => {
+watch(userId, () => {
 	loadUserData();
-});
+}, { immediate: true });
 
 const editUser = () => {
-	if (!userId) {
+	if (!userId.value) {
 		errorMessage.value = "Impossible de modifier l'utilisateur : id manquant dans l'URL.";
 		return;
 	}
 
 	router.push({
 		name: 'EditUser',
-		params: { id: userId },
+		params: { id: userId.value },
 	});
 };
 </script>
