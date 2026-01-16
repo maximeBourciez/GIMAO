@@ -136,16 +136,14 @@ class TypePlanMaintenance(models.Model):
 class PlanMaintenance(models.Model):
     """Plan de maintenance pour un équipement"""
     nom = models.CharField(max_length=255)
-    contenu = models.TextField(blank=True, null=True)
+    commentaire = models.TextField(blank=True, null=True)
+
+    necessiteHabilitationElectrique = models.BooleanField(default=False, help_text="Nécessite une habilitation électrique")
+    necessitePermisFeu = models.BooleanField(default=False, help_text="Nécessite un permis feu")
     
     # Relations
     type_plan_maintenance = models.ForeignKey(
         TypePlanMaintenance,
-        on_delete=models.CASCADE,
-        related_name='plans_maintenance'
-    )
-    compteur = models.ForeignKey(
-        Compteur,
         on_delete=models.CASCADE,
         related_name='plans_maintenance'
     )
@@ -155,7 +153,7 @@ class PlanMaintenance(models.Model):
         related_name='plans_maintenance'
     )
     
-    # RelationsMany-to-Many
+    # Relations Many-to-Many
     documents = models.ManyToManyField(
         Document,
         through='PlanMaintenanceDocument',
