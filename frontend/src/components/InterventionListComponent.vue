@@ -114,8 +114,7 @@ const props = defineProps({
 	},
 
 	// Optional filters (used when the component fetches data)
-	statut: { type: String, default: '' },
-	type: { type: String, default: '' }
+	statut: { type: String, default: '' }
 });
 
 const emit = defineEmits(['row-click', 'create', 'loaded']);
@@ -168,8 +167,6 @@ const fetchBonsTravail = async () => {
 	try {
 		if (props.statut) {
 			await api.get('bons-travail/par_statut', { statut: props.statut });
-		} else if (props.type) {
-			await api.get('bons-travail/par_type', { type: props.type });
 		} else {
 			await api.get('bons-travail');
 		}
@@ -185,7 +182,7 @@ const onRowClick = (item) => {
 };
 
 watch(
-	() => [props.statut, props.type, props.fetchOnMount],
+	() => [props.statut, props.fetchOnMount],
 	() => {
 		fetchBonsTravail();
 	}

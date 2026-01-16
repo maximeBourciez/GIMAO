@@ -77,13 +77,10 @@
               <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal">Terminer l'intervention</v-btn>
             </v-col>
             <v-col cols="12" md="6" class="py-1">
-              <v-btn color="success" block :disabled="!canClose" @click="openCloseModal">Clôturer le bon de travail</v-btn>
+              <v-btn color="success" block :disabled="!canClose" @click="openCloseModal">Clôturer le BT</v-btn>
             </v-col>
             <v-col cols="12" md="6" class="py-1">
-              <v-btn color="warning" block :disabled="!canRefuseClose" @click="openRefuseCloseModal">Refuser la clôture du bon</v-btn>
-            </v-col>
-            <v-col cols="12" class="py-1">
-              <v-btn color="error" block @click="openDeleteModal">Supprimer le bon de travail</v-btn>
+              <v-btn color="warning" block :disabled="!canRefuseClose" @click="openRefuseCloseModal">Refuser la clôture du BT</v-btn>
             </v-col>
           </v-row>
         </v-col>
@@ -328,17 +325,6 @@
 		@confirm="refuseCloseBonTravail"
 		@cancel="showRefuseClose = false"
 	/>
-    <ConfirmationModal
-      v-model="showDelete"
-      type="error"
-      title="Supprimer le bon de travail"
-      message="Êtes-vous sûr de vouloir supprimer ce bon de travail ?"
-      confirm-text="Supprimer"
-      confirm-icon="mdi-delete"
-      :loading="actionLoading"
-      @confirm="deleteBonTravail"
-      @cancel="showDelete = false"
-    />
 
 </template>
 
@@ -372,7 +358,6 @@ const showStart = ref(false);
 const showFinish = ref(false);
 const showClose = ref(false);
 const showRefuseClose = ref(false);
-const showDelete = ref(false);
 
 const documentHeaders = [
   { title: 'Nom du document', value: 'nomDocumentIntervention' },
@@ -409,7 +394,7 @@ const formattedEquipement = computed(() => {
 });
 
 const canClose = computed(() => !!intervention.value && !intervention.value.date_cloture);
-const canStart = computed(() => intervention.value?.statut === 'EN_ATTENTE');
+const canStart = computed(() => ['EN_ATTENTE', 'EN_RETARD'].includes(intervention.value?.statut));
 const canFinish = computed(() => intervention.value?.statut === 'EN_COURS');
 const canRefuseClose = computed(() => !!intervention.value && !intervention.value.date_cloture && intervention.value?.statut !== 'ANNULE');
 
@@ -427,10 +412,6 @@ const openCloseModal = () => {
 
 const openRefuseCloseModal = () => {
 	showRefuseClose.value = true;
-};
-
-const openDeleteModal = () => {
-  showDelete.value = true;
 };
 
 const goToEditIntervention = () => {
@@ -495,7 +476,7 @@ const closeBonTravail = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    await api.post(`bons-travail/${intervention.value.id}/cloturer`);
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'TERMINE' });
     successMessage.value = 'Bon de travail clôturé';
     showClose.value = false;
     await fetchData();
@@ -510,8 +491,9 @@ const refuseCloseBonTravail = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    // Backend action existante: POST /bons-travail/{id}/annuler/
-    await api.post(`bons-travail/${intervention.value.id}/annuler`, { commentaire: '' });
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
+      statut: 'ANNULE'
+    });
     successMessage.value = 'Clôture refusée';
     showRefuseClose.value = false;
     await fetchData();
@@ -526,7 +508,7 @@ const startIntervention = async () => {
   if (!intervention.value?.id) return;
   actionLoading.value = true;
   try {
-    await api.post(`bons-travail/${intervention.value.id}/demarrer`);
+    await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, { statut: 'EN_COURS' });
     successMessage.value = 'Intervention démarrée';
     showStart.value = false;
     await fetchData();
@@ -550,21 +532,6 @@ const finishIntervention = async () => {
     await fetchData();
   } catch (error) {
     errorMessage.value = 'Erreur lors de la fin de l\'intervention';
-  } finally {
-    actionLoading.value = false;
-  }
-};
-
-const deleteBonTravail = async () => {
-  if (!intervention.value?.id) return;
-  actionLoading.value = true;
-  try {
-    await api.delete(`bons-travail/${intervention.value.id}/`);
-    successMessage.value = 'Bon de travail supprimé';
-    showDelete.value = false;
-    setTimeout(() => router.push({ name: 'InterventionList' }), 800);
-  } catch (error) {
-    errorMessage.value = 'Erreur lors de la suppression du bon de travail';
   } finally {
     actionLoading.value = false;
   }

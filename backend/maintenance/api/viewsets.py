@@ -7,7 +7,7 @@ from django.db import transaction
 import json
 from donnees.models import Document
 from equipement.models import Equipement
-from utilisateur.models import Utilisateur
+from utilisateur.models import Utilisateur, Log
 
 from maintenance.models import (
     DemandeIntervention,
@@ -261,11 +261,8 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     - PUT/PATCH /bons-travail/{id}/ : Modifie un bon
     - DELETE /bons-travail/{id}/ : Supprime un bon
     - GET /bons-travail/par_statut/?statut=EN_COURS : Filtre par statut
-    - GET /bons-travail/par_type/?type=PREVENTIF : Filtre par type
     - GET /bons-travail/mes_bons/ : Bons assignés à l'utilisateur connecté
-    - POST /bons-travail/{id}/cloturer/ : Clôture un bon
-    - POST /bons-travail/{id}/demarrer/ : Démarre un bon
-    - POST /bons-travail/{id}/annuler/ : Annule un bon
+    - PATCH /bons-travail/{id}/updateStatus/ : Change le statut (endpoint unique)
     """
     queryset = BonTravail.objects.select_related(
         'demande_intervention',
@@ -273,6 +270,41 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         'responsable'
     ).prefetch_related('utilisateur_assigne')
     serializer_class = BonTravailSerializer
+
+    def _get_utilisateur(self, request):
+        """Récupère l'utilisateur à partir de la requête"""
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            try:
+                return Utilisateur.objects.get(user=request.user)
+            except Utilisateur.DoesNotExist:
+                return None
+        return None
+
+    def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur):
+        """Crée une entrée de log"""
+        Log.objects.create(
+            type=type_action,
+            nomTable=nom_table,
+            idCible=id_cible,
+            champsModifies=champs_modifies,
+            utilisateur=utilisateur
+        )
+
+    def _build_champs_modifies(self, bon_avant, bon_apres, fields):
+        def _to_json_value(value):
+            if value is None:
+                return None
+            if hasattr(value, 'isoformat'):
+                return value.isoformat()
+            return value
+
+        champs = {}
+        for field in fields:
+            avant = getattr(bon_avant, field, None)
+            apres = getattr(bon_apres, field, None)
+            if avant != apres:
+                champs[field] = _to_json_value(apres)
+        return champs
 
     def get_serializer_class(self):
         """Utilise le serializer détaillé pour retrieve"""
@@ -284,7 +316,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     def par_statut(self, request):
         """
         Filtre les bons de travail par statut
-        Query param: statut (EN_ATTENTE, EN_COURS, TERMINE, ANNULE, REFUSE)
+        Query param: statut (EN_ATTENTE, EN_COURS, TERMINE, EN_RETARD, CLOTURE)
         """
         statut = request.query_params.get('statut')
         if not statut:
@@ -294,23 +326,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             )
         
         bons = self.queryset.filter(statut=statut)
-        serializer = self.get_serializer(bons, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'])
-    def par_type(self, request):
-        """
-        Filtre les bons de travail par type
-        Query param: type (CORRECTIF, PREVENTIF, AMELIORATIF)
-        """
-        type_bt = request.query_params.get('type')
-        if not type_bt:
-            return Response(
-                {'error': 'Le paramètre type est requis'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        bons = self.queryset.filter(type=type_bt)
         serializer = self.get_serializer(bons, many=True)
         return Response(serializer.data)
 
@@ -329,44 +344,96 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(bons, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'])
-    def cloturer(self, request, pk=None):
-        """Clôture un bon de travail"""
-        bon = self.get_object()
-        bon.statut = 'TERMINE'
-        bon.date_cloture = timezone.now()
-        if not bon.date_fin:
-            bon.date_fin = timezone.now()
-        bon.save()
-        serializer = self.get_serializer(bon)
-        return Response(serializer.data)
+    @action(detail=True, methods=['patch'])
+    @transaction.atomic
+    def updateStatus(self, request, pk=None):
+        """Endpoint unique pour gérer les changements de statut d'un bon de travail.
 
-    @action(detail=True, methods=['post'])
-    def demarrer(self, request, pk=None):
-        """Démarre un bon de travail"""
+        Payload attendu: {"statut": "EN_COURS"|"TERMINE"|"ANNULE"|...}
+        - EN_COURS (démarrer): date_debut = now
+        """
         bon = self.get_object()
-        if bon.statut == 'EN_ATTENTE':
-            bon.statut = 'EN_COURS'
-            bon.date_debut = timezone.now()
-            bon.save()
-            serializer = self.get_serializer(bon)
-            return Response(serializer.data)
-        else:
+        new_statut = request.data.get('statut')
+        if not new_statut:
             return Response(
-                {'error': 'Le bon doit être en attente pour être démarré'},
+                {'error': 'Le champ statut est requis'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-    @action(detail=True, methods=['post'])
-    def annuler(self, request, pk=None):
-        """Annule un bon de travail"""
-        bon = self.get_object()
-        commentaire = request.data.get('commentaire', '')
-        bon.statut = 'ANNULE'
-        bon.commentaire_refus_cloture = commentaire
+        bon_avant = BonTravail.objects.get(pk=bon.pk)
+
+        # Règles spécifiques (on étendra au fur et à mesure)
+        if new_statut == 'EN_COURS':
+            # Démarrage
+            if bon.statut not in ['EN_ATTENTE', 'EN_RETARD']:
+                return Response(
+                    {'error': 'Le bon doit être en attente ou en retard pour être démarré'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            bon.statut = 'EN_COURS'
+            bon.date_debut = timezone.now()
+        elif new_statut == 'TERMINE':
+            # Clôture (date_cloture) + date_fin si manquante
+            bon.statut = 'TERMINE'
+            bon.date_cloture = timezone.now()
+            if not bon.date_fin:
+                bon.date_fin = timezone.now()
+        elif new_statut == 'ANNULE':
+            # Refus / Annulation
+            commentaire = request.data.get('commentaire_refus_cloture')
+            if commentaire is None:
+                commentaire = request.data.get('commentaire', '')
+            bon.statut = 'ANNULE'
+            bon.commentaire_refus_cloture = commentaire
+        else:
+            bon.statut = new_statut
+
         bon.save()
+
+        utilisateur = self._get_utilisateur(request)
+        champs_modifies = self._build_champs_modifies(
+            bon_avant,
+            bon,
+            fields=['statut', 'date_debut', 'date_fin', 'date_cloture', 'commentaire_refus_cloture']
+        )
+        if champs_modifies:
+            self._create_log_entry(
+                type_action='modification',
+                nom_table='bon_travail',
+                id_cible={'bon_travail_id': bon.id},
+                champs_modifies=champs_modifies,
+                utilisateur=utilisateur
+            )
+
         serializer = self.get_serializer(bon)
         return Response(serializer.data)
+
+    @transaction.atomic
+    def partial_update(self, request, *args, **kwargs):
+        """Ajoute un log si le statut est modifié via PATCH /bons-travail/{id}/."""
+        instance = self.get_object()
+        bon_avant = BonTravail.objects.get(pk=instance.pk)
+        response = super().partial_update(request, *args, **kwargs)
+
+        # Recharger l'instance après save
+        bon_apres = BonTravail.objects.get(pk=instance.pk)
+        if 'statut' in request.data and bon_avant.statut != bon_apres.statut:
+            utilisateur = self._get_utilisateur(request)
+            champs_modifies = self._build_champs_modifies(
+                bon_avant,
+                bon_apres,
+                fields=['statut', 'date_debut', 'date_fin', 'date_cloture', 'commentaire_refus_cloture']
+            )
+            if champs_modifies:
+                self._create_log_entry(
+                    type_action='modification',
+                    nom_table='bon_travail',
+                    id_cible={'bon_travail_id': bon_apres.id},
+                    champs_modifies=champs_modifies,
+                    utilisateur=utilisateur
+                )
+
+        return response
 
 
 class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
