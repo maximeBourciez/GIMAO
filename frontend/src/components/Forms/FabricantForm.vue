@@ -11,17 +11,17 @@
             <v-row dense>
                 <v-col cols="12" md="6">
                     <FormField v-model="formData.nom" field-name="nom" label="Nom du fabricant"
-                        placeholder="Saisir le nom" />
+                        placeholder="Ex: Siemens, Schneider Electric..." />
                 </v-col>
 
                 <v-col cols="12" md="6">
                     <FormField v-model="formData.email" field-name="email" label="Email" type="email"
-                        placeholder="exemple@email.com" />
+                        placeholder="contact@fabricant.com" />
                 </v-col>
 
                 <v-col cols="12" md="6">
                     <FormField v-model="formData.numTelephone" field-name="numTelephone" label="Téléphone"
-                        placeholder="06 12 34 56 78" />
+                        placeholder="01 23 45 67 89" />
                 </v-col>
 
                 <v-col cols="12" md="6">
@@ -40,22 +40,22 @@
             <v-row dense>
                 <v-col cols="12" md="4">
                     <FormField v-model="formData.adresse.numero" field-name="adresse.numero" label="N°"
-                        placeholder="123" />
+                        placeholder="12" />
                 </v-col>
 
                 <v-col cols="12" md="8">
                     <FormField v-model="formData.adresse.rue" field-name="adresse.rue" label="Rue"
-                        placeholder="Rue de la République" />
+                        placeholder="Avenue des Champs-Élysées" />
                 </v-col>
 
                 <v-col cols="12" md="6">
                     <FormField v-model="formData.adresse.ville" field-name="adresse.ville" label="Ville"
-                        placeholder="Paris" />
+                        placeholder="Lyon" />
                 </v-col>
 
                 <v-col cols="12" md="6">
                     <FormField v-model="formData.adresse.code_postal" field-name="adresse.code_postal"
-                        label="Code postal" placeholder="75001" />
+                        label="Code postal" placeholder="69000" />
                 </v-col>
 
                 <v-col cols="12" md="6">
@@ -65,7 +65,7 @@
 
                 <v-col cols="12" md="6">
                     <FormField v-model="formData.adresse.complement" field-name="adresse.complement"
-                        label="Complément" placeholder="Bâtiment A, 2ème étage" />
+                        label="Complément" placeholder="Bâtiment B, Porte 201" />
                 </v-col>
             </v-row>
         </template>

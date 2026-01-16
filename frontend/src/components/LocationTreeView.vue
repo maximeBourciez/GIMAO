@@ -18,16 +18,32 @@
 
     <VTreeview v-else :items="items" item-key="id" item-title="nomLieu" :open.sync="openNodes" activatable hoverable
       rounded density="compact">
-      <!-- Ligne personnalisée -->
-      <template #prepend="{ item, open }">
-        <!-- Case à cocher -->
-        <v-checkbox :model-value="isSelected(item)" @update:model-value="() => onSelect(item)" density="compact"
-          hide-details :disabled="isLocked && !isSelected(item)"></v-checkbox>
+      <!-- Checkbox après la flèche par défaut -->
+      <template #prepend="{ item }">
+        <v-checkbox 
+          :model-value="isSelected(item)" 
+          @update:model-value="() => onSelect(item)" 
+          density="compact"
+          hide-details 
+          :disabled="isLocked && !isSelected(item)"
+        />
       </template>
 
+      <!-- Titre avec marge à droite -->
+      <template #title="{ item }">
+        <span class="mr-5">{{ item.nomLieu }}</span>
+      </template>
+
+      <!-- Bouton + à droite -->
       <template #append="{ item }">
-        <v-btn v-if="showCreateButton" icon color="primary" class="tiny-btn" @click.stop="onCreate(item)">
-          <v-icon size="16">mdi-plus</v-icon>
+        <v-btn 
+          v-if="showCreateButton" 
+          icon 
+          color="primary" 
+          size="x-small"
+          @click.stop="onCreate(item)"
+        >
+          <v-icon size="18">mdi-plus</v-icon>
         </v-btn>
       </template>
 
@@ -86,11 +102,39 @@ const createWithoutParent = () => {
 
 
 <style scoped>
-.tiny-btn {
-  width: 30px !important;
-  height: 30px !important;
-  min-width: 20px !important;
-  padding: 0 !important;
+/* Masquer la flèche d'expansion pour les items sans enfants */
+:deep(.v-treeview-item:not(:has(.v-treeview-item__children))) .v-treeview-item__toggle {
+  visibility: hidden;
+}
+
+/* S'assurer que tout est sur une seule ligne avec le bon espacement */
+:deep(.v-treeview-item__content) {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  gap: 8px !important;
+}
+
+:deep(.v-treeview-item__prepend) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+:deep(.v-treeview-item__label) {
+  flex: 1 !important;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+:deep(.v-treeview-item__append) {
+  margin-left: auto !important;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-left: 24px !important;
 }
 </style>
 

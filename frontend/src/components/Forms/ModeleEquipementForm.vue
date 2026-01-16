@@ -18,7 +18,7 @@
                         v-model="formData.nom"
                         field-name="nom"
                         label="Nom du modèle"
-                        placeholder="Saisir le nom du modèle"
+                        placeholder="Ex: S7-1200, TeSys D, iC60N..."
                     />
                 </v-col>
 

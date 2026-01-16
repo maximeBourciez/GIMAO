@@ -22,6 +22,7 @@
                     v-model="formData.nom"
                     field-name="nom"
                     label="Nom du fournisseur"
+                    placeholder="Ex: Legrand, ABB, Hager..."
                 />
             </v-col>
             <v-col cols="12" md="6">
@@ -30,6 +31,7 @@
                     field-name="email"
                     label="Email"
                     type="email"
+                    placeholder="contact@fournisseur.fr"
                 />
             </v-col>
         </v-row>
@@ -40,6 +42,7 @@
                     v-model="formData.numTelephone"
                     field-name="numTelephone"
                     label="Téléphone"
+                    placeholder="01 23 45 67 89"
                 />
             </v-col>
             <v-col cols="6" class="d-flex align-center">
@@ -63,6 +66,7 @@
                     v-model="formData.adresse.numero"
                     field-name="adresse.numero"
                     label="N°"
+                    placeholder="45"
                 />
             </v-col>
             <v-col cols="8">
@@ -70,6 +74,7 @@
                     v-model="formData.adresse.rue"
                     field-name="adresse.rue"
                     label="Rue"
+                    placeholder="Boulevard Voltaire"
                 />
             </v-col>
         </v-row>
@@ -80,6 +85,7 @@
                     v-model="formData.adresse.ville"
                     field-name="adresse.ville"
                     label="Ville"
+                    placeholder="Marseille"
                 />
             </v-col>
             <v-col cols="6">
@@ -87,6 +93,7 @@
                     v-model="formData.adresse.code_postal"
                     field-name="adresse.code_postal"
                     label="Code postal"
+                    placeholder="13001"
                 />
             </v-col>
         </v-row>
@@ -97,6 +104,7 @@
                     v-model="formData.adresse.pays"
                     field-name="adresse.pays"
                     label="Pays"
+                    placeholder="France"
                 />
             </v-col>
         </v-row>
@@ -107,6 +115,7 @@
                     v-model="formData.adresse.complement"
                     field-name="adresse.complement"
                     label="Complément"
+                    placeholder="Étage 3, Bureau 12"
                 />
             </v-col>
         </v-row>

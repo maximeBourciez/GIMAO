@@ -1,5 +1,4 @@
 import {
-  FAILURE_LEVEL_COLORS,
   EQUIPMENT_STATUS,
   EQUIPMENT_STATUS_COLORS,
   INTERVENTION_STATUS_COLORS,
@@ -34,7 +33,7 @@ export function getStatusLabel(code) {
  * @returns {string} La couleur correspondante
  */
 export function getFailureLevelColor(level) {
-  return FAILURE_LEVEL_COLORS[level] || "grey";
+  return EQUIPMENT_STATUS_COLORS[level] || "grey";
 }
 
 /**
