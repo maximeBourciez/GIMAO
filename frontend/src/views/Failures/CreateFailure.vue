@@ -118,7 +118,7 @@ const validation = useFormValidation(formData, {
 });
 
 const validateForm = () => {
-  return validation.checkRequiredFields(['nom', 'equipement_id']);
+  return validation.validateAll(formData.value);
 };
 
 const addDocument = () => {

@@ -118,7 +118,7 @@ const validation = useFormValidation(formData, {
 });
 
 const validateForm = () => {
-  return validation.checkRequiredFields(['intervention_name', 'start_date', 'comment_to_fill_in']);
+  return validation.validateAll(formData.value);
 };
 
 const fetchData = async () => {
