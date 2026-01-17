@@ -1,91 +1,103 @@
 <template>
   <v-app>
-    <!-- N'afficher la navigation que si on n'est pas sur une page publique -->
-    <template v-if="!isPublicPage">
-      <!-- Desktop Sidebar -->
+
+    <!-- Navigation (si page privée ET pas opérateur) -->
+    <template v-if="!isPublicPage && !isOperateur">
+
+      <!-- Sidebar desktop -->
       <Sidebar v-if="!isMobile" />
-      
-      <!-- Mobile TopBar (avec menu hamburger) -->
+
+      <!-- TopBar mobile (hamburger) -->
       <TopBar v-if="isMobile" />
-      
-      <!-- Desktop TopBar (juste le titre, pas de hamburger) -->
+
+      <!-- AppBar desktop -->
       <v-app-bar v-if="!isMobile" app color="white" elevation="1">
         <v-toolbar-title class="font-weight-bold ml-4">
           {{ pageTitle }}
         </v-toolbar-title>
       </v-app-bar>
+
     </template>
-    
+
     <v-main>
-      <Breadcrumb v-if="!isPublicPage" />
+      <Breadcrumb v-if="!isPublicPage && !isOperateur" />
       <router-view />
     </v-main>
+
   </v-app>
 </template>
 
-<script>
-import Sidebar from "@/components/SideBar.vue";
-import TopBar from "@/components/TopBar.vue";
-import Breadcrumb from "@/components/Breadcrumb.vue";
 
-export default {
-  name: 'App',
-  components: {
-    Sidebar,
-    TopBar,
-    Breadcrumb
-  },
-  
-  data() {
-    return {
-      isMobile: false,
-    };
-  },
-  
-  computed: {
-    pageTitle() {
-      return this.$route.meta?.title || 'GIMAO';
-    },
-    isPublicPage() {
-      return this.$route.meta?.public === true;
-    }
-  },
-  
-  mounted() {
-    // Initialiser l'authentification depuis le localStorage
-    this.$store.dispatch('initAuth');
-    
-    this.checkIfMobile();
-    window.addEventListener('resize', this.checkIfMobile);
-  },
-  
-  beforeUnmount() {
-    window.removeEventListener('resize', this.checkIfMobile);
-  },
-  
-  methods: {
-    checkIfMobile() {
-      this.isMobile = window.innerWidth < 960; // Breakpoint md de Vuetify
-    }
-  },
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useStore } from 'vuex'
+import { useRoute } from 'vue-router'
 
-};
+import Sidebar from '@/components/SideBar.vue'
+import TopBar from '@/components/TopBar.vue'
+import Breadcrumb from '@/components/Breadcrumb.vue'
+
+const store = useStore()
+const route = useRoute()
+
+/**
+ * Mobile
+ */
+const isMobile = ref(false)
+
+const checkIfMobile = () => {
+  isMobile.value = window.innerWidth < 960 // breakpoint md Vuetify
+}
+
+/**
+ * Auth / rôles
+ */
+const userRole = computed(() => store.getters.userRole)
+
+const isOperateur = computed(() => userRole.value === 'Opérateur')
+
+/**
+ * Pages publiques
+ */
+const isPublicPage = computed(() => route.meta?.public === true)
+
+/**
+ * Titre page
+ */
+const pageTitle = computed(() => route.meta?.title || 'GIMAO')
+
+/**
+ * Lifecycle
+ */
+onMounted(() => {
+  store.dispatch('initAuth')
+
+  checkIfMobile()
+  window.addEventListener('resize', checkIfMobile)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', checkIfMobile)
+})
 </script>
-
 <style>
 .text-primary {
   color: #05004E;
 }
+
 .text-dark {
   color: #3C3C3C;
 }
+
 .v-card {
   background-color: #FFFFFF;
 }
+
 .v-btn {
   background-color: #F1F5FF;
   border-radius: 50%;
 }
+
 h1 {
   color: #05004E;
 }

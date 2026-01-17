@@ -95,8 +95,8 @@ export default {
             navigationItems: [
                 { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord" },
                 { name: "EquipmentList", icon: "mdi-tools", title: "Équipements" },
-                { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail" },
-                { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions" },
+                { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions (DI)" },
+                { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)" },
                 { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes"},
                 { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks"},
                 { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données" }
