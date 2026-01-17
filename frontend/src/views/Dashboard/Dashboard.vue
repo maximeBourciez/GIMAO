@@ -37,8 +37,8 @@
       </v-row>
     </template>
 
-    <!-- ============ TECHNICIEN / OPERATEUR ============ -->
-    <template v-else-if="isTechnicien || isOperateur">
+    <!-- ============ TECHNICIEN ============ -->
+    <template v-else-if="isTechnicien">
 
       <!-- Stats -->
       <v-row justify="center">
@@ -56,6 +56,40 @@
           <v-card rounded="">
             <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI"
               :showSearch="true" />
+
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreate">
+              Créer une DI
+            </v-btn>
+          </v-card>
+        </v-col>
+      </v-row>
+
+    </template>
+
+    <!-- ================= OPÉRATEUR ================= -->
+    <template v-else-if="isOperateur">
+      <v-row justify="center" class="dashboard">
+
+        <!-- Stats -->
+        <v-col cols="12">
+          <StatsComponent :role="role" :full="statsFull" />
+        </v-col>
+
+
+
+
+        <v-col cols="12">
+          <v-card rounded="" class="mb-4">
+            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreate">
+              Créer une DI
+            </v-btn>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12">
+          <v-card rounded="">
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
           </v-card>
         </v-col>
       </v-row>
