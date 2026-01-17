@@ -663,10 +663,10 @@ class DashboardStatsViewset(viewsets.ViewSet):
 
         if role == "Responsable GMAO":
             stats = [
-                {"label": "Nombre de DI", "value": DemandeIntervention.objects.count()},
+                {"label": "Nombre de DI", "value": DemandeIntervention.objects.filter(~Q(statut="TRANSFORMEE")).count()},
                 {"label": "DI en attente", "value": DemandeIntervention.objects.filter(statut="EN_ATTENTE").count()},
                 {"label": "DI acceptés", "value": DemandeIntervention.objects.filter(statut="ACCEPTEE").count()},
-                {"label": "Nombre de BT", "value": BonTravail.objects.count()},
+                {"label": "Nombre de BT", "value": BonTravail.objects.filter(~Q(statut="CLOTURE")).count()},
                 {"label": "BT en retard", "value": BonTravail.objects.filter(statut="EN_RETARD").count()},
                 {"label": "BT en cours", "value": BonTravail.objects.filter(statut="EN_COURS").count()},
             ]
@@ -684,7 +684,7 @@ class DashboardStatsViewset(viewsets.ViewSet):
             if role == "Technicien":
                 bt = BonTravail.objects.filter(utilisateur_assigne=user)
                 stats = [
-                    {"label": "Vos BT", "value": bt.count()},
+                    {"label": "Vos BT", "value": bt.filter(~Q(statut="CLOTURE")).count()},
                     {"label": "Vos BT en cours", "value": bt.filter(statut="EN_COURS").count()},
                     {"label": "Vos BT terminés", "value": bt.filter(statut="TERMINE").count()},
                 ]
@@ -692,7 +692,7 @@ class DashboardStatsViewset(viewsets.ViewSet):
             if role == "Opérateur":
                 di = DemandeIntervention.objects.filter(utilisateur=user)
                 stats = [
-                    {"label": "Vos BT", "value": BonTravail.objects.filter(demande_intervention__utilisateur=user).count()},
+                    {"label": "Vos BT", "value": BonTravail.objects.filter(demande_intervention__utilisateur=user).filter(~Q(statut="CLOTURE")).count()},
                     {"label": "Vos DI en attente", "value": di.filter(statut="EN_ATTENTE").count()},
                     {"label": "Vos DI acceptées", "value": di.filter(statut="ACCEPTEE").count()},
                 ]
