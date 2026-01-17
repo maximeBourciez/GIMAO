@@ -111,6 +111,14 @@
         <v-col cols="12" md="10">
           <Stocks />
         </v-col>
+
+        <v-btn color="primary" icon size="large" elevation="4" class="floating-logout-button-magasinier"
+          @click="logout">
+          <v-icon>mdi-logout</v-icon>
+          <v-tooltip activator="parent" location="left">
+            Se déconnecter
+          </v-tooltip>
+        </v-btn>
       </v-row>
     </template>
 
@@ -169,7 +177,7 @@ const handleRowClickBT = (intervention) => {
 }
 
 const handleCreateBT = () => {
-  router.push({ 
+  router.push({
     name: 'CreateIntervention',
     query: { from: 'dashboard' }
   })
@@ -212,6 +220,13 @@ const statsFull = computed(() => isResponsable.value)
   position: fixed !important;
   bottom: 24px;
   right: 24px;
+  z-index: 100;
+}
+
+.floating-logout-button-magasinier {
+  position: fixed !important;
+  bottom: 24px;
+  left: 24px;
   z-index: 100;
 }
 </style>
