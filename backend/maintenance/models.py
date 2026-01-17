@@ -99,6 +99,12 @@ class BonTravail(models.Model):
         blank=True,
         related_name='bons_travail_responsable'
     )
+    consommables = models.ManyToManyField(
+        Consommable,
+        through='BonTravailConsommable',
+        related_name='bons_travail',
+        blank=True
+    )
 
     class Meta:
         db_table = 'bon_travail'
@@ -136,16 +142,14 @@ class TypePlanMaintenance(models.Model):
 class PlanMaintenance(models.Model):
     """Plan de maintenance pour un équipement"""
     nom = models.CharField(max_length=255)
-    contenu = models.TextField(blank=True, null=True)
+    commentaire = models.TextField(blank=True, null=True)
+
+    necessiteHabilitationElectrique = models.BooleanField(default=False, help_text="Nécessite une habilitation électrique")
+    necessitePermisFeu = models.BooleanField(default=False, help_text="Nécessite un permis feu")
     
     # Relations
     type_plan_maintenance = models.ForeignKey(
         TypePlanMaintenance,
-        on_delete=models.CASCADE,
-        related_name='plans_maintenance'
-    )
-    compteur = models.ForeignKey(
-        Compteur,
         on_delete=models.CASCADE,
         related_name='plans_maintenance'
     )
@@ -155,7 +159,7 @@ class PlanMaintenance(models.Model):
         related_name='plans_maintenance'
     )
     
-    # RelationsMany-to-Many
+    # Relations Many-to-Many
     documents = models.ManyToManyField(
         Document,
         through='PlanMaintenanceDocument',
@@ -246,3 +250,29 @@ class DemandeInterventionDocument(models.Model):
     
     def __str__(self):
         return f"{self.demande_intervention} - {self.document}"
+
+
+class BonTravailConsommable(models.Model):
+    """Table d'association entre BonTravail et Consommable"""
+    bon_travail = models.ForeignKey(
+        BonTravail,
+        on_delete=models.CASCADE
+    )
+    consommable = models.ForeignKey(
+        Consommable,
+        on_delete=models.CASCADE
+    )
+    quantite_utilisee = models.IntegerField(
+        validators=[MinValueValidator(0)],
+        default=0,
+        help_text="Quantité utilisée pour ce bon"
+    )
+    
+    class Meta:
+        db_table = 'gimao_bon_travail_consommable'
+        unique_together = ['bon_travail', 'consommable']
+        verbose_name = 'Consommable utilisé'
+        verbose_name_plural = 'Consommables utilisés'
+    
+    def __str__(self):
+        return f"{self.bon_travail} - {self.consommable} (x{self.quantite_utilisee})"
