@@ -323,6 +323,56 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         return queryset.exclude(statut='CLOTURE')
 
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Création d'un bon de travail.
+
+        - Supporte date_prevue lors de la création.
+        - Si des techniciens sont assignés (utilisateur_assigne_ids), date_assignation = now.
+        - Logue la création au format demandé.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        bon = serializer.save()
+
+        # Si des techniciens sont assignés => date_assignation = now
+        if bon.date_assignation is None and bon.utilisateur_assigne.exists():
+            bon.date_assignation = timezone.now()
+            bon.save(update_fields=['date_assignation'])
+
+        response_serializer = self.get_serializer(bon)
+        bon_data = response_serializer.data
+        champs_modifies = {
+            'nom': {'valCreation': bon_data.get('nom')},
+            'type': {'valCreation': bon_data.get('type')},
+            'diagnostic': {'valCreation': bon_data.get('diagnostic')},
+            'commentaire': {'valCreation': bon_data.get('commentaire')},
+            'statut': {'valCreation': bon_data.get('statut')},
+            'date_prevue': {'valCreation': bon_data.get('date_prevue')},
+            'date_assignation': {'valCreation': bon_data.get('date_assignation')},
+            'demande_intervention_id': {'valCreation': bon_data.get('demande_intervention')},
+            'responsable_id': {'valCreation': bon.responsable_id},
+            'utilisateur_assigne_ids': {'valCreation': list(bon.utilisateur_assigne.values_list('id', flat=True))}
+        }
+
+        # Qui a effectué l'action ? (fallbacks)
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        self._create_log_entry(
+            type_action='creation',
+            nom_table='bon_travail',
+            id_cible={'bon_travail_id': bon.id},
+            champs_modifies=champs_modifies,
+            utilisateur_id=utilisateur_id
+        )
+
+        return Response(bon_data, status=status.HTTP_201_CREATED)
+
     @action(detail=False, methods=['get'])
     def mes_bons(self, request):
         """Retourne les bons de travail assignés à l'utilisateur connecté"""
@@ -360,7 +410,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         bon_avant = BonTravail.objects.get(pk=bon.pk)
 
-        # Règles spécifiques (on étendra au fur et à mesure)
+        # Règles spécifiques
         if new_statut == 'EN_COURS':
             # Deux cas :
             # - Démarrage: EN_ATTENTE/EN_RETARD -> EN_COURS (date_debut = now)
@@ -414,7 +464,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             self._create_log_entry(
                 type_action='modification',
                 nom_table='bon_travail',
-                id_cible={'bon_travail_id': bon.id},
+                id_cible=bon.id,
                 champs_modifies=champs_modifies,
                 utilisateur_id=utilisateur_id
             )
@@ -442,7 +492,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                 self._create_log_entry(
                     type_action='modification',
                     nom_table='bon_travail',
-                    id_cible={'bon_travail_id': bon_apres.id},
+                    id_cible=bon_apres.id,
                     champs_modifies=champs_modifies,
                     utilisateur_id=utilisateur_id
                 )
