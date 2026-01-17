@@ -71,7 +71,7 @@ const props = defineProps({
   },
   showCreateButton: {
     type: Boolean,
-    default: true
+    default: false
   },
   templateHeader: {
     type: Boolean,
