@@ -14,14 +14,11 @@
       <!-- Failures / Interventions sur une ligne -->
       <v-row justify="center" class="mt-4">
         <v-col cols="12" md="6">
-          <FailureListComponent
-            @create="handleCreate"
-            @row-click="handleRowClick"
-          />
+          <FailureListComponent @row-click="handleRowClickDI" />
         </v-col>
 
         <v-col cols="12" md="6">
-          <InterventionListComponent />
+          <InterventionListComponent @row-click="handleRowClickBT" />
         </v-col>
       </v-row>
 
@@ -40,24 +37,14 @@
       <!-- Interventions + Failures en colonne -->
       <v-row justify="center" class="mt-4">
         <v-col cols="12" md="10">
-          <InterventionListComponent class="mb-4" />
-          <FailureListComponent
-            @create="handleCreate"
-            @row-click="handleRowClick"
-          />
+          <InterventionListComponent class="mb-4" @row-click="handleRowClickBT" />
+          <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" />
         </v-col>
       </v-row>
 
       <!-- Bouton logout opérateur -->
-      <v-btn
-        v-if="isOperateur"
-        color="primary"
-        icon
-        size="large"
-        elevation="4"
-        class="floating-logout-button"
-        @click="logout"
-      >
+      <v-btn v-if="isOperateur" color="primary" icon size="large" elevation="4" class="floating-logout-button"
+        @click="logout">
         <v-icon>mdi-logout</v-icon>
         <v-tooltip activator="parent" location="left">
           Se déconnecter
@@ -82,6 +69,7 @@
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 
 import FailureListComponent from '@/components/FailureListComponent.vue'
 import InterventionListComponent from '@/components/InterventionListComponent.vue'
@@ -89,6 +77,7 @@ import StatsComponent from '@/components/StatsComponent.vue'
 import Stocks from '@/views/Stocks/Stocks.vue'
 
 const store = useStore()
+const router = useRouter()
 
 const role = computed(() => store.getters.userRole)
 
@@ -111,6 +100,16 @@ const logout = () => {
   // Rediriger vers login avec un reload complet pour nettoyer tout le state
   window.location.href = '/login';
 
+}
+
+// Gestion click DI
+const handleRowClickDI = (failure) => {
+  router.push({ name: 'FailureDetail', params: { id: failure.id } })
+}
+
+// Gestion click BT
+const handleRowClickBT = (intervention) => {
+  router.push({ name: 'InterventionDetail', params: { id: intervention.id } })
 }
 
 const statsFull = computed(() => isResponsable.value)
