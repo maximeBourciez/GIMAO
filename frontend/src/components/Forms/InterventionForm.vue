@@ -20,7 +20,7 @@
 			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
 				<h4 class="mb-3">Bon de travail</h4>
 				<v-row dense>
-					<v-col v-if="showEquipement" cols="12" md="6">
+					<v-col cols="12" md="6">
 						<FormSelect
 							v-model="formData.equipement_id"
 							field-name="equipement_id"
@@ -74,9 +74,10 @@
 							v-model="formData.responsable_id"
 							field-name="responsable_id"
 							label="Responsable"
-							:items="userItems"
+							:items="responsableItems"
 							item-title="label"
 							item-value="id"
+							:disabled="responsableReadOnly"
 						/>
 					</v-col>
 
@@ -85,7 +86,7 @@
 							v-model="formData.utilisateur_assigne_ids"
 							field-name="utilisateur_assigne_ids"
 							label="Utilisateurs assignés"
-							:items="userItems"
+							:items="assignableUserItems"
 							item-title="label"
 							item-value="id"
 							multiple
@@ -150,6 +151,10 @@ const props = defineProps({
 		type: Array,
 		default: () => []
 	},
+	responsableReadOnly: {
+		type: Boolean,
+		default: false
+	},
 	state: {
 		type: Object,
 		default: () => ({
@@ -195,10 +200,25 @@ const userItems = computed(() =>
 	}))
 );
 
-const showEquipement = computed(() => Array.isArray(props.equipments) && props.equipments.length > 0);
+const ROLE_TECHNICIEN = 'Technicien';
+const ROLE_RESPONSABLE_GMAO = 'Responsable GMAO';
+
+const getRoleName = (user) => user?.role?.nomRole || user?.role || '';
+
+const assignableUserItems = computed(() =>
+	userItems.value.filter((user) => {
+		const roleName = getRoleName(user);
+		return roleName === ROLE_TECHNICIEN || roleName === ROLE_RESPONSABLE_GMAO;
+	})
+);
+
+const responsableItems = computed(() =>
+	userItems.value.filter((user) => getRoleName(user) === ROLE_RESPONSABLE_GMAO)
+);
 
 const validationSchema = computed(() => {
 	const schema = {
+		equipement_id: ['required'],
 		nom: ['required', { name: 'minLength', params: [2] }, { name: 'maxLength', params: [200] }],
 		type: ['required'],
 		responsable_id: ['required'],
@@ -210,10 +230,6 @@ const validationSchema = computed(() => {
 		commentaire: [{ name: 'maxLength', params: [2000] }]
 	};
 
-	if (showEquipement.value) {
-		schema.equipement_id = ['required'];
-	}
-
 	return schema;
 });
 
@@ -223,8 +239,8 @@ const isFormValidForSubmit = computed(() => {
 	const type = formData.value?.type;
 	const responsableId = formData.value?.responsable_id;
 
-	if (showEquipement.value && !formData.value?.equipement_id) return false;
-	if (!nom || nom.length < 2 || nom.length > 2000) return false;
+	if (!formData.value?.equipement_id) return false;
+	if (!nom || nom.length < 2 || nom.length > 200) return false;
 	if (!type) return false;
 	if (!responsableId) return false;
 	if (!diagnostic || diagnostic.length < 2 || diagnostic.length > 2000) return false;

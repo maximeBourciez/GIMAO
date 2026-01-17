@@ -7,6 +7,7 @@
 					:base-form-props="baseFormProps"
 					:equipments="equipments"
 					:users="users"
+					:responsable-read-only="true"
 					:state="formState"
 					@submit="submit"
 					@cancel="goBack"
