@@ -1,8 +1,8 @@
 <template>
   <v-app>
 
-    <!-- Navigation (si page privée ET pas opérateur) -->
-    <template v-if="!isPublicPage && !isOperateur">
+    <!-- Navigation (si page privée ET utilisateur a menu) -->
+    <template v-if="!isPublicPage && userHasMenu">
 
       <!-- Sidebar desktop -->
       <Sidebar v-if="!isMobile" />
@@ -54,7 +54,7 @@ const checkIfMobile = () => {
  */
 const userRole = computed(() => store.getters.userRole)
 
-const isOperateur = computed(() => userRole.value === 'Opérateur')
+const userHasMenu = computed(() => ['Responsable GMAO', 'Technicien'].includes(userRole.value))
 
 /**
  * Pages publiques
