@@ -8,6 +8,9 @@ import json
 from donnees.models import Document
 from equipement.models import Equipement
 from utilisateur.models import Utilisateur, Log
+from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
+
+
 
 from maintenance.models import (
     DemandeIntervention,
@@ -642,3 +645,60 @@ class PlanMaintenanceConsommableViewSet(viewsets.ModelViewSet):
         'plan_maintenance', 'consommable'
     )
     serializer_class = PlanMaintenanceConsommableSerializer
+
+
+
+
+class DashboardStatsViewset(viewsets.ViewSet):
+
+    def list(self, request):
+        role = request.query_params.get("role")
+        user_id = request.query_params.get("userId")
+
+        if not role:
+            return Response({"detail": "role is required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        stats = []
+
+        if role == "Responsable GMAO":
+            stats = [
+                {"label": "Nombre de DI", "value": DemandeIntervention.objects.filter(~Q(statut="TRANSFORMEE")).count()},
+                {"label": "DI en attente", "value": DemandeIntervention.objects.filter(statut="EN_ATTENTE").count()},
+                {"label": "DI acceptés", "value": DemandeIntervention.objects.filter(statut="ACCEPTEE").count()},
+                {"label": "Nombre de BT", "value": BonTravail.objects.filter(~Q(statut="CLOTURE")).count()},
+                {"label": "BT en retard", "value": BonTravail.objects.filter(statut="EN_RETARD").count()},
+                {"label": "BT en cours", "value": BonTravail.objects.filter(statut="EN_COURS").count()},
+            ]
+
+        elif role in ["Technicien", "Opérateur"]:
+            if not user_id:
+                return Response({"detail": "userId is required"},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            user = Utilisateur.objects.filter(pk=user_id).first()
+            if not user:
+                return Response({"detail": "Utilisateur not found"},
+                                status=status.HTTP_404_NOT_FOUND)
+
+            if role == "Technicien":
+                bt = BonTravail.objects.filter(utilisateur_assigne=user)
+                stats = [
+                    {"label": "Vos BT", "value": bt.filter(~Q(statut="CLOTURE")).count()},
+                    {"label": "Vos BT en cours", "value": bt.filter(statut="EN_COURS").count()},
+                    {"label": "Vos BT terminés", "value": bt.filter(statut="TERMINE").count()},
+                ]
+
+            if role == "Opérateur":
+                di = DemandeIntervention.objects.filter(utilisateur=user)
+                stats = [
+                    {"label": "Vos DI", "value": DemandeIntervention.objects.filter(utilisateur=user).filter(~Q(statut="TRANSFORMEE")).count()},
+                    {"label": "Vos DI en attente", "value": di.filter(statut="EN_ATTENTE").count()},
+                    {"label": "Vos DI acceptées", "value": di.filter(statut="ACCEPTEE").count()},
+                ]
+
+        else:
+            return Response({"detail": "Invalid role"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"stats": stats}, status=status.HTTP_200_OK)

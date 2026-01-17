@@ -3,54 +3,40 @@
     <!-- App Bar -->
     <v-app-bar app color="white" elevation="1">
       <v-app-bar-nav-icon @click="drawer = !drawer" />
-      
+
       <v-toolbar-title class="font-weight-bold">
         {{ pageTitle }}
       </v-toolbar-title>
-      
+
       <v-spacer />
-      
+
       <!-- User avatar -->
       <v-avatar size="36" color="primary" class="mr-2">
         <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
         <span v-else class="text-white">{{ userInitials }}</span>
       </v-avatar>
     </v-app-bar>
-    
+
     <!-- Navigation Drawer -->
-    <v-navigation-drawer
-      v-model="drawer"
-      temporary
-      app
-      width="280"
-    >
+    <v-navigation-drawer v-model="drawer" temporary app width="280">
       <v-list dense nav>
         <!-- Logo -->
-        <v-list-item
-          lines="two"
-          @click="navigateTo('Dashboard')"
-          style="cursor: pointer"
-          class="d-flex flex-column align-center mb-4 py-4"
-        >
-          <v-img :src="logo" contain max-width="80" class="mb-2"/>
+        <v-list-item lines="two" @click="navigateTo('Dashboard')" style="cursor: pointer"
+          class="d-flex flex-column align-center mb-4 py-4">
+          <v-img :src="logo" contain max-width="80" class="mb-2" />
           <v-list-item-title class="font-weight-bold text-center text-h6">
             {{ appTitle }}
           </v-list-item-title>
         </v-list-item>
-        
+
         <v-divider class="mb-2"></v-divider>
-        
+
         <!-- Navigation items -->
-        <v-list-item
-          v-for="item in navigationItems"
-          :key="item.name"
-          @click="navigateTo(item.name, item.disabled)"
-          :class="[
+        <v-list-item v-for="item in filteredNavigationItems" :key="item.name"
+          @click="navigateTo(item.name, item.disabled)" :class="[
             { 'active-item': isActive(item.name) },
             { 'disabled-item': item.disabled }
-          ]"
-          class="my-1"
-        >
+          ]" class="my-1">
           <template v-slot:prepend>
             <v-icon>{{ item.icon }}</v-icon>
           </template>
@@ -61,7 +47,7 @@
       <!-- User info at bottom -->
       <template v-slot:append>
         <v-divider></v-divider>
-        
+
         <v-list dense>
           <v-list-item class="py-2" style="cursor: pointer" @click="goToMyUserDetail">
             <template v-slot:prepend>
@@ -73,7 +59,7 @@
             <v-list-item-title>{{ user.name }}</v-list-item-title>
             <v-list-item-subtitle>{{ user.role }}</v-list-item-subtitle>
           </v-list-item>
-          
+
           <v-list-item @click="logout" class="logout-item">
             <template v-slot:prepend>
               <v-icon>mdi-logout</v-icon>
@@ -91,32 +77,32 @@ import { MEDIA_BASE_URL } from "@/utils/constants";
 
 export default {
   name: "TopBar",
-  
+
   data() {
     return {
       drawer: false,
       appTitle: "GIMAO",
       logo: require("@/assets/images/LogoGIMAO.png"),
       navigationItems: [
-        { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord" },
-        { name: "EquipmentList", icon: "mdi-tools", title: "Équipements" },
-        { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail" },
-        { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions" },
-        { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes" },
-        { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks"},
-        { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données" },
+        { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord", rolesAllowed: ["Responsable GMAO", "Technicien", "Magasinier"] },
+        { name: "EquipmentList", icon: "mdi-tools", title: "Équipements", rolesAllowed: ["Responsable GMAO", "Technicien"] },
+        { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions (DI)", rolesAllowed: ["Responsable GMAO", "Technicien"] },
+        { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)", rolesAllowed: ["Responsable GMAO", "Technicien"] },
+        { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes", rolesAllowed: ["Responsable GMAO"] },
+        { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", rolesAllowed: ["Magasinier", "Responsable GMAO"] },
+        { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", rolesAllowed: ["Responsable GMAO"] }
       ]
     };
   },
-  
+
   computed: {
     pageTitle() {
       return this.$route.meta?.title || this.appTitle;
     },
-    
+
     user() {
       const currentUser = this.$store.getters.currentUser;
-      
+
       if (currentUser) {
         return {
           id: currentUser.id,
@@ -125,7 +111,7 @@ export default {
           photoProfil: currentUser.photoProfil || null,
         };
       }
-      
+
       // Fallback: essayer de lire depuis localStorage
       const userFromStorage = localStorage.getItem('user');
       if (userFromStorage) {
@@ -141,7 +127,7 @@ export default {
           console.error('Error parsing user from localStorage:', e);
         }
       }
-      
+
       return {
         id: null,
         name: 'Utilisateur',
@@ -154,7 +140,7 @@ export default {
       if (!this.user?.photoProfil) return null;
       return `${MEDIA_BASE_URL}${this.user.photoProfil}`;
     },
-    
+
     userInitials() {
       return this.user.name
         .split(' ')
@@ -162,26 +148,33 @@ export default {
         .join('')
         .toUpperCase()
         .substring(0, 2);
+    },
+
+    filteredNavigationItems() {
+      const role = this.user.role;
+      return this.navigationItems.filter(item =>
+        item.rolesAllowed?.includes(role)
+      );
     }
   },
-  
+
   methods: {
     isActive(routeName) {
       return this.$route.name === routeName;
     },
-    
+
     navigateTo(routeName, disabled = false) {
       if (!disabled) {
         this.$router.push({ name: routeName });
         this.drawer = false;
       }
     },
-    
+
     logout() {
       // Supprimer les données du store et du localStorage
       this.$store.dispatch('logout');
       this.drawer = false;
-      
+
       // Rediriger vers login avec un reload complet pour nettoyer tout le state
       window.location.href = '/login';
     },

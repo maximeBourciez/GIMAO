@@ -1,229 +1,232 @@
 <template>
-  <v-app>
-    <v-main>
-      <v-container>
-        <!-- Filtres et tableau -->
-        <v-row>
-          <!-- Colonne contenant Liste des défaillances signalées et Liste des interventions terminées -->
-          <v-col cols="6">
-            <v-card elevation="1" class="rounded-lg pa-2 mb-4">
-              <v-card-title class="font-weight-bold text-uppercase text-primary">
-                Liste des demandes d'interventions
-                <v-spacer></v-spacer>
-              </v-card-title>
-              <v-divider></v-divider>
-              <v-data-table :headers="failures_headers" :items="failures" :items-per-page="5" :page.sync="failures_page"
-                item-value="id" class="elevation-1 rounded-lg" hide-default-footer
-                @click:row="(event, { item }) => open_show_failure(item.id)">
-                <template v-slot:item.niveau="{ item }">
-                  <v-chip :color="get_level_color(item.niveau)" dark>
-                    {{ item.niveau }}
-                  </v-chip>
-                </template>
-              </v-data-table>
-              <v-pagination v-model="failures_page" :length="Math.ceil(failures.length / 5)"></v-pagination>
-            </v-card>
-          </v-col>
+  <v-container fluid style="max-width: 90%">
 
-          <v-col cols="6">
-            <v-card elevation="1" class="rounded-lg pa-2 mb-4">
-              <v-card-title class="font-weight-bold text-uppercase text-primary">
-                Liste des bons de travail
-                <v-spacer></v-spacer>
-              </v-card-title>
-              <v-divider></v-divider>
-              <v-data-table :headers="interventions_headers" :items="interventions" :items-per-page="5"
-                :page.sync="interventions_page" item-value="id" class="elevation-1 rounded-lg" hide-default-footer
-                @click:row="(event, { item }) => open_show_intervention(item.id)"></v-data-table>
-              <v-pagination v-model="interventions_page" :length="Math.ceil(interventions.length / 5)"></v-pagination>
-            </v-card>
-          </v-col>
-        </v-row>
+    <!-- ================= RESPONSABLE ================= -->
+    <template v-if="isResponsable">
 
-        <!-- Statistiques -->
-        <v-row>
-          <v-col cols="4">
-            <v-card elevation="1" class="pa-4 text-center">
-              <h3>Nombre de demandes d'interventions</h3>
-              <p class="display-2">{{ total_failures }}</p>
-            </v-card>
-          </v-col>
-          <v-col cols="4">
-            <v-card elevation="1" class="pa-4 text-center">
-              <h3>Nombre de bons de travail en cours</h3>
-              <p class="display-2">{{ intervention_count }}</p>
-            </v-card>
-          </v-col>
-          <v-col cols="4">
-            <v-card elevation="1" class="pa-4 text-center">
-              <h3>Répartition des Niveaux</h3>
-              <canvas id="levelChart" width="200" height="200"></canvas>
-              <div id="chartLegend" class="d-flex justify-space-around mt-4"></div>
-            </v-card>
-          </v-col>
-        </v-row>
-      </v-container>
-    </v-main>
-  </v-app>
+      <!-- Stats -->
+      <v-row justify="center">
+        <v-col cols="12">
+          <StatsComponent :role="role" />
+        </v-col>
+      </v-row>
+
+      <!-- Failures / Interventions sur une ligne -->
+      <v-row justify="center" class="mt-4">
+        <v-col cols="12" md="6">
+          <v-card rounded="">
+            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
+
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
+              Créer une DI
+            </v-btn>
+
+
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <v-card rounded="">
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
+
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
+              Créer un BT
+            </v-btn>
+          </v-card>
+        </v-col>
+      </v-row>
+    </template>
+
+    <!-- ============ TECHNICIEN ============ -->
+    <template v-else-if="isTechnicien">
+
+      <!-- Stats -->
+      <v-row justify="center">
+        <v-col cols="12">
+          <StatsComponent :role="role" />
+        </v-col>
+      </v-row>
+
+      <!-- Interventions + Failures en colonne -->
+      <v-row justify="center" class="mt-4">
+        <v-col cols="12" md="10">
+          <v-card rounded="" class="mb-4">
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
+          </v-card>
+          <v-card rounded="">
+            <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI"
+              :showSearch="true" />
+
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
+              Créer une DI
+            </v-btn>
+          </v-card>
+        </v-col>
+      </v-row>
+
+    </template>
+
+    <!-- ================= OPÉRATEUR ================= -->
+    <template v-else-if="isOperateur">
+      <v-row justify="center" class="dashboard">
+
+        <!-- Stats -->
+        <v-col cols="12">
+          <StatsComponent :role="role" :full="statsFull" />
+        </v-col>
+
+
+
+
+        <v-col cols="12">
+          <v-card rounded="" class="mb-4">
+            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
+              Créer une DI
+            </v-btn>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12">
+          <v-card rounded="">
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
+          </v-card>
+        </v-col>
+      </v-row>
+
+      <!-- Bouton logout opérateur -->
+      <v-btn v-if="isOperateur" color="primary" icon size="large" elevation="4" class="floating-logout-button"
+        @click="logout">
+        <v-icon>mdi-logout</v-icon>
+        <v-tooltip activator="parent" location="left">
+          Se déconnecter
+        </v-tooltip>
+      </v-btn>
+
+    </template>
+
+    <!-- ================= MAGASINIER ================= -->
+    <template v-else-if="isMagasinier">
+      <v-row justify="center">
+        <v-col cols="12" md="10">
+          <Stocks />
+        </v-col>
+
+        <v-btn color="primary" icon size="large" elevation="4" class="floating-logout-button-magasinier"
+          @click="logout">
+          <v-icon>mdi-logout</v-icon>
+          <v-tooltip activator="parent" location="left">
+            Se déconnecter
+          </v-tooltip>
+        </v-btn>
+      </v-row>
+    </template>
+
+  </v-container>
 </template>
 
-<script>
-import { useRouter } from 'vue-router';
-import { useApi } from '@/composables/useApi';
-import { getFailureLevelColor } from '@/utils/helpers';
-import TopNavBar from "@/components/TopBar.vue";
-import '@/assets/css/global.css';
-import { API_BASE_URL } from '@/utils/constants';
 
-export default {
-  components: {
-    TopNavBar,
-  },
+<script setup>
+import { computed, onMounted } from 'vue'
+import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 
-  setup() {
-    const router = useRouter();
-    const failuresApi = useApi(API_BASE_URL);
-    const interventionsApi = useApi(API_BASE_URL);
+import FailureListComponent from '@/components/FailureListComponent.vue'
+import InterventionListComponent from '@/components/InterventionListComponent.vue'
+import StatsComponent from '@/components/StatsComponent.vue'
+import Stocks from '@/views/Stocks/Stocks.vue'
 
-    const open_show_failure = (id) => {
-      router.push({ name: 'FailureDetail', params: { id: id } });
-    };
+const store = useStore()
+const router = useRouter()
 
-    const open_show_intervention = (id) => {
-      router.push({ name: 'InterventionDetail', params: { id: id } });
-    };
+const role = computed(() => store.getters.userRole)
 
-    return {
-      open_show_failure,
-      open_show_intervention,
-      failuresApi,
-      interventionsApi
-    };
-  },
+/**
+ * Helpers
+ */
+const isResponsable = computed(() => role.value === 'Responsable GMAO')
+const isTechnicien = computed(() => role.value === 'Technicien')
+const isOperateur = computed(() => role.value === 'Opérateur')
+const isMagasinier = computed(() => role.value === 'Magasinier')
 
-  data() {
-    return {
-      menu_items: [
-        { name: 'Tableau de bord', icon: require('@/assets/images/Graphe.svg') },
-        { name: 'Equipements', icon: require('@/assets/images/Outils.svg') },
-        { name: 'InterventionList', icon: require('@/assets/images/Maintenance.svg') },
-        { name: 'Techniciens', icon: require('@/assets/images/Techniciens.svg') },
-      ],
-      failures_headers: [
-        { title: 'Commentaire', value: 'commentaireDefaillance' },
-        { title: 'Niveau', value: 'niveau' },
-        { title: 'Équipement', value: 'equipement' },
-      ],
-      failures: [],
-      interventions_headers: [
-        { title: 'Nom', value: 'nomIntervention' },
-        { title: 'Date d\'assignation', value: 'dateAssignation' },
-        { title: 'Temps estimé', value: 'tempsEstime' },
-      ],
-      interventions: [],
-      intervention_count: 0,
-      failures_page: 1,
-      interventions_page: 1,
-      total_failures: 0,
-      levelDistribution: [],
-    };
-  },
+onMounted(() => {
+  console.log('Dashboard mounted - role:', role.value)
+})
 
-  methods: {
-    handle_item_selected(item) {
-    },
+const logout = () => {
+  // Supprimer les données du store et du localStorage
+  store.dispatch('logout');
 
-    format_date(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    },
+  // Rediriger vers login avec un reload complet pour nettoyer tout le state
+  window.location.href = '/login';
 
-    async fetch_failures() {
-      try {
-        const response = await this.failuresApi.get('defaillances/');
-        this.failures = response.filter(defaillance => defaillance.dateTraitementDefaillance === null);
-        this.total_failures = this.failures.length;
+}
 
-        // Calculate level distribution
-        const levels = this.failures.map(f => f.niveau);
-        this.levelDistribution = [
-          levels.filter(level => level === 'Critique').length,
-          levels.filter(level => level === 'Majeur').length,
-          levels.filter(level => level === 'Mineur').length,
-        ];
+// Gestion click DI
+const handleRowClickDI = (failure) => {
+  router.push({ name: 'FailureDetail', params: { id: failure.id } })
+}
 
-        // Draw the chart
-        this.drawLevelChart();
-      } catch (error) {
-        console.error('Erreur lors de la récupération des défaillances:', error);
-      }
-    },
+const handleCreateDI = () => {
+  router.push({ name: 'CreateFailure', query: { from: 'dashboard' } })
+}
 
-    get_level_color: getFailureLevelColor,
+// Gestion click BT
+const handleRowClickBT = (intervention) => {
+  router.push({ name: 'InterventionDetail', params: { id: intervention.id } })
+}
 
-    async fetch_interventions() {
-      try {
-        const response = await this.interventionsApi.get('interventions/');
-        this.interventions = response
-          .filter(intervention => intervention.dateCloture === null) // Filtre les interventions non clôturées
-          .map(intervention => ({
-            ...intervention,
-            dateAssignation: this.format_date(intervention.dateAssignation)
-          }));
-        this.intervention_count = this.interventions.length;
-      } catch (error) {
-        console.error('Erreur lors de la récupération des interventions:', error);
-      }
-    },
+const handleCreateBT = () => {
+  router.push({
+    name: 'CreateIntervention',
+    query: { from: 'dashboard' }
+  })
+}
 
-    drawLevelChart() {
-      const ctx = document.getElementById('levelChart').getContext('2d');
-      const total = this.levelDistribution.reduce((a, b) => a + b, 0);
-
-      const colors = ['#ff0505', '#ff9808', '#16ad09'];
-      const labels = ['Critique', 'Majeur', 'Mineur'];
-      let startAngle = 0;
-
-      this.levelDistribution.forEach((count, index) => {
-        const sliceAngle = (count / total) * 2 * Math.PI;
-        ctx.fillStyle = colors[index];
-        ctx.beginPath();
-        ctx.moveTo(100, 100);
-        ctx.arc(100, 100, 100, startAngle, startAngle + sliceAngle);
-        ctx.closePath();
-        ctx.fill();
-        startAngle += sliceAngle;
-      });
-
-      // Draw the legend
-      const legendContainer = document.getElementById('chartLegend');
-      legendContainer.innerHTML = '';
-      labels.forEach((label, index) => {
-        const legendItem = document.createElement('div');
-        legendItem.style.display = 'flex';
-        legendItem.style.alignItems = 'center';
-        legendItem.style.marginRight = '20px';
-
-        const colorBox = document.createElement('div');
-        colorBox.style.width = '20px';
-        colorBox.style.height = '20px';
-        colorBox.style.backgroundColor = colors[index];
-        colorBox.style.marginRight = '10px';
-
-        const labelText = document.createElement('span');
-        labelText.textContent = label;
-
-        legendItem.appendChild(colorBox);
-        legendItem.appendChild(labelText);
-        legendContainer.appendChild(legendItem);
-      });
-    }
-  },
-
-  created() {
-    this.fetch_failures();
-    this.fetch_interventions();
-  },
-};
+const statsFull = computed(() => isResponsable.value)
 </script>
+
+
+
+<style scoped>
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Responsable : 2 colonnes */
+.row.two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* Technicien / Opérateur : vertical */
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .row.two-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.floating-logout-button {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+}
+
+.floating-logout-button-magasinier {
+  position: fixed !important;
+  bottom: 24px;
+  left: 24px;
+  z-index: 100;
+}
+</style>

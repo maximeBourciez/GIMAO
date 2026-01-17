@@ -14,7 +14,7 @@
 
         <!-- Navigation -->
         <v-list dense nav>
-            <v-list-item v-for="item in navigationItems" :key="item.name"
+            <v-list-item v-for="item in filteredNavigationItems" :key="item.name"
                 :to="!item.disabled ? { name: item.name } : null" :class="[
                     'my-1',
                     { 'active-item': isActive(item.name) },
@@ -93,13 +93,13 @@ export default {
             isHovered: false, // hover temporaire
 
             navigationItems: [
-                { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord" },
-                { name: "EquipmentList", icon: "mdi-tools", title: "Équipements" },
-                { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail" },
-                { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions" },
-                { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes"},
-                { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks"},
-                { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données" }
+                { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord", rolesAllowed: ["Responsable GMAO", "Technicien", "Magasinier"] },
+                { name: "EquipmentList", icon: "mdi-tools", title: "Équipements", rolesAllowed: ["Responsable GMAO", "Technicien"] },
+                { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions (DI)", rolesAllowed: ["Responsable GMAO", "Technicien"] },
+                { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)", rolesAllowed: ["Responsable GMAO", "Technicien"] },
+                { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes", rolesAllowed: ["Responsable GMAO"] },
+                { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", rolesAllowed: ["Magasinier", "Responsable GMAO"] },
+                { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", rolesAllowed: ["Responsable GMAO"] }
             ]
         };
     },
@@ -156,6 +156,13 @@ export default {
                 .join("")
                 .slice(0, 2)
                 .toUpperCase();
+        },
+
+        filteredNavigationItems() {
+            const role = this.user.role;
+            return this.navigationItems.filter(item =>
+                item.rolesAllowed?.includes(role)
+            );
         }
     },
 
@@ -171,7 +178,7 @@ export default {
         logout() {
             // Supprimer les données du store et du localStorage
             this.$store.dispatch('logout');
-            
+
             // Rediriger vers login avec un reload complet pour nettoyer tout le state
             window.location.href = '/login';
         },

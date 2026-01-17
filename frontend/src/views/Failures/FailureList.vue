@@ -1,7 +1,8 @@
 <template>
   <FailureListComponent 
     @create="handleCreate"
-    @row-click="handleRowClick" />
+    @row-click="handleRowClick"
+    :showCreateButton="true" />
 </template>
 
 <script setup>
