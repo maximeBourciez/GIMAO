@@ -16,16 +16,25 @@
         <v-col cols="12" md="6">
           <v-card rounded="">
             <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
+
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreate">
+              Créer une DI
+            </v-btn>
+
+
           </v-card>
         </v-col>
 
         <v-col cols="12" md="6">
           <v-card rounded="">
             <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
+
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreate">
+              Créer un BT
+            </v-btn>
           </v-card>
         </v-col>
       </v-row>
-
     </template>
 
     <!-- ============ TECHNICIEN / OPERATEUR ============ -->
@@ -45,7 +54,8 @@
             <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
           </v-card>
           <v-card rounded="">
-            <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
+            <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI"
+              :showSearch="true" />
           </v-card>
         </v-col>
       </v-row>

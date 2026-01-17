@@ -9,7 +9,6 @@ import SetPassword from '@/views/Auth/SetPassword.vue'
 import Dashboard from '@/views/Dashboard/Dashboard.vue'
 import EquipmentList from '@/views/Equipments/EquipmentList.vue'
 import InterventionList from '@/views/Interventions/InterventionList.vue'
-import Technicians from '@/views/Technicians/Technicians.vue'
 import AccountManagement from '@/views/Users/UserList.vue'
 import AfficherUser from '@/views/Users/UserDetail.vue'
 import ModifierUser from '@/views/Users/EditUser.vue'
@@ -83,13 +82,6 @@ const routes = [
     name: 'Dashboard',
     component: Dashboard,
     meta: { title: 'Tableau de Bord' }
-  },
-
-  {
-    path: '/Technicians',
-    name: 'Technicians',
-    component: Technicians,
-    meta: { title: 'Techniciens' }
   },
 
   {
