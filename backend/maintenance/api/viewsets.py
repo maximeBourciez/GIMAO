@@ -692,7 +692,7 @@ class DashboardStatsViewset(viewsets.ViewSet):
             if role == "Opérateur":
                 di = DemandeIntervention.objects.filter(utilisateur=user)
                 stats = [
-                    {"label": "Vos BT", "value": BonTravail.objects.filter(demande_intervention__utilisateur=user).filter(~Q(statut="CLOTURE")).count()},
+                    {"label": "Vos DI", "value": BonTravail.objects.filter(demande_intervention__utilisateur=user).filter(~Q(statut="CLOTURE")).count()},
                     {"label": "Vos DI en attente", "value": di.filter(statut="EN_ATTENTE").count()},
                     {"label": "Vos DI acceptées", "value": di.filter(statut="ACCEPTEE").count()},
                 ]

@@ -17,7 +17,7 @@
           <v-card rounded="">
             <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreate">
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
               Créer une DI
             </v-btn>
 
@@ -29,7 +29,7 @@
           <v-card rounded="">
             <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreate">
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
               Créer un BT
             </v-btn>
           </v-card>
@@ -57,7 +57,7 @@
             <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI"
               :showSearch="true" />
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreate">
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
               Créer une DI
             </v-btn>
           </v-card>
@@ -81,7 +81,7 @@
         <v-col cols="12">
           <v-card rounded="" class="mb-4">
             <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreate">
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
               Créer une DI
             </v-btn>
           </v-card>
@@ -159,9 +159,20 @@ const handleRowClickDI = (failure) => {
   router.push({ name: 'FailureDetail', params: { id: failure.id } })
 }
 
+const handleCreateDI = () => {
+  router.push({ name: 'CreateFailure', query: { from: 'dashboard' } })
+}
+
 // Gestion click BT
 const handleRowClickBT = (intervention) => {
   router.push({ name: 'InterventionDetail', params: { id: intervention.id } })
+}
+
+const handleCreateBT = () => {
+  router.push({ 
+    name: 'CreateIntervention',
+    query: { from: 'dashboard' }
+  })
 }
 
 const statsFull = computed(() => isResponsable.value)
