@@ -1,12 +1,13 @@
 <template>
   <BaseListView ref="tableContainer"
-    :title="'Liste des demandes d\'intervention'"
+    :title="title"
     :headers="tableHeaders" 
     :items="failures" 
     :loading="loading"
     :error-message="errorMessage" 
     :no-data-text="noDataText" 
     :no-data-icon="noDataIcon" 
+    :show-search="showSearch"
     :internalSearch="true"
     :show-create-button="false"
     @row-click="handleRowClick" 
@@ -76,6 +77,14 @@ const props = defineProps({
   templateHeader: {
     type: Boolean,
     default: false
+  },
+  title: {
+    type: String,
+    default: 'Liste des demandes d\'intervention'
+  },
+  showSearch: {
+    type: Boolean,
+    default: true
   }
 });
 

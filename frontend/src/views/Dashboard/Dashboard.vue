@@ -14,11 +14,15 @@
       <!-- Failures / Interventions sur une ligne -->
       <v-row justify="center" class="mt-4">
         <v-col cols="12" md="6">
-          <FailureListComponent @row-click="handleRowClickDI" />
+          <v-card rounded="">
+            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
+          </v-card>
         </v-col>
 
         <v-col cols="12" md="6">
-          <InterventionListComponent @row-click="handleRowClickBT" />
+          <v-card rounded="">
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
+          </v-card>
         </v-col>
       </v-row>
 
@@ -37,8 +41,12 @@
       <!-- Interventions + Failures en colonne -->
       <v-row justify="center" class="mt-4">
         <v-col cols="12" md="10">
-          <InterventionListComponent class="mb-4" @row-click="handleRowClickBT" />
-          <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" />
+          <v-card rounded="" class="mb-4">
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
+          </v-card>
+          <v-card rounded="">
+            <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
+          </v-card>
         </v-col>
       </v-row>
 

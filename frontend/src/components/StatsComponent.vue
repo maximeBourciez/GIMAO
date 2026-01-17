@@ -72,38 +72,80 @@
 
 
 <script setup>
-defineProps({
+import { ref, onMounted, computed } from 'vue';
+import { useStore } from 'vuex';
+import { useApi } from '@/composables/useApi.js';
+import { API_BASE_URL } from '../utils/constants';
+
+const props = defineProps({
     role: {
         type: String,
         default: ''
     }
 })
 
-/**
- * Données brutes temporaires
- */
 
-// Technicien
-const technicienStats = [
-    { label: 'Vos BT', value: 12 },
-    { label: 'Vos BT en cours', value: 5 },
-    { label: 'Vos BT terminés', value: 7 }
-]
+const store = useStore();
+const api = useApi(API_BASE_URL);
 
-// Opérateur
-const operateurStats = [
-    { label: 'Vos BT', value: 9 },
-    { label: 'Vos DI en attente', value: 3 },
-    { label: 'Vos DI acceptées', value: 6 }
-]
+// données dynamiques
+const technicienStats = ref([]);
+const operateurStats = ref([]);
+const responsableStats = ref([]);
 
-// Responsable
-const responsableStats = [
-    { label: 'Nombre de DI', value: 24 },
-    { label: 'DI en attente', value: 6 },
-    { label: 'DI acceptés', value: 18 },
-    { label: 'Nombre de BT', value: 42 },
-    { label: 'BT en retard', value: 4 },
-    { label: 'BT en cours', value: 11 }
-]
+// Loading / error
+const loading = ref(false);
+const error = ref(null);
+
+const buildUrl = () => {
+    const params = new URLSearchParams();
+    params.append('role', props.role);
+
+    // si rôle technicien ou opérateur, on ajoute userId
+    if (props.role === 'Technicien' || props.role === 'Opérateur') {
+        const userId = store.getters.currentUser.id;
+        params.append('userId', userId);
+    }
+
+    return `stats/?${params.toString()}`;
+}
+
+const fetchStats = async () => {
+    console.log('Fetching stats for role:', props.role);
+    loading.value = true;
+    error.value = null;
+
+    try {
+        const url = buildUrl();
+        console.log('Fetching stats from URL:', url);
+        const response = await api.get(url);
+
+        // exemple de réponse attendue :
+        const stats = response.stats;
+
+        if (props.role === 'Responsable GMAO') {
+            responsableStats.value = stats;
+        } else if (props.role === 'Technicien') {
+            technicienStats.value = stats;
+        } else if (props.role === 'Opérateur') {
+            operateurStats.value = stats;
+        }
+
+    } catch (err) {
+        error.value = err;
+        console.error(err);
+    } finally {
+        loading.value = false;
+    }
+
+    console.log('Fetched stats:', {
+        responsableStats: responsableStats.value,
+        technicienStats: technicienStats.value,
+        operateurStats: operateurStats.value,
+    });
+}
+
+onMounted(() => {
+    fetchStats();
+})
 </script>
