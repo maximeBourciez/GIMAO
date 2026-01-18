@@ -868,6 +868,107 @@ class CompteurViewSet(viewsets.ModelViewSet):
     serializer_class = CompteurSerializer
 
     @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Création d'un nouveau compteur avec plan de maintenance optionnel"""
+        try:
+            # Parser les données JSON du compteur
+            compteur_data = json.loads(request.data.get('compteur', '{}'))
+            
+            # Vérifier que l'équipement est fourni
+            equipement_id = compteur_data.get('equipement')
+            if not equipement_id:
+                return Response(
+                    {"error": "L'ID de l'équipement est requis"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Récupérer l'équipement
+            try:
+                equipement = Equipement.objects.get(id=equipement_id)
+            except Equipement.DoesNotExist:
+                return Response(
+                    {"error": "Équipement introuvable"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Créer le compteur
+            compteur = Compteur.objects.create(
+                equipement=equipement,
+                nomCompteur=compteur_data.get('nom', ''),
+                valeurCourante=compteur_data.get('valeurCourante', 0),
+                unite=compteur_data.get('unite', 'heures'),
+                estPrincipal=compteur_data.get('estPrincipal', False),
+                type=compteur_data.get('type', 'Général')
+            )
+            
+            # Si un plan de maintenance est fourni, le créer
+            plan_data = compteur_data.get('planMaintenance')
+            if plan_data:
+                # Créer le plan de maintenance
+                plan = PlanMaintenance.objects.create(
+                    equipement=equipement,
+                    nom=plan_data.get('nom', f"Plan {compteur.nomCompteur}"),
+                    type_plan_maintenance_id=plan_data.get('type_id'),
+                    commentaire=plan_data.get('description', ''),
+                    necessiteHabilitationElectrique=plan_data.get('necessiteHabilitationElectrique', False),
+                    necessitePermisFeu=plan_data.get('necessitePermisFeu', False)
+                )
+                
+                # Créer le lien Declencher entre le compteur et le plan
+                Declencher.objects.create(
+                    compteur=compteur,
+                    planMaintenance=plan,
+                    derniereIntervention=compteur_data.get('derniereIntervention', 0),
+                    ecartInterventions=compteur_data.get('intervalle', 0),
+                    prochaineMaintenance=compteur_data.get('prochaineMaintenance', 0),
+                    estGlissant=plan_data.get('estGlissant', False)
+                )
+                
+                # Ajouter les consommables au plan
+                for consommable_id in plan_data.get('consommables', []):
+                    PlanMaintenanceConsommable.objects.create(
+                        plan_maintenance=plan,
+                        consommable_id=consommable_id,
+                        quantite_necessaire=1
+                    )
+                
+                # Gérer les documents
+                documents = plan_data.get('documents', [])
+                for doc_index, doc_data in enumerate(documents):
+                    # Récupérer le fichier uploadé depuis FormData
+                    file_key = f'document_{doc_index}'
+                    uploaded_file = request.FILES.get(file_key)
+                    
+                    if uploaded_file:
+                        # Créer le document
+                        document = Document.objects.create(
+                            nomDocument=doc_data.get('titre', uploaded_file.name),
+                            lienDocument=uploaded_file,
+                            typeDocument_id=doc_data.get('type')
+                        )
+                        
+                        # Lier le document au plan
+                        PlanMaintenanceDocument.objects.create(
+                            plan_maintenance=plan,
+                            document=document
+                        )
+            
+            # Retourner le compteur créé
+            serializer = CompteurSerializer(compteur)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except json.JSONDecodeError:
+            return Response(
+                {"error": "Format JSON invalide"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         """ Mise à jour d'un compteur """      
         changes = request.data
