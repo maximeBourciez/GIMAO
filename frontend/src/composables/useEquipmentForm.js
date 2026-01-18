@@ -85,21 +85,9 @@ export function useEquipmentForm(isEditMode = false) {
   const getEmptyCounter = () => ({
     id: null,
     nom: '',
-    description: '',
     valeurCourante: 0,
-    derniereIntervention: 0,
-    intervalle: 0,
     unite: 'heures',
-    estPrincipal: false,
-    estGlissant: false,
-    habElec: false,
-    permisFeu: false,
-    planMaintenance: {
-      nom: '',
-      type: null,
-      consommables: [],
-      documents: []
-    }
+    estPrincipal: false
   });
   const currentCounter = ref(getEmptyCounter());
 
@@ -249,6 +237,17 @@ export function useEquipmentForm(isEditMode = false) {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce compteur ?')) {
       formData.value.compteurs = formData.value.compteurs.filter(c => c !== counter);
     }
+  };
+
+  const saveCurrentCounter = () => {
+    if (editingCounterIndex.value >= 0) {
+      // Mode édition
+      formData.value.compteurs[editingCounterIndex.value] = { ...currentCounter.value };
+    } else {
+      // Mode ajout
+      formData.value.compteurs.push({ ...currentCounter.value });
+    }
+    closeCounterDialog();
   };
 
   const updateExistingPM = (counterToSave) => {
@@ -413,6 +412,7 @@ export function useEquipmentForm(isEditMode = false) {
     handleCounterAdd,
     handleCounterEdit,
     handleCounterDelete,
+    saveCurrentCounter,
     closeCounterDialog,
     
     // Dialog handlers

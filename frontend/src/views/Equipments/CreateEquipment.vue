@@ -101,64 +101,51 @@
                     <v-card-text>
                       <!-- Liste des compteurs -->
                       <div v-if="formData.compteurs && formData.compteurs.length > 0">
-                        <v-table density="comfortable" class="mb-4">
-                          <thead>
-                            <tr>
-                              <th>Nom</th>
-                              <th>Valeur courante</th>
-                              <th>Unité</th>
-                              <th>Principal</th>
-                              <th>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr v-for="(compteur, index) in formData.compteurs" :key="index">
-                              <td>
-                                <v-text-field v-model="compteur.nomCompteur" density="compact" variant="outlined"
-                                  placeholder="Nom du compteur" hide-details
-                                  @update:model-value="updateCounter(index)" />
-                              </td>
-                              <td>
-                                <v-text-field v-model="compteur.valeurCourante" density="compact" variant="outlined"
-                                  type="number" placeholder="0" hide-details
-                                  @update:model-value="updateCounter(index)" />
-                              </td>
-                              <td>
-                                <v-select v-model="compteur.unite" :items="COUNTER_UNITS" density="compact"
-                                  variant="outlined" placeholder="Unité" hide-details
-                                  @update:model-value="updateCounter(index)">
-                                  <template #item="{ props, item }">
-                                    <v-list-item v-bind="props" :title="item.title"></v-list-item>
-                                  </template>
-                                </v-select>
-                              </td>
-                              <td class="text-center">
-                                <v-checkbox v-model="compteur.estPrincipal" density="compact" hide-details
-                                  color="primary" @update:model-value="updatePrincipalCounter(index)" />
-                              </td>
-                              <td>
-                                <div class="d-flex gap-1">
+                        <v-row>
+                          <v-col v-for="(compteur, index) in formData.compteurs" :key="index" cols="12">
+                            <v-card variant="outlined" class="pa-4">
+                              <div class="d-flex align-center justify-space-between mb-2">
+                                <div class="d-flex align-center gap-2">
+                                  <v-icon color="primary">mdi-counter</v-icon>
+                                  <h3 class="text-h6">{{ compteur.nom || 'Compteur sans nom' }}</h3>
+                                  <v-chip v-if="compteur.estPrincipal" color="primary" size="small" label>
+                                    Principal
+                                  </v-chip>
+                                </div>
+                                <div class="d-flex gap-2">
+                                  <v-btn icon="mdi-pencil" size="small" color="primary" variant="text"
+                                    @click="handleCounterEdit(compteur)" />
                                   <v-btn icon="mdi-delete" size="small" color="error" variant="text"
                                     @click="handleCounterDelete(compteur)" />
                                 </div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </v-table>
+                              </div>
+                              
+                              <v-divider class="my-3" />
+                              
+                              <v-row dense>
+                                <v-col cols="6" md="3">
+                                  <div class="text-caption text-grey">Valeur courante</div>
+                                  <div class="text-body-1">{{ compteur.valeurCourante }} {{ compteur.unite }}</div>
+                                </v-col>
+                                <v-col cols="6" md="3">
+                                  <div class="text-caption text-grey">Unité</div>
+                                  <div class="text-body-1">{{ compteur.unite }}</div>
+                                </v-col>
+                              </v-row>
+                            </v-card>
+                          </v-col>
+                        </v-row>
 
-                        <div class="text-body-2 text-grey">
-                          <v-icon size="small" class="mr-1">mdi-information</v-icon>
-                          Les compteurs permettent de suivre l'utilisation de l'équipement. Au moins un compteur doit
-                          être marqué
-                          comme "Principal".
-                        </div>
+                        <v-alert type="info" variant="tonal" class="mt-4">
+                          <v-icon>mdi-information</v-icon>
+                          Les compteurs permettent de suivre l'utilisation de l'équipement. Au moins un compteur doit être marqué comme "Principal".
+                        </v-alert>
                       </div>
 
                       <div v-else class="text-center py-8 text-grey">
                         <v-icon size="large" class="mb-2">mdi-counter</v-icon>
                         <div class="text-h6 mb-2">Aucun compteur défini</div>
-                        <div class="text-body-1 mb-4">Ajoutez au moins un compteur pour suivre l'utilisation de
-                          l'équipement</div>
+                        <div class="text-body-1 mb-4">Ajoutez au moins un compteur pour suivre l'utilisation de l'équipement</div>
                         <v-btn color="primary" @click="handleCounterAdd" prepend-icon="mdi-plus">
                           Ajouter un compteur
                         </v-btn>
@@ -346,15 +333,14 @@
       </v-container>
     </v-main>
 
-    <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
+    <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog" persistent>
       <v-card>
         <v-card-title>
-          {{ isEditMode ? 'Modifier un compteur' : 'Ajouter un compteur' }}
+          {{ isCounterEditMode ? 'Modifier un compteur' : 'Ajouter un compteur' }}
         </v-card-title>
         <v-card-text>
-          <CounterInlineForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM"
-            :consumables="consumables" :typesDocuments="typesDocuments" @save="saveCurrentCounter"
-            @cancel="closeCounterDialog" />
+          <CounterInlineForm v-model="currentCounter" :isEditMode="isCounterEditMode"
+            @save="saveCurrentCounter" @cancel="closeCounterDialog" />
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -517,11 +503,11 @@ const handleSubmit = async () => {
 
   // Validation des compteurs
   const invalidCounters = formData.value.compteurs.filter(c =>
-    !c.nom || !c.unite || c.intervalle === null || c.intervalle === undefined || c.intervalle <= 0
+    !c.nom || !c.unite
   );
 
   if (invalidCounters.length > 0) {
-    errorMessage.value = 'Tous les compteurs doivent avoir un nom, une unité et un intervalle positif';
+    errorMessage.value = 'Tous les compteurs doivent avoir un nom et une unité';
     step.value = 6;
     return;
   }
@@ -596,16 +582,11 @@ const handleSubmit = async () => {
 };
 
 const handleCounterAdd = () => {
-  let maxIndex = formData.value.compteurs.length;
-  formData.value.compteurs.push({
-    id: null,
-    nomCompteur: '',
-    valeurCourante: 0,
-    unite: 'heures',
-    estPrincipal: formData.value.compteurs.length === 0,
-    estGlissant: false,
-    index: maxIndex,
-  });
+  editingCounterIndex.value = -1;
+  isCounterEditMode.value = false;
+  currentCounter.value = getEmptyCounter();
+  currentCounter.value.estPrincipal = formData.value.compteurs.length === 0;
+  showCounterDialog.value = true;
 };
 
 const updateCounter = (index) => {
