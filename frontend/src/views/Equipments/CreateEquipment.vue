@@ -219,7 +219,7 @@
                                     @update:model-value="updateMaintenancePlan(index)" />
                                 </v-col>
                                 <v-col cols="12" md="6">
-                                  <v-select v-model="plan.type_id" :items="maintenanceTypes" item-title="libelle"
+                                  <v-select v-model="plan.type_id" :items="typesPM" item-title="libelle"
                                     item-value="id" label="Type de maintenance" variant="outlined" density="compact"
                                     :rules="[rules.required]" @update:model-value="updateMaintenancePlan(index)" />
                                 </v-col>
@@ -235,8 +235,8 @@
                                   <h4 class="mb-2 text-body-1 font-weight-bold">Configuration des seuils</h4>
                                 </v-col>
                                 <v-col cols="12" md="6">
-                                  <v-select v-model="plan.compteur_id" :items="availableCounters"
-                                    item-title="nomCompteur" item-value="id" label="Compteur associé" variant="outlined"
+                                  <v-select v-model="plan.compteurIndex" :items="formData.compteurs"
+                                    item-title="nomCompteur" item-value="index" label="Compteur associé" variant="outlined"
                                     density="compact" :rules="[rules.required]"
                                     @update:model-value="updateMaintenancePlan(index)">
                                     <template #item="{ props, item }">
@@ -626,13 +626,22 @@ const handleMaintenancePlanAdd = () => {
     nom: '',
     type_id: null,
     description: '',
-    compteur_index: formData.value.compteurs[0].index,
+    compteurIndex: formData.value.compteurs[0].index,
     consommables: [],
     documents: [],
     necessiteHabilitationElectrique: false,
     necessitePermisFeu: false,
   });
   openedMaintenancePanels.value = [formData.value.plansMaintenance.length - 1];
+};
+
+
+const updateSeuilValues = (plan, index) => {
+  // Calcul automatique de la prochaine maintenance
+  if (plan.seuil.derniereIntervention && plan.seuil.ecartInterventions) {
+    plan.seuil.prochaineMaintenance = plan.seuil.derniereIntervention + plan.seuil.ecartInterventions;
+  }
+  updateMaintenancePlan(index);
 };
 
 const rules = {
@@ -651,32 +660,24 @@ const updateMaintenancePlan = (index) => {
   formData.value.plansMaintenance[index] = { ...formData.value.plansMaintenance[index] };
 };
 
-const updateSeuilValues = (plan, index) => {
-  // Calcul automatique de la prochaine maintenance
-  if (plan.derniereIntervention && plan.ecartInterventions) {
-    plan.prochaineMaintenance = plan.derniereIntervention + plan.ecartInterventions;
-  }
-  updateMaintenancePlan(index);
-};
-
 const getPlanDescription = (plan) => {
-  if (plan.compteur_id !== null && plan.compteur_id !== undefined) {
-    const counter = formData.value.compteurs[plan.compteur_id];
+  if (plan.compteurIndex !== null && plan.compteurIndex !== undefined) { 
+    const counter = formData.value.compteurs[plan.compteurIndex];
     if (counter) {
-      return `Intervention à ${plan.prochaineMaintenance} ${counter.unite} (intervalle: ${plan.ecartInterventions} ${counter.unite})`;
+      return `Intervention à ${plan.seuil.prochaineMaintenance} ${counter.unite} (intervalle: ${plan.seuil.ecartInterventions} ${counter.unite})`;
     }
   }
   return 'Configuration incomplète';
 };
 
 const getPlanStatusColor = (plan) => {
-  if (!plan.compteur_id && plan.compteur_id !== 0) return 'grey';
+  if (!plan.compteurIndex && plan.compteurIndex !== 0) return 'grey';
   if (!plan.nom || !plan.type_id) return 'orange';
   return 'green';
 };
 
 const getPlanStatusText = (plan) => {
-  if (!plan.compteur_id && plan.compteur_id !== 0) return 'Compteur manquant';
+  if (!plan.compteurIndex && plan.compteurIndex !== 0) return 'Compteur manquant';
   if (!plan.nom) return 'Nom manquant';
   if (!plan.type_id) return 'Type manquant';
   return 'Configuré';
