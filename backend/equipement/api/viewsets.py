@@ -84,7 +84,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
             elif isinstance(lieu_value, dict):
                 data["lieu"] = lieu_value["id"]
 
-        for field in ["consommables", "compteurs"]:
+        for field in ["consommables", "compteurs", "plansMaintenance"]:
             if field in data and isinstance(data[field], str):
                 data[field] = json.loads(data[field])
 
@@ -92,8 +92,22 @@ class EquipementViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
+        # Récupération de l'utilisateur créateur
+        # Priorité: utilisateur authentifié > createurEquipement fourni dans data
+        utilisateur = self._get_utilisateur(request)
+        if not utilisateur and "createurEquipement" in data and data["createurEquipement"]:
+            try:
+                utilisateur = Utilisateur.objects.get(id=data["createurEquipement"])
+            except Utilisateur.DoesNotExist:
+                utilisateur = None
+        
+        if not utilisateur:
+            return Response(
+                {"error": "Utilisateur non authentifié ou introuvable"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         # Récupération des dépendances
-        user = Utilisateur.objects.get(id=data["createurEquipement"])
         modele = ModeleEquipement.objects.get(id=data["modeleEquipement"])
         fabricant = Fabricant.objects.get(id=data["fabricant"])
         fournisseur = Fournisseur.objects.get(id=data["fournisseur"])
@@ -106,7 +120,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
             designation=data["designation"],
             dateMiseEnService=data.get("dateMiseEnService"),
             prixAchat=data.get("prixAchat", 0),
-            createurEquipement=user,
+            createurEquipement=utilisateur,
             lieu=lieu,
             modele=modele,
             famille=famille,
@@ -132,9 +146,9 @@ class EquipementViewSet(viewsets.ModelViewSet):
                 consommable_id=consommable_id
             )
 
-        # Compteurs & plans de maintenance
-        for compteur_index, cp in enumerate(data.get("compteurs", [])):
-            # Créer le compteur avec uniquement les champs qui existent dans le modèle
+        # Créer les compteurs (sans les plans de maintenance)
+        compteurs_crees = []
+        for cp in data.get("compteurs", []):
             compteur = Compteur.objects.create(
                 equipement=equipement,
                 nomCompteur=cp["nom"],
@@ -143,57 +157,44 @@ class EquipementViewSet(viewsets.ModelViewSet):
                 estPrincipal=cp.get("estPrincipal", False),
                 type=cp.get("type", "Général")
             )
+            compteurs_crees.append(compteur)
 
-            # Récupérer les données du plan de maintenance
-            pm = cp.get("planMaintenance")
-            if not pm:
+        # Créer les plans de maintenance (qui référencent les compteurs par index)
+        for pm_data in data.get("plansMaintenance", []):
+            compteur_index = pm_data.get("compteurIndex")
+            if compteur_index is None or compteur_index >= len(compteurs_crees):
                 continue
-
-            # Créer le plan de maintenance avec les champs du PlanMaintenance
+            
+            compteur = compteurs_crees[compteur_index]
+            
+            # Créer le plan de maintenance
             plan = PlanMaintenance.objects.create(
                 equipement=equipement,
-                nom=pm.get("nom", f"Plan {compteur.nomCompteur}"),
-                type_plan_maintenance_id=pm.get("type"),
-                commentaire=cp.get("description", ""),
-                necessiteHabilitationElectrique=cp.get("habElec", False),
-                necessitePermisFeu=cp.get("permisFeu", False)
+                nom=pm_data.get("nom", f"Plan {compteur.nomCompteur}"),
+                type_plan_maintenance_id=pm_data.get("type_id"),
+                commentaire=pm_data.get("description", ""),
+                necessiteHabilitationElectrique=pm_data.get("necessiteHabilitationElectrique", False),
+                necessitePermisFeu=pm_data.get("necessitePermisFeu", False)
             )
 
             # Créer le lien Declencher entre le compteur et le plan
+            seuil = pm_data.get("seuil", {})
             Declencher.objects.create(
                 compteur=compteur,
                 planMaintenance=plan,
-                derniereIntervention=cp.get("derniereIntervention", 0),
-                ecartInterventions=cp.get("intervalle", 0),
-                prochaineMaintenance=int(cp.get("derniereIntervention", 0)) + int(cp.get("intervalle", 0)),
-                estGlissant=cp.get("estGlissant", False)
+                derniereIntervention=seuil.get("derniereIntervention", 0),
+                ecartInterventions=seuil.get("ecartInterventions", 0),
+                prochaineMaintenance=seuil.get("prochaineMaintenance", 0),
+                estGlissant=seuil.get("estGlissant", False)
             )
 
             # Consommables du plan
-            for cpm in pm.get("consommables", []):
-                if cpm.get("consommable"):  # Vérifier que le consommable est défini
-                    PlanMaintenanceConsommable.objects.create(
-                        plan_maintenance=plan,
-                        consommable_id=cpm["consommable"],
-                        quantite_necessaire=cpm.get("quantite", 1)
-                    )
-
-            # Documents du plan
-            for doc_index, doc in enumerate(pm.get("documents", [])):
-                file_key = f"compteur_{compteur_index}_document_{doc_index}"
-                uploaded_file = request.FILES.get(file_key)
-
-                if uploaded_file:
-                    document = Document.objects.create(
-                        nomDocument=doc.get("titre", uploaded_file.name),
-                        cheminAcces=uploaded_file,
-                        typeDocument_id=doc.get("type")
-                    )
-
-                    PlanMaintenanceDocument.objects.create(
-                        plan_maintenance=plan,
-                        document=document
-                    )
+            for consommable_id in pm_data.get("consommables", []):
+                PlanMaintenanceConsommable.objects.create(
+                    plan_maintenance=plan,
+                    consommable_id=consommable_id,
+                    quantite_necessaire=1
+                )
 
         # Log de création
         utilisateur = self._get_utilisateur(request)

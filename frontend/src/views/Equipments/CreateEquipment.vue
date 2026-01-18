@@ -489,21 +489,34 @@ const handleSubmit = async () => {
       } else if (key === 'consommables') {
         fd.append(key, JSON.stringify(formData.value[key]));
       } else if (key === 'compteurs') {
+        // Envoyer uniquement les données de base du compteur
         const compteursData = formData.value.compteurs.map(c => ({
-          ...c,
-          // S'assurer que les valeurs numériques ne sont pas null
+          id: c.id,
+          nom: c.nom,
           valeurCourante: c.valeurCourante ?? 0,
-          derniereIntervention: c.derniereIntervention ?? 0,
-          intervalle: c.intervalle ?? 0,
-          planMaintenance: {
-            ...c.planMaintenance,
-            documents: c.planMaintenance.documents.map(d => ({
-              titre: d.titre,
-              type: d.type
-            }))
-          }
+          unite: c.unite,
+          estPrincipal: c.estPrincipal
         }));
         fd.append(key, JSON.stringify(compteursData));
+      } else if (key === 'plansMaintenance') {
+        // Envoyer les plans de maintenance séparément
+        const plansData = formData.value.plansMaintenance.map(p => ({
+          id: p.id,
+          nom: p.nom,
+          type_id: p.type_id,
+          description: p.description,
+          compteurIndex: p.compteurIndex,
+          consommables: p.consommables,
+          necessiteHabilitationElectrique: p.necessiteHabilitationElectrique,
+          necessitePermisFeu: p.necessitePermisFeu,
+          seuil: {
+            estGlissant: p.seuil.estGlissant,
+            derniereIntervention: p.seuil.derniereIntervention ?? 0,
+            ecartInterventions: p.seuil.ecartInterventions ?? 0,
+            prochaineMaintenance: p.seuil.prochaineMaintenance ?? 0
+          }
+        }));
+        fd.append(key, JSON.stringify(plansData));
       } else if (key === 'lienImageEquipement') {
         if (formData.value[key] instanceof File) {
           fd.append('lienImageEquipement', formData.value[key]);
@@ -512,16 +525,6 @@ const handleSubmit = async () => {
         fd.append(key, formData.value[key]);
       }
     }
-
-    // Ajouter les fichiers des documents des plans de maintenance
-    formData.value.compteurs.forEach((compteur, compteurIndex) => {
-      compteur.planMaintenance.documents.forEach((doc, docIndex) => {
-        if (doc.file instanceof File) {
-          const fileKey = `compteur_${compteurIndex}_document_${docIndex}`;
-          fd.append(fileKey, doc.file);
-        }
-      });
-    });
 
     await api.post('equipements/', fd, {
       headers: { 'Content-Type': 'multipart/form-data' }
