@@ -227,7 +227,7 @@ const routes = [
   },
 
   {
-    path: '/defaillance/:id/CreateIntervention/',
+    path: '/CreateIntervention/',
     name: 'CreateIntervention',
     component: CreateIntervention,
     meta: { title: 'Créer un bon de travail' }

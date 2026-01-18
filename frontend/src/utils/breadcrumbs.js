@@ -123,6 +123,13 @@ export const BREADCRUMBS = {
         ];
     },
 
+    CreateIntervention: (route) => {
+        return [
+            { label: "Bons de travail", to: { name: "InterventionList" } },
+            { label: "Créer un bon de travail" },
+        ];
+    },
+
     /***************************************
      * Demandes d'intervention
      **************************************/

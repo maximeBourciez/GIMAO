@@ -11,12 +11,4 @@ import { useFormValidation } from '@/composables/useFormValidation';
 import { getFailureLevelColor } from '@/utils/helpers';
 import { API_BASE_URL } from '@/utils/constants';
 import '@/assets/css/global.css';
-
-
 </script>
-
-<style scoped>
-.text-primary {
-  color: #05004E;
-}
-</style>

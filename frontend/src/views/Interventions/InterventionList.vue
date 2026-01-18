@@ -21,6 +21,6 @@ const handleRowClick = (item) => {
 };
 
 const handleCreate = () => {
-  router.push({ name: 'FailureList' });
+  router.push({ name: 'CreateIntervention' });
 };
 </script>
