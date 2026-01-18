@@ -50,8 +50,11 @@ export function useEquipmentForm(isEditMode = false) {
     statut: null,
     consommables: [],
     compteurs: [],
+    plansMaintenance : [],
     createurEquipement: getCurrentUserId()
   });
+
+  
 
   const initialData = ref(null);
 
@@ -78,26 +81,14 @@ export function useEquipmentForm(isEditMode = false) {
       label
     }));
   });
-
+  
   const getEmptyCounter = () => ({
-    nom: '',
-    description: '',
-    intervalle: '',
-    unite: '',
-    valeurCourante: null,
-    derniereIntervention: null,
-    estGlissant: false,
-    estPrincipal: false,
-    habElec: false,
-    permisFeu: false,
-    planMaintenance: {
-      nom: '',
-      type: null,
-      consommables: [],
-      documents: []
-    }
+    id: null,
+    nomCompteur: '',
+    valeurCourante: 0,
+    unite: 'heures',
+    estPrincipal: false
   });
-
   const currentCounter = ref(getEmptyCounter());
 
   const validateForm = () => {
@@ -246,44 +237,6 @@ export function useEquipmentForm(isEditMode = false) {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce compteur ?')) {
       formData.value.compteurs = formData.value.compteurs.filter(c => c !== counter);
     }
-  };
-
-  const saveCurrentCounter = () => {
-    const counterToSave = {
-      ...currentCounter.value,
-      planMaintenance: {
-        ...currentCounter.value.planMaintenance,
-        consommables: currentCounter.value.planMaintenance.consommables
-          .filter(c => c.consommable)
-          .map(c => ({ ...c })),
-        documents: currentCounter.value.planMaintenance.documents
-          .filter(d => d.titre || d.file)
-          .map(d => ({
-            titre: d.titre,
-            type: d.type,
-            file: d.file
-          }))
-      }
-    };
-
-    if (editingCounterIndex.value >= 0) {
-      formData.value.compteurs[editingCounterIndex.value] = counterToSave;
-      updateExistingPM(counterToSave);
-    } else {
-      formData.value.compteurs.push(counterToSave);
-
-      if (counterToSave.planMaintenance.nom &&
-        !existingPMs.value.some(pm => pm.nom === counterToSave.planMaintenance.nom)) {
-        existingPMs.value.push({
-          nom: counterToSave.planMaintenance.nom,
-          type: counterToSave.planMaintenance.type,
-          consommables: [...counterToSave.planMaintenance.consommables],
-          documents: [...counterToSave.planMaintenance.documents]
-        });
-      }
-    }
-
-    closeCounterDialog();
   };
 
   const updateExistingPM = (counterToSave) => {
@@ -448,7 +401,6 @@ export function useEquipmentForm(isEditMode = false) {
     handleCounterAdd,
     handleCounterEdit,
     handleCounterDelete,
-    saveCurrentCounter,
     closeCounterDialog,
     
     // Dialog handlers
