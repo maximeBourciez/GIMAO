@@ -281,10 +281,15 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
                     # Récupérer les documents
                     docs = []
                     for rel_doc in plan_maintenance_obj.planmaintenancedocument_set.all():
+                        try:
+                            path = rel_doc.document.cheminAcces.name if rel_doc.document.cheminAcces else None
+                        except Exception:
+                            path = None
+                        
                         docs.append({
                             'id': rel_doc.document.id,
                             'titre': rel_doc.document.nomDocument,
-                            'path': rel_doc.document.cheminAcces,
+                            'path': path,
                             'type': rel_doc.document.typeDocument_id
                         })
                     
@@ -373,10 +378,15 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         documents_list = []
         for pm in docs_Pm:
             for doc in pm.documents.all():
+                try:
+                    path = doc.cheminAcces.name if doc.cheminAcces else None
+                except Exception:
+                    path = None
+                
                 documents_list.append({
                     'id': doc.id,
                     'titre': doc.nomDocument,
-                    'path': doc.cheminAcces.name,
+                    'path': path,
                     'type': doc.typeDocument_id
                 })
         return documents_list
@@ -426,7 +436,10 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
     def get_lienImage(self, obj):
         """Retourne le nom du fichier ou l'URL complète"""
         if obj.lienImage:
-            return obj.lienImage.name  
+            try:
+                return obj.lienImage.name
+            except Exception:
+                return None
         return None
 
 

@@ -167,29 +167,42 @@ export function useEquipmentForm(isEditMode = false) {
 
     try {
       loadingData.value = true;
+      errorMessage.value = '';
       const res = await api.get(`equipement/${equipmentId}/affichage/`);
       const eq = res;
 
+      // Formater la date de mise en service pour l'input type="date" (format YYYY-MM-DD)
+      let formattedDate = '';
+      if (eq.dateMiseEnService) {
+        const date = new Date(eq.dateMiseEnService);
+        if (!isNaN(date.getTime())) {
+          formattedDate = date.toISOString().split('T')[0];
+        }
+      }
+
       const equipmentData = {
-        numSerie: eq.numSerie,
-        reference: eq.reference,
-        designation: eq.designation,
-        dateMiseEnService: eq.dateMiseEnService,
-        prixAchat: eq.prixAchat,
-        modeleEquipement: eq.modele?.id,
-        fournisseur: eq.fournisseur?.id,
-        fabricant: eq.fabricant?.id,
-        famille: eq.famille?.id,
-        lieu: eq.lieu,
-        statut: eq.dernier_statut?.statut,
-        consommables: eq.consommables.map(c => c.id),
-        compteurs: eq.compteurs
+        numSerie: eq.numSerie || '',
+        reference: eq.reference || '',
+        designation: eq.designation || '',
+        dateMiseEnService: formattedDate,
+        prixAchat: eq.prixAchat || null,
+        modeleEquipement: eq.modele?.id || null,
+        fournisseur: eq.fournisseur?.id || null,
+        fabricant: eq.fabricant?.id || null,
+        famille: eq.famille?.id || null,
+        lieu: eq.lieu?.id || eq.lieu || null,
+        statut: eq.dernier_statut?.statut || null,
+        consommables: eq.consommables?.map(c => c.id) || [],
+        compteurs: eq.compteurs || []
       };
 
       initialData.value = JSON.parse(JSON.stringify(equipmentData));
       formData.value = equipmentData;
     } catch (e) {
-      errorMessage.value = "Erreur lors du chargement de l'équipement: " + e;
+      console.error("Erreur détaillée fetchEquipment:", e);
+      console.error("Response:", e.response?.data);
+      console.error("Status:", e.response?.status);
+      errorMessage.value = "Erreur lors du chargement de l'équipement: " + (e.response?.data?.detail || e.message);
     } finally {
       loadingData.value = false;
     }
@@ -197,6 +210,11 @@ export function useEquipmentForm(isEditMode = false) {
 
   const fetchDocs = async () => {
     try {
+      // Ne rien faire si pas de compteurs
+      if (!formData.value.compteurs || formData.value.compteurs.length === 0) {
+        return;
+      }
+
       const fetchPromises = [];
 
       formData.value.compteurs.forEach(counter => {
