@@ -62,7 +62,7 @@ class CompteurSimpleSerializer(serializers.ModelSerializer):
     """Serializer simple pour Compteur"""
     class Meta:
         model = Compteur
-        fields = ['id', 'valeurCourante', 'prochaineMaintenance', 'estPrincipal']
+        fields = ['id', 'nomCompteur', 'valeurCourante']
         ref_name = 'MaintenanceCompteurSimple'
 
 
@@ -258,7 +258,7 @@ class PlanMaintenanceSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'nom',
-            'contenu',
+            'commentaire',
             'type_plan_maintenance',
             'equipement',
             'compteur',
