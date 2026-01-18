@@ -1,5 +1,5 @@
 <template>
-  <BaseForm :title="formTitle" :loading="loading" @submit="handleSubmit" @cancel="handleCancel" :max-width="1200">
+  <BaseForm :title="formTitle" :loading="loading" @submit="handleSubmit" @cancel="handleCancel">
     <v-container fluid class="px-0">
       <!-- Section Seuil -->
       <v-card class="mb-6" variant="outlined">
