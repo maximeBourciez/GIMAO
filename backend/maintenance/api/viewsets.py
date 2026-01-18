@@ -263,7 +263,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     - GET /bons-travail/{id}/ : Détail d'un bon
     - PUT/PATCH /bons-travail/{id}/ : Modifie un bon
     - DELETE /bons-travail/{id}/ : Supprime un bon
-    - GET /bons-travail/mes_bons/ : Bons assignés à l'utilisateur connecté
     - PATCH /bons-travail/{id}/updateStatus/ : Change le statut (endpoint unique)
     """
     queryset = BonTravail.objects.select_related(
@@ -377,19 +376,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         return Response(bon_data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'])
-    def mes_bons(self, request):
-        """Retourne les bons de travail assignés à l'utilisateur connecté"""
-        if not request.user.is_authenticated:
-            return Response(
-                {'error': 'Authentification requise'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        
-        bons = self.queryset.filter(
-            Q(utilisateur_assigne=request.user) | Q(responsable=request.user)
-        ).distinct()
-        serializer = self.get_serializer(bons, many=True)
-        return Response(serializer.data)
+
 
     @action(detail=True, methods=['patch'])
     @transaction.atomic
@@ -477,30 +464,101 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def partial_update(self, request, *args, **kwargs):
-        """Ajoute un log si le statut est modifié via PATCH /bons-travail/{id}/."""
-        instance = self.get_object()
-        bon_avant = BonTravail.objects.get(pk=instance.pk)
-        response = super().partial_update(request, *args, **kwargs)
+        """PATCH /bons-travail/{id}/
 
-        # Recharger l'instance après save
-        bon_apres = BonTravail.objects.get(pk=instance.pk)
-        if 'statut' in request.data and bon_avant.statut != bon_apres.statut:
-            utilisateur_id = request.data.get('user')
-            champs_modifies = self._build_champs_modifies(
-                bon_avant,
-                bon_apres,
-                fields=['statut', 'date_debut', 'date_fin', 'date_cloture', 'commentaire_refus_cloture']
-            )
-            if champs_modifies:
-                self._create_log_entry(
-                    type_action='modification',
-                    nom_table='bon_travail',
-                    id_cible=bon_apres.id,
-                    champs_modifies=champs_modifies,
-                    utilisateur_id=utilisateur_id
+        - Interdit de modifier la DI (et donc l'équipement).
+        - Logue une entre 'modification' avec uniquement les champs réellement modifiés.
+        """
+        forbidden_fields = {
+            'demande_intervention',
+            'demande_intervention_id',
+            'equipement',
+            'equipement_id',
+        }
+        for key in forbidden_fields:
+            if key in request.data:
+                return Response(
+                    {'error': "Modification de la demande d'intervention / équipement interdite via un BT"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        return response
+        instance = self.get_object()
+        bon_avant = BonTravail.objects.get(pk=instance.pk)
+
+        # Snapshot avant la mise à jour (sinon on relit l'état "après" et on ne détecte rien)
+        avant_assigne_ids = list(bon_avant.utilisateur_assigne.values_list('id', flat=True))
+
+        super().partial_update(request, *args, **kwargs)
+
+        bon_apres = BonTravail.objects.get(pk=instance.pk)
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        champs_modifies = {}
+
+        direct_fields = [
+            'nom',
+            'diagnostic',
+            'type',
+            'date_assignation',
+            'date_prevue',
+            'date_cloture',
+            'date_debut',
+            'date_fin',
+            'statut',
+            'commentaire',
+            'commentaire_refus_cloture',
+        ]
+        fields_to_check = [field for field in direct_fields if field in request.data]
+        if fields_to_check:
+            champs_modifies.update(self._build_champs_modifies(bon_avant, bon_apres, fields=fields_to_check))
+
+        if 'responsable_id' in request.data and bon_avant.responsable_id != bon_apres.responsable_id:
+            champs_modifies['responsable_id'] = {
+                'ancien': bon_avant.responsable_id,
+                'nouveau': bon_apres.responsable_id,
+            }
+
+        if 'utilisateur_assigne_ids' in request.data:
+            avant_ids = avant_assigne_ids
+            apres_ids = list(bon_apres.utilisateur_assigne.values_list('id', flat=True))
+            if sorted(avant_ids) != sorted(apres_ids):
+                old_date_assignation = bon_avant.date_assignation
+
+                # Si on change les assignés, on (re)met la date d'assignation à maintenant
+                # (uniquement si au moins un assigné est présent après la modif)
+                if bon_apres.utilisateur_assigne.exists():
+                    bon_apres.date_assignation = timezone.now()
+                    bon_apres.save(update_fields=['date_assignation'])
+                    # Recharge pour garantir l'état DB (et avoir la valeur exacte renvoyée)
+                    bon_apres = BonTravail.objects.get(pk=instance.pk)
+
+                champs_modifies['utilisateur_assigne_ids'] = {
+                    'ancien': sorted(avant_ids),
+                    'nouveau': sorted(apres_ids),
+                }
+
+                # Ajouter la date d'assignation aux champs modifiés uniquement si on l'a modifiée
+                if bon_apres.utilisateur_assigne.exists() and bon_apres.date_assignation != old_date_assignation:
+                    champs_modifies['date_assignation'] = {
+                        'ancien': old_date_assignation.isoformat() if old_date_assignation else None,
+                        'nouveau': bon_apres.date_assignation.isoformat() if bon_apres.date_assignation else None,
+                    }
+
+        if champs_modifies:
+            self._create_log_entry(
+                type_action='modification',
+                nom_table='bon_travail',
+                id_cible={'bon_travail_id': bon_apres.id},
+                champs_modifies=champs_modifies,
+                utilisateur_id=utilisateur_id,
+            )
+
+        serializer = self.get_serializer(bon_apres)
+        return Response(serializer.data)
 
 
 class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):

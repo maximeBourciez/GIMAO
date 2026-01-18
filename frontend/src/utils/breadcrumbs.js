@@ -130,6 +130,17 @@ export const BREADCRUMBS = {
         ];
     },
 
+    EditIntervention: (route) => {
+        return [
+            { label: "Bons de travail", to: { name: "InterventionList" } },
+            {
+                label: `Bon de travail #${route.params.id}`,
+                to: { name: "InterventionDetail", params: { id: route.params.id } },
+            },
+            { label: "Modifier" },
+        ];
+    },
+
     /***************************************
      * Demandes d'intervention
      **************************************/

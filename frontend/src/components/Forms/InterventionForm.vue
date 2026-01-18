@@ -28,6 +28,7 @@
 							:items="equipments"
 							item-title="designation"
 							item-value="id"
+							:disabled="equipementReadOnly"
 						/>
 					</v-col>
 
@@ -139,6 +140,10 @@ const props = defineProps({
 		type: Object,
 		required: true
 	},
+	equipementReadOnly: {
+		type: Boolean,
+		default: false
+	},
 	equipments: {
 		type: Array,
 		default: () => []
@@ -212,9 +217,24 @@ const assignableUserItems = computed(() =>
 	})
 );
 
-const responsableItems = computed(() =>
-	userItems.value.filter((user) => getRoleName(user) === ROLE_RESPONSABLE_GMAO)
-);
+const selectedResponsableItem = computed(() => {
+	const selectedId = formData.value?.responsable_id;
+	if (!selectedId) return null;
+	return (
+		userItems.value.find((user) => user.id === selectedId) || {
+			id: selectedId,
+			label: `Utilisateur #${selectedId}`
+		}
+	);
+});
+
+const responsableItems = computed(() => {
+	const base = userItems.value.filter((user) => getRoleName(user) === ROLE_RESPONSABLE_GMAO);
+	const selected = selectedResponsableItem.value;
+	if (!selected) return base;
+	if (base.some((user) => user.id === selected.id)) return base;
+	return [selected, ...base];
+});
 
 const validationSchema = computed(() => {
 	const schema = {
