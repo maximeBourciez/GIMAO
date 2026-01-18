@@ -47,7 +47,10 @@ class DemandeIntervention(models.Model):
         ordering = ['-date_creation']
     
     def __str__(self):
-        return f"{self.nom} - {self.equipement}"
+        try:
+            return f"{self.nom} - {self.equipement}"
+        except Equipement.DoesNotExist:
+            return f"{self.nom} - Équipement supprimé (id={self.equipement_id})"
 
 
 class BonTravail(models.Model):
@@ -102,6 +105,12 @@ class BonTravail(models.Model):
     consommables = models.ManyToManyField(
         Consommable,
         through='BonTravailConsommable',
+        related_name='bons_travail',
+        blank=True
+    )
+    documents = models.ManyToManyField(
+        Document,
+        through='BonTravailDocument',
         related_name='bons_travail',
         blank=True
     )
@@ -250,6 +259,27 @@ class DemandeInterventionDocument(models.Model):
     
     def __str__(self):
         return f"{self.demande_intervention} - {self.document}"
+
+
+class BonTravailDocument(models.Model):
+    """Table d'association entre BonTravail et Document"""
+    bon_travail = models.ForeignKey(
+        BonTravail,
+        on_delete=models.CASCADE
+    )
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        db_table = 'gimao_bon_travail_document'
+        unique_together = ['bon_travail', 'document']
+        verbose_name = 'Document de bon de travail'
+        verbose_name_plural = 'Documents de bons de travail'
+
+    def __str__(self):
+        return f"{self.bon_travail} - {self.document}"
 
 
 class BonTravailConsommable(models.Model):

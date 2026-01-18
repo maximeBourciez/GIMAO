@@ -4,7 +4,8 @@ from maintenance.models import (
     BonTravail,
     TypePlanMaintenance,
     PlanMaintenance,
-    PlanMaintenanceConsommable
+    PlanMaintenanceConsommable,
+    BonTravailConsommable
 )
 from equipement.models import Equipement, Compteur, StatutEquipement
 from utilisateur.models import Utilisateur
@@ -179,6 +180,9 @@ class BonTravailDetailSerializer(serializers.ModelSerializer):
     demande_intervention = DemandeInterventionDetailSerializer(read_only=True)
     responsable = UtilisateurSimpleSerializer(read_only=True)
     utilisateur_assigne = UtilisateurSimpleSerializer(many=True, read_only=True)
+    documentsBT = DocumentSerializer(source='documents', many=True, read_only=True)
+    documentsDI = DocumentSerializer(source='demande_intervention.documents', many=True, read_only=True)
+    consommables = serializers.SerializerMethodField()
     
     class Meta:
         model = BonTravail
@@ -195,9 +199,26 @@ class BonTravailDetailSerializer(serializers.ModelSerializer):
             'statut',
             'commentaire',
             'commentaire_refus_cloture',
+            'documentsBT',
+            'documentsDI',
+            'consommables',
             'demande_intervention',
             'responsable',
             'utilisateur_assigne'
+        ]
+
+    def get_consommables(self, obj):
+        associations = BonTravailConsommable.objects.filter(
+            bon_travail=obj
+        ).select_related('consommable')
+        return [
+            {
+                'consommable': assoc.consommable.id,
+                'designation': assoc.consommable.designation,
+                'image': assoc.consommable.lienImageConsommable.name.lstrip('/') if assoc.consommable.lienImageConsommable else None,
+                'quantite': assoc.quantite_utilisee,
+            }
+            for assoc in associations
         ]
 
 
