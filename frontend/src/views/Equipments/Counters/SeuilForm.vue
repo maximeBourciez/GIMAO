@@ -1,11 +1,5 @@
 <template>
-  <BaseForm
-    :title="formTitle"
-    :loading="loading"
-    @submit="handleSubmit"
-    @cancel="handleCancel"
-    :max-width="1200"
-  >
+  <BaseForm :title="formTitle" :loading="loading" @submit="handleSubmit" @cancel="handleCancel" :max-width="1200">
     <v-container fluid class="px-0">
       <!-- Section Seuil -->
       <v-card class="mb-6" variant="outlined">
@@ -16,50 +10,26 @@
         <v-card-text>
           <v-row dense>
             <v-col cols="12" md="4">
-              <v-text-field
-                v-model.number="form.derniereIntervention"
-                label="Dernière intervention"
-                variant="outlined"
-                density="compact"
-                type="number"
-                :rules="[rules.required, rules.positive]"
-                suffix="unité"
-              />
+              <v-text-field v-model.number="form.derniereIntervention" label="Dernière intervention" variant="outlined"
+                density="compact" type="number" :rules="[rules.required, rules.positive]" />
             </v-col>
-            
+
+
+
             <v-col cols="12" md="4">
-              <v-text-field
-                v-model.number="form.prochaineMaintenance"
-                label="Prochaine maintenance"
-                variant="outlined"
-                density="compact"
-                type="number"
-                :rules="[rules.required, rules.positive]"
-                suffix="unité"
-              />
+              <v-text-field v-model.number="form.ecartInterventions" label="Intervalle entre interventions"
+                variant="outlined" density="compact" type="number" :rules="[rules.required, rules.positive]" />
             </v-col>
-            
+
             <v-col cols="12" md="4">
-              <v-text-field
-                v-model.number="form.ecartInterventions"
-                label="Intervalle entre interventions"
-                variant="outlined"
-                density="compact"
-                type="number"
-                :rules="[rules.required, rules.positive]"
-                suffix="unité"
-              />
+              <v-text-field v-model.number="form.prochaineMaintenance" label="Prochaine maintenance" variant="outlined"
+                density="compact" type="number" :rules="[rules.required, rules.positive]" />
             </v-col>
           </v-row>
-          
+
           <v-row dense>
             <v-col cols="12" md="6">
-              <v-switch
-                v-model="form.estGlissant"
-                label="Seuil glissant"
-                color="primary"
-                hide-details
-              >
+              <v-switch v-model="form.estGlissant" label="Seuil glissant" color="primary" hide-details>
                 <template v-slot:label>
                   <div class="d-flex align-center">
                     <v-icon :color="form.estGlissant ? 'green' : 'grey'" class="mr-2">
@@ -70,7 +40,7 @@
                 </template>
               </v-switch>
             </v-col>
-            
+
             <v-col cols="12" md="6" class="d-flex align-center">
               <div class="text-body-2 text-grey">
                 Un seuil glissant se recalcule après chaque intervention
@@ -99,18 +69,10 @@
 
           <!-- Sélection PM existant -->
           <div v-if="pmMode === 'existing'">
-            <v-select
-              v-model="form.planMaintenanceId"
-              :items="existingPMs"
-              item-title="nom"
-              item-value="id"
-              label="Sélectionner un plan de maintenance"
-              variant="outlined"
-              density="compact"
-              :rules="[rules.required]"
-              clearable
-            />
-            
+            <v-select v-model="form.planMaintenanceId" :items="existingPMs" item-title="nom" item-value="id"
+              label="Sélectionner un plan de maintenance" variant="outlined" density="compact" :rules="[rules.required]"
+              clearable />
+
             <!-- Aperçu du PM sélectionné -->
             <v-card v-if="selectedExistingPM" class="mt-4" variant="tonal">
               <v-card-text>
@@ -135,58 +97,32 @@
           <div v-else>
             <v-row dense>
               <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="form.planMaintenance.nom"
-                  label="Nom du plan de maintenance"
-                  variant="outlined"
-                  density="compact"
-                  :rules="[rules.required]"
-                />
+                <v-text-field v-model="form.planMaintenance.nom" label="Nom du plan de maintenance" variant="outlined"
+                  density="compact" :rules="[rules.required]" />
               </v-col>
-              
+
               <v-col cols="12" md="6">
-                <v-select
-                  v-model="form.planMaintenance.type_id"
-                  :items="typesPM"
-                  item-title="libelle"
-                  item-value="id"
-                  label="Type de maintenance"
-                  variant="outlined"
-                  density="compact"
-                  :rules="[rules.required]"
-                />
+                <v-select v-model="form.planMaintenance.type_id" :items="typesPM" item-title="libelle" item-value="id"
+                  label="Type de maintenance" variant="outlined" density="compact" :rules="[rules.required]" />
               </v-col>
             </v-row>
-            
+
             <v-row dense>
               <v-col cols="12">
-                <v-textarea
-                  v-model="form.planMaintenance.commentaire"
-                  label="Commentaire"
-                  variant="outlined"
-                  density="compact"
-                  rows="2"
-                />
+                <v-textarea v-model="form.planMaintenance.commentaire" label="Commentaire" variant="outlined"
+                  density="compact" rows="2" />
               </v-col>
             </v-row>
-            
+
             <v-row dense>
               <v-col cols="12" md="6">
-                <v-switch
-                  v-model="form.planMaintenance.necessiteHabilitationElectrique"
-                  label="Habilitation électrique requise"
-                  color="orange"
-                  hide-details
-                />
+                <v-switch v-model="form.planMaintenance.necessiteHabilitationElectrique"
+                  label="Habilitation électrique requise" color="orange" hide-details />
               </v-col>
-              
+
               <v-col cols="12" md="6">
-                <v-switch
-                  v-model="form.planMaintenance.necessitePermisFeu"
-                  label="Permis feu requis"
-                  color="red"
-                  hide-details
-                />
+                <v-switch v-model="form.planMaintenance.necessitePermisFeu" label="Permis feu requis" color="red"
+                  hide-details />
               </v-col>
             </v-row>
 
@@ -200,52 +136,28 @@
                 <div v-if="!form.planMaintenance.consommables?.length" class="text-grey text-center py-4">
                   Aucun consommable ajouté
                 </div>
-                
-                <v-row v-for="(consommable, index) in form.planMaintenance.consommables" 
-                       :key="index" dense align="center" class="mb-2">
+
+                <v-row v-for="(consommable, index) in form.planMaintenance.consommables" :key="index" dense
+                  align="center" class="mb-2">
                   <v-col cols="7">
-                    <v-select
-                      v-model="consommable.consommable_id"
-                      :items="consumables"
-                      item-title="designation"
-                      item-value="id"
-                      label="Consommable"
-                      variant="outlined"
-                      density="compact"
-                      :rules="[rules.required]"
-                    />
+                    <v-select v-model="consommable.consommable_id" :items="consumables" item-title="designation"
+                      item-value="id" label="Consommable" variant="outlined" density="compact"
+                      :rules="[rules.required]" />
                   </v-col>
-                  
+
                   <v-col cols="3">
-                    <v-text-field
-                      v-model.number="consommable.quantite"
-                      label="Quantité"
-                      variant="outlined"
-                      density="compact"
-                      type="number"
-                      :rules="[rules.required, rules.positive]"
-                    />
+                    <v-text-field v-model.number="consommable.quantite" label="Quantité" variant="outlined"
+                      density="compact" type="number" :rules="[rules.required, rules.positive]" />
                   </v-col>
-                  
+
                   <v-col cols="2" class="text-right">
-                    <v-btn
-                      icon
-                      color="red"
-                      size="small"
-                      @click="removeConsommable(index)"
-                    >
+                    <v-btn icon color="red" size="small" @click="removeConsommable(index)">
                       <v-icon>mdi-delete</v-icon>
                     </v-btn>
                   </v-col>
                 </v-row>
-                
-                <v-btn
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                  @click="addConsommable"
-                  class="mt-2"
-                >
+
+                <v-btn color="primary" variant="outlined" size="small" @click="addConsommable" class="mt-2">
                   <v-icon left>mdi-plus</v-icon>
                   Ajouter un consommable
                 </v-btn>
@@ -262,68 +174,39 @@
                 <div v-if="!form.planMaintenance.documents?.length" class="text-grey text-center py-4">
                   Aucun document ajouté
                 </div>
-                
-                <v-row v-for="(document, index) in form.planMaintenance.documents" 
-                       :key="index" dense align="center" class="mb-4">
+
+                <v-row v-for="(document, index) in form.planMaintenance.documents" :key="index" dense align="center"
+                  class="mb-4">
                   <v-col cols="12" md="4">
-                    <v-text-field
-                      v-model="document.nomDocument"
-                      label="Nom du document"
-                      variant="outlined"
-                      density="compact"
-                      :rules="[rules.required]"
-                    />
+                    <v-text-field v-model="document.nomDocument" label="Nom du document" variant="outlined"
+                      density="compact" :rules="[rules.required]" />
                   </v-col>
-                  
+
                   <v-col cols="12" md="4">
-                    <v-select
-                      v-model="document.typeDocument_id"
-                      :items="typesDocuments"
-                      item-title="nomTypeDocument"
-                      item-value="id"
-                      label="Type de document"
-                      variant="outlined"
-                      density="compact"
-                      :rules="[rules.required]"
-                    />
+                    <v-select v-model="document.typeDocument_id" :items="typesDocuments" item-title="nomTypeDocument"
+                      item-value="id" label="Type de document" variant="outlined" density="compact"
+                      :rules="[rules.required]" />
                   </v-col>
-                  
+
                   <v-col cols="12" md="3">
-                    <v-file-input
-                      v-model="document.file"
-                      label="Fichier"
-                      variant="outlined"
-                      density="compact"
-                      :show-size="true"
-                      :rules="[rules.requiredIfNew(document.id)]"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                    />
-                    
+                    <v-file-input v-model="document.file" label="Fichier" variant="outlined" density="compact"
+                      :show-size="true" :rules="[rules.requiredIfNew(document.id)]"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
+
                     <!-- Aperçu du fichier existant -->
                     <div v-if="document.cheminAcces && !document.file" class="text-body-2 text-grey mt-1">
                       Fichier actuel : {{ getFileName(document.cheminAcces) }}
                     </div>
                   </v-col>
-                  
+
                   <v-col cols="12" md="1" class="text-right">
-                    <v-btn
-                      icon
-                      color="red"
-                      size="small"
-                      @click="removeDocument(index)"
-                    >
+                    <v-btn icon color="red" size="small" @click="removeDocument(index)">
                       <v-icon>mdi-delete</v-icon>
                     </v-btn>
                   </v-col>
                 </v-row>
-                
-                <v-btn
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                  @click="addDocument"
-                  class="mt-2"
-                >
+
+                <v-btn color="primary" variant="outlined" size="small" @click="addDocument" class="mt-2">
                   <v-icon left>mdi-plus</v-icon>
                   Ajouter un document
                 </v-btn>
@@ -397,6 +280,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  equipmentId: {
+    type: Number,
+    default: null,
+  },
+  compteurId: {
+    type: Number,
+    default: null,
+  },
 });
 
 const emit = defineEmits(["submit", "cancel"]);
@@ -435,13 +326,13 @@ const rules = {
 };
 
 // Computed properties
-const formTitle = computed(() => 
+const formTitle = computed(() =>
   props.isEdit ? `Modifier le seuil` : `Ajouter un nouveau seuil`
 );
 
 const isEditMode = computed(() => props.isEdit);
 
-const selectedExistingPM = computed(() => 
+const selectedExistingPM = computed(() =>
   props.existingPMs.find(pm => pm.id === form.value.planMaintenanceId)
 );
 
@@ -515,6 +406,13 @@ onMounted(() => {
       },
     };
   }
+
+  console.log("Datas : ", {
+    existingPMs: props.existingPMs,
+    typesPM: props.typesPM,
+    consumables: props.consumables,
+    typesDocuments: props.typesDocuments,
+  });
 });
 
 // Methods for managing consumables and documents
@@ -551,9 +449,9 @@ const hasChanges = computed(() => Object.keys(detectedChanges.value).length > 0)
 const detectChanges = () => {
   const changes = {};
   const original = props.seuil;
-  
+
   if (!original) return changes;
-  
+
   // Check basic seuil fields
   const basicFields = ['derniereIntervention', 'prochaineMaintenance', 'ecartInterventions', 'estGlissant', 'planMaintenanceId'];
   basicFields.forEach(field => {
@@ -564,7 +462,7 @@ const detectChanges = () => {
       };
     }
   });
-  
+
   // Check if using new PM vs existing PM
   if (pmMode.value === 'existing') {
     if (form.value.planMaintenanceId !== original.planMaintenanceId) {
@@ -577,7 +475,7 @@ const detectChanges = () => {
     // Check PM fields if creating/updating a new PM
     const originalPM = original.planMaintenance || {};
     const newPM = form.value.planMaintenance;
-    
+
     const pmFields = ['nom', 'type_id', 'commentaire', 'necessiteHabilitationElectrique', 'necessitePermisFeu'];
     pmFields.forEach(field => {
       if (newPM[field] !== originalPM[field]) {
@@ -587,7 +485,7 @@ const detectChanges = () => {
         };
       }
     });
-    
+
     // Check consumables
     const originalConsommables = JSON.stringify(originalPM.consommables || []);
     const newConsommables = JSON.stringify(newPM.consommables || []);
@@ -597,14 +495,14 @@ const detectChanges = () => {
         nouvelle: newPM.consommables || [],
       };
     }
-    
+
     // Check documents
     const originalDocs = originalPM.documents || [];
     const newDocs = newPM.documents || [];
-    
-    if (JSON.stringify(originalDocs.map(d => ({ ...d, file: null }))) !== 
-        JSON.stringify(newDocs.map(d => ({ nomDocument: d.nomDocument, typeDocument_id: d.typeDocument_id })))) {
-      
+
+    if (JSON.stringify(originalDocs.map(d => ({ ...d, file: null }))) !==
+      JSON.stringify(newDocs.map(d => ({ nomDocument: d.nomDocument, typeDocument_id: d.typeDocument_id })))) {
+
       changes['planMaintenance.documents'] = {
         ancienne: originalDocs,
         nouvelle: newDocs.map(d => ({
@@ -615,7 +513,7 @@ const detectChanges = () => {
       };
     }
   }
-  
+
   detectedChanges.value = changes;
   return changes;
 };
@@ -630,12 +528,14 @@ watch(() => form.value, () => {
 const handleSubmit = async () => {
   try {
     loading.value = true;
-    
+
     const data = {
       ...form.value,
       user: store.getters.currentUser?.id,
+      compteurId: props.compteurId, // Ajout ici
+      equipmentId: props.equipmentId, // Ajout ici aussi pour cohérence
     };
-    
+
     // Remove the nested PM if using existing PM
     if (pmMode.value === 'existing') {
       delete data.planMaintenance;
@@ -645,11 +545,11 @@ const handleSubmit = async () => {
         data.planMaintenanceId = data.planMaintenance.id;
       }
     }
-    
+
     // Prepare FormData for file uploads
     const formData = new FormData();
     formData.append('seuil', JSON.stringify(data));
-    
+
     // Add files to FormData
     if (pmMode.value === 'new' && data.planMaintenance?.documents) {
       data.planMaintenance.documents.forEach((doc, index) => {
@@ -658,23 +558,23 @@ const handleSubmit = async () => {
         }
       });
     }
-    
+
     // Add changes if in edit mode
     if (isEditMode.value) {
       const changes = detectChanges();
       formData.append('changes', JSON.stringify(changes));
     }
-    
+
     if (isEditMode.value && data.id) {
-      await api.put(`declenchements/${data.id}/`, formData, {
+      await api.put(`plans-maintenance/${data.id}/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
     } else {
-      await api.post('declenchements/', formData, {
+      await api.post('plans-maintenance/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
     }
-    
+
     emit("submit", { ...data, pmMode: pmMode.value });
   } catch (error) {
     console.error("Erreur lors de la sauvegarde du seuil:", error);
@@ -687,6 +587,14 @@ const handleSubmit = async () => {
 const handleCancel = () => {
   emit("cancel");
 };
+
+
+watch(() => [form.value.derniereIntervention, form.value.ecartInterventions, form.value.estGlissant], () => {
+  if (form.value.derniereIntervention >= 0 && form.value.ecartInterventions > 0) {
+    form.value.prochaineMaintenance = form.value.derniereIntervention + form.value.ecartInterventions;
+  }
+}, { deep: true });
+
 </script>
 
 <style scoped>

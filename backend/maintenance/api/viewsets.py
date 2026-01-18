@@ -1,3 +1,4 @@
+import os
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -15,6 +16,7 @@ from maintenance.models import (
     TypePlanMaintenance,
     PlanMaintenance,
     PlanMaintenanceConsommable,
+    PlanMaintenanceDocument,
     DemandeInterventionDocument
 )
 from maintenance.api.serializers import (
@@ -430,119 +432,141 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(plans, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
-    def par_type(self, request):
-        """
-        Filtre les plans de maintenance par type
-        Query param: type_id
-        """
-        type_id = request.query_params.get('type_id')
-        if not type_id:
-            return Response(
-                {'error': 'Le paramètre type_id est requis'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        plans = self.queryset.filter(type_plan_maintenance_id=type_id)
-        serializer = self.get_serializer(plans, many=True)
-        return Response(serializer.data)
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Création d'un nouveau plan de maintenance"""
+        data = dict(request.data)
 
-    @action(detail=True, methods=['post'])
-    def ajouter_consommable(self, request, pk=None):
-        """
-        Ajoute un consommable au plan de maintenance
-        Body: {"consommable_id": 1, "quantite_necessaire": 5}
-        """
-        plan = self.get_object()
-        consommable_id = request.data.get('consommable_id')
-        quantite = request.data.get('quantite_necessaire', 1)
-        
-        if not consommable_id:
-            return Response(
-                {'error': 'Le paramètre consommable_id est requis'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Vérifier si l'association existe déjà
-        assoc, created = PlanMaintenanceConsommable.objects.get_or_create(
-            plan_maintenance=plan,
-            consommable_id=consommable_id,
-            defaults={'quantite_necessaire': quantite}
-        )
-        
-        if not created:
-            # Mettre à jour la quantité si l'association existe déjà
-            assoc.quantite_necessaire = quantite
-            assoc.save()
-        
-        serializer = PlanMaintenanceConsommableSerializer(assoc)
-        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        print(data)
 
-    @action(detail=True, methods=['post'])
-    def retirer_consommable(self, request, pk=None):
-        """
-        Retire un consommable du plan de maintenance
-        Body: {"consommable_id": 1}
-        """
-        plan = self.get_object()
-        consommable_id = request.data.get('consommable_id')
-        
-        if not consommable_id:
-            return Response(
-                {'error': 'Le paramètre consommable_id est requis'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
+        # Extraire les valeurs uniques des listes
+        for key, value in data.items():
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+
         try:
-            assoc = PlanMaintenanceConsommable.objects.get(
-                plan_maintenance=plan,
-                consommable_id=consommable_id
-            )
-            assoc.delete()
-            return Response({'message': 'Consommable retiré avec succès'}, status=status.HTTP_204_NO_CONTENT)
-        except PlanMaintenanceConsommable.DoesNotExist:
+            seuil_data = json.loads(data.get('seuil', '{}'))
+            pm_data = seuil_data.get('planMaintenance', {})
+        except (json.JSONDecodeError, TypeError):
             return Response(
-                {'error': 'Association non trouvée'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-    @action(detail=True, methods=['post'])
-    def ajouter_document(self, request, pk=None):
-        """
-        Ajoute un document au plan de maintenance
-        Body: {"document_id": 1}
-        """
-        plan = self.get_object()
-        document_id = request.data.get('document_id')
-        
-        if not document_id:
-            return Response(
-                {'error': 'Le paramètre document_id est requis'},
+                {"error": "Format JSON invalide pour le seuil ou le plan de maintenance"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        plan.documents.add(document_id)
-        serializer = self.get_serializer(plan)
-        return Response(serializer.data)
+        try: 
+            # Vérifier que type_id existe et n'est pas null
+            type_id = pm_data.get('type_id')
+            if not type_id:
+                return Response(
+                    {"error": "Le type de plan de maintenance est obligatoire"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Vérifier que equipment_id existe
+            equipment_id = seuil_data.get('equipmentId') 
+            if not equipment_id:
+                return Response(
+                    {"error": "L'équipement est obligatoire"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            plan = PlanMaintenance.objects.create(
+                nom=pm_data.get('nom', ''),
+                commentaire=pm_data.get('commentaire', ''),
+                necessiteHabilitationElectrique=pm_data.get('necessiteHabilitationElectrique', False),
+                necessitePermisFeu=pm_data.get('necessitePermisFeu', False),
+                type_plan_maintenance_id=type_id, 
+                equipement_id=equipment_id 
+            )
 
-    @action(detail=True, methods=['post'])
-    def retirer_document(self, request, pk=None):
-        """
-        Retire un document du plan de maintenance
-        Body: {"document_id": 1}
-        """
-        plan = self.get_object()
-        document_id = request.data.get('document_id')
-        
-        if not document_id:
+            # Créer les consommables associés si fournis
+            for consommable in pm_data.get('consommables', []):
+                PlanMaintenanceConsommable.objects.create(
+                    plan_maintenance=plan,
+                    consommable_id=consommable.get('consommable_id'),
+                    quantite_necessaire=consommable.get('quantite', 1)
+                )
+
+        except Exception as e:
             return Response(
-                {'error': 'Le paramètre document_id est requis'},
+                {"error": f"Erreur lors de la création du plan de maintenance: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        plan.documents.remove(document_id)
+        try: 
+            from equipement.models import Declencher
+
+            # Vérifier que compteur_id existe
+            compteur_id = seuil_data.get('compteurId')
+            if not compteur_id:
+                return Response(
+                    {"error": "Le compteur est obligatoire pour le déclenchement"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            Declencher.objects.create(
+                derniereIntervention=seuil_data.get('derniereIntervention', 0),
+                prochaineMaintenance=seuil_data.get('prochaineMaintenance', 0),
+                ecartInterventions=seuil_data.get('ecartInterventions', 0),
+                estGlissant=seuil_data.get('estGlissant', False),
+                compteur_id=compteur_id,
+                planMaintenance=plan
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": f"Erreur lors de la création du seuil de déclenchement: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Créer les documents associés si fournis
+        uploaded_files = request.FILES.getlist('documents')
+        document_metadata_list = pm_data.get('documents', [])
+        
+        # Dans la partie création des documents :
+        try:
+            for index, uploaded_file in enumerate(uploaded_files):
+                # Récupérer les métadonnées correspondantes si elles existent
+                metadata = None
+                if index < len(document_metadata_list):
+                    metadata = document_metadata_list[index]
+                
+                # Nom du document : depuis les métadonnées ou le nom du fichier
+                nom_document = ""
+                if metadata and metadata.get('nomDocument'):
+                    nom_document = metadata.get('nomDocument')
+                else:
+                    # Utiliser le nom du fichier sans extension comme nom par défaut
+                    nom_document = os.path.splitext(uploaded_file.name)[0]
+                
+                # Type de document : depuis les métadonnées ou valeur par défaut
+                type_document_id = 1  # Valeur par défaut
+                if metadata and metadata.get('typeDocument_id'):
+                    type_document_id = metadata.get('typeDocument_id')
+                
+                # Créer le Document avec le nom de fichier original
+                document = Document.objects.create(
+                    nomDocument=nom_document,
+                    typeDocument_id=type_document_id,
+                    cheminAcces=uploaded_file  # Django utilise le nom original du fichier
+                )
+                
+                # Puis créer l'association avec le plan de maintenance
+                PlanMaintenanceDocument.objects.create(
+                    plan_maintenance=plan,
+                    document=document
+                )
+        
+        except Exception as e:
+            return Response(
+                {"error": f"Erreur lors de la création des documents: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Sérialiser et retourner la réponse
         serializer = self.get_serializer(plan)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 
 class PlanMaintenanceConsommableViewSet(viewsets.ModelViewSet):

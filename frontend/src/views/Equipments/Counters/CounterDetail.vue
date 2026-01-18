@@ -301,7 +301,6 @@
     </v-card-actions>
   </v-card>
 
-  <!-- Dialogues d'édition (à implémenter) -->
   <v-dialog v-model="showCounterDialog" max-width="1000px">
     <CounterForm
       :counter="counter"
@@ -310,16 +309,17 @@
     />
   </v-dialog>
 
-  <!-- Dans votre template principal -->
   <v-dialog v-model="showSeuilDialog" max-width="1200px">
     <SeuilForm
       v-if="currentSeuil"
       :seuil="currentSeuil"
-      :existing-pms="existingPMs"
-      :types-pm="typesPM"
+      :existingPMs="existingPMs"
+      :typesPM="typesPM"
       :consumables="consumables"
-      :types-documents="typesDocuments"
-      :is-edit="!!currentSeuil.id"
+      :typesDocuments="typesDocuments"
+      :isEdit="!!currentSeuil.id"
+      :equipmentId="counter?.equipement_info?.id || null"
+      :compteurId="counterId"
       @submit="saveSeuil"
       @cancel="closeSeuilDialog"
     />
@@ -381,7 +381,7 @@ const getProgressionColor = (seuil) => {
 
   if (progression >= 100) return "red";
   if (progression >= 80) return "orange";
-  if (progression >= 50) return "yellow";
+  if (progression >= 50) return "blue";
   return "green";
 };
 
@@ -414,7 +414,7 @@ const fetchReferentials = async () => {
     api.get("consommables/"),
     api.get("types-plan-maintenance/"),
     api.get("types-documents/"),
-    api.get('plans-maintenance/')
+    api.get('plans-maintenance/'),
   ]);
 
   consumables.value = cons;
@@ -461,6 +461,12 @@ const addNewSeuil = () => {
     planMaintenance: null,
   };
   showSeuilDialog.value = true;
+  console.log("CounterDetail - addNewSeuil called w/ : ", {
+    existingPMs: existingPMs.value,
+    typesPM: typesPM.value,
+    consumables: consumables.value,
+    typesDocuments: typesDocuments.value,
+  });
 };
 
 const editSeuil = (seuil) => {
