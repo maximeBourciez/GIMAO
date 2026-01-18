@@ -1,223 +1,105 @@
 <template>
-  <BaseForm :title="formTitle" :loading="loading" @submit="handleSubmit" @cancel="handleCancel">
-    <v-container fluid class="px-0">
-      <!-- Section Seuil -->
-      <v-card class="mb-6" variant="outlined">
-        <v-card-title class="d-flex align-center mb-2">
-          <v-icon left>mdi-calendar-clock</v-icon>
-          <span>Paramètres du seuil</span>
-        </v-card-title>
+  <v-card>
+    <v-card-title class="text-h5 pa-4">
+      {{ formTitle }}
+    </v-card-title>
+    <v-divider></v-divider>
+
+    <v-card-text class="pa-4">
+      <!-- Sélection de PM existant ou création -->
+      <v-card class="mb-4" variant="outlined">
         <v-card-text>
-          <v-row dense>
-            <v-col cols="12" md="4">
-              <v-text-field v-model.number="form.derniereIntervention" label="Dernière intervention" variant="outlined"
-                density="compact" type="number" :rules="[rules.required, rules.positive]" />
-            </v-col>
+          <v-radio-group v-model="pmMode" inline hide-details>
+            <v-radio label="Sélectionner un PM existant" value="existing"></v-radio>
+            <v-radio label="Créer un nouveau PM" value="new"></v-radio>
+          </v-radio-group>
+        </v-card-text>
+      </v-card>
 
+      <!-- Sélection PM existant -->
+      <v-card v-if="pmMode === 'existing'" class="mb-4" variant="outlined">
+        <v-card-text>
+          <v-select 
+            v-model="selectedExistingPMId" 
+            :items="existingPMs" 
+            item-title="nom" 
+            item-value="id"
+            label="Sélectionner un plan de maintenance" 
+            variant="outlined" 
+            density="comfortable"
+            clearable
+          >
+            <template #item="{ props, item }">
+              <v-list-item v-bind="props">
+                <template #title>{{ item.raw.nom }}</template>
+                <template #subtitle>{{ getPMTypeLabel(item.raw.type_id) }}</template>
+              </v-list-item>
+            </template>
+          </v-select>
 
-
-            <v-col cols="12" md="4">
-              <v-text-field v-model.number="form.ecartInterventions" label="Intervalle entre interventions"
-                variant="outlined" density="compact" type="number" :rules="[rules.required, rules.positive]" />
-            </v-col>
-
-            <v-col cols="12" md="4">
-              <v-text-field v-model.number="form.prochaineMaintenance" label="Prochaine maintenance" variant="outlined"
-                density="compact" type="number" :rules="[rules.required, rules.positive]" />
-            </v-col>
-          </v-row>
-
-          <v-row dense>
-            <v-col cols="12" md="6">
-              <v-switch v-model="form.estGlissant" label="Seuil glissant" color="primary" hide-details>
-                <template v-slot:label>
-                  <div class="d-flex align-center">
-                    <v-icon :color="form.estGlissant ? 'green' : 'grey'" class="mr-2">
-                      {{ form.estGlissant ? 'mdi-check-circle' : 'mdi-close-circle' }}
-                    </v-icon>
-                    <span>Seuil glissant</span>
+          <!-- Aperçu du PM sélectionné -->
+          <v-card v-if="selectedExistingPM" class="mt-4" elevation="2" color="blue-lighten-5">
+            <v-card-title class="text-subtitle-1 font-weight-bold py-3">
+              <v-icon left color="primary">mdi-clipboard-check</v-icon>
+              Aperçu du plan de maintenance
+            </v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-4">
+              <v-row dense class="mb-2">
+                <v-col cols="12" md="6">
+                  <div class="text-caption text-grey-darken-1 mb-1">Nom du plan</div>
+                  <div class="text-body-1 font-weight-medium">{{ selectedExistingPM.nom }}</div>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <div class="text-caption text-grey-darken-1 mb-1">Type de maintenance</div>
+                  <v-chip size="small" color="primary">
+                    {{ getPMTypeLabel(selectedExistingPM.type_id) }}
+                  </v-chip>
+                </v-col>
+              </v-row>
+              <v-row dense v-if="selectedExistingPM.commentaire">
+                <v-col cols="12">
+                  <div class="text-caption text-grey-darken-1 mb-1">Commentaire</div>
+                  <div class="text-body-2">{{ selectedExistingPM.commentaire }}</div>
+                </v-col>
+              </v-row>
+              <v-row dense class="mt-3" v-if="selectedExistingPM.necessiteHabilitationElectrique || selectedExistingPM.necessitePermisFeu">
+                <v-col cols="12">
+                  <div class="text-caption text-grey-darken-1 mb-2">Habilitations requises</div>
+                  <div class="d-flex gap-2">
+                    <v-chip v-if="selectedExistingPM.necessiteHabilitationElectrique" size="small" color="orange" variant="flat">
+                      <v-icon left size="small">mdi-flash</v-icon>
+                      Habilitation électrique
+                    </v-chip>
+                    <v-chip v-if="selectedExistingPM.necessitePermisFeu" size="small" color="red" variant="flat">
+                      <v-icon left size="small">mdi-fire</v-icon>
+                      Permis feu
+                    </v-chip>
                   </div>
-                </template>
-              </v-switch>
-            </v-col>
-
-            <v-col cols="12" md="6" class="d-flex align-center">
-              <div class="text-body-2 text-grey">
-                Un seuil glissant se recalcule après chaque intervention
-              </div>
-            </v-col>
-          </v-row>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
         </v-card-text>
       </v-card>
 
-      <!-- Section Plan de Maintenance -->
-      <v-card class="mb-6" variant="outlined">
-        <v-card-title class="d-flex align-center mb-2">
-          <v-icon left>mdi-clipboard-check</v-icon>
-          <span>Plan de maintenance</span>
-        </v-card-title>
-        <v-card-text>
-          <!-- Sélection de PM existant ou création -->
-          <v-row dense class="mb-4">
-            <v-col cols="12">
-              <v-radio-group v-model="pmMode" inline hide-details>
-                <v-radio label="Sélectionner un PM existant" value="existing"></v-radio>
-                <v-radio label="Créer un nouveau PM" value="new"></v-radio>
-              </v-radio-group>
-            </v-col>
-          </v-row>
-
-          <!-- Sélection PM existant -->
-          <div v-if="pmMode === 'existing'">
-            <v-select v-model="form.planMaintenanceId" :items="existingPMs" item-title="nom" item-value="id"
-              label="Sélectionner un plan de maintenance" variant="outlined" density="compact" :rules="[rules.required]"
-              clearable />
-
-            <!-- Aperçu du PM sélectionné -->
-            <v-card v-if="selectedExistingPM" class="mt-4" variant="tonal">
-              <v-card-text>
-                <v-row dense>
-                  <v-col cols="12" md="6">
-                    <strong>Nom :</strong> {{ selectedExistingPM.nom }}
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <strong>Type :</strong> {{ getPMTypeLabel(selectedExistingPM.type_id) }}
-                  </v-col>
-                </v-row>
-                <v-row dense v-if="selectedExistingPM.commentaire">
-                  <v-col cols="12">
-                    <strong>Commentaire :</strong> {{ selectedExistingPM.commentaire }}
-                  </v-col>
-                </v-row>
-              </v-card-text>
-            </v-card>
-          </div>
-
-          <!-- Création d'un nouveau PM -->
-          <div v-else>
-            <v-row dense>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="form.planMaintenance.nom" label="Nom du plan de maintenance" variant="outlined"
-                  density="compact" :rules="[rules.required]" />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-select v-model="form.planMaintenance.type_id" :items="typesPM" item-title="libelle" item-value="id"
-                  label="Type de maintenance" variant="outlined" density="compact" :rules="[rules.required]" />
-              </v-col>
-            </v-row>
-
-            <v-row dense>
-              <v-col cols="12">
-                <v-textarea v-model="form.planMaintenance.commentaire" label="Commentaire" variant="outlined"
-                  density="compact" rows="2" />
-              </v-col>
-            </v-row>
-
-            <v-row dense>
-              <v-col cols="12" md="6">
-                <v-switch v-model="form.planMaintenance.necessiteHabilitationElectrique"
-                  label="Habilitation électrique requise" color="orange" hide-details />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-switch v-model="form.planMaintenance.necessitePermisFeu" label="Permis feu requis" color="red"
-                  hide-details />
-              </v-col>
-            </v-row>
-
-            <!-- Consommables -->
-            <v-card class="mt-4" variant="outlined">
-              <v-card-title class="d-flex align-center">
-                <v-icon left>mdi-package-variant</v-icon>
-                <span>Consommables nécessaires</span>
-              </v-card-title>
-              <v-card-text>
-                <div v-if="!form.planMaintenance.consommables?.length" class="text-grey text-center py-4">
-                  Aucun consommable ajouté
-                </div>
-
-                <v-row v-for="(consommable, index) in form.planMaintenance.consommables" :key="index" dense
-                  align="center" class="mb-2">
-                  <v-col cols="7">
-                    <v-select v-model="consommable.consommable_id" :items="consumables" item-title="designation"
-                      item-value="id" label="Consommable" variant="outlined" density="compact"
-                      :rules="[rules.required]" />
-                  </v-col>
-
-                  <v-col cols="3">
-                    <v-text-field v-model.number="consommable.quantite" label="Quantité" variant="outlined"
-                      density="compact" type="number" :rules="[rules.required, rules.positive]" />
-                  </v-col>
-
-                  <v-col cols="2" class="text-right">
-                    <v-btn icon color="red" size="small" @click="removeConsommable(index)">
-                      <v-icon>mdi-delete</v-icon>
-                    </v-btn>
-                  </v-col>
-                </v-row>
-
-                <v-btn color="primary" variant="outlined" size="small" @click="addConsommable" class="mt-2">
-                  <v-icon left>mdi-plus</v-icon>
-                  Ajouter un consommable
-                </v-btn>
-              </v-card-text>
-            </v-card>
-
-            <!-- Documents -->
-            <v-card class="mt-4" variant="outlined">
-              <v-card-title class="d-flex align-center">
-                <v-icon left>mdi-file-document</v-icon>
-                <span>Documents associés</span>
-              </v-card-title>
-              <v-card-text>
-                <div v-if="!form.planMaintenance.documents?.length" class="text-grey text-center py-4">
-                  Aucun document ajouté
-                </div>
-
-                <v-row v-for="(document, index) in form.planMaintenance.documents" :key="index" dense align="center"
-                  class="mb-4">
-                  <v-col cols="12" md="4">
-                    <v-text-field v-model="document.nomDocument" label="Nom du document" variant="outlined"
-                      density="compact" :rules="[rules.required]" />
-                  </v-col>
-
-                  <v-col cols="12" md="4">
-                    <v-select v-model="document.typeDocument_id" :items="typesDocuments" item-title="nomTypeDocument"
-                      item-value="id" label="Type de document" variant="outlined" density="compact"
-                      :rules="[rules.required]" />
-                  </v-col>
-
-                  <v-col cols="12" md="3">
-                    <v-file-input v-model="document.file" label="Fichier" variant="outlined" density="compact"
-                      :show-size="true" :rules="[rules.requiredIfNew(document.id)]"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
-
-                    <!-- Aperçu du fichier existant -->
-                    <div v-if="document.cheminAcces && !document.file" class="text-body-2 text-grey mt-1">
-                      Fichier actuel : {{ getFileName(document.cheminAcces) }}
-                    </div>
-                  </v-col>
-
-                  <v-col cols="12" md="1" class="text-right">
-                    <v-btn icon color="red" size="small" @click="removeDocument(index)">
-                      <v-icon>mdi-delete</v-icon>
-                    </v-btn>
-                  </v-col>
-                </v-row>
-
-                <v-btn color="primary" variant="outlined" size="small" @click="addDocument" class="mt-2">
-                  <v-icon left>mdi-plus</v-icon>
-                  Ajouter un document
-                </v-btn>
-              </v-card-text>
-            </v-card>
-          </div>
-        </v-card-text>
-      </v-card>
+      <!-- Création d'un nouveau PM avec MaintenancePlanInlineForm -->
+      <div v-else>
+        <MaintenancePlanInlineForm 
+          v-if="currentPlan"
+          v-model="currentPlan"
+          :counters="countersForSelect"
+          :types-p-m="typesPM"
+          :consumables="consumables"
+          :is-edit-mode="isEditMode && pmMode === 'new'"
+          :show-actions="false"
+          @save="handlePlanSave"
+          @cancel="handleCancel"
+        />
+      </div>
 
       <!-- Section Changements détectés -->
-      <v-card v-if="hasChanges && isEditMode" variant="outlined" class="mb-6">
+      <v-card v-if="hasChanges && isEditMode" variant="outlined" class="mt-4">
         <v-card-title class="d-flex align-center bg-yellow-lighten-5">
           <v-icon left color="yellow-darken-2">mdi-alert-circle</v-icon>
           <span>Changements détectés</span>
@@ -244,8 +126,23 @@
           </v-list>
         </v-card-text>
       </v-card>
-    </v-container>
-  </BaseForm>
+    </v-card-text>
+
+    <v-divider></v-divider>
+
+    <v-card-actions class="pa-4">
+      <v-spacer></v-spacer>
+      <v-btn variant="text" @click="handleCancel">Annuler</v-btn>
+      <v-btn 
+        color="primary" 
+        :loading="loading"
+        :disabled="!isFormValid"
+        @click="handleSubmit"
+      >
+        {{ isEditMode ? 'Enregistrer les modifications' : 'Créer le seuil' }}
+      </v-btn>
+    </v-card-actions>
+  </v-card>
 </template>
 
 <script setup>
@@ -253,7 +150,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useApi } from "@/composables/useApi";
 import { useStore } from "vuex";
 import { API_BASE_URL } from "@/utils/constants";
-import BaseForm from "@/components/common/BaseForm.vue";
+import MaintenancePlanInlineForm from "@/components/Forms/MaintenancePlanInlineForm.vue";
 
 const props = defineProps({
   seuil: {
@@ -294,35 +191,67 @@ const emit = defineEmits(["submit", "cancel"]);
 
 const loading = ref(false);
 const pmMode = ref(props.isEdit && props.seuil.planMaintenanceId ? "existing" : "new");
+const selectedExistingPMId = ref(null);
 
 const api = useApi(API_BASE_URL);
 const store = useStore();
 
-// Form data structure
-const form = ref({
-  id: null,
-  derniereIntervention: 0,
-  prochaineMaintenance: 0,
-  ecartInterventions: 0,
-  estGlissant: false,
-  planMaintenanceId: null,
-  planMaintenance: {
-    id: null,
-    nom: "",
-    commentaire: "",
-    type_id: null,
-    necessiteHabilitationElectrique: false,
-    necessitePermisFeu: false,
-    consommables: [],
-    documents: [],
-  },
+// Créer un compteur fictif pour le select du MaintenancePlanInlineForm
+const countersForSelect = computed(() => {
+  if (!props.compteurId) return [];
+  
+  return [{
+    id: props.compteurId,
+    nom: 'Compteur actuel',
+    unite: props.seuil?.unite || 'heures',
+    valeurCourante: props.seuil?.valeurCourante || 0
+  }];
 });
 
-// Rules
-const rules = {
-  required: (v) => !!v || "Ce champ est requis",
-  requiredIfNew: (hasId) => (v) => !hasId ? !!v || "Un fichier est requis pour un nouveau document" : true,
-  positive: (v) => v >= 0 || "La valeur doit être positive",
+// Plan de maintenance actuel
+const currentPlan = ref(null);
+
+// Initialiser le plan à partir du seuil
+const initializePlan = () => {
+  if (props.seuil && props.seuil.planMaintenance) {
+    const pm = props.seuil.planMaintenance;
+    const seuil = props.seuil;
+    
+    currentPlan.value = {
+      id: pm.id || null,
+      nom: pm.nom || '',
+      type_id: pm.type_id || null,
+      description: pm.commentaire || '',
+      compteurIndex: 0, // Premier compteur (le seul)
+      consommables: pm.consommables?.map(c => c.consommable_id || c.id) || [],
+      seuil: {
+        derniereIntervention: seuil.derniereIntervention || 0,
+        ecartInterventions: seuil.ecartInterventions || 0,
+        prochaineMaintenance: seuil.prochaineMaintenance || 0,
+        estGlissant: seuil.estGlissant || false
+      },
+      necessiteHabilitationElectrique: pm.necessiteHabilitationElectrique || false,
+      necessitePermisFeu: pm.necessitePermisFeu || false
+    };
+  } else {
+    // Nouveau plan vide
+    currentPlan.value = {
+      id: null,
+      nom: '',
+      type_id: null,
+      description: '',
+      compteurIndex: 0,
+      consommables: [],
+      seuil: {
+        derniereIntervention: 0,
+        ecartInterventions: 0,
+        prochaineMaintenance: 0,
+        estGlissant: false
+      },
+      necessiteHabilitationElectrique: false,
+      necessitePermisFeu: false
+    };
+  }
 };
 
 // Computed properties
@@ -333,28 +262,28 @@ const formTitle = computed(() =>
 const isEditMode = computed(() => props.isEdit);
 
 const selectedExistingPM = computed(() =>
-  props.existingPMs.find(pm => pm.id === form.value.planMaintenanceId)
+  props.existingPMs.find(pm => pm.id === selectedExistingPMId.value)
 );
+
+const isFormValid = computed(() => {
+  if (pmMode.value === 'existing') {
+    return !!selectedExistingPMId.value;
+  } else {
+    return currentPlan.value && 
+           currentPlan.value.nom && 
+           currentPlan.value.type_id &&
+           currentPlan.value.seuil.ecartInterventions > 0;
+  }
+});
 
 const getPMTypeLabel = (typeId) => {
   const type = props.typesPM.find(t => t.id === typeId);
   return type ? type.libelle : "Non spécifié";
 };
 
-const getFileName = (path) => path?.split('/').pop() || "Fichier";
-
 const getFieldLabel = (field) => {
   const labels = {
-    'derniereIntervention': 'Dernière intervention',
-    'prochaineMaintenance': 'Prochaine maintenance',
-    'ecartInterventions': 'Intervalle',
-    'estGlissant': 'Seuil glissant',
     'planMaintenanceId': 'Plan de maintenance',
-    'planMaintenance.nom': 'Nom du PM',
-    'planMaintenance.type_id': 'Type de PM',
-    'planMaintenance.commentaire': 'Commentaire PM',
-    'planMaintenance.necessiteHabilitationElectrique': 'Habilitation électrique',
-    'planMaintenance.necessitePermisFeu': 'Permis feu',
   };
   return labels[field] || field;
 };
@@ -365,82 +294,14 @@ const formatChangeValue = (value) => {
   return String(value);
 };
 
-// Initialize form
+// Initialize
 onMounted(() => {
-  if (props.seuil) {
-    form.value = {
-      id: props.seuil.id || null,
-      derniereIntervention: props.seuil.derniereIntervention || 0,
-      prochaineMaintenance: props.seuil.prochaineMaintenance || 0,
-      ecartInterventions: props.seuil.ecartInterventions || 0,
-      estGlissant: props.seuil.estGlissant || false,
-      planMaintenanceId: props.seuil.planMaintenanceId || null,
-      planMaintenance: props.seuil.planMaintenance ? {
-        id: props.seuil.planMaintenance.id,
-        nom: props.seuil.planMaintenance.nom || "",
-        commentaire: props.seuil.planMaintenance.commentaire || "",
-        type_id: props.seuil.planMaintenance.type_id || null,
-        necessiteHabilitationElectrique: props.seuil.planMaintenance.necessiteHabilitationElectrique || false,
-        necessitePermisFeu: props.seuil.planMaintenance.necessitePermisFeu || false,
-        consommables: props.seuil.planMaintenance.consommables?.map(c => ({
-          consommable_id: c.id,
-          quantite: c.quantite || 1,
-          designation: c.designation,
-        })) || [],
-        documents: props.seuil.planMaintenance.documents?.map(d => ({
-          id: d.id,
-          nomDocument: d.nom || d.titre || "",
-          typeDocument_id: d.type || d.typeDocument_id,
-          cheminAcces: d.chemin || d.path || "",
-          file: null,
-        })) || [],
-      } : {
-        id: null,
-        nom: "",
-        commentaire: "",
-        type_id: null,
-        necessiteHabilitationElectrique: false,
-        necessitePermisFeu: false,
-        consommables: [],
-        documents: [],
-      },
-    };
+  initializePlan();
+  
+  if (props.seuil && props.seuil.planMaintenanceId) {
+    selectedExistingPMId.value = props.seuil.planMaintenanceId;
   }
-
-  console.log("Datas : ", {
-    existingPMs: props.existingPMs,
-    typesPM: props.typesPM,
-    consumables: props.consumables,
-    typesDocuments: props.typesDocuments,
-  });
 });
-
-// Methods for managing consumables and documents
-const addConsommable = () => {
-  form.value.planMaintenance.consommables.push({
-    consommable_id: null,
-    quantite: 1,
-    designation: "",
-  });
-};
-
-const removeConsommable = (index) => {
-  form.value.planMaintenance.consommables.splice(index, 1);
-};
-
-const addDocument = () => {
-  form.value.planMaintenance.documents.push({
-    id: null,
-    nomDocument: "",
-    typeDocument_id: null,
-    cheminAcces: "",
-    file: null,
-  });
-};
-
-const removeDocument = (index) => {
-  form.value.planMaintenance.documents.splice(index, 1);
-};
 
 // Change detection
 const detectedChanges = ref({});
@@ -448,68 +309,14 @@ const hasChanges = computed(() => Object.keys(detectedChanges.value).length > 0)
 
 const detectChanges = () => {
   const changes = {};
-  const original = props.seuil;
+  
+  if (!props.seuil || !isEditMode.value) return changes;
 
-  if (!original) return changes;
-
-  // Check basic seuil fields
-  const basicFields = ['derniereIntervention', 'prochaineMaintenance', 'ecartInterventions', 'estGlissant', 'planMaintenanceId'];
-  basicFields.forEach(field => {
-    if (form.value[field] !== original[field]) {
-      changes[field] = {
-        ancienne: original[field],
-        nouvelle: form.value[field],
-      };
-    }
-  });
-
-  // Check if using new PM vs existing PM
   if (pmMode.value === 'existing') {
-    if (form.value.planMaintenanceId !== original.planMaintenanceId) {
+    if (selectedExistingPMId.value !== props.seuil.planMaintenanceId) {
       changes['planMaintenanceId'] = {
-        ancienne: original.planMaintenanceId,
-        nouvelle: form.value.planMaintenanceId,
-      };
-    }
-  } else {
-    // Check PM fields if creating/updating a new PM
-    const originalPM = original.planMaintenance || {};
-    const newPM = form.value.planMaintenance;
-
-    const pmFields = ['nom', 'type_id', 'commentaire', 'necessiteHabilitationElectrique', 'necessitePermisFeu'];
-    pmFields.forEach(field => {
-      if (newPM[field] !== originalPM[field]) {
-        changes[`planMaintenance.${field}`] = {
-          ancienne: originalPM[field],
-          nouvelle: newPM[field],
-        };
-      }
-    });
-
-    // Check consumables
-    const originalConsommables = JSON.stringify(originalPM.consommables || []);
-    const newConsommables = JSON.stringify(newPM.consommables || []);
-    if (originalConsommables !== newConsommables) {
-      changes['planMaintenance.consommables'] = {
-        ancienne: originalPM.consommables || [],
-        nouvelle: newPM.consommables || [],
-      };
-    }
-
-    // Check documents
-    const originalDocs = originalPM.documents || [];
-    const newDocs = newPM.documents || [];
-
-    if (JSON.stringify(originalDocs.map(d => ({ ...d, file: null }))) !==
-      JSON.stringify(newDocs.map(d => ({ nomDocument: d.nomDocument, typeDocument_id: d.typeDocument_id })))) {
-
-      changes['planMaintenance.documents'] = {
-        ancienne: originalDocs,
-        nouvelle: newDocs.map(d => ({
-          nomDocument: d.nomDocument,
-          typeDocument_id: d.typeDocument_id,
-          fileChanged: !!d.file,
-        })),
+        ancienne: props.seuil.planMaintenanceId,
+        nouvelle: selectedExistingPMId.value,
       };
     }
   }
@@ -519,63 +326,56 @@ const detectChanges = () => {
 };
 
 // Watch for changes
-watch(() => form.value, () => {
+watch(() => [pmMode.value, selectedExistingPMId.value, currentPlan.value], () => {
   if (isEditMode.value) {
     detectChanges();
   }
 }, { deep: true });
 
+const handlePlanSave = () => {
+  // Le plan est déjà à jour dans currentPlan via v-model
+  // On appelle juste handleSubmit
+  handleSubmit();
+};
+
 const handleSubmit = async () => {
   try {
     loading.value = true;
 
-    const data = {
-      ...form.value,
-      user: store.getters.currentUser?.id,
-      compteurId: props.compteurId, // Ajout ici
-      equipmentId: props.equipmentId, // Ajout ici aussi pour cohérence
-    };
+    let dataToSubmit;
 
-    // Remove the nested PM if using existing PM
     if (pmMode.value === 'existing') {
-      delete data.planMaintenance;
-    } else {
-      // For new PM, keep only the PM ID if editing existing PM
-      if (data.planMaintenance?.id) {
-        data.planMaintenanceId = data.planMaintenance.id;
-      }
-    }
-
-    // Prepare FormData for file uploads
-    const formData = new FormData();
-    formData.append('seuil', JSON.stringify(data));
-
-    // Add files to FormData
-    if (pmMode.value === 'new' && data.planMaintenance?.documents) {
-      data.planMaintenance.documents.forEach((doc, index) => {
-        if (doc.file) {
-          formData.append(`document_${index}`, doc.file);
+      // Mode PM existant
+      dataToSubmit = {
+        compteurId: props.compteurId,
+        equipmentId: props.equipmentId,
+        planMaintenanceId: selectedExistingPMId.value,
+        // Seuil avec valeurs par défaut si PM existant
+        seuil: {
+          derniereIntervention: 0,
+          ecartInterventions: 100,
+          prochaineMaintenance: 100,
+          estGlissant: false
         }
-      });
-    }
-
-    // Add changes if in edit mode
-    if (isEditMode.value) {
-      const changes = detectChanges();
-      formData.append('changes', JSON.stringify(changes));
-    }
-
-    if (isEditMode.value && data.id) {
-      await api.put(`plans-maintenance/${data.id}/`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      };
     } else {
-      await api.post('plans-maintenance/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // Mode nouveau PM
+      dataToSubmit = {
+        compteurId: props.compteurId,
+        equipmentId: props.equipmentId,
+        planMaintenance: {
+          nom: currentPlan.value.nom,
+          type_id: currentPlan.value.type_id,
+          description: currentPlan.value.description,
+          consommables: currentPlan.value.consommables,
+          necessiteHabilitationElectrique: currentPlan.value.necessiteHabilitationElectrique,
+          necessitePermisFeu: currentPlan.value.necessitePermisFeu
+        },
+        seuil: currentPlan.value.seuil
+      };
     }
 
-    emit("submit", { ...data, pmMode: pmMode.value });
+    emit("submit", { ...dataToSubmit, pmMode: pmMode.value });
   } catch (error) {
     console.error("Erreur lors de la sauvegarde du seuil:", error);
     throw error;
@@ -587,14 +387,6 @@ const handleSubmit = async () => {
 const handleCancel = () => {
   emit("cancel");
 };
-
-
-watch(() => [form.value.derniereIntervention, form.value.ecartInterventions, form.value.estGlissant], () => {
-  if (form.value.derniereIntervention >= 0 && form.value.ecartInterventions > 0) {
-    form.value.prochaineMaintenance = form.value.derniereIntervention + form.value.ecartInterventions;
-  }
-}, { deep: true });
-
 </script>
 
 <style scoped>

@@ -109,7 +109,7 @@
 
         <v-alert v-if="localError" type="error" class="mt-4">{{ localError }}</v-alert>
 
-        <v-card-actions class="px-0 pt-4">
+        <v-card-actions v-if="showActions" class="px-0 pt-4">
             <v-spacer />
             <v-btn variant="text" @click="handleCancel">Annuler</v-btn>
             <v-btn type="submit" color="primary" :disabled="!isValid">
@@ -131,6 +131,10 @@ const props = defineProps({
     isEditMode: {
         type: Boolean,
         default: false
+    },
+    showActions: {
+        type: Boolean,
+        default: true
     },
     counters: {
         type: Array,
