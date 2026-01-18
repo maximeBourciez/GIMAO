@@ -272,6 +272,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
                     consommables = []
                     for rel_conso in plan_maintenance_obj.planmaintenanceconsommable_set.all():
                         consommables.append({
+                            'consommable': rel_conso.consommable.id,  # Format attendu par le frontend
                             'id': rel_conso.consommable.id,
                             'designation': rel_conso.consommable.designation,
                             'quantite': rel_conso.quantite_necessaire
@@ -312,8 +313,10 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             
             # Déterminer le plan de maintenance "principal" (pour compatibilité)
             plan_maintenance_principal = None
+            seuil_principal = None
             if seuils_avec_plans and seuils_avec_plans[0].get('planMaintenance'):
                 plan_maintenance_principal = seuils_avec_plans[0]['planMaintenance']
+                seuil_principal = seuils_avec_plans[0]
             
             compteur_dict = {
                 'id': c.id,
@@ -321,6 +324,16 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
                 'valeurCourante': c.valeurCourante,
                 'unite': c.unite,
                 'estPrincipal': c.estPrincipal,
+                'type': c.type,
+                # Champs du seuil (Declencher) pour compatibilité avec le frontend
+                'derniereIntervention': seuil_principal['derniereIntervention'] if seuil_principal else 0,
+                'intervalle': seuil_principal['ecartInterventions'] if seuil_principal else 0,
+                'estGlissant': seuil_principal['estGlissant'] if seuil_principal else False,
+                # Champs du plan de maintenance pour compatibilité
+                'description': plan_maintenance_principal['commentaire'] if plan_maintenance_principal else '',
+                'habElec': plan_maintenance_principal['necessiteHabilitationElectrique'] if plan_maintenance_principal else False,
+                'permisFeu': plan_maintenance_principal['necessitePermisFeu'] if plan_maintenance_principal else False,
+                # Structure complète
                 'seuils': seuils_avec_plans,  # Tous les seuils avec leurs plans
                 'seuil': seuils_avec_plans[0] if seuils_avec_plans else None,  # Premier seuil pour compatibilité
                 'planMaintenance': plan_maintenance_principal  # Plan principal (premier)

@@ -24,7 +24,7 @@ from equipement.api.serializers import (
 )
 
 from maintenance.models import PlanMaintenance, PlanMaintenanceConsommable, PlanMaintenanceDocument
-from donnees.models import Lieu, Document
+from donnees.models import Lieu, Document, Fabricant, Fournisseur
 
 
 import json
@@ -134,44 +134,49 @@ class EquipementViewSet(viewsets.ModelViewSet):
 
         # Compteurs & plans de maintenance
         for compteur_index, cp in enumerate(data.get("compteurs", [])):
+            # Créer le compteur avec uniquement les champs qui existent dans le modèle
             compteur = Compteur.objects.create(
                 equipement=equipement,
                 nomCompteur=cp["nom"],
-                descriptifMaintenance=cp.get("description", ""),
-                valeurCourante=cp["valeurCourante"],
-                ecartInterventions=cp["intervalle"],
-                unite=cp["unite"],
+                valeurCourante=cp.get("valeurCourante", 0),
+                unite=cp.get("unite", "heures"),
                 estPrincipal=cp.get("estPrincipal", False),
-                estGlissant=cp.get("estGlissant", False),
-                necessiteHabilitationElectrique=cp.get("habElec", False),
-                necessitePermisFeu=cp.get("permisFeu", False),
-                prochaineMaintenance=(
-                    int(cp["derniereIntervention"]) + int(cp["intervalle"])
-                ),
-                derniereIntervention=cp.get("derniereIntervention", 0)
+                type=cp.get("type", "Général")
             )
 
+            # Récupérer les données du plan de maintenance
             pm = cp.get("planMaintenance")
             if not pm:
                 continue
 
+            # Créer le plan de maintenance avec les champs du PlanMaintenance
             plan = PlanMaintenance.objects.create(
-                compteur=compteur,
                 equipement=equipement,
-                nom=pm["nom"],
-                type_plan_maintenance_id=pm["type"]
+                nom=pm.get("nom", f"Plan {compteur.nomCompteur}"),
+                type_plan_maintenance_id=pm.get("type"),
+                commentaire=cp.get("description", ""),
+                necessiteHabilitationElectrique=cp.get("habElec", False),
+                necessitePermisFeu=cp.get("permisFeu", False)
             )
 
-            compteur.planMaintenance = plan
-            compteur.save()
+            # Créer le lien Declencher entre le compteur et le plan
+            Declencher.objects.create(
+                compteur=compteur,
+                planMaintenance=plan,
+                derniereIntervention=cp.get("derniereIntervention", 0),
+                ecartInterventions=cp.get("intervalle", 0),
+                prochaineMaintenance=int(cp.get("derniereIntervention", 0)) + int(cp.get("intervalle", 0)),
+                estGlissant=cp.get("estGlissant", False)
+            )
 
             # Consommables du plan
             for cpm in pm.get("consommables", []):
-                PlanMaintenanceConsommable.objects.create(
-                    plan_maintenance=plan,
-                    consommable_id=cpm["consommable"],
-                    quantite_necessaire=cpm["quantite"]
-                )
+                if cpm.get("consommable"):  # Vérifier que le consommable est défini
+                    PlanMaintenanceConsommable.objects.create(
+                        plan_maintenance=plan,
+                        consommable_id=cpm["consommable"],
+                        quantite_necessaire=cpm.get("quantite", 1)
+                    )
 
             # Documents du plan
             for doc_index, doc in enumerate(pm.get("documents", [])):
@@ -495,20 +500,16 @@ class EquipementViewSet(viewsets.ModelViewSet):
         """Met à jour un compteur existant"""
         print(f"Mise à jour du compteur {compteur.id} avec modifications: {modifications}")
         
+        # Mapping des champs du frontend vers le modèle Compteur
         field_mapping = {
             'nom': 'nomCompteur',
-            'description': 'descriptifMaintenance',
             'valeurCourante': 'valeurCourante',
-            'intervalle': 'ecartInterventions',
             'unite': 'unite',
-            'derniereIntervention': 'derniereIntervention',
             'estPrincipal': 'estPrincipal',
-            'estGlissant': 'estGlissant',
-            'habElec': 'necessiteHabilitationElectrique',
-            'permisFeu': 'necessitePermisFeu'
+            'type': 'type'
         }
         
-        # Mise à jour des champs simples
+        # Mise à jour des champs simples du compteur
         for field, model_field in field_mapping.items():
             if field in modifications:
                 field_data = modifications[field]
@@ -519,45 +520,94 @@ class EquipementViewSet(viewsets.ModelViewSet):
                         setattr(compteur, model_field, nouvelle_valeur)
                         print(f"  {field}: {old_value} -> {nouvelle_valeur}")
         
-        # Mettre à jour la prochaine maintenance
-        if 'derniereIntervention' in modifications and 'intervalle' in modifications:
-            derniere = modifications['derniereIntervention'].get('nouvelle')
-            intervalle = modifications['intervalle'].get('nouvelle')
-            if derniere is not None and intervalle is not None:
-                try:
-                    compteur.prochaineMaintenance = int(derniere) + int(intervalle)
-                    print(f"  Prochaine maintenance: {compteur.prochaineMaintenance}")
-                except (ValueError, TypeError):
-                    pass
-        
         compteur.save()
         
+        # Gérer les modifications du seuil (Declencher)
+        seuil_fields = ['derniereIntervention', 'intervalle', 'estGlissant']
+        if any(f in modifications for f in seuil_fields):
+            print(f"  Modification du seuil détectée")
+            self._update_declencher_from_changes(compteur, modifications, request)
+        
         # Gérer le plan de maintenance si présent dans les modifications
-        plan_keys = [k for k in modifications.keys() if k.startswith('planMaintenance')]
+        plan_keys = [k for k in modifications.keys() if k.startswith('planMaintenance') or k in ['habElec', 'permisFeu', 'description']]
         if plan_keys:
             print(f"  Modification du plan de maintenance: {plan_keys}")
             self._update_plan_maintenance_from_changes(compteur, modifications, request)
+
+    def _update_declencher_from_changes(self, compteur, modifications, request):
+        """Met à jour le seuil Declencher d'un compteur"""
+        print(f"Mise à jour du seuil pour le compteur {compteur.id}")
+        
+        # Récupérer le premier Declencher (normalement il n'y en a qu'un par compteur)
+        declencher = compteur.declenchements.first()
+        
+        if not declencher:
+            print("  Aucun seuil trouvé, création d'un nouveau")
+            # Si pas de Declencher, en créer un
+            declencher = Declencher.objects.create(
+                compteur=compteur,
+                derniereIntervention=0,
+                ecartInterventions=0,
+                prochaineMaintenance=0,
+                estGlissant=False
+            )
+        
+        # Mise à jour des champs du Declencher
+        if 'derniereIntervention' in modifications:
+            nouvelle_valeur = modifications['derniereIntervention'].get('nouvelle')
+            if nouvelle_valeur is not None:
+                declencher.derniereIntervention = int(nouvelle_valeur)
+                print(f"  derniereIntervention: -> {nouvelle_valeur}")
+        
+        if 'intervalle' in modifications:
+            nouvelle_valeur = modifications['intervalle'].get('nouvelle')
+            if nouvelle_valeur is not None:
+                declencher.ecartInterventions = float(nouvelle_valeur)
+                print(f"  ecartInterventions: -> {nouvelle_valeur}")
+        
+        if 'estGlissant' in modifications:
+            nouvelle_valeur = modifications['estGlissant'].get('nouvelle')
+            if nouvelle_valeur is not None:
+                declencher.estGlissant = bool(nouvelle_valeur)
+                print(f"  estGlissant: -> {nouvelle_valeur}")
+        
+        # Recalculer la prochaine maintenance
+        declencher.prochaineMaintenance = declencher.derniereIntervention + declencher.ecartInterventions
+        print(f"  prochaineMaintenance calculée: {declencher.prochaineMaintenance}")
+        
+        declencher.save()
 
     def _update_plan_maintenance_from_changes(self, compteur, modifications, request):
         """Met à jour le plan de maintenance d'un compteur"""
         print(f"Traitement du plan de maintenance pour compteur {compteur.id}")
         
-        # Vérifier si un plan existe, sinon en créer un
-        if not compteur.planMaintenance:
-            print("  Création d'un nouveau plan de maintenance")
-            # Extraire les données du plan depuis equipement_data
-            # (Vous devrez passer les données complètes depuis l'update)
-            # Pour l'instant, on va créer un plan vide
+        # Récupérer le Declencher pour trouver le PlanMaintenance associé
+        declencher = compteur.declenchements.first()
+        
+        if not declencher or not declencher.planMaintenance:
+            print("  Aucun plan de maintenance trouvé, création d'un nouveau")
+            # Créer un nouveau plan de maintenance
             plan = PlanMaintenance.objects.create(
-                compteur=compteur,
                 equipement=compteur.equipement,
                 nom="Nouveau plan",
-                type_plan_maintenance_id=1  # Type par défaut
+                type_plan_maintenance_id=1  # Type par défaut, à ajuster selon vos besoins
             )
-            compteur.planMaintenance = plan
-            compteur.save()
-        
-        plan = compteur.planMaintenance
+            
+            # Créer ou mettre à jour le Declencher pour lier le compteur au plan
+            if not declencher:
+                Declencher.objects.create(
+                    compteur=compteur,
+                    planMaintenance=plan,
+                    derniereIntervention=0,
+                    ecartInterventions=0,
+                    prochaineMaintenance=0,
+                    estGlissant=False
+                )
+            else:
+                declencher.planMaintenance = plan
+                declencher.save()
+        else:
+            plan = declencher.planMaintenance
         
         # Mise à jour du nom
         if 'planMaintenance.nom' in modifications:
@@ -570,8 +620,29 @@ class EquipementViewSet(viewsets.ModelViewSet):
         if 'planMaintenance.type' in modifications:
             new_type = modifications['planMaintenance.type'].get('nouvelle')
             if new_type and plan.type_plan_maintenance_id != new_type:
-                print(f"  Type du plan: {plan.type_plan_maintenance_id} -> {new_type})")
+                print(f"  Type du plan: {plan.type_plan_maintenance_id} -> {new_type}")
                 plan.type_plan_maintenance_id = new_type
+        
+        # Mise à jour du commentaire (description)
+        if 'description' in modifications:
+            new_desc = modifications['description'].get('nouvelle')
+            if new_desc is not None:
+                print(f"  Commentaire: {plan.commentaire} -> {new_desc}")
+                plan.commentaire = new_desc
+        
+        # Mise à jour de l'habilitation électrique
+        if 'habElec' in modifications:
+            new_val = modifications['habElec'].get('nouvelle')
+            if new_val is not None:
+                print(f"  Habilitation électrique: {plan.necessiteHabilitationElectrique} -> {new_val}")
+                plan.necessiteHabilitationElectrique = bool(new_val)
+        
+        # Mise à jour du permis feu
+        if 'permisFeu' in modifications:
+            new_val = modifications['permisFeu'].get('nouvelle')
+            if new_val is not None:
+                print(f"  Permis feu: {plan.necessitePermisFeu} -> {new_val}")
+                plan.necessitePermisFeu = bool(new_val)
         
         # Mise à jour des consommables
         if 'planMaintenance.consommables' in modifications:
@@ -831,7 +902,8 @@ class CompteurViewSet(viewsets.ModelViewSet):
             'nom': 'nomCompteur',
             'valeurCourante': 'valeurCourante',
             'unite': 'unite',
-            'estPrincipal': 'estPrincipal'
+            'estPrincipal': 'estPrincipal',
+            'type': 'type'
         }
 
         for field, model_field in field_mapping.items():
