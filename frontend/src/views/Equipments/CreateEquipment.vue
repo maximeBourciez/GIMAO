@@ -159,7 +159,7 @@
                   <v-card variant="outlined" class="pa-4">
                     <v-card-title class="text-h6 font-weight-bold px-0 pb-4 d-flex align-center justify-space-between">
                       <span>Plans de maintenance</span>
-                      <v-btn color="primary" size="small" @click="handleMaintenancePlanAdd" prepend-icon="mdi-plus"
+                      <v-btn color="primary" size="small" @click="handlePlanAdd" prepend-icon="mdi-plus"
                         :disabled="!formData.compteurs || formData.compteurs.length === 0">
                         Ajouter un plan
                       </v-btn>
@@ -171,133 +171,68 @@
                         variant="tonal" class="mb-4">
                         <v-alert-title class="text-body-1">Compteurs requis</v-alert-title>
                         Vous devez d'abord ajouter au moins un compteur à l'étape précédente pour pouvoir définir des
-                        plans de
-                        maintenance.
+                        plans de maintenance.
                       </v-alert>
 
                       <!-- Liste des plans de maintenance -->
                       <div v-if="formData.plansMaintenance && formData.plansMaintenance.length > 0">
-                        <v-expansion-panels multiple v-model="openedMaintenancePanels">
-                          <v-expansion-panel v-for="(plan, index) in formData.plansMaintenance" :key="index">
-                            <v-expansion-panel-title expand-icon="mdi-menu-down" collapse-icon="mdi-menu-up">
-                              <template #default="{ expanded }">
-                                <div class="d-flex align-center justify-space-between w-100">
-                                  <div>
-                                    <strong>{{ plan.nom || `Plan de maintenance ${index + 1}` }}</strong>
-                                    <div class="text-caption text-grey mt-1">
-                                      {{ getPlanDescription(plan) }}
-                                    </div>
-                                  </div>
-                                  <div class="d-flex align-center gap-2">
-                                    <v-chip size="small" :color="getPlanStatusColor(plan)" label>
-                                      {{ getPlanStatusText(plan) }}
-                                    </v-chip>
-                                  </div>
+                        <v-row>
+                          <v-col v-for="(plan, index) in formData.plansMaintenance" :key="index" cols="12">
+                            <v-card variant="outlined" class="pa-4">
+                              <div class="d-flex align-center justify-space-between mb-2">
+                                <div class="d-flex align-center gap-2">
+                                  <v-icon color="primary">mdi-clipboard-check</v-icon>
+                                  <h3 class="text-h6">{{ plan.nom || 'Plan sans nom' }}</h3>
+                                  <v-chip v-if="plan.type_id" :color="getPlanTypeColor(plan)" size="small" label>
+                                    {{ getPlanTypeName(plan) }}
+                                  </v-chip>
                                 </div>
-                              </template>
-                            </v-expansion-panel-title>
-
-                            <v-expansion-panel-text>
-                              <!-- Informations du plan -->
-                              <v-row dense class="mb-4">
-                                <v-col cols="12" md="6">
-                                  <v-text-field v-model="plan.nom" label="Nom du plan" variant="outlined"
-                                    density="compact" :rules="[rules.required]"
-                                    @update:model-value="updateMaintenancePlan(index)" />
-                                </v-col>
-                                <v-col cols="12" md="6">
-                                  <v-select v-model="plan.type_id" :items="typesPM" item-title="libelle"
-                                    item-value="id" label="Type de maintenance" variant="outlined" density="compact"
-                                    :rules="[rules.required]" @update:model-value="updateMaintenancePlan(index)" />
-                                </v-col>
-                                <v-col cols="12">
-                                  <v-textarea v-model="plan.description" label="Description" variant="outlined"
-                                    density="compact" rows="2" @update:model-value="updateMaintenancePlan(index)" />
-                                </v-col>
-                              </v-row>
-
-                              <!-- Sélection du compteur -->
-                              <v-row dense class="mb-4">
-                                <v-col cols="12">
-                                  <h4 class="mb-2 text-body-1 font-weight-bold">Configuration des seuils</h4>
-                                </v-col>
-                                <v-col cols="12" md="6">
-                                  <v-select v-model="plan.compteurIndex" :items="formData.compteurs"
-                                    item-title="nomCompteur" item-value="index" label="Compteur associé" variant="outlined"
-                                    density="compact" :rules="[rules.required]"
-                                    @update:model-value="updateMaintenancePlan(index)">
-                                    <template #item="{ props, item }">
-                                      <v-list-item v-bind="props">
-                                        <template #prepend>
-                                          <v-icon :color="item.raw.estPrincipal ? 'primary' : 'grey'">
-                                            mdi-{{ item.raw.estPrincipal ? 'star' : 'counter' }}
-                                          </v-icon>
-                                        </template>
-                                        <v-list-item-title>
-                                          {{ item.raw.nomCompteur }}
-                                          <span v-if="item.raw.estPrincipal"
-                                            class="text-caption text-primary ml-1">(Principal)</span>
-                                        </v-list-item-title>
-                                        <v-list-item-subtitle>
-                                          {{ item.raw.valeurCourante }} {{ item.raw.unite }}
-                                        </v-list-item-subtitle>
-                                      </v-list-item>
-                                    </template>
-                                  </v-select>
-                                </v-col>
-                                <v-col cols="12" md="6" class="d-flex align-center">
-                                  <v-switch v-model="plan.seuil.estGlissant" label="Seuil glissant" color="primary"
-                                    hide-details @update:model-value="updateMaintenancePlan(index)" />
-                                </v-col>
-                              </v-row>
-
-                              <!-- Paramètres du seuil -->
-                              <v-row dense class="mb-4">
-                                <v-col cols="12" md="4">
-                                  <v-text-field v-model.number="plan.seuil.derniereIntervention" label="Dernière intervention"
-                                    variant="outlined" density="compact" type="number" :rules="[rules.positive]"
-                                    @update:model-value="updateSeuilValues(plan, index)" suffix="unité" />
-                                </v-col>
-                                <v-col cols="12" md="4">
-                                  <v-text-field v-model.number="plan.seuil.ecartInterventions" label="Intervalle"
-                                    variant="outlined" density="compact" type="number" :rules="[rules.positive]"
-                                    @update:model-value="updateSeuilValues(plan, index)" suffix="unité" />
-                                </v-col>
-                                <v-col cols="12" md="4">
-                                  <v-text-field v-model.number="plan.seuil.prochaineMaintenance" label="Prochaine maintenance"
-                                    variant="outlined" density="compact" type="number" :rules="[rules.positive]"
-                                    :readonly="true" suffix="unité" />
-                                </v-col>
-                              </v-row>
-                              <!-- Consommables du plan -->
-                              <v-row dense class="mb-4">
-                                <v-col cols="12">
-                                  <h4 class="mb-2 text-body-1 font-weight-bold">Consommables nécessaires</h4>
-                                  <v-select v-model="plan.consommables" :items="consumables" item-title="designation"
-                                    item-value="id" multiple chips label="Sélectionnez les consommables"
-                                    variant="outlined" density="compact"
-                                    @update:model-value="updateMaintenancePlan(index)" />
-                                </v-col>
-                              </v-row>
-
-                              <!-- Boutons d'action -->
-                              <div class="d-flex justify-space-between mt-4">
-                                <div>
-                                  <v-switch v-model="plan.necessiteHabilitationElectrique"
-                                    label="Habilitation électrique requise" color="orange" hide-details
-                                    @update:model-value="updateMaintenancePlan(index)" />
-                                  <v-switch v-model="plan.necessitePermisFeu" label="Permis feu requis" color="red"
-                                    hide-details @update:model-value="updateMaintenancePlan(index)" />
+                                <div class="d-flex gap-2">
+                                  <v-btn icon="mdi-pencil" size="small" color="primary" variant="text"
+                                    @click="handlePlanEdit(plan)" />
+                                  <v-btn icon="mdi-delete" size="small" color="error" variant="text"
+                                    @click="handlePlanDelete(plan)" />
                                 </div>
-
-                                <v-btn color="error" size="small" @click="handleMaintenancePlanDelete(plan)"
-                                  prepend-icon="mdi-delete">
-                                  Supprimer ce plan
-                                </v-btn>
                               </div>
-                            </v-expansion-panel-text>
-                          </v-expansion-panel>
-                        </v-expansion-panels>
+                              
+                              <v-divider class="my-3" />
+                              
+                              <v-row dense>
+                                <v-col cols="12" md="6">
+                                  <div class="text-caption text-grey">Compteur associé</div>
+                                  <div class="text-body-1">{{ getCounterName(plan.compteurIndex) }}</div>
+                                </v-col>
+                                <v-col cols="12" md="3">
+                                  <div class="text-caption text-grey">Intervalle</div>
+                                  <div class="text-body-1">{{ plan.seuil.ecartInterventions }} {{ getCounterUnit(plan.compteurIndex) }}</div>
+                                </v-col>
+                                <v-col cols="12" md="3">
+                                  <div class="text-caption text-grey">Prochaine maintenance</div>
+                                  <div class="text-body-1">{{ plan.seuil.prochaineMaintenance }} {{ getCounterUnit(plan.compteurIndex) }}</div>
+                                </v-col>
+                              </v-row>
+
+                              <v-row dense class="mt-2" v-if="plan.necessiteHabilitationElectrique || plan.necessitePermisFeu">
+                                <v-col cols="12">
+                                  <div class="text-caption text-grey mb-1">Habilitations requises</div>
+                                  <v-chip v-if="plan.necessiteHabilitationElectrique" size="x-small" color="orange" class="mr-1">
+                                    <v-icon start size="x-small">mdi-flash</v-icon>
+                                    Hab. élec.
+                                  </v-chip>
+                                  <v-chip v-if="plan.necessitePermisFeu" size="x-small" color="error">
+                                    <v-icon start size="x-small">mdi-fire</v-icon>
+                                    Permis feu
+                                  </v-chip>
+                                </v-col>
+                              </v-row>
+                            </v-card>
+                          </v-col>
+                        </v-row>
+
+                        <v-alert type="info" variant="tonal" class="mt-4">
+                          <v-icon>mdi-information</v-icon>
+                          Les plans de maintenance permettent de programmer les interventions préventives sur vos équipements.
+                        </v-alert>
                       </div>
 
                       <div v-else-if="formData.compteurs && formData.compteurs.length > 0"
@@ -307,7 +242,7 @@
                         <div class="text-body-1 mb-4">Ajoutez des plans de maintenance pour programmer les interventions
                           préventives
                         </div>
-                        <v-btn color="primary" @click="handleMaintenancePlanAdd" prepend-icon="mdi-plus">
+                        <v-btn color="primary" @click="handlePlanAdd" prepend-icon="mdi-plus">
                           Ajouter un plan de maintenance
                         </v-btn>
                       </div>
@@ -341,6 +276,19 @@
         <v-card-text>
           <CounterInlineForm v-model="currentCounter" :isEditMode="isCounterEditMode"
             @save="saveCurrentCounter" @cancel="closeCounterDialog" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showPlanDialog" max-width="1000px" @click:outside="closePlanDialog" persistent>
+      <v-card>
+        <v-card-title>
+          {{ isPlanEditMode ? 'Modifier un plan de maintenance' : 'Ajouter un plan de maintenance' }}
+        </v-card-title>
+        <v-card-text>
+          <MaintenancePlanInlineForm v-model="currentPlan" :isEditMode="isPlanEditMode"
+            :counters="formData.compteurs" :typesPM="typesPM" :consumables="consumables"
+            @save="savePlan" @cancel="closePlanDialog" />
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -406,6 +354,7 @@ import { API_BASE_URL, EQUIPMENT_CREATE_STEPS, COUNTER_UNITS } from '@/utils/con
 import { useEquipmentForm } from '@/composables/useEquipmentForm';
 import EquipmentFormFields from '@/components/Forms/EquipmentFormFields.vue';
 import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
+import MaintenancePlanInlineForm from '@/components/Forms/MaintenancePlanInlineForm.vue';
 import FabricantForm from '@/components/Forms/FabricantForm.vue';
 import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
@@ -430,8 +379,11 @@ const {
   equipmentStatuses,
   currentCounter,
   isCounterEditMode,
+  currentPlan,
+  isPlanEditMode,
   existingPMs,
   showCounterDialog,
+  showPlanDialog,
   showFabricantDialog,
   showFournisseurDialog,
   showModeleDialog,
@@ -442,6 +394,11 @@ const {
   handleCounterDelete,
   saveCurrentCounter,
   closeCounterDialog,
+  handlePlanAdd,
+  handlePlanEdit,
+  handlePlanDelete,
+  savePlan,
+  closePlanDialog,
   handleFabricantCreated,
   handleFournisseurCreated,
   handleModeleCreated,
@@ -593,75 +550,26 @@ const updateCounter = (index) => {
   formData.value.compteurs[index] = { ...formData.value.compteurs[index] };
 };
 
-const handleMaintenancePlanAdd = () => {
-  if (formData.value.compteurs.length === 0) return;
-
-  formData.value.plansMaintenance.push({
-    seuil: {
-      estGlissant: false,
-      derniereIntervention: 0,
-      ecartInterventions: 0,
-      prochaineMaintenance: 0,
-    },
-    id: null,
-    nom: '',
-    type_id: null,
-    description: '',
-    compteurIndex: formData.value.compteurs[0].index,
-    consommables: [],
-    documents: [],
-    necessiteHabilitationElectrique: false,
-    necessitePermisFeu: false,
-  });
-  openedMaintenancePanels.value = [formData.value.plansMaintenance.length - 1];
+// Fonctions helper pour l'affichage des plans
+const getCounterName = (compteurIndex) => {
+  if (compteurIndex === null || compteurIndex === undefined) return 'Non défini';
+  const counter = formData.value.compteurs[compteurIndex];
+  return counter ? counter.nom : 'Non défini';
 };
 
-
-const updateSeuilValues = (plan, index) => {
-  // Calcul automatique de la prochaine maintenance
-  if (plan.seuil.derniereIntervention && plan.seuil.ecartInterventions) {
-    plan.seuil.prochaineMaintenance = plan.seuil.derniereIntervention + plan.seuil.ecartInterventions;
-  }
-  updateMaintenancePlan(index);
+const getCounterUnit = (compteurIndex) => {
+  if (compteurIndex === null || compteurIndex === undefined) return '';
+  const counter = formData.value.compteurs[compteurIndex];
+  return counter ? counter.unite : '';
 };
 
-const rules = {
-  required: (v) => !!v || 'Ce champ est requis',
-  positive: (v) => v >= 0 || 'La valeur doit être positive'
+const getPlanTypeName = (plan) => {
+  const type = typesPM.value.find(t => t.id === plan.type_id);
+  return type ? type.libelle : 'Non défini';
 };
 
-const handleMaintenancePlanDelete = (plan) => {
-  const index = formData.value.plansMaintenance.indexOf(plan);
-  if (index > -1) {
-    formData.value.plansMaintenance.splice(index, 1);
-  }
-};
-
-const updateMaintenancePlan = (index) => {
-  formData.value.plansMaintenance[index] = { ...formData.value.plansMaintenance[index] };
-};
-
-const getPlanDescription = (plan) => {
-  if (plan.compteurIndex !== null && plan.compteurIndex !== undefined) { 
-    const counter = formData.value.compteurs[plan.compteurIndex];
-    if (counter) {
-      return `Intervention à ${plan.seuil.prochaineMaintenance} ${counter.unite} (intervalle: ${plan.seuil.ecartInterventions} ${counter.unite})`;
-    }
-  }
-  return 'Configuration incomplète';
-};
-
-const getPlanStatusColor = (plan) => {
-  if (!plan.compteurIndex && plan.compteurIndex !== 0) return 'grey';
-  if (!plan.nom || !plan.type_id) return 'orange';
-  return 'green';
-};
-
-const getPlanStatusText = (plan) => {
-  if (!plan.compteurIndex && plan.compteurIndex !== 0) return 'Compteur manquant';
-  if (!plan.nom) return 'Nom manquant';
-  if (!plan.type_id) return 'Type manquant';
-  return 'Configuré';
+const getPlanTypeColor = (plan) => {
+  return 'primary';
 };
 
 const internalSaveCurrentCounter = () => {

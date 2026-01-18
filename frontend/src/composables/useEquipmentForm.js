@@ -91,6 +91,27 @@ export function useEquipmentForm(isEditMode = false) {
   });
   const currentCounter = ref(getEmptyCounter());
 
+  const getEmptyPlan = () => ({
+    id: null,
+    nom: '',
+    type_id: null,
+    description: '',
+    compteurIndex: null,
+    consommables: [],
+    necessiteHabilitationElectrique: false,
+    necessitePermisFeu: false,
+    seuil: {
+      estGlissant: false,
+      derniereIntervention: 0,
+      ecartInterventions: 0,
+      prochaineMaintenance: 0
+    }
+  });
+  const currentPlan = ref(getEmptyPlan());
+  const isPlanEditMode = ref(false);
+  const editingPlanIndex = ref(-1);
+  const showPlanDialog = ref(false);
+
   const validateForm = () => {
     const requiredFields = ['numSerie', 'reference', 'designation', 'modeleEquipement', 'lieu', 'statut'];
     let isValid = true;
@@ -250,6 +271,49 @@ export function useEquipmentForm(isEditMode = false) {
     closeCounterDialog();
   };
 
+  const handlePlanAdd = () => {
+    editingPlanIndex.value = -1;
+    isPlanEditMode.value = false;
+    currentPlan.value = getEmptyPlan();
+    if (formData.value.compteurs.length > 0) {
+      currentPlan.value.compteurIndex = 0;
+    }
+    showPlanDialog.value = true;
+  };
+
+  const handlePlanEdit = (plan) => {
+    editingPlanIndex.value = formData.value.plansMaintenance.indexOf(plan);
+    isPlanEditMode.value = true;
+    currentPlan.value = { 
+      ...plan,
+      seuil: { ...plan.seuil },
+      consommables: [...plan.consommables]
+    };
+    showPlanDialog.value = true;
+  };
+
+  const handlePlanDelete = (plan) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce plan de maintenance ?')) {
+      formData.value.plansMaintenance = formData.value.plansMaintenance.filter(p => p !== plan);
+    }
+  };
+
+  const savePlan = () => {
+    if (editingPlanIndex.value >= 0) {
+      formData.value.plansMaintenance[editingPlanIndex.value] = { ...currentPlan.value };
+    } else {
+      formData.value.plansMaintenance.push({ ...currentPlan.value });
+    }
+    closePlanDialog();
+  };
+
+  const closePlanDialog = () => {
+    showPlanDialog.value = false;
+    editingPlanIndex.value = -1;
+    isPlanEditMode.value = false;
+    currentPlan.value = getEmptyPlan();
+  };
+
   const updateExistingPM = (counterToSave) => {
     const pmNom = counterToSave.planMaintenance.nom;
     if (!pmNom) return;
@@ -392,8 +456,14 @@ export function useEquipmentForm(isEditMode = false) {
     isCounterEditMode,
     existingPMs,
     
+    // Plan state
+    currentPlan,
+    editingPlanIndex,
+    isPlanEditMode,
+    
     // Dialogs
     showCounterDialog,
+    showPlanDialog,
     showFabricantDialog,
     showFournisseurDialog,
     showModeleDialog,
@@ -414,6 +484,14 @@ export function useEquipmentForm(isEditMode = false) {
     handleCounterDelete,
     saveCurrentCounter,
     closeCounterDialog,
+    
+    // Plan methods
+    getEmptyPlan,
+    handlePlanAdd,
+    handlePlanEdit,
+    handlePlanDelete,
+    savePlan,
+    closePlanDialog,
     
     // Dialog handlers
     handleFabricantCreated,
