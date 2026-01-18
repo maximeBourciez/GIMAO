@@ -17,26 +17,23 @@
             <div class="text-h6">{{ counter.nomCompteur }}</div>
           </v-col>
 
-          <v-col cols="12" md="4">
-            <strong>Unité :</strong>
-            <div class="text-h6">{{ counter.unite }}</div>
-          </v-col>
 
           <v-col cols="12" md="4">
             <strong>Valeur actuelle :</strong>
             <div class="text-h6">{{ counter.valeurCourante ?? "—" }}</div>
           </v-col>
+          <v-col cols="12" md="4">
+            <strong>Unité :</strong>
+            <div class="text-h6">{{ counter.unite }}</div>
+          </v-col>
+
+
         </v-row>
 
         <v-row dense class="mt-2">
           <v-col cols="12" md="4">
             <strong>Statut :</strong>
-            <v-chip
-              :color="counter.estPrincipal ? 'primary' : 'grey'"
-              label
-              class="ml-2"
-              size="small"
-            >
+            <v-chip :color="counter.estPrincipal ? 'primary' : 'grey'" label class="ml-2" size="small">
               {{ counter.estPrincipal ? "Principal" : "Secondaire" }}
             </v-chip>
           </v-col>
@@ -102,11 +99,7 @@
                   </v-col>
                   <v-col cols="12" md="3">
                     <strong>Type de seuil :</strong>
-                    <v-chip
-                      :color="seuil.estGlissant ? 'green' : 'orange'"
-                      size="small"
-                      label
-                    >
+                    <v-chip :color="seuil.estGlissant ? 'green' : 'orange'" size="small" label>
                       {{ seuil.estGlissant ? "Glissant" : "Fixe" }}
                     </v-chip>
                   </v-col>
@@ -143,15 +136,10 @@
                     <v-col cols="12">
                       <strong>Requis :</strong>
                       <div class="d-flex gap-3">
-                        <v-chip
-                          :color="
-                            seuil.planMaintenance.necessiteHabilitationElectrique
-                              ? 'orange'
-                              : 'grey'
-                          "
-                          size="small"
-                          label
-                        >
+                        <v-chip :color="seuil.planMaintenance.necessiteHabilitationElectrique
+                            ? 'orange'
+                            : 'grey'
+                          " size="small" label>
                           <v-icon left small>{{
                             seuil.planMaintenance.necessiteHabilitationElectrique
                               ? "mdi-check"
@@ -159,13 +147,8 @@
                           }}</v-icon>
                           Habilitation électrique
                         </v-chip>
-                        <v-chip
-                          :color="
-                            seuil.planMaintenance.necessitePermisFeu ? 'red' : 'grey'
-                          "
-                          size="small"
-                          label
-                        >
+                        <v-chip :color="seuil.planMaintenance.necessitePermisFeu ? 'red' : 'grey'
+                          " size="small" label>
                           <v-icon left small>{{
                             seuil.planMaintenance.necessitePermisFeu
                               ? "mdi-check"
@@ -181,20 +164,12 @@
                   <v-sheet class="pa-3 mb-3" elevation="0" rounded color="white">
                     <h5 class="mb-2">Consommables nécessaires</h5>
 
-                    <div
-                      v-if="!seuil.planMaintenance.consommables?.length"
-                      class="text-grey"
-                    >
+                    <div v-if="!seuil.planMaintenance.consommables?.length" class="text-grey">
                       Aucun consommable requis
                     </div>
 
-                    <v-row
-                      v-for="(consommable, consIndex) in seuil.planMaintenance
-                        .consommables"
-                      :key="consommable.id"
-                      dense
-                      class="mb-1"
-                    >
+                    <v-row v-for="(consommable, consIndex) in seuil.planMaintenance
+                      .consommables" :key="consommable.id" dense class="mb-1">
                       <v-col cols="8">
                         <v-icon left small>mdi-package-variant</v-icon>
                         {{ consommable.designation }}
@@ -207,19 +182,12 @@
                   <v-sheet class="pa-3" elevation="0" rounded color="white">
                     <h5 class="mb-2">Documents associés</h5>
 
-                    <div
-                      v-if="!seuil.planMaintenance.documents?.length"
-                      class="text-grey"
-                    >
+                    <div v-if="!seuil.planMaintenance.documents?.length" class="text-grey">
                       Aucun document
                     </div>
 
-                    <v-row
-                      v-for="(doc, docIndex) in seuil.planMaintenance.documents"
-                      :key="doc.id"
-                      dense
-                      class="mb-2 align-center"
-                    >
+                    <v-row v-for="(doc, docIndex) in seuil.planMaintenance.documents" :key="doc.id" dense
+                      class="mb-2 align-center">
                       <v-col cols="3">
                         <strong>{{ doc.nom || doc.titre || "Sans titre" }}</strong>
                       </v-col>
@@ -233,12 +201,7 @@
                         </v-chip>
                       </v-col>
                       <v-col cols="1" class="text-right">
-                        <v-btn
-                          :href="MEDIA_BASE_URL + doc.chemin"
-                          target="_blank"
-                          icon
-                          small
-                        >
+                        <v-btn :href="MEDIA_BASE_URL + doc.chemin" target="_blank" icon small>
                           <v-icon>mdi-open-in-new</v-icon>
                         </v-btn>
                       </v-col>
@@ -302,27 +265,14 @@
   </v-card>
 
   <v-dialog v-model="showCounterDialog" max-width="1000px">
-    <CounterForm
-      :counter="counter"
-      :isCounterEdit="isCounterEdit"
-      @close="closeCounterDialog"
-    />
+    <CounterForm :counter="counter" :isCounterEdit="isCounterEdit" @close="closeCounterDialog" />
   </v-dialog>
 
-  <v-dialog v-model="showSeuilDialog" max-width="1200px">
-    <SeuilForm
-      v-if="currentSeuil"
-      :seuil="currentSeuil"
-      :existingPMs="existingPMs"
-      :typesPM="typesPM"
-      :consumables="consumables"
-      :typesDocuments="typesDocuments"
-      :isEdit="!!currentSeuil.id"
-      :equipmentId="counter?.equipement_info?.id || null"
-      :compteurId="counterId"
-      @submit="saveSeuil"
-      @cancel="closeSeuilDialog"
-    />
+  <v-dialog v-model="showSeuilDialog" max-width="1200px" scrollable>
+    <SeuilForm v-if="currentSeuil" :seuil="currentSeuil" :existingPMs="existingPMs" :typesPM="typesPM"
+      :consumables="consumables" :typesDocuments="typesDocuments" :isEdit="!!currentSeuil.id"
+      :equipmentId="counter?.equipement_info?.id || null" :compteurId="counterId" @submit="saveSeuil"
+      @cancel="closeSeuilDialog" />
   </v-dialog>
 </template>
 

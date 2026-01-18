@@ -568,6 +568,256 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        """Mise à jour d'un plan de maintenance existant"""
+        data = dict(request.data)
+        
+        print("Données reçues pour update:", data)
+        
+        # Extraire les valeurs uniques des listes
+        for key, value in data.items():  
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+        
+        # Parser le JSON des changements
+        try:
+            changes_json = data.get('changes')
+            if changes_json:
+                changes = json.loads(changes_json)
+                print("Changements détectés:", changes)
+            else:
+                changes = {}
+                print("Aucun changement détecté")
+        except json.JSONDecodeError as e:
+            print(f"Erreur parsing changes JSON: {e}")
+            changes = {}
+        
+        # Parser le JSON du seuil si présent
+        try:
+            seuil_json = data.get('seuil')
+            if seuil_json:
+                seuil_data = json.loads(seuil_json)
+                print("Données seuil:", seuil_data)
+            else:
+                seuil_data = {}
+        except json.JSONDecodeError as e:
+            print(f"Erreur parsing seuil JSON: {e}")
+            seuil_data = {}
+        
+        plan = self.get_object()
+        modifications_log = {}  # Pour regrouper toutes les modifications
+        
+        # 1. Mettre à jour les champs simples du plan de maintenance
+        simple_fields = ['nom', 'commentaire', 'necessiteHabilitationElectrique', 
+                        'necessitePermisFeu', 'type_plan_maintenance_id']
+        
+        for field in simple_fields:
+            if field in data:
+                old_value = getattr(plan, field, None)
+                new_value = data[field]
+                if old_value != new_value:
+                    setattr(plan, field, new_value)
+                    modifications_log[field] = {
+                        'old': old_value,
+                        'new': new_value
+                    }
+        
+        # 2. Gérer les modifications détectées depuis le frontend
+        if changes:
+            for field_path, change_data in changes.items():
+                # Pour les champs simples du seuil
+                if field_path in ['derniereIntervention', 'prochaineMaintenance', 
+                                'ecartInterventions', 'estGlissant', 'planMaintenanceId']:
+                    # Ces champs concernent le déclenchement, pas le plan
+                    print(f"Changement dans le déclenchement: {field_path}")
+                    continue
+                
+                # Pour les champs du plan de maintenance
+                elif field_path.startswith('planMaintenance.'):
+                    field_name = field_path.replace('planMaintenance.', '')
+                    if field_name == 'type_id':
+                        field_name = 'type_plan_maintenance_id'
+                    
+                    # Vérifier si le champ existe dans le modèle
+                    if hasattr(plan, field_name):
+                        old_value = getattr(plan, field_name, None)
+                        new_value = change_data.get('nouvelle')
+                        
+                        # Pour les champs booléens, s'assurer du type
+                        if field_name in ['necessiteHabilitationElectrique', 'necessitePermisFeu']:
+                            new_value = bool(new_value)
+                        
+                        if old_value != new_value:
+                            setattr(plan, field_name, new_value)
+                            modifications_log[field_name] = {
+                                'old': old_value,
+                                'new': new_value
+                            }
+        
+        # Sauvegarder les modifications du plan
+        if modifications_log:
+            plan.save()
+            
+            # Créer un seul log pour toutes les modifications du plan
+            Log.objects.create(
+                utilisateur=request.user,
+                type_action='MODIFICATION',
+                idCible=plan.id,
+                champs_modifies=modifications_log,
+                date_action=timezone.now(),
+                modele_cible='PlanMaintenance'
+            )
+        
+        # 3. Mettre à jour les consommables si nécessaire
+        if changes and 'planMaintenance.consommables' in changes:
+            consommable_change = changes['planMaintenance.consommables']
+            print("Changement des consommables détecté")
+            
+            # Récupérer les anciens consommables
+            old_consommables = consommable_change.get('ancienne', [])
+            new_consommables = consommable_change.get('nouvelle', [])
+            
+            # Supprimer les anciennes associations
+            plan.consommables.all().delete()
+            
+            # Créer les nouvelles associations
+            for cons in new_consommables:
+                PlanMaintenanceConsommable.objects.create(
+                    plan_maintenance=plan,
+                    consommable_id=cons.get('consommable_id'),
+                    quantite_necessaire=cons.get('quantite', 1)
+                )
+            
+            # Log pour les consommables
+            Log.objects.create(
+                utilisateur=request.user,
+                type_action='MODIFICATION',
+                idCible=plan.id,
+                champs_modifies={'consommables': {
+                    'old': old_consommables,
+                    'new': new_consommables
+                }},
+                date_action=timezone.now(),
+                modele_cible='PlanMaintenance'
+            )
+        
+        # 4. Mettre à jour le déclenchement associé
+        try:
+            if seuil_data:
+                from equipement.models import Declencher
+                
+                # Chercher le déclenchement associé à ce plan
+                declencher = Declencher.objects.filter(planMaintenance=plan).first()
+                
+                if declencher:
+                    declencher_modifications = {}
+                    
+                    # Mettre à jour les champs du déclenchement
+                    fields_to_update = ['derniereIntervention', 'prochaineMaintenance', 
+                                    'ecartInterventions', 'estGlissant']
+                    
+                    for field in fields_to_update:
+                        if field in seuil_data:
+                            old_value = getattr(declencher, field, None)
+                            new_value = seuil_data[field]
+                            if old_value != new_value:
+                                setattr(declencher, field, new_value)
+                                declencher_modifications[field] = {
+                                    'old': old_value,
+                                    'new': new_value
+                                }
+                    
+                    # Sauvegarder les modifications du déclenchement
+                    if declencher_modifications:
+                        declencher.save()
+                        
+                        # Log pour le déclenchement
+                        Log.objects.create(
+                            utilisateur=request.user,
+                            type_action='MODIFICATION',
+                            idCible=declencher.id,
+                            champs_modifies=declencher_modifications,
+                            date_action=timezone.now(),
+                            modele_cible='Declencher'
+                        )
+                    
+                    # Mettre à jour le compteur si changement
+                    compteur_id = seuil_data.get('compteurId')
+                    if compteur_id and declencher.compteur_id != compteur_id:
+                        old_compteur = declencher.compteur_id
+                        declencher.compteur_id = compteur_id
+                        declencher.save()
+                        
+                        Log.objects.create(
+                            utilisateur=request.user,
+                            type_action='MODIFICATION',
+                            idCible=declencher.id,
+                            champs_modifies={'compteur_id': {
+                                'old': old_compteur,
+                                'new': compteur_id
+                            }},
+                            date_action=timezone.now(),
+                            modele_cible='Declencher'
+                        )
+        
+        except Exception as e:
+            print(f"Erreur lors de la mise à jour du déclenchement: {e}")
+        
+        # 5. Mettre à jour les documents si fichiers uploadés
+        try:
+            uploaded_files = request.FILES.getlist('documents')
+            if uploaded_files:
+                print(f"{len(uploaded_files)} fichiers uploadés")
+                
+                # Récupérer les métadonnées des documents
+                documents_metadata = []
+                if seuil_data.get('planMaintenance', {}).get('documents'):
+                    documents_metadata = seuil_data['planMaintenance']['documents']
+                
+                for index, uploaded_file in enumerate(uploaded_files):
+                    metadata = None
+                    if index < len(documents_metadata):
+                        metadata = documents_metadata[index]
+                    
+                    nom_document = metadata.get('nomDocument', '') if metadata else ''
+                    type_document_id = metadata.get('typeDocument_id', 1) if metadata else 1
+                    
+                    if not nom_document:
+                        nom_document = os.path.splitext(uploaded_file.name)[0]
+                    
+                    # Créer le document
+                    document = Document.objects.create(
+                        nomDocument=nom_document,
+                        typeDocument_id=type_document_id,
+                        cheminAcces=uploaded_file
+                    )
+                    
+                    # Créer l'association
+                    PlanMaintenanceDocument.objects.create(
+                        plan_maintenance=plan,
+                        document=document
+                    )
+                
+                # Log pour l'ajout de documents
+                if uploaded_files:
+                    Log.objects.create(
+                        utilisateur=request.user,
+                        type_action='AJOUT_DOCUMENTS',
+                        idCible=plan.id,
+                        champs_modifies={
+                            'documents_ajoutes': len(uploaded_files)
+                        },
+                        date_action=timezone.now(),
+                        modele_cible='PlanMaintenance'
+                    )
+        
+        except Exception as e:
+            print(f"Erreur lors de la création des documents: {e}")
+        
+        serializer = self.get_serializer(plan)
+        return Response(serializer.data)
+
 
 class PlanMaintenanceConsommableViewSet(viewsets.ModelViewSet):
     """
