@@ -39,7 +39,6 @@
 					color="error"
 					variant="text"
 					@click="removeDocument(index)"
-					:disabled="documents.length === 1"
 				/>
 			</v-col>
 		</v-row>
@@ -257,7 +256,6 @@ const addDocument = () => {
 
 const removeDocument = (index) => {
 	const current = normalize(props.modelValue);
-	if (current.length === 1) return;
 	const next = current.filter((_, i) => i !== index);
 	emit('update:modelValue', next.length ? next : [{ ...EMPTY_ROW }]);
 };
