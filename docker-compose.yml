@@ -32,18 +32,18 @@ services:
     depends_on:
       - db
     environment:
-    - DJANGO_SETTINGS_MODULE=gimao.settings
+      - DJANGO_SETTINGS_MODULE=gimao.settings
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_PASSWORD=admin
+      - DJANGO_SUPERUSER_EMAIL=admin@admin.com
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: gimao_frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     ports:
-      - "8081:8080"
+      - "8081:80"
 
 volumes:
   db_data:
