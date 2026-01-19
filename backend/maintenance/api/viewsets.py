@@ -8,6 +8,7 @@ import json
 from donnees.models import Document
 from equipement.models import Equipement
 from utilisateur.models import Utilisateur, Log
+from stock.models import Consommable
 from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
 
 
@@ -18,6 +19,7 @@ from maintenance.models import (
     TypePlanMaintenance,
     PlanMaintenance,
     PlanMaintenanceConsommable,
+    BonTravailConsommable,
     DemandeInterventionDocument
 )
 from maintenance.api.serializers import (
@@ -322,6 +324,13 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                 }
         return champs
 
+    def _get_consommables_state(self, bon_travail_id):
+        return list(
+            BonTravailConsommable.objects.filter(bon_travail_id=bon_travail_id)
+            .order_by('consommable_id')
+            .values('consommable_id', 'quantite_utilisee')
+        )
+
     def get_serializer_class(self):
         """Utilise le serializer détaillé pour retrieve"""
         if self.action == 'retrieve':
@@ -376,7 +385,8 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             'date_assignation': {'valCreation': bon_data.get('date_assignation')},
             'demande_intervention_id': {'valCreation': bon_data.get('demande_intervention')},
             'responsable_id': {'valCreation': bon.responsable_id},
-            'utilisateur_assigne_ids': {'valCreation': list(bon.utilisateur_assigne.values_list('id', flat=True))}
+            'utilisateur_assigne_ids': {'valCreation': list(bon.utilisateur_assigne.values_list('id', flat=True))},
+            'consommables': {'valCreation': self._get_consommables_state(bon.id)},
         }
 
         # Qui a effectué l'action ? (fallbacks)
@@ -395,9 +405,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         )
 
         return Response(bon_data, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=['get'])
-
 
     @action(detail=True, methods=['patch'])
     @transaction.atomic
@@ -508,8 +515,11 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         # Snapshot avant la mise à jour (sinon on relit l'état "après" et on ne détecte rien)
         avant_assigne_ids = list(bon_avant.utilisateur_assigne.values_list('id', flat=True))
+        avant_consommables = self._get_consommables_state(bon_avant.id)
 
-        super().partial_update(request, *args, **kwargs)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
         bon_apres = BonTravail.objects.get(pk=instance.pk)
         utilisateur_id = (
@@ -568,6 +578,14 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                         'ancien': old_date_assignation.isoformat() if old_date_assignation else None,
                         'nouveau': bon_apres.date_assignation.isoformat() if bon_apres.date_assignation else None,
                     }
+
+        if 'consommables' in request.data or 'consommables_ids' in request.data:
+            apres_consommables = self._get_consommables_state(bon_apres.id)
+            if avant_consommables != apres_consommables:
+                champs_modifies['consommables'] = {
+                    'ancien': avant_consommables,
+                    'nouveau': apres_consommables,
+                }
 
         if champs_modifies:
             self._create_log_entry(

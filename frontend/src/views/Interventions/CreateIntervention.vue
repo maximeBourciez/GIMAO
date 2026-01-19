@@ -7,6 +7,7 @@
 					:base-form-props="baseFormProps"
 					:equipments="equipments"
 					:users="users"
+					:consommables="consommables"
 					:responsable-read-only="true"
 					:state="formState"
 					@submit="submit"
@@ -46,6 +47,7 @@ const baseFormProps = {
 
 const users = ref([]);
 const equipments = ref([]);
+const consommables = ref([]);
 
 const connectedUser = computed(() => store.getters.currentUser);
 
@@ -57,8 +59,21 @@ const formData = ref({
 	commentaire: '',
 	diagnostic: '',
 	responsable_id: null,
-	utilisateur_assigne_ids: []
+	utilisateur_assigne_ids: [],
+	consommables: [{ consommable_id: null, quantite_utilisee: 1 }]
 });
+
+const buildConsommablesPayload = (payload) => {
+	const lines = Array.isArray(payload?.consommables) ? payload.consommables : [];
+	return lines
+		.filter((c) => c && c.consommable_id !== null && c.consommable_id !== undefined && c.consommable_id !== '')
+		.map((c) => {
+			const id = Number(c.consommable_id);
+			const qRaw = Number.isFinite(Number(c.quantite_utilisee)) ? Number(c.quantite_utilisee) : 0;
+			const q = Math.max(0, Math.trunc(qRaw));
+			return { consommable_id: id, quantite_utilisee: q };
+		});
+};
 
 const loadUsers = async () => {
 	users.value = await api.get('utilisateurs/');
@@ -66,6 +81,10 @@ const loadUsers = async () => {
 
 const loadEquipments = async () => {
 	equipments.value = await api.get('equipements/');
+};
+
+const loadConsommables = async () => {
+	consommables.value = await api.get('consommables/');
 };
 
 const submit = async (payload) => {
@@ -102,7 +121,8 @@ const submit = async (payload) => {
 			commentaire: payload.commentaire,
 			diagnostic: payload.diagnostic,
 			responsable_id: payload.responsable_id,
-			utilisateur_assigne_ids: payload.utilisateur_assigne_ids
+			utilisateur_assigne_ids: payload.utilisateur_assigne_ids,
+			consommables: buildConsommablesPayload(payload)
 		});
 
 		formState.successMessage = "Bon de travail créé avec succès";
@@ -125,7 +145,7 @@ onMounted(async () => {
 	try {
 		formState.loading = true;
 		formData.value.responsable_id = connectedUser.value?.id ?? null;
-		await Promise.all([loadUsers(), loadEquipments()]);
+		await Promise.all([loadUsers(), loadEquipments(), loadConsommables()]);
 	} catch (error) {
 		console.error('Erreur lors du chargement:', error);
 		formState.errorMessage = 'Erreur lors du chargement des données';
