@@ -119,6 +119,10 @@ const props = defineProps({
 	typeDocuments: {
 		type: Array,
 		default: () => []
+	},
+	excludeDocumentIds: {
+		type: Array,
+		default: () => []
 	}
 });
 
@@ -164,6 +168,14 @@ const getTypeName = (typeId) => {
 	return props.typeDocuments?.find((t) => Number(t?.id) === id)?.nomTypeDocument || '—';
 };
 
+const excludedIdSet = computed(() => {
+	const raw = Array.isArray(props.excludeDocumentIds) ? props.excludeDocumentIds : [];
+	const ids = raw
+		.map((x) => Number(x))
+		.filter((x) => Number.isInteger(x) && x > 0);
+	return new Set(ids);
+});
+
 const documentSelectItems = computed(() => {
 	const createItem = { id: CREATE_OPTION_ID, label: '+ Créer un nouveau document…' };
 	const docs = Array.isArray(existingDocuments.value) ? existingDocuments.value : [];
@@ -175,6 +187,7 @@ const documentSelectItems = computed(() => {
 			return { id, label: typeName && typeName !== '—' ? `${name} — ${typeName}` : name };
 		})
 		.filter((x) => x.id !== null && x.id !== undefined)
+		.filter((x) => !excludedIdSet.value.has(Number(x.id)))
 		.sort((a, b) => Number(b.id) - Number(a.id));
 
 	return [createItem, ...docItems];
