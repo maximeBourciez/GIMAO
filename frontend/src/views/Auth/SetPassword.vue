@@ -103,8 +103,8 @@ export default {
         this.$router.push('/')
 
       } catch (err) {
-        if (err.response?.data?.detail) {
-          this.error = err.response.data.detail
+        if (err.response?.detail) {
+          this.error = err.response.detail
         } else {
           this.error = 'Erreur lors de la définition du mot de passe'
         }

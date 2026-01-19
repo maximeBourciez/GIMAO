@@ -74,7 +74,7 @@ export default {
         })
 
         // Si besoin de définir le mot de passe
-        if (response.data.besoinDefinirMotDePasse) {
+        if (response.besoinDefinirMotDePasse) {
           this.$router.push({
             name: 'SetPassword',
             query: { username: this.nomUtilisateur }
@@ -89,7 +89,7 @@ export default {
 
       } catch (err) {
         if (err.response?.data?.detail) {
-          this.error = err.response.data.detail
+          this.error = err.response.detail
         } else {
           this.error = 'Erreur de connexion'
         }

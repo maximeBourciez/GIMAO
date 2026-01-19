@@ -2,8 +2,8 @@
 // CONSTANTES GÉNÉRALES
 // ============================================
 
-export const API_BASE_URL = "/api/";
-export const BASE_URL = "";
+export const BASE_URL = process.env.VUE_APP_BACKEND_BASE_URL;
+export const API_BASE_URL = `${BASE_URL}/api/`;
 export const MEDIA_BASE_URL = "/media/";
 export const DEFAULT_ITEMS_PER_PAGE = 10;
 
