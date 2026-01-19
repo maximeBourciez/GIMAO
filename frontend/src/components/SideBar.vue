@@ -14,7 +14,7 @@
 
         <!-- Navigation -->
         <v-list dense nav>
-            <v-list-item v-for="item in navigationItems" :key="item.name"
+            <v-list-item v-for="item in filteredNavigationItems" :key="item.name"
                 :to="!item.disabled ? { name: item.name } : null" :class="[
                     'my-1',
                     { 'active-item': isActive(item.name) },
@@ -50,10 +50,11 @@
             <v-divider />
 
             <v-list dense>
-                <v-list-item class="py-2">
+                <v-list-item class="py-2 user-info-item" @click="goToMyUserDetail">
                     <template #prepend>
-                        <v-avatar size="36" color="primary">
-                            <span class="text-white">{{ userInitials }}</span>
+                        <v-avatar size="36" :color="userPhotoUrl ? 'transparent' : 'primary'">
+                            <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
+                            <span v-else class="text-white">{{ userInitials }}</span>
                         </v-avatar>
                     </template>
 
@@ -78,6 +79,8 @@
 </template>
 
 <script>
+import { MEDIA_BASE_URL } from '@/utils/constants';
+
 export default {
     name: "Sidebar",
 
@@ -90,13 +93,13 @@ export default {
             isHovered: false, // hover temporaire
 
             navigationItems: [
-                { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord" },
-                { name: "EquipmentList", icon: "mdi-tools", title: "Équipements" },
-                { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail" },
-                { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions" },
-                { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes"},
-                { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks"},
-                { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données" }
+                { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord", rolesAllowed: ["Responsable GMAO", "Technicien", "Magasinier"] },
+                { name: "EquipmentList", icon: "mdi-tools", title: "Équipements", rolesAllowed: ["Responsable GMAO", "Technicien"] },
+                { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions (DI)", rolesAllowed: ["Responsable GMAO", "Technicien"] },
+                { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)", rolesAllowed: ["Responsable GMAO", "Technicien"] },
+                { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes", rolesAllowed: ["Responsable GMAO"] },
+                { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", rolesAllowed: ["Magasinier", "Responsable GMAO"] },
+                { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", rolesAllowed: ["Responsable GMAO"] }
             ]
         };
     },
@@ -110,35 +113,40 @@ export default {
             return this.displayTitles ? 280 : 80;
         },
 
-        user() {
+        currentUserRaw() {
             const currentUser = this.$store.getters.currentUser;
-            
-            if (currentUser) {
-                return {
-                    name: `${currentUser.prenom} ${currentUser.nomFamille}`,
-                    role: currentUser.role?.nomRole || 'Utilisateur'
-                };
-            }
-            
-            // Fallback: essayer de lire depuis localStorage
+            if (currentUser) return currentUser;
+
             const userFromStorage = localStorage.getItem('user');
-            if (userFromStorage) {
-                try {
-                    const userData = JSON.parse(userFromStorage);
-                    console.log('User from localStorage:', userData);
-                    return {
-                        name: `${userData.prenom} ${userData.nomFamille}`,
-                        role: userData.role?.nomRole || 'Utilisateur'
-                    };
-                } catch (e) {
-                    console.error('Error parsing user from localStorage:', e);
-                }
+            if (!userFromStorage) return null;
+            try {
+                return JSON.parse(userFromStorage);
+            } catch (e) {
+                console.error('Error parsing user from localStorage:', e);
+                return null;
             }
-            
+        },
+
+        user() {
+            const raw = this.currentUserRaw;
+            if (!raw) {
+                return { name: 'Utilisateur', role: 'Non défini' };
+            }
+
+            const prenom = raw?.prenom ?? '';
+            const nomFamille = raw?.nomFamille ?? '';
+            const displayName = `${prenom} ${nomFamille}`.trim() || raw?.nomUtilisateur || 'Utilisateur';
             return {
-                name: 'Utilisateur',
-                role: 'Non défini'
+                name: displayName,
+                role: raw?.role?.nomRole || 'Utilisateur'
             };
+        },
+
+        userPhotoUrl() {
+            const raw = this.currentUserRaw;
+            const path = raw?.photoProfil;
+            if (!path || typeof path !== 'string' || path.trim() === '') return '';
+            return `${MEDIA_BASE_URL}${path}`;
         },
 
         userInitials() {
@@ -148,6 +156,13 @@ export default {
                 .join("")
                 .slice(0, 2)
                 .toUpperCase();
+        },
+
+        filteredNavigationItems() {
+            const role = this.user.role;
+            return this.navigationItems.filter(item =>
+                item.rolesAllowed?.includes(role)
+            );
         }
     },
 
@@ -163,9 +178,15 @@ export default {
         logout() {
             // Supprimer les données du store et du localStorage
             this.$store.dispatch('logout');
-            
+
             // Rediriger vers login avec un reload complet pour nettoyer tout le state
             window.location.href = '/login';
+        },
+
+        goToMyUserDetail() {
+            const id = this.currentUserRaw?.id;
+            if (!id) return;
+            this.$router.push({ name: 'UserDetail', params: { id } });
         }
     }
 };
@@ -233,6 +254,10 @@ export default {
 ========================= */
 .logout-item:hover {
     background-color: #f5f5f5;
+}
+
+.user-info-item {
+    cursor: pointer;
 }
 
 /* =========================

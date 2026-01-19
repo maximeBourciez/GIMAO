@@ -5,7 +5,8 @@ from maintenance.api.viewsets import (
     BonTravailViewSet,
     TypePlanMaintenanceViewSet,
     PlanMaintenanceViewSet,
-    PlanMaintenanceConsommableViewSet
+    PlanMaintenanceConsommableViewSet,
+    DashboardStatsViewset
 )
 
 # Créer le router
@@ -21,4 +22,9 @@ router.register(r'plan-maintenance-consommables', PlanMaintenanceConsommableView
 # URLs
 urlpatterns = [
     path('', include(router.urls)),
+    path(
+        "stats/",
+        DashboardStatsViewset.as_view({'get': 'list'}),
+        name="stats",
+    ),
 ]

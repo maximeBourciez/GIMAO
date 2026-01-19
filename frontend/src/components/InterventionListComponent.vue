@@ -1,5 +1,6 @@
 <template>
 	<BaseListView
+		ref="tableContainer"
 		:title="title"
 		:subtitle="subtitle"
 		:headers="vuetifyHeaders"
@@ -85,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useDisplay } from 'vuetify';
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
@@ -114,8 +115,7 @@ const props = defineProps({
 	},
 
 	// Optional filters (used when the component fetches data)
-	statut: { type: String, default: '' },
-	type: { type: String, default: '' }
+	statut: { type: String, default: '' }
 });
 
 const emit = defineEmits(['row-click', 'create', 'loaded']);
@@ -125,6 +125,10 @@ const { smAndDown, lgAndUp } = useDisplay();
 const api = useApi(API_BASE_URL);
 
 const errorMessage = ref('');
+const containerWidth = ref(0);
+const tableContainer = ref(null);
+let resizeObserver;
+
 const loading = computed(() => api.loading.value);
 const fetchedItems = computed(() => api.data.value || []);
 
@@ -142,9 +146,14 @@ const resolvedVariant = computed(() => {
 });
 
 const baseHeaders = computed(() => {
-	if (resolvedVariant.value === 'full') return TABLE_HEADERS.INTERVENTIONS || [];
-	if (resolvedVariant.value === 'mobile') return TABLE_HEADERS.INTERVENTIONS_MOBILE || [];
-	return TABLE_HEADERS.INTERVENTIONS_LIGHT || [];
+  // Si on a une largeur de conteneur < 860px et variant auto, on priorise le mobile
+  if (containerWidth.value < 860 && props.variant === 'auto') {
+    return TABLE_HEADERS.INTERVENTIONS_MOBILE || [];
+  }
+  
+  if (resolvedVariant.value === 'full') return TABLE_HEADERS.INTERVENTIONS || [];
+  if (resolvedVariant.value === 'mobile') return TABLE_HEADERS.INTERVENTIONS_MOBILE || [];
+  return TABLE_HEADERS.INTERVENTIONS_LIGHT || [];
 });
 
 // Vuetify 3 expects `key` in headers; repo constants use `value`.
@@ -166,13 +175,7 @@ const fetchBonsTravail = async () => {
 
 	errorMessage.value = '';
 	try {
-		if (props.statut) {
-			await api.get('bons-travail/par_statut', { statut: props.statut });
-		} else if (props.type) {
-			await api.get('bons-travail/par_type', { type: props.type });
-		} else {
-			await api.get('bons-travail');
-		}
+		await api.get('bons-travail');
 
 		emit('loaded', displayItems.value);
 	} catch (error) {
@@ -184,14 +187,42 @@ const onRowClick = (item) => {
 	emit('row-click', item);
 };
 
+const observeTableContainer = () => {
+  if (tableContainer.value && tableContainer.value.$el) {
+    const tableEl = tableContainer.value.$el.querySelector('.v-data-table') || tableContainer.value.$el;
+    if (tableEl) {
+      resizeObserver.observe(tableEl);
+    }
+  }
+};
+
 watch(
-	() => [props.statut, props.type, props.fetchOnMount],
+	() => [props.fetchOnMount],
 	() => {
 		fetchBonsTravail();
 	}
 );
 
-onMounted(fetchBonsTravail);
+onMounted(() => {
+	fetchBonsTravail();
+	
+	// Initialise l'observateur de redimensionnement
+	resizeObserver = new ResizeObserver(entries => {
+		const entry = entries[0];
+		containerWidth.value = Math.round(entry.contentRect.width);
+	});
+	
+	// Observe le conteneur du tableau
+	nextTick(() => {
+		observeTableContainer();
+	});
+});
+
+onBeforeUnmount(() => {
+	if (resizeObserver) {
+		resizeObserver.disconnect();
+	}
+});
 </script>
 
 <style scoped>
@@ -226,4 +257,3 @@ onMounted(fetchBonsTravail);
 	overflow: hidden;
 }
 </style>
-

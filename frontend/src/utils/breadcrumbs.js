@@ -1,8 +1,3 @@
-import CreateModelEquipment from "../views/DataManagement/EquipmentsModels/CreateModelEquipment.vue";
-import CreateLocation from "../views/DataManagement/Locations/CreateLocation.vue";
-import SupplierDetail from "../views/DataManagement/Suppliers/SupplierDetail.vue";
-import Stocks from "../views/Stocks/Stocks.vue";
-
 export const BREADCRUMBS = {
     /***************************************
      * Équipements
@@ -128,6 +123,13 @@ export const BREADCRUMBS = {
         ];
     },
 
+    CreateIntervention: (route) => {
+        return [
+            { label: "Bons de travail", to: { name: "InterventionList" } },
+            { label: "Créer un bon de travail" },
+        ];
+    },
+
     /***************************************
      * Demandes d'intervention
      **************************************/
@@ -161,15 +163,28 @@ export const BREADCRUMBS = {
         },
     ],
 
-    CreateFailure: (route) => [
-        {
-            label: "Demandes d'intervention",
-            to: { name: "FailureList" },
-        },
-        {
-            label: `Créer`,
-        },
-    ],
+    CreateFailure: (route) => {
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: "Créer une DI",
+                },
+            ];
+        }
+        return [
+            {
+                label: "Demandes d'intervention",
+                to: { name: "FailureList" },
+            },
+            {
+                label: `Créer`,
+            }
+        ];
+    },
 
     EditFailure: (route) => [
         {

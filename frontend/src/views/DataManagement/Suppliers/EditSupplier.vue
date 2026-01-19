@@ -43,8 +43,51 @@ const errorLoading = ref('')
 const connectedUserId = computed(() => store.getters.currentUser?.id)
 
 const loadSupplierData = async () => {
-  loading.value = true
-  errorLoading.value = ''
+  isLoading.value = true;
+  errorMessage.value = "";
+  try {
+    supplierData.value = await api.get(`fournisseurs/${supplierId}`);
+    originalData.value = JSON.parse(JSON.stringify(supplierData.value));
+} catch (error) {
+    console.error("Error loading supplier data:", error);
+    errorMessage.value = "Erreur lors du chargement des données du fournisseur";
+    loader.value = false;
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Fonctions de validation
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+};
+
+const isValidPhone = (phone) => {
+  return /^\+?[0-9\s\-()]{7,15}$/.test(phone);
+};
+
+const isValidPostalCode = (code) => {
+  return /^[0-9]{4,6}$/.test(code.replace(/\s/g, ""));
+};
+
+const handleSubmit = async () => {
+  isSaving.value = true;
+  saveErrorMessage.value = "";
+
+  const changes = detectChanges();
+
+  console.log("Detected changes:", changes);
+
+  changes.user = store.getters.currentUser.id;
+
+  console.log("Changes to be sent:", changes);
+
+  if (Object.keys(changes).length === 0) {
+    // Aucune modification détectée
+    isSaving.value = false;
+    console.log("No changes detected, skipping update.");
+    return;
+  }
 
   try {
     supplierData.value = await api.get(`fournisseurs/${supplierId}`)

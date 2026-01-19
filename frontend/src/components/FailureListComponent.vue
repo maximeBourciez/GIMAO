@@ -1,40 +1,27 @@
 <template>
-  <BaseListView ref="tableContainer"
-    :title="'Liste des demandes d\'intervention'"
-    :headers="tableHeaders" 
-    :items="failures" 
-    :loading="loading"
-    :error-message="errorMessage" 
-    :no-data-text="noDataText" 
-    :no-data-icon="noDataIcon" 
-    :internalSearch="true"
-    :show-create-button="false"
-    @row-click="handleRowClick" 
-    @clear-error="errorMessage = ''">
+  <BaseListView ref="tableContainer" :title="title" :headers="tableHeaders" :items="failures" :loading="loading"
+    :error-message="errorMessage" :no-data-text="noDataText" :no-data-icon="noDataIcon" :show-search="showSearch"
+    :internalSearch="true" :show-create-button="false" @row-click="handleRowClick" @clear-error="errorMessage = ''">
     <!-- Colonne Createur -->
     <template #item.createur="{ item }">
-      {{ item.utilisateur.nomUtilisateur }}
+      {{ item.utilisateur.prenom ?? '' }} {{ item.utilisateur.nomFamille ?? '' }}
     </template>
-
     <template #item.commentaire="{ item }">
       {{ item.commentaire.length > 50 ? item.commentaire.substring(0, 50) + '...' : item.commentaire }}
     </template>
-
     <!-- Colonne Statut -->
     <template #item.statut="{ item }">
       <v-chip :color="item.statut ? FAILURE_STATUS_COLORS[item.statut] : 'grey'" dark>
         {{ FAILURE_STATUS[item.statut] }}
       </v-chip>
     </template>
-
     <!-- Colonne Equipement -->
     <template #item.equipement="{ item }">
-      {{ item.equipement.reference }}
+      {{ item.equipement.designation }}
     </template>
-    
-    
-  </BaseListView>
 
+
+  </BaseListView>
   <!-- Bouton flottant en bas à droite -->
   <v-btn v-if="showCreateButton" color="primary" size="large" icon class="floating-add-button" elevation="4"
     @click="$emit('create')">
@@ -44,14 +31,11 @@
     </v-tooltip>
   </v-btn>
 </template>
-
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
-import { getFailureLevelColor } from '@/utils/helpers';
 import { TABLE_HEADERS, API_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
-
 const props = defineProps({
   createButtonText: {
     type: String,
@@ -71,41 +55,44 @@ const props = defineProps({
   },
   showCreateButton: {
     type: Boolean,
-    default: true
+    default: false
   },
   templateHeader: {
     type: Boolean,
     default: false
+  },
+  title: {
+    type: String,
+    default: 'Liste des demandes d\'intervention'
+  },
+  showSearch: {
+    type: Boolean,
+    default: true
   }
 });
-
 const emit = defineEmits(['create', 'row-click']);
-
 const api = useApi(API_BASE_URL);
 const errorMessage = ref('');
-
 const failures = computed(() => api.data.value || []);
 const loading = computed(() => api.loading.value);
 const containerWidth = ref(0);
 const tableHeaders = computed(() => {
-  if (containerWidth.value < 860 ) {
+  if (containerWidth.value < 860) {
     return TABLE_HEADERS.FAILURES_SUPER_LIGHT;
-  }else if (props.templateHeader){
+  } else if (props.templateHeader) {
     return TABLE_HEADERS.FAILURES_LIGHT;
   }
   return TABLE_HEADERS.FAILURES;
 });
-
 const handleCreate = () => {
   emit('create');
 };
-
 const handleRowClick = (item) => {
   emit('row-click', item);
 };
-
 const tableContainer = ref(null);
-let resizeObserver ;
+let resizeObserver = null;
+let resizeTimeout = null;
 
 onMounted(async () => {
   try {
@@ -113,16 +100,39 @@ onMounted(async () => {
   } catch (error) {
     errorMessage.value = 'Erreur lors du chargement des défaillances';
   }
+
   resizeObserver = new ResizeObserver(entries => {
-    const entry = entries[0];
-    containerWidth.value = Math.round(entry.contentRect.width);
+    if (resizeTimeout) {
+      clearTimeout(resizeTimeout);
+    }
+
+    resizeTimeout = setTimeout(() => {
+      window.requestAnimationFrame(() => {
+        const entry = entries[0];
+        if (entry) {
+          containerWidth.value = Math.round(entry.contentRect.width);
+        }
+      });
+    }, 100);
   });
+
   if (tableContainer.value) {
-    resizeObserver.observe(tableContainer.value.$el ?? tableContainer.value);
+    const element = tableContainer.value.$el ?? tableContainer.value;
+    if (element) {
+      resizeObserver.observe(element);
+    }
+  }
+});
+
+onBeforeUnmount(() => {
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout);
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect();
   }
 });
 </script>
-
 <style scoped>
 .floating-add-button {
   position: fixed !important;

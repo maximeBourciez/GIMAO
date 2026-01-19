@@ -61,12 +61,10 @@ class CompteurSerializer(serializers.ModelSerializer):
     """Serializer complet pour un compteur avec option de niveau de détail"""
     seuils = serializers.SerializerMethodField()
     equipement_info = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Compteur
-        fields = [
-            'id', 'nomCompteur', 'valeurCourante', 'unite', 'estPrincipal', 'seuils' ,'type', 'equipement_info'
-        ]
+        fields = '__all__'
 
     def get_equipement_info(self, obj):
         """Retourne les informations essentielles de l'équipement"""

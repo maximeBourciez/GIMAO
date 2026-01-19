@@ -43,8 +43,47 @@ const errorLoading = ref('')
 const connectedUserId = computed(() => store.getters.currentUser?.id)
 
 const loadManufacturerData = async () => {
-  loading.value = true
-  errorLoading.value = ''
+  isLoading.value = true;
+  errorMessage.value = "";
+  try {
+    manufacturerData.value = await api.get(`fabricants/${manufacturerId}`);
+    originalData.value = JSON.parse(JSON.stringify(manufacturerData.value));
+  } catch (error) {
+    console.error("Error loading manufacturer data:", error);
+    errorMessage.value = "Erreur lors du chargement des données du fabricant";
+    loader.value = false;
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Fonctions de validation
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+};
+
+const isValidPhone = (phone) => {
+  return /^\+?[0-9\s\-()]{7,15}$/.test(phone);
+};
+
+const isValidPostalCode = (code) => {
+  return /^[0-9]{4,6}$/.test(code.replace(/\s/g, ""));
+};
+
+const handleSubmit = async () => {
+  isSaving.value = true;
+  saveErrorMessage.value = "";
+
+  const changes = detectChanges();
+
+  changes.user = store.getters.currentUser.id;
+
+  if (Object.keys(changes).length === 0) {
+    // Aucune modification détectée
+    isSaving.value = false;
+    console.log("No changes detected, skipping update.");
+    return;
+  }
 
   try {
     manufacturerData.value = await api.get(`fabricants/${manufacturerId}`)

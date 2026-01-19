@@ -115,6 +115,12 @@ export const TABLE_HEADERS = {
             value: "nom",
         },
         {
+            title: "Equipement",
+            value: "equipement.designation",
+            align: "center",
+            sortable: false
+        },
+        {
             title: "Statut",
             align: "center",
             sortable: true,

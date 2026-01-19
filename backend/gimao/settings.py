@@ -25,7 +25,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_crontab',
     'rest_framework',
+    'django_filters',
     'corsheaders',
     'drf_yasg',
     'utilisateur',
@@ -33,6 +35,7 @@ INSTALLED_APPS = [
     'stock',
     'equipement',
     'maintenance',
+    'tasks',
 ]
 
 
@@ -49,9 +52,6 @@ MIDDLEWARE = [
 
 
 ROOT_URLCONF = 'gimao.urls'
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 TEMPLATES = [
     {
@@ -120,6 +120,32 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://127.0.0.1:8081",
 ]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'cron_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(MEDIA_ROOT, 'cron_logs/cron.log'),
+        },
+    },
+    'loggers': {
+        'tasks': {
+            'handlers': ['cron_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+
+CRONJOBS = [
+    ('* * * * *', 'tasks.counterCron.update_counter'),
+]
+
+
 
 CORS_ALLOW_ALL_ORIGINS = True  # Uniquement pour le développement !
 CORS_ALLOW_CREDENTIALS = True

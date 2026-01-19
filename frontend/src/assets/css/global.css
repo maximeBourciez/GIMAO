@@ -10,6 +10,14 @@
     background-color: #FFFFFF;
   }
   
+  .v-btn {
+    background-color: #F1F5FF;
+    border-radius: 12px;
+  }
+  
+  h1 {
+    color: #05004E;
+  }
 
   body {
   font-family: 'Poppins', sans-serif;
@@ -44,3 +52,8 @@
   margin-left: 2px;
   font-weight: bold;
 } 
+
+.v-btn--icon {
+  background-color: #F1F5FF;
+  border-radius: 50%;
+}
