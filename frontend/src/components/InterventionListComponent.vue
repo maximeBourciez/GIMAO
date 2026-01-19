@@ -4,7 +4,7 @@
 		:title="title"
 		:subtitle="subtitle"
 		:headers="vuetifyHeaders"
-		:items="displayItems"
+		:items="filteredItems"
 		:sort-by="defaultSortBy"
 		:loading="loading"
 		:error-message="errorMessage"
@@ -19,6 +19,10 @@
 		@create="$emit('create')"
 		@clear-error="errorMessage = ''"
 	>
+		<template #filters>
+			<slot name="filters"></slot>
+		</template>
+
 		<!-- Nom (tronqué si la colonne est trop étroite) -->
 		<template #item.nom="{ item }">
 			<span
@@ -139,13 +143,29 @@ const errorMessage = ref('');
 const containerWidth = ref(0);
 const tableContainer = ref(null);
 let resizeObserver;
+let rafId = null;
+const includeClotureInFetch = ref(false);
 
 const loading = computed(() => api.loading.value);
 const fetchedItems = computed(() => api.data.value || []);
 
-const displayItems = computed(() => {
+const allItems = computed(() => {
 	if (Array.isArray(props.items)) return props.items;
 	return fetchedItems.value;
+});
+
+// Filtre côté front :
+// - statut vide => comportement historique: on masque les BT clôturés
+// - statut renseigné => on n'affiche que ce statut (y compris CLOTURE)
+const filteredItems = computed(() => {
+	const items = Array.isArray(allItems.value) ? allItems.value : [];
+	const selectedStatut = String(props.statut || '').trim();
+
+	if (!selectedStatut) {
+		return items.filter((i) => i && i.statut !== 'CLOTURE');
+	}
+
+	return items.filter((i) => i && i.statut === selectedStatut);
 });
 
 const resolvedVariant = computed(() => {
@@ -182,15 +202,20 @@ const vuetifyHeaders = computed(() => {
 
 const defaultSortBy = [{ key: 'id', order: 'desc' }];
 
-const fetchBonsTravail = async () => {
+const fetchBonsTravail = async ({ includeCloture } = { includeCloture: false }) => {
 	if (Array.isArray(props.items)) return;
 	if (!props.fetchOnMount) return;
 
 	errorMessage.value = '';
 	try {
-		await api.get('bons-travail');
+		includeClotureInFetch.value = !!includeCloture;
+		if (includeCloture) {
+			await api.get('bons-travail', { cloture: true });
+		} else {
+			await api.get('bons-travail');
+		}
 
-		emit('loaded', displayItems.value);
+		emit('loaded', allItems.value);
 	} catch (error) {
 		errorMessage.value = 'Erreur lors du chargement des bons de travail';
 	}
@@ -201,10 +226,15 @@ const onRowClick = (item) => {
 };
 
 const observeTableContainer = () => {
+  if (!resizeObserver) return;
   if (tableContainer.value && tableContainer.value.$el) {
     const tableEl = tableContainer.value.$el.querySelector('.v-data-table') || tableContainer.value.$el;
     if (tableEl) {
-      resizeObserver.observe(tableEl);
+      try {
+        resizeObserver.observe(tableEl);
+      } catch (e) {
+        console.warn('ResizeObserver observe failed:', e);
+      }
     }
   }
 };
@@ -212,28 +242,67 @@ const observeTableContainer = () => {
 watch(
 	() => [props.fetchOnMount],
 	() => {
-		fetchBonsTravail();
+		fetchBonsTravail({ includeCloture: false });
+	}
+);
+
+watch(
+	() => props.statut,
+	(newStatut, oldStatut) => {
+		// On évite de rappeler le backend à chaque changement.
+		// On refetch uniquement quand on demande explicitement les clôturés (CLOTURE),
+		// ou quand on quitte ce filtre pour revenir sur la vue par défaut.
+		const next = String(newStatut || '').trim();
+		const prev = String(oldStatut || '').trim();
+
+		if (next === 'CLOTURE' && !includeClotureInFetch.value) {
+			fetchBonsTravail({ includeCloture: true });
+			return;
+		}
+
+		if (prev === 'CLOTURE' && next !== 'CLOTURE' && includeClotureInFetch.value) {
+			fetchBonsTravail({ includeCloture: false });
+		}
 	}
 );
 
 onMounted(() => {
-	fetchBonsTravail();
+	fetchBonsTravail({ includeCloture: false });
 	
 	// Initialise l'observateur de redimensionnement
-	resizeObserver = new ResizeObserver(entries => {
-		const entry = entries[0];
-		containerWidth.value = Math.round(entry.contentRect.width);
-	});
-	
-	// Observe le conteneur du tableau
-	nextTick(() => {
-		observeTableContainer();
-	});
+	try {
+		resizeObserver = new ResizeObserver(entries => {
+			if (entries && entries[0]) {
+				// Utiliser requestAnimationFrame pour éviter les boucles infinies
+				if (rafId) cancelAnimationFrame(rafId);
+				rafId = requestAnimationFrame(() => {
+					const entry = entries[0];
+					containerWidth.value = Math.round(entry.contentRect.width);
+				});
+			}
+		});
+		
+		// Observe le conteneur du tableau
+		nextTick(() => {
+			observeTableContainer();
+		});
+	} catch (e) {
+		console.warn('ResizeObserver initialization failed:', e);
+	}
 });
 
 onBeforeUnmount(() => {
+	if (rafId) {
+		cancelAnimationFrame(rafId);
+		rafId = null;
+	}
 	if (resizeObserver) {
-		resizeObserver.disconnect();
+		try {
+			resizeObserver.disconnect();
+		} catch (e) {
+			console.warn('ResizeObserver disconnect failed:', e);
+		}
+		resizeObserver = null;
 	}
 });
 </script>

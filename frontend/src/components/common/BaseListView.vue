@@ -3,13 +3,18 @@
     <!-- Header avec titre et actions -->
     <v-row class="mb-4" align="center" justify="space-between">
       <!-- Titre -->
-      <v-col cols="12" md="6">
+      <v-col cols="12" :md="hasFilters ? 5 : 6">
         <h1 v-if="title" :class="titleClass">{{ title }}</h1>
         <p v-if="subtitle" :class="subtitleClass">{{ subtitle }}</p>
       </v-col>
 
+      <!-- Filtres (optionnel) -->
+      <v-col v-if="hasFilters" cols="12" md="3" class="mt-2">
+        <slot name="filters"></slot>
+      </v-col>
+
       <!-- Barre de recherche -->
-      <v-col cols="12" md="6" class="mt-2">
+      <v-col cols="12" :md="hasFilters ? 4 : 6" class="mt-2">
         <v-text-field v-if="showSearch" v-model="searchQuery" :label="searchLabel" :placeholder="searchPlaceholder"
           prepend-inner-icon="mdi-magnify" clearable variant="outlined" density="compact" hide-details
           @input="handleSearch"></v-text-field>
@@ -70,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, useSlots } from 'vue';
 import FormAlert from './FormAlert.vue';
 
 const props = defineProps({
@@ -204,6 +209,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['create', 'row-click', 'search', 'clear-error']);
+
+const slots = useSlots();
+const hasFilters = computed(() => !!slots.filters);
 
 const searchQuery = ref('');
 

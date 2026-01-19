@@ -76,10 +76,10 @@
             <v-col cols="12" xl="6" class="py-1">
               <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal">Terminer l'intervention</v-btn>
             </v-col>
-            <v-col cols="12" xl="6" class="py-1">
+            <v-col v-if="isResponsableGMAO" cols="12" xl="6" class="py-1">
               <v-btn color="success" block :disabled="!canClose" @click="openCloseModal">Clôturer le BT</v-btn>
             </v-col>
-            <v-col cols="12" xl="6" class="py-1">
+            <v-col v-if="isResponsableGMAO" cols="12" xl="6" class="py-1">
               <v-btn color="warning" block :disabled="!canRefuseClose" @click="openRefuseCloseModal">Refuser la clôture du BT</v-btn>
             </v-col>
           </v-row>
@@ -327,7 +327,7 @@
 
     <!-- Bouton flottant : modifier le BT -->
     <v-btn
-      v-if="intervention"
+      v-if="intervention && isResponsableGMAO"
       color="primary"
       size="large"
       icon
@@ -442,6 +442,9 @@ const store = useStore();
 const api = useApi(API_BASE_URL);
 
 const currentUser = computed(() => store.getters.currentUser);
+
+const userRole = computed(() => store.getters.userRole);
+const isResponsableGMAO = computed(() => userRole.value === 'Responsable GMAO');
 
 const intervention = ref(null);
 const loading = ref(false);
