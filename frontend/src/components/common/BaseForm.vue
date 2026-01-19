@@ -419,13 +419,6 @@ import { provide } from 'vue';
 if (validation) {
   provide('validation', validation);
   provide('isFieldRequired', validation.isFieldRequired);
-  
-  // Observer les erreurs de validation pour mise à jour automatique
-  watch(() => validation.errors.value, (newErrors) => {
-    if (Object.keys(newErrors).length > 0) {
-      validationErrors.value = extractValidationErrors();
-    }
-  }, { deep: true });
 }
 
 const handleSubmit = async () => {
@@ -445,10 +438,6 @@ const handleSubmit = async () => {
   if (props.handleSubmit && typeof props.handleSubmit === 'function') {
     try {
       await props.handleSubmit(formData.value);
-      // Si pas d'erreur levée, considérer comme un succès
-      if (!internalErrorMessage.value && !props.errorMessage) {
-        setSuccess('Opération réussie avec succès.');
-      }
     } catch (error) {
       setError(error.message || 'Une erreur est survenue lors de la soumission.');
       console.error('Erreur lors de la soumission:', error);
@@ -457,15 +446,12 @@ const handleSubmit = async () => {
   }
   
   // Sinon, utiliser le comportement par défaut
-  console.log('Submitting form with data:', formData.value);
-  
   if (formRef.value) {
     formRef.value.validate();
   }
   
   if (formValid.value && props.customValidation()) {
     emit('submit', formData.value);
-    setSuccess('Formulaire soumis avec succès.');
   } else {
     setError('Veuillez remplir correctement tous les champs requis.');
   }
