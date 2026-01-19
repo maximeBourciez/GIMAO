@@ -31,20 +31,30 @@
                 </v-col>
 
                 <v-col cols="12" md="6">
+                    <FormField 
+                        :model-value="selectedCounterValue" 
+                        field-name="valeurCompteur" 
+                        label="Valeur du compteur" 
+                        :readonly="true"
+                        :suffix="selectedCounterUnit"
+                    />
+                </v-col>
+
+                <v-col cols="12" md="4">
                     <FormField v-model.number="plan.seuil.derniereIntervention" field-name="derniereIntervention"
-                        type="number" label="Dernière intervention" placeholder="0" min="0" suffix="unité"
+                        type="number" label="Dernière intervention" placeholder="0" min="0"
                         @update:model-value="updateProchaineMaintenance" />
                 </v-col>
 
                 <v-col cols="12" md="4">
                     <FormField v-model.number="plan.seuil.ecartInterventions" field-name="ecartInterventions"
-                        type="number" label="Écart entre interventions" placeholder="0" min="0" suffix="unité"
+                        type="number" label="Écart entre interventions" placeholder="0" min="0"
                         @update:model-value="updateProchaineMaintenance" />
                 </v-col>
 
                 <v-col cols="12" md="4">
                     <FormField v-model.number="plan.seuil.prochaineMaintenance" field-name="prochaineMaintenance"
-                        type="number" label="Prochaine maintenance" :readonly="true" suffix="unité" />
+                        type="number" label="Prochaine maintenance" :readonly="true" />
                 </v-col>
 
                 <v-col cols="12" md="4">
@@ -255,6 +265,19 @@ const countersForSelect = computed(() => {
         currentValue: counter.valeurCourante,
         unit: counter.unite
     }))
+})
+
+// Valeur et unité du compteur sélectionné
+const selectedCounterValue = computed(() => {
+    if (plan.value.compteurIndex === null || plan.value.compteurIndex === undefined) return '—'
+    const counter = props.counters[plan.value.compteurIndex]
+    return counter?.valeurCourante ?? '—'
+})
+
+const selectedCounterUnit = computed(() => {
+    if (plan.value.compteurIndex === null || plan.value.compteurIndex === undefined) return ''
+    const counter = props.counters[plan.value.compteurIndex]
+    return counter?.unite ?? ''
 })
 
 const selectedExistingPM = computed(() =>
