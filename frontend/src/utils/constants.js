@@ -2,9 +2,9 @@
 // CONSTANTES GÉNÉRALES
 // ============================================
 
-export const API_BASE_URL = "http://localhost:8000/api/";
-export const BASE_URL = "http://localhost:8000";
-export const MEDIA_BASE_URL = BASE_URL + "/media/";
+export const API_BASE_URL = "/api/";
+export const BASE_URL = "";
+export const MEDIA_BASE_URL = "/media/";
 export const DEFAULT_ITEMS_PER_PAGE = 10;
 
 // ============================================

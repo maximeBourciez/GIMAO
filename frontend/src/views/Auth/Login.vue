@@ -47,7 +47,8 @@
 
 <script>
 import axios from 'axios'
-
+import { useApi } from '@/composables/useApi'
+import { API_BASE_URL } from '@/utils/constants'
 export default {
   name: 'Login',
   
@@ -56,7 +57,8 @@ export default {
       nomUtilisateur: '',
       motDePasse: '',
       error: '',
-      loading: false
+      loading: false,
+      api: useApi(API_BASE_URL)
     }
   },
 
@@ -66,7 +68,7 @@ export default {
       this.loading = true
 
       try {
-        const response = await axios.post('http://localhost:8000/api/utilisateurs/login/', {
+        const response = await this.api.post('utilisateurs/login/', {
           nomUtilisateur: this.nomUtilisateur,
           motDePasse: this.motDePasse
         })
@@ -81,8 +83,8 @@ export default {
         }
 
         // Connexion réussie
-        localStorage.setItem('user', JSON.stringify(response.data.utilisateur))
-        this.$store.commit('setUser', response.data.utilisateur)
+        localStorage.setItem('user', JSON.stringify(response.utilisateur))
+        this.$store.commit('setUser', response.utilisateur)
         this.$router.push('/')
 
       } catch (err) {
