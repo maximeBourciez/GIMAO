@@ -1,100 +1,199 @@
 <template>
-  <BaseForm v-model="formData" title="Ajouter des documents à la défaillance" :loading="loading"
-    :error-message="errorMessage" :success-message="successMessage" submit-button-text="Enregistrer tous les documents"
-    @submit="handleSubmit">
-    <template #default="{ formData }">
-      <v-row v-for="(document, index) in documents" :key="index" class="mb-2">
-        <v-col cols="5">
-          <v-text-field v-model="document.document_name" label="Nom du document" required
-            :rules="[v => !!v || 'Le nom est requis']"></v-text-field>
-        </v-col>
-        <v-col cols="5">
-          <v-file-input v-model="document.document_file" label="Fichier du document" required
-            :rules="[v => !!v || 'Le fichier est requis']"></v-file-input>
-        </v-col>
-        <v-col cols="2" class="d-flex align-center">
-          <v-btn color="error" @click="removeDocument(index)" icon :disabled="documents.length === 1">
-            <v-icon>mdi-delete</v-icon>
-          </v-btn>
-        </v-col>
-      </v-row>
-
-      <v-btn color="secondary" @click="addDocument" class="mt-2" prepend-icon="mdi-plus">
-        Ajouter un autre document
-      </v-btn>
-    </template>
-  </BaseForm>
+	<BaseForm
+		v-model="formData"
+		title="Ajouter des documents à la demande d'intervention"
+		:loading="loading"
+		:error-message="errorMessage"
+		:success-message="successMessage"
+		submit-button-text="Ajouter les documents"
+		submit-button-color="success"
+		@submit="handleSubmit"
+		@cancel="goBack"
+		@clear-error="errorMessage = ''"
+		@clear-success="successMessage = ''"
+	>
+		<template #default="{ formData }">
+			<DocumentForm
+				v-model="formData.documents"
+				:type-documents="typeDocuments"
+				:exclude-document-ids="alreadyLinkedDocumentIds"
+			/>
+		</template>
+	</BaseForm>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import BaseForm from '@/components/common/BaseForm.vue';
+import DocumentForm from '@/components/Forms/DocumentForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 
 const route = useRoute();
 const router = useRouter();
+const store = useStore();
 const api = useApi(API_BASE_URL);
 
 const loading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 
-const formData = ref({});
-const documents = ref([{ document_name: '', document_file: null }]);
+const connectedUser = computed(() => store.getters.currentUser);
+const failureId = computed(() => Number(route.params.id));
 
-const addDocument = () => {
-  documents.value.push({ document_name: '', document_file: null });
-};
+const typeDocuments = ref([]);
+const alreadyLinkedDocumentIds = ref([]);
 
-const removeDocument = (index) => {
-  if (documents.value.length > 1) {
-    documents.value.splice(index, 1);
+const formData = ref({
+  documents: [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
+});
+
+const loadTypeDocuments = async () => {
+  try {
+    typeDocuments.value = await api.get('types-documents/');
+  } catch (e) {
+    typeDocuments.value = [];
   }
 };
 
-const handleSubmit = async () => {
+const loadAlreadyLinkedDocuments = async () => {
+  try {
+    const id = failureId.value;
+    if (!Number.isInteger(id) || id <= 0) {
+      alreadyLinkedDocumentIds.value = [];
+      return;
+    }
+    const di = await api.get(`demandes-intervention/${id}/`);
+    const ids = Array.isArray(di?.documentsDI)
+      ? di.documentsDI
+        .map((d) => Number(d?.id))
+        .filter((x) => Number.isInteger(x) && x > 0)
+      : [];
+    alreadyLinkedDocumentIds.value = ids;
+  } catch (e) {
+    alreadyLinkedDocumentIds.value = [];
+  }
+};
+
+const linkExistingDocumentsToFailure = async (id, payload) => {
+  const docs = Array.isArray(payload?.documents) ? payload.documents : [];
+  const ids = docs
+    .map((d) => Number(d?.document_id))
+    .filter((x) => Number.isInteger(x) && x > 0);
+
+  const errors = [];
+  for (const documentId of ids) {
+    try {
+      await api.post(`demandes-intervention/${id}/ajouter_document/`, {
+        document_id: documentId,
+        user: connectedUser.value?.id,
+      });
+    } catch (e) {
+      errors.push(`Document #${documentId}`);
+    }
+  }
+  return errors;
+};
+
+const createNewDocumentsThenLinkToFailure = async (id, payload) => {
+  const docs = Array.isArray(payload?.documents) ? payload.documents : [];
+  const errors = [];
+
+  for (const doc of docs) {
+    if (!doc) continue;
+    const existingId = Number(doc.document_id);
+    if (Number.isInteger(existingId) && existingId > 0) continue;
+    if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim()) continue;
+    if (!doc.file || !doc.typeDocument_id) {
+      errors.push(doc.nomDocument || doc.file?.name || 'Document');
+      continue;
+    }
+
+    try {
+      const form = new FormData();
+      form.append('nomDocument', (doc.nomDocument || doc.file.name || '').toString());
+      form.append('typeDocument_id', String(doc.typeDocument_id));
+      form.append('cheminAcces', doc.file);
+
+      const created = await api.post('documents/', form);
+      const newId = Number(created?.id);
+      if (!Number.isInteger(newId) || newId <= 0) {
+        errors.push(doc.nomDocument || doc.file?.name || 'Document');
+        continue;
+      }
+
+      try {
+        await api.post(`demandes-intervention/${id}/ajouter_document/`, {
+          document_id: newId,
+          user: connectedUser.value?.id,
+        });
+      } catch (e) {
+        try {
+          await api.delete(`documents/${newId}/`);
+        } catch (_) {
+          // ignore
+        }
+        errors.push(doc.nomDocument || doc.file?.name || 'Document');
+      }
+    } catch (e) {
+      errors.push(doc.nomDocument || doc.file?.name || 'Document');
+    }
+  }
+
+  return errors;
+};
+
+const handleSubmit = async (payload) => {
   loading.value = true;
   errorMessage.value = '';
+  successMessage.value = '';
 
   try {
-    const failure_id = route.params.id;
-    let allSuccess = true;
-    const errors = [];
-
-    for (const doc of documents.value) {
-      if (doc.document_name && doc.document_file) {
-        const formData = new FormData();
-        formData.append('nomDocumentDefaillance', doc.document_name);
-        formData.append('lienDocumentDefaillance', doc.document_file);
-        formData.append('defaillance', failure_id);
-
-        try {
-          await api.post('document-defaillances/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-        } catch (error) {
-          console.error("Erreur lors de l'ajout du document:", error);
-          allSuccess = false;
-          errors.push(doc.document_name);
-        }
-      }
+    const id = failureId.value;
+    if (!Number.isInteger(id) || id <= 0) {
+      errorMessage.value = "Demande d'intervention invalide.";
+      return;
     }
 
-    if (allSuccess) {
-      successMessage.value = 'Tous les documents ont été enregistrés avec succès !';
-      setTimeout(() => {
-        router.push({ name: 'FailureDetail', params: { id: failure_id } });
-      }, 1500);
-    } else {
-      errorMessage.value = `Certains documents n'ont pas pu être enregistrés: ${errors.join(', ')}`;
+    const docs = Array.isArray(payload?.documents) ? payload.documents : [];
+    const hasAnyDoc = docs.some((d) => {
+      const docId = Number(d?.document_id);
+      if (Number.isInteger(docId) && docId > 0) return true;
+      return Boolean(d?.file || d?.typeDocument_id || (d?.nomDocument || '').trim());
+    });
+    if (!hasAnyDoc) {
+      errorMessage.value = 'Ajoute au moins un document.';
+      return;
     }
-  } catch (error) {
-    console.error("Erreur générale lors de l'ajout des documents:", error);
-    errorMessage.value = "Erreur lors de l'ajout des documents. Veuillez réessayer.";
+
+    const linkErrors = await linkExistingDocumentsToFailure(id, payload);
+    const createErrors = await createNewDocumentsThenLinkToFailure(id, payload);
+    const docErrors = [...linkErrors, ...createErrors];
+    if (docErrors.length) {
+      errorMessage.value = `Certains documents n'ont pas pu être ajoutés: ${docErrors.join(', ')}`;
+      return;
+    }
+
+    successMessage.value = 'Documents ajoutés avec succès.';
+    setTimeout(() => {
+      router.push({ name: 'FailureDetail', params: { id } });
+    }, 600);
+  } catch (e) {
+    console.error("Erreur lors de l'ajout des documents:", e);
+    errorMessage.value = "Erreur lors de l'ajout des documents.";
   } finally {
     loading.value = false;
   }
 };
+
+const goBack = () => {
+  const id = failureId.value;
+  router.push({ name: 'FailureDetail', params: { id } });
+};
+
+onMounted(async () => {
+  await Promise.all([loadTypeDocuments(), loadAlreadyLinkedDocuments()]);
+});
 </script>

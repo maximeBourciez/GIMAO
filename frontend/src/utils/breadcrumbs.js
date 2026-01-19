@@ -225,6 +225,12 @@ export const BREADCRUMBS = {
         },
     ],
 
+    AddDocumentFailure: (route) => [
+        { label: "Demandes d'intervention", to: { name: "FailureList" } },
+        { label: `Demande d'intervention #${route.params.id}`, to: { name: "FailureDetail", params: { id: route.params.id } } },
+        { label: "Ajouter des documents" },
+    ],
+
     /***************************************
      * Magasin
      **************************************/

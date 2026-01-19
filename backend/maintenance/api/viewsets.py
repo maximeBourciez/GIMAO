@@ -159,6 +159,58 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     @transaction.atomic
+    def ajouter_document(self, request, pk=None):
+        """Lie un document existant à une demande d'intervention.
+
+        Payload attendu:
+        - document_id: id du Document
+        """
+        demande = self.get_object()
+
+        document_id = request.data.get('document_id') or request.query_params.get('document_id')
+        if not document_id:
+            return Response({'error': 'Le champ document_id est requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            document_id = int(document_id)
+        except Exception:
+            return Response({'error': 'document_id doit être un entier.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not Document.objects.filter(id=document_id).exists():
+            return Response({'error': 'Document introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if demande.documents.filter(id=document_id).exists():
+            serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        before_documents = list(demande.documents.order_by('id').values_list('id', flat=True))
+        demande.documents.add(document_id)
+        after_documents = list(demande.documents.order_by('id').values_list('id', flat=True))
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        Log.objects.create(
+            type='modification',
+            nomTable='demande_intervention',
+            idCible={'demande_intervention_id': demande.id},
+            champsModifies={
+                'documents': {
+                    'ancien': before_documents,
+                    'nouveau': after_documents,
+                }
+            },
+            utilisateur_id=utilisateur_id,
+        )
+
+        serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
     def transform_to_bon_travail(self, request, *args, **kwargs):
         demande = self.get_object()
         print(demande, request.data.get('responsable'))
