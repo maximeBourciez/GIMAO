@@ -31,13 +31,8 @@
                 </v-col>
 
                 <v-col cols="12" md="6">
-                    <FormField 
-                        :model-value="selectedCounterValue" 
-                        field-name="valeurCompteur" 
-                        label="Valeur du compteur" 
-                        :readonly="true"
-                        :suffix="selectedCounterUnit"
-                    />
+                    <FormField :model-value="selectedCounterValue" field-name="valeurCompteur"
+                        label="Valeur du compteur" :readonly="true" :suffix="selectedCounterUnit" />
                 </v-col>
 
                 <v-col cols="12" md="4">
@@ -171,6 +166,44 @@
 
             <v-divider class="my-4"></v-divider>
 
+            <!-- Section: Documents -->
+            <h4 class="mb-3 text-body-1 font-weight-bold">
+                <v-icon left color="primary" size="small">mdi-file-document</v-icon>
+                Documents associés
+            </h4>
+
+            <v-row v-for="(doc, index) in plan.documents" :key="index" dense class="mb-2 align-center">
+                <v-col cols="12" md="5">
+                    <v-text-field v-model="doc.nom" label="Nom du document" variant="outlined" density="comfortable"
+                        hide-details></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                    <v-select v-model="doc.type_id" :items="typesDocuments" item-title="nomTypeDocument" item-value="id"
+                        label="Type de document" variant="outlined" density="comfortable" hide-details></v-select>
+                </v-col>
+                <v-col cols="12" md="3">
+                    <v-file-input v-model="doc.file" label="Fichier" variant="outlined" density="comfortable"
+                        hide-details prepend-icon="" prepend-inner-icon="mdi-paperclip"
+                        :show-size="true"></v-file-input>
+                </v-col>
+                <v-col cols="12" md="1" class="text-right">
+                    <v-btn icon size="small" color="error" variant="text" @click="removeDocument(index)">
+                        <v-icon>mdi-delete</v-icon>
+                    </v-btn>
+                </v-col>
+            </v-row>
+
+            <v-row dense>
+                <v-col cols="12">
+                    <v-btn variant="outlined" color="primary" size="small" @click="addDocument">
+                        <v-icon left>mdi-plus</v-icon>
+                        Ajouter un document
+                    </v-btn>
+                </v-col>
+            </v-row>
+
+            <v-divider class="my-4"></v-divider>
+
             <!-- Section: Habilitations -->
             <h4 class="mb-3 text-body-1 font-weight-bold">
                 <v-icon left color="primary" size="small">mdi-shield-account</v-icon>
@@ -242,6 +275,10 @@ const props = defineProps({
     consumables: {
         type: Array,
         default: () => []
+    },
+    typesDocuments: {
+        type: Array,
+        default: () => []
     }
 })
 
@@ -311,6 +348,22 @@ const updateProchaineMaintenance = () => {
     const derniere = plan.value.seuil.derniereIntervention || 0
     const intervalle = plan.value.seuil.ecartInterventions || 0
     plan.value.seuil.prochaineMaintenance = derniere + intervalle
+}
+
+// Gestion des documents
+const addDocument = () => {
+    if (!plan.value.documents) {
+        plan.value.documents = []
+    }
+    plan.value.documents.push({
+        nom: '',
+        type_id: null,
+        file: null
+    })
+}
+
+const removeDocument = (index) => {
+    plan.value.documents.splice(index, 1)
 }
 
 const handleSave = () => {

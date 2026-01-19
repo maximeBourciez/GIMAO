@@ -98,6 +98,7 @@ export function useEquipmentForm(isEditMode = false) {
     description: '',
     compteurIndex: null,
     consommables: [],
+    documents: [],
     necessiteHabilitationElectrique: false,
     necessitePermisFeu: false,
     seuil: {

@@ -276,8 +276,8 @@
       <v-divider></v-divider>
       <v-card-text class="pa-4">
         <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :types-p-m="typesPM"
-          :consumables="consumables" :existing-p-ms="existingPMs" :show-pm-selection="true"
-          :is-edit-mode="!!currentSeuil.id" :show-actions="false" @save="handleFormSave" />
+          :consumables="consumables" :existing-p-ms="existingPMs" :types-documents="typesDocuments" 
+          :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="false" @save="handleFormSave" />
       </v-card-text>
       <v-divider></v-divider>
       <v-card-actions class="pa-4">
@@ -447,6 +447,7 @@ const addNewSeuil = () => {
     description: '',
     compteurIndex: 0,
     consommables: [],
+    documents: [],
     seuil: {
       derniereIntervention: 0,
       ecartInterventions: 0,
@@ -471,6 +472,11 @@ const editSeuil = (seuil) => {
     description: pm?.commentaire || '',
     compteurIndex: 0,
     consommables: pm?.consommables?.map(c => c.consommable_id || c.id) || [],
+    documents: pm?.documents?.map(d => ({
+      nom: d.nomDocument || d.nom,
+      type_id: d.typeDocument?.id || d.type_id,
+      file: null
+    })) || [],
     seuil: {
       derniereIntervention: seuil.derniereIntervention || 0,
       ecartInterventions: seuil.ecartInterventions || 0,

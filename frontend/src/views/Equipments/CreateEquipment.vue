@@ -288,6 +288,7 @@
         <v-card-text>
           <MaintenancePlanInlineForm v-model="currentPlan" :isEditMode="isPlanEditMode"
             :counters="formData.compteurs" :typesPM="typesPM" :consumables="consumables"
+            :typesDocuments="typesDocuments" :show-pm-selection="true" :existing-pms="existingPMs"
             @save="savePlan" @cancel="closePlanDialog" />
         </v-card-text>
       </v-card>
