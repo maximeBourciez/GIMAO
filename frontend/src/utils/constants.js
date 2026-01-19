@@ -32,6 +32,7 @@ export const EQUIPMENT_CREATE_STEPS = [
     "Statut de l'Équipement",
     "Consommables",
     "Compteurs",
+    "Plans de Maintenance",
 ];
 
 // ============================================
@@ -76,6 +77,20 @@ export const INTERVENTION_TYPE = {
     PREVENTIF: "Préventif",
     CORRECTIF: "Correctif",
 };
+
+// ============================================
+// Unités pour les compteurs
+// ============================================
+export const COUNTER_UNITS = [
+  { value: 'heures', title: 'Heures' },
+  { value: 'km', title: 'Kilomètres' },
+  { value: 'cycles', title: 'Cycles' },
+  { value: 'jours', title: 'Jours' },
+  { value: 'unites', title: 'Unités' },
+  { value: 'pieces', title: 'Pièces' },
+  { value: 'litres', title: 'Litres' },
+  { value: 'tonnes', title: 'Tonnes' }
+]
 
 // ============================================
 // HEADERS DE TABLEAUX
@@ -364,14 +379,14 @@ export const TABLE_HEADERS = {
             align: "center",
         },
         {
-            title: "Prochaine Maintenance",
-            value: "prochaineMaintenance",
+            title: "Unité",
+            value: "unite",
             sortable: false,
             align: "center",
         },
         {
-            title: "Unité",
-            value: "unite",
+            title: "Type",
+            value: "type",
             sortable: false,
             align: "center",
         },

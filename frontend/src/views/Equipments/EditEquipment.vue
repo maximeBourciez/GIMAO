@@ -9,26 +9,12 @@
           <template #default>
             <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels" :fournisseurs="fournisseurs"
               :fabricants="fabricants" :familles="familles" :locations="locations" :consumables="consumables"
-              :equipment-statuses="equipmentStatuses" @file-upload="handleFileUpload"
-              @location-created="handleLocationCreated" @edit-counter="handleCounterEdit"
-              @delete-counter="handleCounterDelete" />
+              :equipment-statuses="equipmentStatuses" :show-counters="false" @file-upload="handleFileUpload"
+              @location-created="handleLocationCreated" />
           </template>
         </BaseForm>
       </v-container>
     </v-main>
-
-    <v-dialog v-model="showCounterDialog" max-width="1000px" @click:outside="closeCounterDialog">
-      <v-card>
-        <v-card-title>
-          {{ isCounterEditMode ? 'Modifier un compteur' : 'Ajouter un compteur' }}
-        </v-card-title>
-        <v-card-text>
-          <CounterInlineForm v-model="currentCounter" :existingPMs="existingPMs" :typesPM="typesPM"
-            :consumables="consumables" :typesDocuments="typesDocuments" @save="saveCurrentCounter"
-            @cancel="closeCounterDialog" />
-        </v-card-text>
-      </v-card>
-    </v-dialog>
 
     <v-dialog v-model="showFabricantDialog" max-width="80%">
       <FabricantForm @created="handleFabricantCreated" @close="showFabricantDialog = false" />
@@ -53,10 +39,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { BaseForm } from '@/components/common';
-import { TABLE_HEADERS } from '@/utils/constants';
 import { useEquipmentForm } from '@/composables/useEquipmentForm';
 import EquipmentFormFields from '@/components/Forms/EquipmentFormFields.vue';
-import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
 import FabricantForm from '@/components/Forms/FabricantForm.vue';
 import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
@@ -77,13 +61,7 @@ const {
   fabricants,
   consumables,
   familles,
-  typesPM,
-  typesDocuments,
   equipmentStatuses,
-  currentCounter,
-  isCounterEditMode,
-  existingPMs,
-  showCounterDialog,
   showFabricantDialog,
   showFournisseurDialog,
   showModeleDialog,
@@ -92,12 +70,7 @@ const {
   handleFileUpload,
   fetchData,
   fetchEquipment,
-  fetchDocs,
   detectChanges,
-  handleCounterEdit,
-  handleCounterDelete,
-  saveCurrentCounter,
-  closeCounterDialog,
   handleFabricantCreated,
   handleFournisseurCreated,
   handleModeleCreated,
@@ -134,47 +107,8 @@ const handleSubmit = async () => {
       delete equipementData.lienImageEquipement;
     }
 
-    if (equipementData.compteurs) {
-      equipementData.compteurs = equipementData.compteurs.map(c => {
-        const compteurData = { ...c };
-
-        if (compteurData.dateMiseEnService instanceof Date) {
-          compteurData.dateMiseEnService = compteurData.dateMiseEnService.toISOString().split('T')[0];
-        }
-
-        const pm = compteurData.planMaintenance;
-        if (pm && pm.documents) {
-          pm.documents = pm.documents.map(doc => ({
-            titre: doc.titre,
-            type: doc.type
-          }));
-        }
-
-        return compteurData;
-      });
-    }
-
     fd.append('data', JSON.stringify(equipementData));
     fd.append('changes', JSON.stringify(changes));
-
-    formData.value.compteurs?.forEach((compteur, cIndex) => {
-      if (!compteur.id) return;
-
-      compteur.planMaintenance?.documents?.forEach((doc, dIndex) => {
-        if (doc.file instanceof File) {
-          const fileKey = `document_${dIndex}_compteur_${compteur.id}`;
-          fd.append(fileKey, doc.file);
-
-          fd.append(`${fileKey}_meta`, JSON.stringify({
-            titre: doc.titre,
-            type: doc.type,
-            compteurId: compteur.id,
-            compteurIndex: cIndex,
-            documentIndex: dIndex
-          }));
-        }
-      });
-    });
 
     await api.put(`equipements/${equipmentId.value}/`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -199,9 +133,14 @@ const handleSubmit = async () => {
 };
 
 onMounted(async () => {
-  await fetchData();
-  await fetchEquipment(equipmentId.value);
-  await fetchDocs();
+  try {
+    await fetchData();
+    await fetchEquipment(equipmentId.value);
+    // Pas besoin de fetchDocs car pas de compteurs en mode édition
+  } catch (error) {
+    console.error('Erreur dans onMounted:', error);
+    errorMessage.value = error.message || 'Erreur lors du chargement';
+  }
 });
 
 

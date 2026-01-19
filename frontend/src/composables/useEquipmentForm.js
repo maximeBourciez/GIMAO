@@ -50,8 +50,11 @@ export function useEquipmentForm(isEditMode = false) {
     statut: null,
     consommables: [],
     compteurs: [],
+    plansMaintenance : [],
     createurEquipement: getCurrentUserId()
   });
+
+  
 
   const initialData = ref(null);
 
@@ -78,27 +81,37 @@ export function useEquipmentForm(isEditMode = false) {
       label
     }));
   });
-
+  
   const getEmptyCounter = () => ({
+    id: null,
     nom: '',
-    description: '',
-    intervalle: '',
-    unite: '',
     valeurCourante: null,
-    derniereIntervention: null,
-    estGlissant: false,
-    estPrincipal: false,
-    habElec: false,
-    permisFeu: false,
-    planMaintenance: {
-      nom: '',
-      type: null,
-      consommables: [],
-      documents: []
+    unite: 'heures',
+    estPrincipal: false
+  });
+  const currentCounter = ref(getEmptyCounter());
+
+  const getEmptyPlan = () => ({
+    id: null,
+    nom: '',
+    type_id: null,
+    description: '',
+    compteurIndex: null,
+    consommables: [],
+    documents: [],
+    necessiteHabilitationElectrique: false,
+    necessitePermisFeu: false,
+    seuil: {
+      estGlissant: false,
+      derniereIntervention: null,
+      ecartInterventions: null,
+      prochaineMaintenance: null
     }
   });
-
-  const currentCounter = ref(getEmptyCounter());
+  const currentPlan = ref(getEmptyPlan());
+  const isPlanEditMode = ref(false);
+  const editingPlanIndex = ref(-1);
+  const showPlanDialog = ref(false);
 
   const validateForm = () => {
     const requiredFields = ['numSerie', 'reference', 'designation', 'modeleEquipement', 'lieu', 'statut'];
@@ -155,29 +168,42 @@ export function useEquipmentForm(isEditMode = false) {
 
     try {
       loadingData.value = true;
+      errorMessage.value = '';
       const res = await api.get(`equipement/${equipmentId}/affichage/`);
       const eq = res;
 
+      // Formater la date de mise en service pour l'input type="date" (format YYYY-MM-DD)
+      let formattedDate = '';
+      if (eq.dateMiseEnService) {
+        const date = new Date(eq.dateMiseEnService);
+        if (!isNaN(date.getTime())) {
+          formattedDate = date.toISOString().split('T')[0];
+        }
+      }
+
       const equipmentData = {
-        numSerie: eq.numSerie,
-        reference: eq.reference,
-        designation: eq.designation,
-        dateMiseEnService: eq.dateMiseEnService,
-        prixAchat: eq.prixAchat,
-        modeleEquipement: eq.modele?.id,
-        fournisseur: eq.fournisseur?.id,
-        fabricant: eq.fabricant?.id,
-        famille: eq.famille?.id,
-        lieu: eq.lieu,
-        statut: eq.dernier_statut?.statut,
-        consommables: eq.consommables.map(c => c.id),
-        compteurs: eq.compteurs
+        numSerie: eq.numSerie || '',
+        reference: eq.reference || '',
+        designation: eq.designation || '',
+        dateMiseEnService: formattedDate,
+        prixAchat: eq.prixAchat || null,
+        modeleEquipement: eq.modele?.id || null,
+        fournisseur: eq.fournisseur?.id || null,
+        fabricant: eq.fabricant?.id || null,
+        famille: eq.famille?.id || null,
+        lieu: eq.lieu?.id || eq.lieu || null,
+        statut: eq.dernier_statut?.statut || null,
+        consommables: eq.consommables?.map(c => c.id) || [],
+        compteurs: eq.compteurs || []
       };
 
       initialData.value = JSON.parse(JSON.stringify(equipmentData));
       formData.value = equipmentData;
     } catch (e) {
-      errorMessage.value = "Erreur lors du chargement de l'équipement: " + e;
+      console.error("Erreur détaillée fetchEquipment:", e);
+      console.error("Response:", e.response?.data);
+      console.error("Status:", e.response?.status);
+      errorMessage.value = "Erreur lors du chargement de l'équipement: " + (e.response?.data?.detail || e.message);
     } finally {
       loadingData.value = false;
     }
@@ -185,6 +211,11 @@ export function useEquipmentForm(isEditMode = false) {
 
   const fetchDocs = async () => {
     try {
+      // Ne rien faire si pas de compteurs
+      if (!formData.value.compteurs || formData.value.compteurs.length === 0) {
+        return;
+      }
+
       const fetchPromises = [];
 
       formData.value.compteurs.forEach(counter => {
@@ -249,41 +280,57 @@ export function useEquipmentForm(isEditMode = false) {
   };
 
   const saveCurrentCounter = () => {
-    const counterToSave = {
-      ...currentCounter.value,
-      planMaintenance: {
-        ...currentCounter.value.planMaintenance,
-        consommables: currentCounter.value.planMaintenance.consommables
-          .filter(c => c.consommable)
-          .map(c => ({ ...c })),
-        documents: currentCounter.value.planMaintenance.documents
-          .filter(d => d.titre || d.file)
-          .map(d => ({
-            titre: d.titre,
-            type: d.type,
-            file: d.file
-          }))
-      }
-    };
-
     if (editingCounterIndex.value >= 0) {
-      formData.value.compteurs[editingCounterIndex.value] = counterToSave;
-      updateExistingPM(counterToSave);
+      // Mode édition
+      formData.value.compteurs[editingCounterIndex.value] = { ...currentCounter.value };
     } else {
-      formData.value.compteurs.push(counterToSave);
-
-      if (counterToSave.planMaintenance.nom &&
-        !existingPMs.value.some(pm => pm.nom === counterToSave.planMaintenance.nom)) {
-        existingPMs.value.push({
-          nom: counterToSave.planMaintenance.nom,
-          type: counterToSave.planMaintenance.type,
-          consommables: [...counterToSave.planMaintenance.consommables],
-          documents: [...counterToSave.planMaintenance.documents]
-        });
-      }
+      // Mode ajout
+      formData.value.compteurs.push({ ...currentCounter.value });
     }
-
     closeCounterDialog();
+  };
+
+  const handlePlanAdd = () => {
+    editingPlanIndex.value = -1;
+    isPlanEditMode.value = false;
+    currentPlan.value = getEmptyPlan();
+    if (formData.value.compteurs.length > 0) {
+      currentPlan.value.compteurIndex = 0;
+    }
+    showPlanDialog.value = true;
+  };
+
+  const handlePlanEdit = (plan) => {
+    editingPlanIndex.value = formData.value.plansMaintenance.indexOf(plan);
+    isPlanEditMode.value = true;
+    currentPlan.value = { 
+      ...plan,
+      seuil: { ...plan.seuil },
+      consommables: [...plan.consommables]
+    };
+    showPlanDialog.value = true;
+  };
+
+  const handlePlanDelete = (plan) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce plan de maintenance ?')) {
+      formData.value.plansMaintenance = formData.value.plansMaintenance.filter(p => p !== plan);
+    }
+  };
+
+  const savePlan = () => {
+    if (editingPlanIndex.value >= 0) {
+      formData.value.plansMaintenance[editingPlanIndex.value] = { ...currentPlan.value };
+    } else {
+      formData.value.plansMaintenance.push({ ...currentPlan.value });
+    }
+    closePlanDialog();
+  };
+
+  const closePlanDialog = () => {
+    showPlanDialog.value = false;
+    editingPlanIndex.value = -1;
+    isPlanEditMode.value = false;
+    currentPlan.value = getEmptyPlan();
   };
 
   const updateExistingPM = (counterToSave) => {
@@ -428,8 +475,14 @@ export function useEquipmentForm(isEditMode = false) {
     isCounterEditMode,
     existingPMs,
     
+    // Plan state
+    currentPlan,
+    editingPlanIndex,
+    isPlanEditMode,
+    
     // Dialogs
     showCounterDialog,
+    showPlanDialog,
     showFabricantDialog,
     showFournisseurDialog,
     showModeleDialog,
@@ -450,6 +503,14 @@ export function useEquipmentForm(isEditMode = false) {
     handleCounterDelete,
     saveCurrentCounter,
     closeCounterDialog,
+    
+    // Plan methods
+    getEmptyPlan,
+    handlePlanAdd,
+    handlePlanEdit,
+    handlePlanDelete,
+    savePlan,
+    closePlanDialog,
     
     // Dialog handlers
     handleFabricantCreated,

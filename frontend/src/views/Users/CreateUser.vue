@@ -141,7 +141,6 @@ import { API_BASE_URL } from '@/utils/constants';
 import { getUserCreateErrorMessage } from '@/utils/drfErrors';
 
 const router = useRouter();
-const api = useApi(API_BASE_URL);
 
 const isSaving = ref(false);
 const saveErrorMessage = ref('');
@@ -308,7 +307,7 @@ const handleSubmit = async () => {
 };
 
 const goBack = () => {
-	router.push({ name: 'UserList' });
+  router.push({ name: 'UserList' });
 };
 
 onMounted(() => {

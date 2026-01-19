@@ -567,11 +567,11 @@ const handlePasswordUpdate = async () => {
 };
 
 const goBack = () => {
-	if (!userId) {
-		router.push({ name: 'UserList' });
-		return;
-	}
-	router.push({ name: 'UserDetail', params: { id: userId } });
+  if (!userId) {
+    router.push({ name: 'UserList' });
+    return;
+  }
+  router.push({ name: 'UserDetail', params: { id: userId } });
 };
 
 onMounted(async () => {

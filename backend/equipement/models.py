@@ -110,6 +110,7 @@ class Compteur(models.Model):
     valeurCourante = models.FloatField(help_text="Valeur actuelle du compteur")
     unite = models.CharField(max_length=50, help_text="Unité de mesure du compteur", default="jours")
     estPrincipal = models.BooleanField(default=False, help_text="Indique si ce compteur est le principal pour l'équipement")
+    type = models.CharField(max_length=25, null=False, default="Général", help_text="Type du compteur")
     
 
     # Relations 
