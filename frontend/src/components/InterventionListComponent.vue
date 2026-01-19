@@ -5,6 +5,7 @@
 		:subtitle="subtitle"
 		:headers="vuetifyHeaders"
 		:items="displayItems"
+		:sort-by="defaultSortBy"
 		:loading="loading"
 		:error-message="errorMessage"
 		:show-search="showSearch"
@@ -178,6 +179,8 @@ const vuetifyHeaders = computed(() => {
 		maxWidth: h.maxWidth,
 	}));
 });
+
+const defaultSortBy = [{ key: 'id', order: 'desc' }];
 
 const fetchBonsTravail = async () => {
 	if (Array.isArray(props.items)) return;

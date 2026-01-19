@@ -66,6 +66,36 @@
 				</v-row>
 			</v-sheet>
 
+			<!-- Détails -->
+			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
+				<h4 class="mb-3">Détails</h4>
+				<v-row dense>
+					<v-col cols="12">
+						<FormTextarea
+							v-model="formData.diagnostic"
+							field-name="diagnostic"
+							label="Diagnostic"
+							placeholder="Saisir un diagnostic"
+							rows="2"
+							:maxlength="MAX_TEXT_LENGTH"
+							counter
+						/>
+					</v-col>
+
+					<v-col cols="12">
+						<FormTextarea
+							v-model="formData.commentaire"
+							field-name="commentaire"
+							label="Commentaire"
+							placeholder="Saisir un commentaire"
+							rows="4"
+							:maxlength="MAX_TEXT_LENGTH"
+							counter
+						/>
+					</v-col>
+				</v-row>
+			</v-sheet>
+
 			<!-- Affectation -->
 			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
 				<h4 class="mb-3">Affectation</h4>
@@ -116,8 +146,9 @@
 							item-title="designation"
 							item-value="id"
 							clearable
-							:error="Boolean(getConsommableLineError(index))"
-							:error-messages="getConsommableLineError(index) ? [getConsommableLineError(index)] : []"
+							@focus="markTouched('consommable', index)"
+							:error="shouldShowConsommableError(index) && Boolean(getConsommableLineError(index))"
+							:error-messages="shouldShowConsommableError(index) && getConsommableLineError(index) ? [getConsommableLineError(index)] : []"
 						/>
 					</v-col>
 
@@ -130,6 +161,7 @@
 							placeholder="1"
 							min="0"
 							step="1"
+							@focus="markTouched('quantite', index)"
 							:error="Boolean(getQuantiteLineError(index))"
 							:error-messages="getQuantiteLineError(index) ? [getQuantiteLineError(index)] : []"
 						/>
@@ -160,42 +192,19 @@
 				</v-row>
 			</v-sheet>
 
-			<!-- Détails -->
-			<v-sheet class="pa-4" elevation="1" rounded>
-				<h4 class="mb-3">Détails</h4>
-				<v-row dense>
-					<v-col cols="12">
-						<FormTextarea
-							v-model="formData.diagnostic"
-							field-name="diagnostic"
-							label="Diagnostic"
-							placeholder="Saisir un diagnostic"
-							rows="2"
-							:maxlength="MAX_TEXT_LENGTH"
-							counter
-						/>
-					</v-col>
-
-					<v-col cols="12">
-						<FormTextarea
-							v-model="formData.commentaire"
-							field-name="commentaire"
-							label="Commentaire"
-							placeholder="Saisir un commentaire"
-							rows="4"
-							:maxlength="MAX_TEXT_LENGTH"
-							counter
-						/>
-					</v-col>
-				</v-row>
+			<!-- Documents -->
+			<v-sheet v-if="typeDocumentItems.length" class="pa-4 mb-4" elevation="1" rounded>
+				<h4 class="mb-3">Documents</h4>
+				<DocumentForm v-model="formData.documents" :type-documents="typeDocumentItems" />
 			</v-sheet>
 		</template>
 	</BaseForm>
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import { BaseForm, FormField, FormSelect, FormTextarea } from '@/components/common';
+import DocumentForm from '@/components/Forms/DocumentForm.vue';
 
 const props = defineProps({
 	modelValue: {
@@ -219,6 +228,10 @@ const props = defineProps({
 		default: () => []
 	},
 	consommables: {
+		type: Array,
+		default: () => []
+	},
+	typeDocuments: {
 		type: Array,
 		default: () => []
 	},
@@ -272,6 +285,17 @@ const userItems = computed(() =>
 );
 
 const consommableItems = computed(() => props.consommables || []);
+const typeDocumentItems = computed(() => props.typeDocuments || []);
+
+const touched = reactive({
+	consommable: {},
+	quantite: {},
+});
+
+const markTouched = (type, index) => {
+	if (type === 'consommable') touched.consommable[index] = true;
+	if (type === 'quantite') touched.quantite[index] = true;
+};
 
 const ensureConsommablesLines = () => {
 	if (!formData.value) return;
@@ -279,7 +303,7 @@ const ensureConsommablesLines = () => {
 		formData.value.consommables = [];
 	}
 	if (formData.value.consommables.length === 0) {
-		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: 1 });
+		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
 	}
 };
 
@@ -298,16 +322,33 @@ const consommableLines = computed(() => {
 
 const addConsommableLine = () => {
 	ensureConsommablesLines();
-	formData.value.consommables.push({ consommable_id: null, quantite_utilisee: 1 });
+	formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
 };
 
 const removeConsommableLine = (index) => {
 	ensureConsommablesLines();
 	formData.value.consommables.splice(index, 1);
 	if (formData.value.consommables.length === 0) {
-		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: 1 });
+		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
 	}
 };
+
+watch(
+	() => formData.value?.consommables,
+	(lines) => {
+		if (!Array.isArray(lines)) return;
+		for (const line of lines) {
+			if (!line) continue;
+			const hasId = line.consommable_id !== null && line.consommable_id !== undefined && line.consommable_id !== '';
+			const hasQty = line.quantite_utilisee !== null && line.quantite_utilisee !== undefined && line.quantite_utilisee !== '';
+			// Si on choisit un consommable, on initialise la quantité à 1 si vide.
+			if (hasId && !hasQty) {
+				line.quantite_utilisee = 1;
+			}
+		}
+	},
+	{ deep: true }
+);
 
 const getSelectedConsommableIds = () => {
 	const ids = (Array.isArray(formData.value?.consommables) ? formData.value.consommables : [])
@@ -332,7 +373,8 @@ const getConsommableLineError = (index) => {
 	const hasId = id !== null && id !== undefined && id !== '';
 	const hasQty = q !== null && q !== undefined && q !== '';
 	if (!hasId && !hasQty) return null;
-	if (!hasId && hasQty) return 'Consommable requis';
+	// Mais si l'utilisateur a mis une quantité, il faut un consommable.
+	if (!hasId && hasQty) return 'Choisir un consommable';
 
 	const numericId = Number(id);
 	if (!Number.isFinite(numericId)) return 'Consommable invalide';
@@ -352,12 +394,32 @@ const getQuantiteLineError = (index) => {
 	const hasQty = q !== null && q !== undefined && q !== '';
 	if (!hasId && !hasQty) return null;
 	if (hasId && !hasQty) return 'Quantité requise';
+	// Si pas de consommable, on ne force pas la quantité.
 	if (!hasId) return null;
 
 	const n = Number(q);
 	if (!Number.isFinite(n)) return 'Doit être un nombre';
 	if (!Number.isInteger(n)) return 'Doit être un entier';
 	if (n < 0) return 'Doit être ≥ 0';
+	return null;
+};
+
+const shouldShowConsommableError = (index) => Boolean(touched.consommable[index]);
+
+const getDocumentLineError = (doc) => {
+	if (!doc) return null;
+	const hasExistingId = doc.document_id !== null && doc.document_id !== undefined && doc.document_id !== '';
+	if (hasExistingId) {
+		const n = Number(doc.document_id);
+		if (!Number.isFinite(n)) return 'Document invalide';
+		return null;
+	}
+	const hasName = Boolean((doc.nomDocument ?? '').trim());
+	const hasType = doc.typeDocument_id !== null && doc.typeDocument_id !== undefined && doc.typeDocument_id !== '';
+	const hasFile = Boolean(doc.file);
+	if (!hasName && !hasType && !hasFile) return null;
+	if (!hasType) return 'Type requis';
+	if (!hasFile) return 'Fichier requis';
 	return null;
 };
 
@@ -436,6 +498,11 @@ const isFormValidForSubmit = computed(() => {
 	for (let i = 0; i < lines.length; i++) {
 		if (getConsommableLineError(i)) return false;
 		if (getQuantiteLineError(i)) return false;
+	}
+
+	const docs = Array.isArray(formData.value?.documents) ? formData.value.documents : [];
+	for (const doc of docs) {
+		if (getDocumentLineError(doc)) return false;
 	}
 	return true;
 });

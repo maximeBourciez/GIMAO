@@ -5,7 +5,7 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 from django.db import transaction
 import json
-from donnees.models import Document
+from donnees.models import Document, TypeDocument
 from equipement.models import Equipement
 from utilisateur.models import Utilisateur, Log
 from stock.models import Consommable
@@ -20,6 +20,7 @@ from maintenance.models import (
     PlanMaintenance,
     PlanMaintenanceConsommable,
     BonTravailConsommable,
+    BonTravailDocument,
     DemandeInterventionDocument
 )
 from maintenance.api.serializers import (
@@ -331,6 +332,97 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             .values('consommable_id', 'quantite_utilisee')
         )
 
+    def _get_documents_state(self, bon_travail_id):
+        return list(
+            BonTravailDocument.objects.filter(bon_travail_id=bon_travail_id)
+            .order_by('document_id')
+            .values_list('document_id', flat=True)
+        )
+
+    def _get_utilisateur_assigne_ids(self, bon):
+        return list(bon.utilisateur_assigne.order_by('id').values_list('id', flat=True))
+
+    def _normalize_id_list(self, raw):
+        if raw is None:
+            return []
+
+        if isinstance(raw, (list, tuple)):
+            values = raw
+        else:
+            values = [raw]
+
+        ids = []
+        for v in values:
+            try:
+                i = int(v)
+            except Exception:
+                continue
+            if i > 0:
+                ids.append(i)
+
+        # dédoublonne en conservant l'ordre
+        seen = set()
+        out = []
+        for i in ids:
+            if i in seen:
+                continue
+            seen.add(i)
+            out.append(i)
+        return out
+
+    def _sync_consommables_from_request(self, bon, request_data):
+        # Supporte deux formats :
+        # - consommables: [{consommable_id, quantite_utilisee}]
+        # - consommables_ids: [id, id]
+        if 'consommables' not in request_data and 'consommables_ids' not in request_data:
+            return
+
+        consommables_dict = {}
+        raw_lines = request_data.get('consommables')
+        raw_ids = request_data.get('consommables_ids')
+
+        if isinstance(raw_lines, (list, tuple)):
+            for line in raw_lines:
+                if not isinstance(line, dict):
+                    continue
+                cid = line.get('consommable_id')
+                if cid is None or cid == '':
+                    continue
+                try:
+                    cid = int(cid)
+                except Exception:
+                    continue
+                if cid <= 0:
+                    continue
+
+                q = line.get('quantite_utilisee', 0)
+                try:
+                    q = int(q)
+                except Exception:
+                    q = 0
+                consommables_dict[cid] = max(0, q)
+
+        elif isinstance(raw_ids, (list, tuple)):
+            for cid in raw_ids:
+                try:
+                    cid = int(cid)
+                except Exception:
+                    continue
+                if cid <= 0:
+                    continue
+                consommables_dict[cid] = 0
+
+        ids = set(consommables_dict.keys())
+
+        BonTravailConsommable.objects.filter(bon_travail=bon).exclude(consommable_id__in=ids).delete()
+
+        for consommable_id, quantite in consommables_dict.items():
+            BonTravailConsommable.objects.update_or_create(
+                bon_travail=bon,
+                consommable_id=consommable_id,
+                defaults={'quantite_utilisee': quantite},
+            )
+
     def get_serializer_class(self):
         """Utilise le serializer détaillé pour retrieve"""
         if self.action == 'retrieve':
@@ -373,6 +465,9 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             bon.date_assignation = timezone.now()
             bon.save(update_fields=['date_assignation'])
 
+        # Force refresh from DB pour que toutes les relations soient à jour
+        bon.refresh_from_db()
+
         response_serializer = self.get_serializer(bon)
         bon_data = response_serializer.data
         champs_modifies = {
@@ -385,8 +480,9 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             'date_assignation': {'valCreation': bon_data.get('date_assignation')},
             'demande_intervention_id': {'valCreation': bon_data.get('demande_intervention')},
             'responsable_id': {'valCreation': bon.responsable_id},
-            'utilisateur_assigne_ids': {'valCreation': list(bon.utilisateur_assigne.values_list('id', flat=True))},
+            'utilisateur_assigne_ids': {'valCreation': self._get_utilisateur_assigne_ids(bon)},
             'consommables': {'valCreation': self._get_consommables_state(bon.id)},
+            'documents': {'valCreation': self._get_documents_state(bon.id)},
         }
 
         # Qui a effectué l'action ? (fallbacks)
@@ -642,6 +738,58 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         serializer = BonTravailDetailSerializer(bon, context={'request': request})
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def ajouter_document(self, request, pk=None):
+        """Lie un document existant au BT.
+
+        Payload attendu:
+        - document_id: id du Document
+        """
+        bon = self.get_object()
+
+        document_id = request.data.get('document_id')
+        if not document_id:
+            return Response({'error': 'Le champ document_id est requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            document_id = int(document_id)
+        except Exception:
+            return Response({'error': 'document_id doit être un entier.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not Document.objects.filter(id=document_id).exists():
+            return Response({'error': 'Document introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if bon.documents.filter(id=document_id).exists():
+            serializer = BonTravailDetailSerializer(bon, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        before_documents = self._get_documents_state(bon.id)
+        bon.documents.add(document_id)
+        after_documents = self._get_documents_state(bon.id)
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        self._create_log_entry(
+            type_action='modification',
+            nom_table='bon_travail',
+            id_cible={'bon_travail_id': bon.id},
+            champs_modifies={
+                'documents': {
+                    'ancien': before_documents,
+                    'nouveau': after_documents,
+                },
+            },
+            utilisateur_id=utilisateur_id,
+        )
+
+        serializer = BonTravailDetailSerializer(bon, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):

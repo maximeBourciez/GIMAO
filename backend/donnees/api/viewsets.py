@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import transaction
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from donnees.models import Lieu, TypeDocument, Document, Fabricant, Fournisseur, Adresse
 from donnees.api.serializers import (
@@ -122,12 +123,33 @@ class DocumentViewSet(viewsets.ModelViewSet):
     """
     queryset = Document.objects.select_related('typeDocument')
     serializer_class = DocumentSerializer
+    parser_classes = (MultiPartParser, FormParser)
 
     def get_serializer_class(self):
         """Utilise le serializer simple pour list"""
         if self.action == 'list':
             return DocumentSimpleSerializer
         return DocumentSerializer
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Crée un document via le CRUD.
+
+        Multipart attendu:
+        - cheminAcces: fichier
+        - typeDocument_id: id du TypeDocument
+        - nomDocument (optionnel)
+
+        Réponse: format `DocumentSerializer` (id/titre/type/type_nom/path).
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        document = serializer.save()
+
+        # Réponse minimale (DB) pour éviter de propager un format enrichi partout.
+        # Les écrans qui ont besoin du format historique continuent d'utiliser list/retrieve.
+        out = DocumentSimpleSerializer(document, context={'request': request})
+        return Response(out.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'])
     def par_type(self, request):

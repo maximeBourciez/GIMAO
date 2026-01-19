@@ -227,16 +227,21 @@
                     hide-default-footer
                     :items-per-page="-1"
                   >
-                    <template #item.nomDocumentIntervention="{ item }">
-                      {{ item.nomDocumentIntervention || item.titre || item.nomDocument || 'Document' }}
+                    <template #item.titre="{ item }">
+                      <span class="doc-truncate" :title="item.titre || ''">{{ item.titre || 'Document' }}</span>
+                    </template>
+                    <template #item.type_nom="{ item }">
+                      <span class="doc-truncate" :title="item.type_nom || ''">{{ item.type_nom || '—' }}</span>
                     </template>
                     <template #item.actions="{ item }">
-                      <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
-                        <v-icon size="small">mdi-download</v-icon>
-                      </v-btn>
-                      <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('BT', item)">
-                        <v-icon size="small">mdi-delete</v-icon>
-                      </v-btn>
+                      <div class="doc-actions">
+                        <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
+                          <v-icon size="small">mdi-download</v-icon>
+                        </v-btn>
+                        <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('BT', item)">
+                          <v-icon size="small">mdi-delete</v-icon>
+                        </v-btn>
+                      </div>
                     </template>
                   </v-data-table>
 
@@ -248,16 +253,21 @@
                     hide-default-footer
                     :items-per-page="-1"
                   >
-                    <template #item.nomDocumentIntervention="{ item }">
-                      {{ item.nomDocumentIntervention || item.titre || item.nomDocument || 'Document' }}
+                    <template #item.titre="{ item }">
+                      <span class="doc-truncate" :title="item.titre || ''">{{ item.titre || 'Document' }}</span>
+                    </template>
+                    <template #item.type_nom="{ item }">
+                      <span class="doc-truncate" :title="item.type_nom || ''">{{ item.type_nom || '—' }}</span>
                     </template>
                     <template #item.actions="{ item }">
-                      <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
-                        <v-icon size="small">mdi-download</v-icon>
-                      </v-btn>
-                      <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('DI', item)">
-                        <v-icon size="small">mdi-delete</v-icon>
-                      </v-btn>
+                      <div class="doc-actions">
+                        <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
+                          <v-icon size="small">mdi-download</v-icon>
+                        </v-btn>
+                        <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('DI', item)">
+                          <v-icon size="small">mdi-delete</v-icon>
+                        </v-btn>
+                      </div>
                     </template>
                   </v-data-table>
                 </v-card-text>
@@ -470,7 +480,8 @@ const refuseCloseValidationSchema = {
 };
 
 const documentHeaders = [
-  { title: 'Nom du document', value: 'nomDocumentIntervention' },
+  { title: 'Nom du document', value: 'titre' },
+  { title: 'Type', value: 'type_nom' },
   { title: 'Actions', value: 'actions', sortable: false }
 ];
 
@@ -771,6 +782,20 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
+.doc-truncate {
+  display: block;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.doc-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  white-space: nowrap;
+}
 .detail-column {
   min-width: 0;
 }

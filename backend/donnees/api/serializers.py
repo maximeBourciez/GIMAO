@@ -86,19 +86,32 @@ class TypeDocumentSerializer(serializers.ModelSerializer):
 
 
 class DocumentSerializer(serializers.ModelSerializer):
-    """Serializer pour le modèle Document"""
+    """Serializer pour le modèle Document.
 
+    Format historique (utilisé par le front):
+    - titre, type, type_nom, path
+
+    On supporte aussi la création via multipart avec:
+    - cheminAcces (fichier)
+    - typeDocument_id (alias) ou typeDocument
+    - nomDocument (optionnel)
+    """
+
+    # Champs d'écriture (création via CRUD)
+    typeDocument = serializers.PrimaryKeyRelatedField(
+        queryset=TypeDocument.objects.all(),
+        write_only=True,
+        required=False,
+    )
+    typeDocument_id = serializers.IntegerField(write_only=True, required=False)
+    cheminAcces = serializers.FileField(write_only=True, required=True)
+    nomDocument = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    # Champs de lecture (compat)
     titre = serializers.CharField(source='nomDocument', read_only=True)
-
-    type = serializers.IntegerField(
-        source='typeDocument.id',
-        read_only=True
-    )
-
-    path = serializers.CharField(
-        source='cheminAcces.name',
-        read_only=True
-    )
+    type = serializers.IntegerField(source='typeDocument.id', read_only=True)
+    type_nom = serializers.CharField(source='typeDocument.nomTypeDocument', read_only=True)
+    path = serializers.CharField(source='cheminAcces.name', read_only=True)
 
     class Meta:
         model = Document
@@ -106,9 +119,35 @@ class DocumentSerializer(serializers.ModelSerializer):
             'id',
             'titre',
             'type',
-            'path'
+            'type_nom',
+            'path',
+            'nomDocument',
+            'cheminAcces',
+            'typeDocument',
+            'typeDocument_id',
         ]
 
+    def validate(self, attrs):
+        # Normalise l'alias typeDocument_id -> typeDocument.
+        if attrs.get('typeDocument') is None and attrs.get('typeDocument_id') is not None:
+            try:
+                attrs['typeDocument'] = TypeDocument.objects.get(id=int(attrs['typeDocument_id']))
+            except Exception:
+                raise serializers.ValidationError({'typeDocument_id': 'TypeDocument invalide.'})
+
+        if attrs.get('typeDocument') is None:
+            raise serializers.ValidationError({'typeDocument': 'Le champ typeDocument (ou typeDocument_id) est requis.'})
+
+        return attrs
+
+    def create(self, validated_data):
+        # Si aucun nom fourni, on prend le nom du fichier.
+        nom = (validated_data.get('nomDocument') or '').strip()
+        if not nom:
+            uploaded = validated_data.get('cheminAcces')
+            if uploaded is not None and getattr(uploaded, 'name', None):
+                validated_data['nomDocument'] = uploaded.name
+        return super().create(validated_data)
 
 
 class DocumentSimpleSerializer(serializers.ModelSerializer):

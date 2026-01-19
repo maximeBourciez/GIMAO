@@ -20,10 +20,11 @@ backend/media/*/*
 #Migrations de la base de données
 backend/*/migrations/0*.py
 
-# Fichier de création de la BD
-db/create-db.sql
-db/Modele_entite_relation
-db/Schema.loo
+#Mais ne pas ignorer le dossier cron_logs
+!backend/media/cron_logs/
+
+#Et ne pas ignorer le fichier cron.log
+!backend/media/cron_logs/cron.log
 
 # Suppression du venv backend
 backend/venv/
