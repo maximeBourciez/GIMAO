@@ -52,6 +52,8 @@
 
 <script>
 import axios from 'axios'
+import { useApi } from '@/composables/useApi'
+import { API_BASE_URL } from '@/utils/constants'
 
 export default {
   name: 'SetPassword',
@@ -62,7 +64,8 @@ export default {
       nouveau_motDePasse: '',
       confirmation: '',
       error: '',
-      loading: false
+      loading: false,
+      api: useApi(API_BASE_URL)
     }
   },
 
@@ -88,20 +91,20 @@ export default {
       this.loading = true
 
       try {
-        const response = await axios.post('http://localhost:8000/api/utilisateurs/definir_mot_de_passe/', {
+        const response = await this.api.post('utilisateurs/definir_mot_de_passe/', {
           nomUtilisateur: this.username,
           nouveau_motDePasse: this.nouveau_motDePasse,
           nouveau_motDePasse_confirmation: this.confirmation
         })
 
         // Stocker l'utilisateur et rediriger
-        localStorage.setItem('user', JSON.stringify(response.data.utilisateur))
-        this.$store.commit('setUser', response.data.utilisateur)
+        localStorage.setItem('user', JSON.stringify(response.utilisateur))
+        this.$store.commit('setUser', response.utilisateur)
         this.$router.push('/')
 
       } catch (err) {
-        if (err.response?.data?.detail) {
-          this.error = err.response.data.detail
+        if (err.response?.detail) {
+          this.error = err.response.detail
         } else {
           this.error = 'Erreur lors de la définition du mot de passe'
         }

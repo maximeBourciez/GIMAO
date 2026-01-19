@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     iputils-ping \
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -17,4 +18,9 @@ RUN pip install --upgrade pip \
 
 COPY . .
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD sh -c "mkdir -p media/cron_logs && \
+    touch media/cron_logs/cron.log && \
+    python manage.py makemigrations && \
+    python manage.py migrate && \
+    python manage.py createsuperuser --no-input || true && \
+    python manage.py runserver 0.0.0.0:8000"
