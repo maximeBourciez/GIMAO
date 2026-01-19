@@ -2,163 +2,74 @@
   <v-app>
     <v-main>
       <v-container>
-        <BaseForm
-          v-model="formData"
-          :title="`Modifier la demande d'intervention #${failureId}`"
-          :loading="submitting"
-          :error-message="errorMessage"
-          :success-message="successMessage"
-          :loading-message="loading ? 'Chargement des données...' : ''"
-          submit-button-text="Enregistrer les modifications"
-          :handle-submit="handleSubmit"
-          @cancel="handleCancel"
-        >
-          <template #default>
-            <v-row>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="formData.nom"
-                  label="Nom de la demande *"
-                  :rules="[rules.required]"
-                  variant="outlined"
-                  prepend-inner-icon="mdi-file-document"
-                  placeholder="Entrez le nom de la demande"
-                ></v-text-field>
-              </v-col>
+        <v-alert v-if="loading" type="info" variant="tonal" class="mb-4">
+          <v-progress-circular indeterminate size="20" class="mr-2"></v-progress-circular>
+          Chargement des données...
+        </v-alert>
 
-              <v-col cols="12">
-                <v-textarea
-                  v-model="formData.commentaire"
-                  label="Description / Commentaire"
-                  variant="outlined"
-                  prepend-inner-icon="mdi-text"
-                  placeholder="Décrivez le problème ou ajoutez des détails..."
-                  rows="5"
-                  auto-grow
-                ></v-textarea>
-              </v-col>
-            </v-row>
-          </template>
-        </BaseForm>
+        <v-alert v-if="errorLoading" type="error" variant="tonal" class="mb-4">
+          {{ errorLoading }}
+        </v-alert>
+
+        <FailureForm
+          v-if="!loading && failureData"
+          :title="`Modifier la demande d'intervention #${failureId}`"
+          submit-button-text="Enregistrer les modifications"
+          :is-edit="true"
+          :initial-data="failureData"
+          @updated="handleUpdated"
+          @close="handleClose"
+        />
       </v-container>
     </v-main>
   </v-app>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { BaseForm } from '@/components/common';
-import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import FailureForm from '@/components/Forms/FailureForm.vue'
+import { useApi } from '@/composables/useApi'
+import { API_BASE_URL } from '@/utils/constants'
 
-const router = useRouter();
-const route = useRoute();
-const api = useApi(API_BASE_URL);
+const router = useRouter()
+const route = useRoute()
+const api = useApi(API_BASE_URL)
 
-const failureId = computed(() => route.params.id || null);
-const loading = ref(false);
-const submitting = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
-
-const formData = ref({
-  nom: '',
-  commentaire: ''
-});
-
-const initialData = ref(null);
-
-const rules = {
-  required: value => !!value || 'Ce champ est requis'
-};
+const failureId = computed(() => route.params.id || null)
+const loading = ref(false)
+const errorLoading = ref('')
+const failureData = ref(null)
 
 const fetchFailureData = async () => {
-  loading.value = true;
-  errorMessage.value = '';
+  loading.value = true
+  errorLoading.value = ''
 
   try {
-    const response = await api.get(`demandes-intervention/${failureId.value}/`);
+    const response = await api.get(`demandes-intervention/${failureId.value}/`)
     
-    const data = {
+    failureData.value = {
+      id: failureId.value,
       nom: response.nom || '',
       commentaire: response.commentaire || ''
-    };
-    
-    formData.value = { ...data };
-    initialData.value = { ...data };
-    
-  } catch (error) {
-    console.error('Erreur lors de la récupération des données:', error);
-    errorMessage.value = 'Erreur lors du chargement des données de la demande';
-  } finally {
-    loading.value = false;
-  }
-};
-
-const detectChanges = () => {
-  if (!initialData.value) return { hasChanges: false, changes: {} };
-
-  const changes = {};
-  let hasChanges = false;
-
-  if (formData.value.nom !== initialData.value.nom) {
-    changes.nom = formData.value.nom;
-    hasChanges = true;
-  }
-
-  if (formData.value.commentaire !== initialData.value.commentaire) {
-    changes.commentaire = formData.value.commentaire;
-    hasChanges = true;
-  }
-
-  return { hasChanges, changes };
-};
-
-const handleSubmit = async () => {
-  if (!formData.value.nom) {
-    errorMessage.value = 'Veuillez remplir les champs obligatoires';
-    return;
-  }
-
-  const { hasChanges, changes } = detectChanges();
-
-  if (!hasChanges) {
-    errorMessage.value = 'Aucune modification détectée';
-    return;
-  }
-
-  submitting.value = true;
-  errorMessage.value = '';
-
-  try {
-    await api.patch(`demandes-intervention/${failureId.value}/`, changes);
-    
-    successMessage.value = 'Demande d\'intervention modifiée avec succès';
-    
-    setTimeout(() => {
-      router.back();
-    }, 1500);
-  } catch (error) {
-    console.error('Erreur lors de la modification:', error);
-    errorMessage.value = 'Erreur lors de la modification de la demande';
-
-    if (error.response?.data) {
-      const errors = Object.entries(error.response.data)
-        .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
-        .join('\n');
-      errorMessage.value += `\n${errors}`;
     }
+  } catch (error) {
+    console.error('Erreur lors de la récupération des données:', error)
+    errorLoading.value = 'Erreur lors du chargement des données de la demande'
   } finally {
-    submitting.value = false;
+    loading.value = false
   }
-};
+}
 
-const handleCancel = () => {
-  router.back();
-};
+const handleUpdated = () => {
+  router.back()
+}
+
+const handleClose = () => {
+  router.back()
+}
 
 onMounted(() => {
-  fetchFailureData();
-});
+  fetchFailureData()
+})
 </script>

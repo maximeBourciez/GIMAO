@@ -14,9 +14,10 @@ import ConsommableList from '@/components/ConsommableList.vue';
 const router = useRouter();
 
 const handleCreate = () => {
-  // TODO: Navigation vers la création d'un consommable
-  console.log('Créer un consommable');
-  // router.push('/CreateConsommable');
+  router.push({ 
+    name: 'CreateConsumable',
+    query: { from: 'stocks' }
+  });
 };
 
 const handleRowClick = (item) => {

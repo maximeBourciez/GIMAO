@@ -18,12 +18,31 @@
   >
     <!-- Alerts -->
     <FormAlert
-      v-if="errorMessage"
-      :message="errorMessage"
+      v-if="displayErrorMessage"
+      :message="displayErrorMessage"
       type="error"
       :dismissible="dismissibleAlerts"
-      @close="$emit('clear-error')"
+      @close="clearError"
     />
+
+    <!-- Erreurs de validation -->
+    <FormAlert
+      v-if="validationErrors.length > 0"
+      type="error"
+      :dismissible="dismissibleAlerts"
+      @close="clearValidationErrors"
+    >
+      <template #default>
+        <div class="text-subtitle-2 font-weight-bold mb-2">
+          Veuillez corriger les erreurs suivantes :
+        </div>
+        <ul class="pl-4">
+          <li v-for="(error, index) in validationErrors" :key="index">
+            {{ error }}
+          </li>
+        </ul>
+      </template>
+    </FormAlert>
 
     <FormAlert
       v-if="loading && loadingMessage"
@@ -32,11 +51,11 @@
     />
 
     <FormAlert
-      v-if="successMessage"
-      :message="successMessage"
+      v-if="displaySuccessMessage"
+      :message="displaySuccessMessage"
       type="success"
       :dismissible="dismissibleAlerts"
-      @close="$emit('clear-success')"
+      @close="clearSuccess"
     />
 
     <!-- Form - Utilise v-form seulement si pas de validationSchema (formulaires simples) -->
@@ -128,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { FormAlert, FormActions, FormContainer } from '.';
 import { useFormValidation } from '@/composables/useFormValidation';
 
@@ -328,16 +347,72 @@ const emit = defineEmits(['update:modelValue', 'submit', 'cancel', 'reset', 'cle
 
 const formRef = ref(null);
 const formValid = ref(false);
+const validationErrors = ref([]);
+const internalErrorMessage = ref('');
+const internalSuccessMessage = ref('');
 
 const formData = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 });
 
+// Fusionner les messages internes et externes
+const displayErrorMessage = computed(() => {
+  return internalErrorMessage.value || props.errorMessage;
+});
+
+const displaySuccessMessage = computed(() => {
+  return internalSuccessMessage.value || props.successMessage;
+});
+
 // Initialiser la validation si un schéma est fourni
 const validation = props.validationSchema && Object.keys(props.validationSchema).length > 0
   ? useFormValidation(props.validationSchema)
   : null;
+
+// Extraire les erreurs de validation pour affichage
+const extractValidationErrors = () => {
+  const errors = [];
+  if (validation && validation.errors.value) {
+    Object.entries(validation.errors.value).forEach(([field, fieldErrors]) => {
+      if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+        fieldErrors.forEach(error => {
+          errors.push(`${field}: ${error}`);
+        });
+      }
+    });
+  }
+  return errors;
+};
+
+const clearValidationErrors = () => {
+  validationErrors.value = [];
+  if (validation) {
+    validation.clearErrors();
+  }
+};
+
+const clearError = () => {
+  internalErrorMessage.value = '';
+  validationErrors.value = [];
+  emit('clear-error');
+};
+
+const clearSuccess = () => {
+  internalSuccessMessage.value = '';
+  emit('clear-success');
+};
+
+const setError = (message) => {
+  internalErrorMessage.value = message;
+  internalSuccessMessage.value = '';
+};
+
+const setSuccess = (message) => {
+  internalSuccessMessage.value = message;
+  internalErrorMessage.value = '';
+  clearValidationErrors();
+};
 
 // Fournir validation et isFieldRequired aux composants enfants
 import { provide } from 'vue';
@@ -346,27 +421,39 @@ if (validation) {
   provide('isFieldRequired', validation.isFieldRequired);
 }
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
+  // Réinitialiser les messages
+  clearError();
+  clearSuccess();
+  clearValidationErrors();
+
   // Valider avec le schéma si disponible
   if (validation && !validation.validateAll(formData.value)) {
+    validationErrors.value = extractValidationErrors();
+    setError('Veuillez corriger les erreurs de saisie.');
     return;
   }
 
   // Si une fonction personnalisée est fournie, l'utiliser
   if (props.handleSubmit && typeof props.handleSubmit === 'function') {
-    props.handleSubmit(formData.value);
+    try {
+      await props.handleSubmit(formData.value);
+    } catch (error) {
+      setError(error.message || 'Une erreur est survenue lors de la soumission.');
+      console.error('Erreur lors de la soumission:', error);
+    }
     return;
   }
   
   // Sinon, utiliser le comportement par défaut
-  console.log('Submitting form with data:', formData.value);
-  
   if (formRef.value) {
     formRef.value.validate();
   }
   
   if (formValid.value && props.customValidation()) {
     emit('submit', formData.value);
+  } else {
+    setError('Veuillez remplir correctement tous les champs requis.');
   }
 };
 
@@ -384,6 +471,9 @@ const handleReset = () => {
 };
 
 const resetForm = () => {
+  clearValidationErrors();
+  clearError();
+  clearSuccess();
   if (formRef.value) {
     formRef.value.reset();
   }
@@ -393,6 +483,7 @@ const resetForm = () => {
 };
 
 const resetValidation = () => {
+  clearValidationErrors();
   if (formRef.value) {
     formRef.value.resetValidation();
   }
@@ -406,7 +497,11 @@ defineExpose({
   resetValidation,
   formRef,
   formValid,
-  validation
+  validation,
+  setError,
+  setSuccess,
+  clearError,
+  clearSuccess
 });
 </script>
 

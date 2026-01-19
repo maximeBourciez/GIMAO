@@ -184,12 +184,18 @@
   </v-btn>
 
   <!-- Dialog pour ajouter un compteur -->
-  <v-dialog v-model="showCounterDialog" max-width="1000px" scrollable @click:outside="closeCounterDialog">
+  <v-dialog v-model="showCounterDialog" max-width="600px" @click:outside="closeCounterDialog">
     <v-card>
-      <v-card-text class="pa-0">
-        <CounterInlineForm v-if="showCounterDialog" v-model="currentCounter" :existingPMs="existingPMs"
-          :typesPM="typesPM" :consumables="consumables" :typesDocuments="typesDocuments" :isEditMode="false"
-          :isFirstCounter="true" @save="saveCounter" @cancel="closeCounterDialog" />
+      <v-card-title>Ajouter un compteur</v-card-title>
+      <v-divider></v-divider>
+      <v-card-text>
+        <CounterInlineForm 
+          v-if="currentCounter"
+          v-model="currentCounter" 
+          :is-edit-mode="false"
+          @save="saveCounter" 
+          @cancel="closeCounterDialog"
+        />
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -219,29 +225,11 @@ const editButtonText = ref('Modifier l\'équipement');
 const showCounterDialog = ref(false);
 const currentCounter = ref(null);
 
-// Données pour le formulaire de compteur
-const consumables = ref([]);
-const typesPM = ref([]);
-const typesDocuments = ref([]);
-const existingPMs = ref([]);
-
 const getEmptyCounter = () => ({
   nom: '',
-  description: '',
-  intervalle: '',
-  unite: '',
-  valeurCourante: null,
-  derniereIntervention: null,
-  estGlissant: false,
+  unite: 'heures',
+  valeurCourante: 0,
   estPrincipal: false,
-  habElec: false,
-  permisFeu: false,
-  planMaintenance: {
-    nom: '',
-    type: null,
-    consommables: [],
-    documents: []
-  }
 });
 
 const technicalDocumentsHeaders = [
@@ -315,25 +303,10 @@ const equipmentDetails = computed(() => {
 const fetchEquipmentData = async () => {
   errorMessage.value = '';
   try {
-    await api.get(`equipement/${route.params.id}/affichage/`);
-    await fetchCounterFormData();
+    await api.get(`equipement/${route.params.id}/affichage/?seuils_lite=true`);
   } catch (error) {
     console.error("Erreur lors de la récupération des données de l'équipement:", error);
     errorMessage.value = "Erreur lors du chargement de l'équipement";
-  }
-};
-
-const fetchCounterFormData = async () => {
-  try {
-    const formDataApi = useApi(API_BASE_URL);
-    await formDataApi.get('equipements/form-data/');
-    const data = formDataApi.data.value;
-
-    consumables.value = data.consumables;
-    typesPM.value = data.typesPM;
-    typesDocuments.value = data.typesDocuments;
-  } catch (error) {
-    console.error('Erreur lors du chargement des données du formulaire:', error);
   }
 };
 
@@ -491,27 +464,14 @@ const saveCounter = async () => {
     const fd = new FormData();
 
     const counterData = {
-      ...currentCounter.value,
-      equipement: route.params.id,
+      nom: currentCounter.value.nom,
+      unite: currentCounter.value.unite,
       valeurCourante: currentCounter.value.valeurCourante ?? 0,
-      derniereIntervention: currentCounter.value.derniereIntervention ?? 0,
-      intervalle: currentCounter.value.intervalle ?? 0,
-      planMaintenance: {
-        ...currentCounter.value.planMaintenance,
-        documents: currentCounter.value.planMaintenance.documents.map(d => ({
-          titre: d.titre,
-          type: d.type
-        }))
-      }
+      estPrincipal: currentCounter.value.estPrincipal,
+      equipement: route.params.id
     };
 
     fd.append('compteur', JSON.stringify(counterData));
-
-    currentCounter.value.planMaintenance.documents.forEach((doc, docIndex) => {
-      if (doc.file instanceof File) {
-        fd.append(`document_${docIndex}`, doc.file);
-      }
-    });
 
     const counterApi = useApi(API_BASE_URL);
     await counterApi.post('compteurs/', fd, {
@@ -520,7 +480,6 @@ const saveCounter = async () => {
 
     successMessage.value = 'Compteur créé avec succès';
     closeCounterDialog();
-
     await fetchEquipmentData();
 
     setTimeout(() => successMessage.value = '', 3000);

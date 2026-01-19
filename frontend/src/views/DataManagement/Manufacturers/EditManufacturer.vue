@@ -1,180 +1,46 @@
-<template>
-  <BaseForm
-    title="Modifier le fabricant"
-    :loading="isSaving"
-    :error-message="saveErrorMessage"
-    :success-message="successMessage"
-    submit-button-text="Enregistrer les modifications"
-    @submit="handleSubmit"
-    @cancel="goBack"
-    @clear-error="saveErrorMessage = ''"
-    actions-container-class="d-flex justify-end gap-2 mt-2"
-  >
-    <template #default>
-      <!-- Infos fabricant -->
-      <v-sheet class="pa-4 mb-4" elevation="1" rounded>
-        <h4 class="mb-3">Fabricant</h4>
-        <v-row dense>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="manufacturerData.nom"
-              label="Nom du fabricant *"
-              outlined
-              dense
-              :rules="[(v) => (!!v && !!v.trim()) || 'Le nom du fabricant est requis']"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="manufacturerData.email"
-              label="Email *"
-              outlined
-              dense
-              :rules="[(v) => !v || isValidEmail(v) || 'Email invalide']"
-            />
-          </v-col>
-        </v-row>
-        <v-row dense>
-          <v-col cols="6">
-            <v-text-field
-              v-model="manufacturerData.numTelephone"
-              label="Téléphone *"
-              outlined
-              dense
-              :rules="[(v) => !v || isValidPhone(v) || 'Téléphone invalide']"
-            />
-          </v-col>
-          <v-col cols="6" class="d-flex align-center">
-            <v-checkbox
-              v-model="manufacturerData.serviceApresVente"
-              label="Service après-vente"
-              dense
-            />
-          </v-col>
-        </v-row>
-      </v-sheet>
+﻿<template>
+  <v-container>
+    <v-alert v-if="loading" type="info" variant="tonal" class="mb-4">
+      <v-progress-circular indeterminate size="20" class="mr-2"></v-progress-circular>
+      Chargement des données...
+    </v-alert>
 
-      <!-- Adresse -->
-      <v-sheet class="pa-4" elevation="1" rounded>
-        <h4 class="mb-3">Adresse</h4>
-        <v-row dense>
-          <v-col cols="4">
-            <v-text-field
-              v-model="manufacturerData.adresse.numero"
-              label="N° *"
-              outlined
-              dense
-            />
-          </v-col>
-          <v-col cols="8">
-            <v-text-field
-              v-model="manufacturerData.adresse.rue"
-              label="Rue *"
-              outlined
-              dense
-              :rules="[
-                (v) =>
-                  !v ||
-                  v.trim().length >= 2 ||
-                  'La rue doit contenir au moins 2 caractères',
-              ]"
-            />
-          </v-col>
-        </v-row>
-        <v-row dense>
-          <v-col cols="6">
-            <v-text-field
-              v-model="manufacturerData.adresse.code_postal"
-              label="Code postal *"
-              outlined
-              dense
-              :rules="[(v) => !v || isValidPostalCode(v) || 'Code postal invalide']"
-            />
-          </v-col>
-          <v-col cols="6">
-            <v-text-field
-              v-model="manufacturerData.adresse.ville"
-              label="Ville *"
-              outlined
-              dense
-              :rules="[
-                (v) =>
-                  !v ||
-                  v.trim().length >= 2 ||
-                  'La ville doit contenir au moins 2 caractères',
-              ]"
-            />
-          </v-col>
-        </v-row>
-        <v-row dense>
-          <v-col cols="12">
-            <v-text-field
-              v-model="manufacturerData.adresse.pays"
-              label="Pays *"
-              outlined
-              dense
-              :rules="[
-                (v) =>
-                  !v ||
-                  v.trim().length >= 2 ||
-                  'Le pays doit contenir au moins 2 caractères',
-              ]"
-            />
-          </v-col>
-        </v-row>
-        <v-row dense>
-          <v-col cols="12">
-            <v-text-field
-              v-model="manufacturerData.adresse.complement"
-              label="Complément"
-              outlined
-              dense
-            />
-          </v-col>
-        </v-row>
-      </v-sheet>
-    </template>
-  </BaseForm>
+    <v-alert v-else-if="errorLoading" type="error" variant="tonal" class="mb-4">
+      {{ errorLoading }}
+    </v-alert>
+
+    <FabricantForm
+      v-if="!loading && manufacturerData"
+      title="Modifier le fabricant"
+      submit-button-text="Enregistrer les modifications"
+      :is-edit="true"
+      :initial-data="manufacturerData"
+      :connected-user-id="connectedUserId"
+      @updated="handleUpdated"
+      @close="handleClose"
+    />
+  </v-container>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useStore } from "vuex";
-import { useApi } from "@/composables/useApi";
-import { API_BASE_URL } from "@/utils/constants";
-import BaseForm from "@/components/common/BaseForm.vue";
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useStore } from 'vuex'
+import { useApi } from '@/composables/useApi'
+import { API_BASE_URL } from '@/utils/constants'
+import FabricantForm from '@/components/Forms/FabricantForm.vue'
 
-const route = useRoute();
-const router = useRouter();
-const store = useStore();
-const api = useApi(API_BASE_URL);
+const route = useRoute()
+const router = useRouter()
+const store = useStore()
+const api = useApi(API_BASE_URL)
 
-const manufacturerId = route.params.id;
-const manufacturerData = ref({
-  nom: "",
-  email: "",
-  numTelephone: "",
-  serviceApresVente: false,
-  adresse: {
-    numero: "",
-    rue: "",
-    code_postal: "",
-    ville: "",
-    pays: "",
-    complement: "",
-  },
-});
-const originalData = ref(null);
-const isLoading = ref(true);
-const isSaving = ref(false);
-const errorMessage = ref("");
-const saveErrorMessage = ref("");
-const successMessage = ref("");
+const manufacturerId = route.params.id
+const manufacturerData = ref(null)
+const loading = ref(false)
+const errorLoading = ref('')
 
-onMounted(async () => {
-  await loadManufacturerData();
-});
+const connectedUserId = computed(() => store.getters.currentUser?.id)
 
 const loadManufacturerData = async () => {
   isLoading.value = true;
@@ -220,54 +86,30 @@ const handleSubmit = async () => {
   }
 
   try {
-    await api.put(`fabricants/${manufacturerId}/`, changes);
-
-    successMessage.value = "Fabricant modifié avec succès.";
-
-    // Rediriger vers la page de détail après la modification
-    setTimeout(() => {
-      router.push({
-        name: "ManufacturerDetail",
-        params: { id: manufacturerId },
-      });
-    }, 2000);
+    manufacturerData.value = await api.get(`fabricants/${manufacturerId}`)
   } catch (error) {
-    console.error("Error updating manufacturer:", error);
-    saveErrorMessage.value = "Erreur lors de la modification du fabricant";
+    console.error('Error loading manufacturer data:', error)
+    errorLoading.value = 'Erreur lors du chargement des données du fabricant'
   } finally {
-    isSaving.value = false;
+    loading.value = false
   }
-};
+}
 
-const detectChanges = () => {
-  const changes = {};
-  changes.adresse = {};
+const handleUpdated = () => {
+  router.push({
+    name: 'ManufacturerDetail',
+    params: { id: manufacturerId }
+  })
+}
 
-  // Champs simples
-  ["nom", "email", "numTelephone", "serviceApresVente"].forEach((field) => {
-    if (manufacturerData.value[field] !== originalData.value[field]) {
-      changes[field] = {
-        ancienne: originalData.value[field],
-        nouvelle: manufacturerData.value[field],
-      };
-    }
-  });
+const handleClose = () => {
+  router.push({
+    name: 'ManufacturerDetail',
+    params: { id: manufacturerId }
+  })
+}
 
-  // Adresse
-  const champsAdresse = ["numero", "rue", "ville", "code_postal", "pays", "complement"];
-  champsAdresse.forEach((field) => {
-    if (manufacturerData.value.adresse[field] !== originalData.value.adresse[field]) {
-      changes.adresse[field] = {
-        ancienne: originalData.value.adresse[field],
-        nouvelle: manufacturerData.value.adresse[field],
-      };
-    }
-  });
-
-  return changes;
-};
-
-const goBack = () => {
-  router.back();
-};
+onMounted(() => {
+  loadManufacturerData()
+})
 </script>

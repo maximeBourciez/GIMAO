@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from stock.models import *
@@ -27,6 +28,15 @@ class MagasinViewSet(viewsets.ModelViewSet):
         if self.action in ['retrieve', 'list']:
             return MagasinDetailSerializer
         return MagasinSerializer
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Création d'un magasin avec gestion de l'adresse imbriquée"""
+        adresse_data = request.data.pop('adresse', None)
+        if adresse_data:
+            adresse = Adresse.objects.create(**adresse_data)
+            request.data['adresse'] = adresse.id
+        return super().create(request, *args, **kwargs)
 
 
 class ConsommableViewSet(viewsets.ModelViewSet):
