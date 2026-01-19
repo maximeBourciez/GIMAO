@@ -18,6 +18,16 @@
 		@create="$emit('create')"
 		@clear-error="errorMessage = ''"
 	>
+		<!-- Nom (tronqué si la colonne est trop étroite) -->
+		<template #item.nom="{ item }">
+			<span
+				class="bt-diagnostic-truncate"
+				:title="item.nom || ''"
+			>
+				{{ item.nom || '-' }}
+			</span>
+		</template>
+
 		<!-- Date d'assignation -->
 		<template #item.date_assignation="{ item }">
 			{{ formatDateTime(item.date_assignation) }}

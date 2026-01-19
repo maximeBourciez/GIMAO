@@ -7,6 +7,7 @@
 					:base-form-props="baseFormProps"
 					:equipments="equipments"
 					:users="users"
+					:consommables="consommables"
 					:equipement-read-only="true"
 					:responsable-read-only="true"
 					:state="formState"
@@ -49,6 +50,7 @@ const baseFormProps = {
 
 const users = ref([]);
 const equipments = ref([]);
+const consommables = ref([]);
 
 const connectedUser = computed(() => store.getters.currentUser);
 
@@ -60,7 +62,8 @@ const formData = ref({
 	commentaire: '',
 	diagnostic: '',
 	responsable_id: null,
-	utilisateur_assigne_ids: []
+	utilisateur_assigne_ids: [],
+	consommables: [{ consommable_id: null, quantite_utilisee: 1 }]
 });
 
 const originalFormData = ref(null);
@@ -85,8 +88,20 @@ const loadEquipments = async () => {
 	equipments.value = await api.get('equipements/');
 };
 
+const loadConsommables = async () => {
+	consommables.value = await api.get('consommables/');
+};
+
 const loadBonTravail = async () => {
 	const bon = await api.get(`bons-travail/${bonId}/`);
+
+	const consommablesLines = Array.isArray(bon?.consommables)
+		? bon.consommables
+			.map((c) => ({
+				consommable_id: c?.consommable ?? null,
+				quantite_utilisee: Number.isFinite(Number(c?.quantite)) ? Number(c.quantite) : 0
+			}))
+		: [];
 
 	formData.value = {
 		equipement_id: bon?.demande_intervention?.equipement?.id ?? null,
@@ -98,7 +113,8 @@ const loadBonTravail = async () => {
 		responsable_id: bon?.responsable?.id ?? null,
 		utilisateur_assigne_ids: Array.isArray(bon?.utilisateur_assigne)
 			? bon.utilisateur_assigne.map((u) => u.id)
-			: []
+			: [],
+		consommables: consommablesLines.length ? consommablesLines : [{ consommable_id: null, quantite_utilisee: 1 }]
 	};
 
 	originalFormData.value = JSON.parse(JSON.stringify(formData.value));
@@ -134,6 +150,26 @@ const buildPatchPayload = (payload) => {
 	const sameIds = newIds.length === oldIds.length && newIds.every((id, i) => id === oldIds[i]);
 	if (!sameIds) {
 		patch.utilisateur_assigne_ids = newIds;
+	}
+
+	const buildConsommablesPayload = (source) => {
+		const lines = Array.isArray(source?.consommables) ? source.consommables : [];
+		return lines
+			.filter((c) => c && c.consommable_id !== null && c.consommable_id !== undefined && c.consommable_id !== '')
+			.map((c) => {
+				const id = Number(c.consommable_id);
+				const qRaw = Number.isFinite(Number(c.quantite_utilisee)) ? Number(c.quantite_utilisee) : 0;
+				const q = Math.max(0, Math.trunc(qRaw));
+				return { consommable_id: id, quantite_utilisee: q };
+			})
+			.sort((a, b) => a.consommable_id - b.consommable_id);
+	};
+
+	const newConsommables = buildConsommablesPayload(payload);
+	const oldConsommables = buildConsommablesPayload(original);
+	const sameConsommables = JSON.stringify(newConsommables) === JSON.stringify(oldConsommables);
+	if (!sameConsommables) {
+		patch.consommables = newConsommables;
 	}
 
 	return patch;
@@ -179,7 +215,7 @@ onMounted(async () => {
 	formState.loading = true;
 	formState.errorMessage = '';
 	try {
-		await Promise.all([loadUsers(), loadEquipments(), loadBonTravail()]);
+		await Promise.all([loadUsers(), loadEquipments(), loadConsommables(), loadBonTravail()]);
 	} catch (error) {
 		console.error('Erreur lors du chargement:', error);
 		formState.errorMessage = 'Erreur lors du chargement des données';
