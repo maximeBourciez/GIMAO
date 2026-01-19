@@ -129,6 +129,26 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             )
             
         demande.documents.remove(document_id)
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        Log.objects.create(
+            type='archivage',
+            nomTable='demande_intervention',
+            idCible={'demande_intervention_id': demande.id},
+            champsModifies={
+                'documents': {
+                    'valArchivage': {
+                        'document_id': int(document_id),
+                    }
+                }
+            },
+            utilisateur_id=utilisateur_id,
+        )
         
         # On utilise le serializer détaillé pour renvoyer la liste des documents mise à jour
         serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
@@ -263,13 +283,14 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     - GET /bons-travail/{id}/ : Détail d'un bon
     - PUT/PATCH /bons-travail/{id}/ : Modifie un bon
     - DELETE /bons-travail/{id}/ : Supprime un bon
-    - PATCH /bons-travail/{id}/updateStatus/ : Change le statut (endpoint unique)
+    - PATCH /bons-travail/{id}/updateStatus/ : Change le statut
+    - PATCH /bons-travail/{id}/delink_document/ : Délie un document du bon
     """
     queryset = BonTravail.objects.select_related(
         'demande_intervention',
         'demande_intervention__equipement',
         'responsable'
-    ).prefetch_related('utilisateur_assigne')
+    ).prefetch_related('utilisateur_assigne', 'documents', 'demande_intervention__documents')
     serializer_class = BonTravailSerializer
 
     def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
@@ -558,6 +579,50 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(bon_apres)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'])
+    def delink_document(self, request, pk=None):
+        bon = self.get_object()
+        document_id = request.data.get('document_id')
+
+        if not document_id:
+            document_id = request.query_params.get('document_id')
+
+        if not document_id:
+            return Response(
+                {'error': 'Le paramètre document_id est requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not bon.documents.filter(id=document_id).exists():
+            return Response(
+                {'error': "Ce document n'est pas lié à ce bon"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        bon.documents.remove(document_id)
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+        self._create_log_entry(
+            type_action='archivage',
+            nom_table='bon_travail',
+            id_cible={'bon_travail_id': bon.id},
+            champs_modifies={
+                'documents': {
+                    'valArchivage': {
+                        'document_id': int(document_id),
+                    }
+                }
+            },
+            utilisateur_id=utilisateur_id,
+        )
+
+        serializer = BonTravailDetailSerializer(bon, context={'request': request})
         return Response(serializer.data)
 
 

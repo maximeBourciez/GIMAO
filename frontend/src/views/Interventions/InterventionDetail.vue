@@ -206,7 +206,7 @@
           <!-- Section Documents -->
           <v-card class="mt-4" elevation="2">
             <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleDocumentsDetails">
-              Documents du BT
+              Documents
               <v-spacer></v-spacer>
               <v-btn color="primary" size="small" class="mr-2" @click.stop="addDocument">
                 Ajouter
@@ -219,16 +219,10 @@
               <div v-show="showDocumentsDetails">
                 <v-divider></v-divider>
                 <v-card-text>
-                  <v-toolbar flat class="mb-2">
-                    <v-spacer></v-spacer>
-                    <v-btn color="primary" size="small" @click="toggleActionMode">
-                      {{ actionMode === 'download' ? 'Mode suppression' : 'Mode téléchargement' }}
-                    </v-btn>
-                  </v-toolbar>
-
+                  <h4 class="text-subtitle-1 mb-2">Documents du BT</h4>
                   <v-data-table
                     :headers="documentHeaders"
-                    :items="data.liste_documents_intervention || []"
+                    :items="data.documentsBT || data.liste_documents_intervention || []"
                     class="elevation-1"
                     hide-default-footer
                     :items-per-page="-1"
@@ -237,27 +231,81 @@
                       {{ item.nomDocumentIntervention || item.titre || item.nomDocument || 'Document' }}
                     </template>
                     <template #item.actions="{ item }">
-                      <v-btn
-                        icon
-                        size="small"
-                        color="info"
-                        class="mr-1"
-                        @click="viewDocument(item)"
-                      >
-                        <v-icon size="small">mdi-eye</v-icon>
+                      <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
+                        <v-icon size="small">mdi-download</v-icon>
                       </v-btn>
-                      <v-btn
-                        icon
-                        size="small"
-                        :color="actionMode === 'download' ? 'primary' : 'error'"
-                        @click="actionMode === 'download' ? downloadDocument(item) : deleteDocument(item)"
-                      >
-                        <v-icon size="small">
-                          {{ actionMode === 'download' ? 'mdi-download' : 'mdi-delete' }}
-                        </v-icon>
+                      <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('BT', item)">
+                        <v-icon size="small">mdi-delete</v-icon>
                       </v-btn>
                     </template>
                   </v-data-table>
+
+                  <h4 class="text-subtitle-1 mt-6 mb-2">Documents de la DI</h4>
+                  <v-data-table
+                    :headers="documentHeaders"
+                    :items="data.documentsDI || []"
+                    class="elevation-1"
+                    hide-default-footer
+                    :items-per-page="-1"
+                  >
+                    <template #item.nomDocumentIntervention="{ item }">
+                      {{ item.nomDocumentIntervention || item.titre || item.nomDocument || 'Document' }}
+                    </template>
+                    <template #item.actions="{ item }">
+                      <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
+                        <v-icon size="small">mdi-download</v-icon>
+                      </v-btn>
+                      <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('DI', item)">
+                        <v-icon size="small">mdi-delete</v-icon>
+                      </v-btn>
+                    </template>
+                  </v-data-table>
+                </v-card-text>
+              </div>
+            </v-expand-transition>
+          </v-card>
+
+          <!-- Section Consommables (juste après Documents) -->
+          <v-card class="mt-4" elevation="2">
+            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleConsommablesDetails">
+              Consommables
+              <v-spacer></v-spacer>
+              <v-icon>
+                {{ showConsommablesDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+              </v-icon>
+            </v-card-title>
+            <v-expand-transition>
+              <div v-show="showConsommablesDetails">
+                <v-divider></v-divider>
+                <v-card-text>
+                  <v-data-table
+                    v-if="Array.isArray(data.consommables) && data.consommables.length"
+                    :headers="consommableHeaders"
+                    :items="data.consommables"
+                    class="elevation-1"
+                    hide-default-footer
+                    :items-per-page="-1"
+                  >
+                    <template #item.image="{ item }">
+                      <div class="d-flex justify-center">
+                        <v-img
+                          v-if="item.image"
+                          :src="`${BASE_URL}/media/${String(item.image).replace(/^\/+/, '')}`"
+                          max-width="48"
+                          max-height="48"
+                          cover
+                        />
+                        <span v-else class="text-caption text-grey">-</span>
+                      </div>
+                    </template>
+                    <template #item.designation="{ item }">
+                      {{ item.designation || 'Non spécifié' }}
+                    </template>
+                    <template #item.quantite="{ item }">
+                      {{ Number.isFinite(item.quantite) ? item.quantite : (item.quantite ?? 0) }}
+                    </template>
+                  </v-data-table>
+                  <p v-else class="text-caption text-grey">Aucun consommable associé</p>
                 </v-card-text>
               </div>
             </v-expand-transition>
@@ -315,6 +363,18 @@
       @cancel="showClose = false"
     />
 
+    <ConfirmationModal
+      v-model="showDeleteDocument"
+      type="error"
+      title="Supprimer le document"
+      :message="deleteDocumentMessage"
+      confirm-text="Supprimer"
+      confirm-icon="mdi-delete"
+      :loading="actionLoading"
+      @confirm="confirmDeleteDocument"
+      @cancel="showDeleteDocument = false"
+    />
+
     <!-- Refuser la clôture : formulaire (commentaire obligatoire) -->
     <v-dialog v-model="showRefuseClose" max-width="600" scrollable>
       <v-card>
@@ -362,7 +422,7 @@ import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { BaseForm, FormTextarea } from '@/components/common';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
+import { API_BASE_URL, BASE_URL, MEDIA_BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
 import { formatDateTime, getInterventionStatusColor } from '@/utils/helpers';
 
 const router = useRouter();
@@ -384,6 +444,7 @@ const MESSAGE_TIMEOUT_MS = 3000;
 const actionMode = ref('download');
 const showDemandeDetails = ref(false);
 const showDocumentsDetails = ref(false);
+const showConsommablesDetails = ref(false);
 const showAffectation = ref(false);
 const showEquipementDetails = ref(false);
 
@@ -391,6 +452,14 @@ const showStart = ref(false);
 const showFinish = ref(false);
 const showClose = ref(false);
 const showRefuseClose = ref(false);
+const showDeleteDocument = ref(false);
+const deleteDocumentContext = ref({ scope: null, item: null });
+
+const deleteDocumentMessage = computed(() => {
+  const item = deleteDocumentContext.value?.item;
+  const name = item?.titre || item?.nomDocumentIntervention || item?.nomDocument || 'ce document';
+  return `Êtes-vous sûr de vouloir supprimer le document "${name}" ?`;
+});
 
 const refuseCloseFormData = ref({
   commentaire_refus_cloture: ''
@@ -403,6 +472,12 @@ const refuseCloseValidationSchema = {
 const documentHeaders = [
   { title: 'Nom du document', value: 'nomDocumentIntervention' },
   { title: 'Actions', value: 'actions', sortable: false }
+];
+
+const consommableHeaders = [
+  { title: 'Image', value: 'image', sortable: false, align: 'center' },
+  { title: 'Désignation', value: 'designation' },
+  { title: 'Quantité', value: 'quantite', align: 'center' },
 ];
 
 const demandeId = computed(() => intervention.value?.demande_intervention?.id);
@@ -456,6 +531,11 @@ const openRefuseCloseModal = () => {
   showRefuseClose.value = true;
 };
 
+const openDeleteDocumentModal = (scope, item) => {
+  deleteDocumentContext.value = { scope, item };
+  showDeleteDocument.value = true;
+};
+
 const goToEditIntervention = () => {
   const id = intervention.value?.id ?? route.params.id;
   if (!id) return;
@@ -485,6 +565,10 @@ const toggleDemandeDetails = () => {
 
 const toggleDocumentsDetails = () => {
   showDocumentsDetails.value = !showDocumentsDetails.value;
+};
+
+const toggleConsommablesDetails = () => {
+  showConsommablesDetails.value = !showConsommablesDetails.value;
 };
 
 const toggleEquipementDetails = () => {
@@ -597,10 +681,12 @@ const finishIntervention = async () => {
 };
 
 const downloadDocument = (item) => {
-  const fullUrl = getDocumentUrl(item);
-  if (!fullUrl) return;
+  const raw = item?.path || item?.lienDocumentIntervention || item?.cheminAcces;
+  if (!raw) return;
 
-  fetch(fullUrl)
+  const path = String(raw).replace(/^\/+/, '').split('/media/').pop();
+
+  fetch(`${MEDIA_BASE_URL}${path}`)
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.blob();
@@ -610,56 +696,74 @@ const downloadDocument = (item) => {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = item.nomDocumentIntervention || item.titre || item.nomDocument || 'document';
+      a.download = path.split('/').pop() || 'document';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
     })
     .catch(() => {
-      alert('Erreur lors du téléchargement du fichier. Veuillez réessayer.');
+      errorMessage.value = 'Erreur lors du téléchargement du fichier';
+      setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
     });
 };
 
-const getDocumentUrl = (item) => {
-  const raw = item?.lienDocumentIntervention || item?.path || item?.cheminAcces;
-  if (!raw) return null;
-
-  if (typeof raw === 'string' && (raw.startsWith('http://') || raw.startsWith('https://'))) return raw;
-
-  const rawString = String(raw);
-  const cleaned = rawString.startsWith('/media/')
-    ? rawString.slice('/media/'.length)
-    : rawString.replace(/^\/+/, '').split('/media/').pop();
-
-  return `${BASE_URL}/media/${cleaned}`;
-};
-
-const viewDocument = (item) => {
-  const url = getDocumentUrl(item);
-  if (!url) return;
-  window.open(url, '_blank', 'noopener,noreferrer');
-};
-
-const deleteDocument = async (item) => {
-  const name = item?.nomDocumentIntervention || item?.titre || item?.nomDocument || 'ce document';
-  if (!confirm(`Êtes-vous sûr de vouloir supprimer le document "${name}" ?`)) return;
-
-  const documentId = item?.id ?? item?.idDocumentIntervention ?? item?.document_id;
-  if (!documentId) {
-    errorMessage.value = 'Impossible de supprimer : ID du document manquant.';
+const deleteDocumentBT = async (item) => {
+  const documentId = item?.id;
+  if (!documentId || !intervention.value?.id) {
+    errorMessage.value = 'Impossible de supprimer : informations manquantes.';
     setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
     return;
   }
 
   try {
-    // L'écran d'ajout poste sur 'document-interventions/' : suppression via DELETE /document-interventions/{id}/
-    await api.delete(`document-interventions/${documentId}/`);
+    await api.patch(`bons-travail/${intervention.value.id}/delink_document/`, {
+      document_id: documentId,
+    });
     successMessage.value = 'Document supprimé';
     setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
     await fetchData();
   } catch (error) {
     errorMessage.value = 'Erreur lors de la suppression du document';
     setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+  }
+};
+
+const deleteDocumentDI = async (item) => {
+  const documentId = item?.id;
+  if (!documentId || !demandeId.value) {
+    errorMessage.value = 'Impossible de supprimer : informations manquantes.';
+    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    return;
+  }
+
+  try {
+    await api.patch(`demandes-intervention/${demandeId.value}/delink_document/`, {
+      document_id: documentId,
+    });
+    successMessage.value = 'Document supprimé';
+    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    await fetchData();
+  } catch (error) {
+    errorMessage.value = 'Erreur lors de la suppression du document';
+    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+  }
+};
+
+const confirmDeleteDocument = async () => {
+  const { scope, item } = deleteDocumentContext.value || {};
+  if (!scope || !item) return;
+
+  actionLoading.value = true;
+  try {
+    if (scope === 'BT') {
+      await deleteDocumentBT(item);
+    } else if (scope === 'DI') {
+      await deleteDocumentDI(item);
+    }
+    showDeleteDocument.value = false;
+    deleteDocumentContext.value = { scope: null, item: null };
+  } finally {
+    actionLoading.value = false;
   }
 };
 
