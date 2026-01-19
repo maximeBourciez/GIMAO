@@ -189,12 +189,22 @@ class EquipementViewSet(viewsets.ModelViewSet):
             )
 
             # Consommables du plan
-            for consommable_id in pm_data.get("consommables", []):
-                PlanMaintenanceConsommable.objects.create(
-                    plan_maintenance=plan,
-                    consommable_id=consommable_id,
-                    quantite_necessaire=1
-                )
+            for consommable_data in pm_data.get("consommables", []):
+                # Support pour nouveau format {consommable_id, quantite_necessaire}
+                if isinstance(consommable_data, dict):
+                    consommable_id = consommable_data.get('consommable_id')
+                    quantite = consommable_data.get('quantite_necessaire', 1)
+                else:
+                    # Format ancien (simple ID)
+                    consommable_id = consommable_data
+                    quantite = 1
+                
+                if consommable_id:
+                    PlanMaintenanceConsommable.objects.create(
+                        plan_maintenance=plan,
+                        consommable_id=consommable_id,
+                        quantite_necessaire=quantite
+                    )
 
         # Log de création
         utilisateur = self._get_utilisateur(request)
@@ -663,9 +673,12 @@ class EquipementViewSet(viewsets.ModelViewSet):
                 # Chercher la quantité dans les données complètes
                 quantite = 1  # Valeur par défaut
                 for conso in nouveaux_consommables:
-                    if isinstance(conso, dict) and conso.get('consommable') == consommable_id:
-                        quantite = conso.get('quantite', 1)
-                        break
+                    # Support pour nouveau format {consommable_id, quantite_necessaire}
+                    if isinstance(conso, dict):
+                        conso_id = conso.get('consommable_id') or conso.get('consommable')
+                        if conso_id == consommable_id:
+                            quantite = conso.get('quantite_necessaire') or conso.get('quantite', 1)
+                            break
                 
                 PlanMaintenanceConsommable.objects.create(
                     plan_maintenance=plan,
