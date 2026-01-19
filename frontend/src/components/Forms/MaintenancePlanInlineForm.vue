@@ -156,11 +156,30 @@
                 <v-icon left color="primary" size="small">mdi-package-variant</v-icon>
                 Consommables nécessaires
             </h4>
+
+            <v-row v-for="(conso, index) in plan.consommables" :key="index" dense class="mb-2 align-center">
+                <v-col cols="12" md="6">
+                    <v-select v-model="conso.consommable_id" :items="consumables" item-title="designation"
+                        item-value="id" label="Consommable" variant="outlined" density="comfortable"
+                        hide-details></v-select>
+                </v-col>
+                <v-col cols="12" md="5">
+                    <v-text-field v-model="conso.quantite_necessaire" type="number" label="Quantité nécessaire"
+                        variant="outlined" density="comfortable" hide-details min="1"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="1" class="text-right">
+                    <v-btn icon size="small" color="error" variant="text" @click="removeConsommable(index)">
+                        <v-icon>mdi-delete</v-icon>
+                    </v-btn>
+                </v-col>
+            </v-row>
+
             <v-row dense>
                 <v-col cols="12">
-                    <FormSelect v-model="plan.consommables" field-name="consommables"
-                        label="Sélectionnez les consommables" :items="consumables" item-title="designation"
-                        item-value="id" multiple chips />
+                    <v-btn variant="outlined" color="primary" size="small" @click="addConsommable">
+                        <v-icon left>mdi-plus</v-icon>
+                        Ajouter un consommable
+                    </v-btn>
                 </v-col>
             </v-row>
 
@@ -348,6 +367,21 @@ const updateProchaineMaintenance = () => {
     const derniere = Number(plan.value.seuil.derniereIntervention) || 0
     const intervalle = Number(plan.value.seuil.ecartInterventions) || 0
     plan.value.seuil.prochaineMaintenance = derniere + intervalle
+}
+
+// Gestion des consommables
+const addConsommable = () => {
+    if (!plan.value.consommables) {
+        plan.value.consommables = []
+    }
+    plan.value.consommables.push({
+        consommable_id: null,
+        quantite_necessaire: 1
+    })
+}
+
+const removeConsommable = (index) => {
+    plan.value.consommables.splice(index, 1)
 }
 
 // Gestion des documents

@@ -174,7 +174,7 @@
                         <v-icon left small>mdi-package-variant</v-icon>
                         {{ consommable.designation }}
                       </v-col>
-                      <v-col cols="4"> Quantité : {{ consommable.quantite }} </v-col>
+                      <v-col cols="4"> Quantité : {{ consommable.quantite_necessaire || consommable.quantite }} </v-col>
                     </v-row>
                   </v-sheet>
 
@@ -471,7 +471,10 @@ const editSeuil = (seuil) => {
     type_id: pm?.type_id || null,
     description: pm?.commentaire || '',
     compteurIndex: 0,
-    consommables: pm?.consommables?.map(c => c.consommable_id || c.id) || [],
+    consommables: pm?.consommables?.map(c => ({
+      consommable_id: c.consommable_id || c.id,
+      quantite_necessaire: c.quantite_necessaire || 1
+    })) || [],
     documents: pm?.documents?.map(d => ({
       nom: d.nomDocument || d.nom,
       type_id: d.typeDocument?.id || d.type_id,
