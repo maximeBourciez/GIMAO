@@ -137,8 +137,8 @@
                       <strong>Requis :</strong>
                       <div class="d-flex gap-3">
                         <v-chip :color="seuil.planMaintenance.necessiteHabilitationElectrique
-                            ? 'orange'
-                            : 'grey'
+                          ? 'orange'
+                          : 'grey'
                           " size="small" label>
                           <v-icon left small>{{
                             seuil.planMaintenance.necessiteHabilitationElectrique
@@ -269,10 +269,25 @@
   </v-dialog>
 
   <v-dialog v-model="showSeuilDialog" max-width="1200px" scrollable>
-    <SeuilForm v-if="currentSeuil" :seuil="currentSeuil" :existingPMs="existingPMs" :typesPM="typesPM"
-      :consumables="consumables" :typesDocuments="typesDocuments" :isEdit="!!currentSeuil.id"
-      :equipmentId="counter?.equipement_info?.id || null" :compteurId="counterId" @submit="saveSeuil"
-      @cancel="closeSeuilDialog" />
+    <v-card v-if="currentSeuil">
+      <v-card-title class="text-h5 pa-4">
+        {{ currentSeuil.id ? 'Modifier le seuil' : 'Ajouter un nouveau seuil' }}
+      </v-card-title>
+      <v-divider></v-divider>
+      <v-card-text class="pa-4">
+        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :types-p-m="typesPM"
+          :consumables="consumables" :existing-p-ms="existingPMs" :show-pm-selection="true"
+          :is-edit-mode="!!currentSeuil.id" :show-actions="false" @save="handleFormSave" />
+      </v-card-text>
+      <v-divider></v-divider>
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="closeSeuilDialog">Annuler</v-btn>
+        <v-btn color="primary" :loading="saving" @click="handleFormSave({ pmMode: 'new', selectedExistingPMId: null })">
+          {{ currentSeuil.id ? 'Enregistrer les modifications' : 'Créer le seuil' }}
+        </v-btn>
+      </v-card-actions>
+    </v-card>
   </v-dialog>
 </template>
 
@@ -282,7 +297,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useApi } from "@/composables/useApi";
 import { API_BASE_URL, MEDIA_BASE_URL } from "@/utils/constants";
 import CounterForm from "./CounterForm.vue";
-import SeuilForm from "./SeuilForm.vue";
+import MaintenancePlanInlineForm from "@/components/Forms/MaintenancePlanInlineForm.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -291,6 +306,7 @@ const counterId = Number(route.params.id);
 const counter = ref(null);
 const openedPanels = ref([]); // Premier panel ouvert par défaut
 const currentSeuil = ref(null);
+const currentPlan = ref(null);
 
 const consumables = ref([]);
 const typesPM = ref([]);
@@ -298,6 +314,7 @@ const typesDocuments = ref([]);
 const existingPMs = ref([]);
 
 const loading = ref(true);
+const saving = ref(false);
 const errorMessage = ref("");
 const successMessage = ref("");
 
@@ -309,6 +326,18 @@ const isCounterEdit = ref(true);
 const api = useApi(API_BASE_URL);
 
 // Computed properties
+const countersForSelect = computed(() => {
+  if (!counter.value) return [];
+
+  return [{
+    id: counterId,
+    nom: counter.value.nomCompteur || 'Compteur actuel',
+    unite: counter.value.unite || 'heures',
+    valeurCourante: counter.value.valeurCourante || 0,
+    estPrincipal: counter.value.estPrincipal || false
+  }];
+});
+
 const progressionData = computed(() => {
   if (!counter.value || !counter.value.seuils) return {};
 
@@ -410,22 +439,54 @@ const addNewSeuil = () => {
     estGlissant: false,
     planMaintenance: null,
   };
+
+  currentPlan.value = {
+    id: null,
+    nom: '',
+    type_id: null,
+    description: '',
+    compteurIndex: 0,
+    consommables: [],
+    seuil: {
+      derniereIntervention: 0,
+      ecartInterventions: 0,
+      prochaineMaintenance: 0,
+      estGlissant: false
+    },
+    necessiteHabilitationElectrique: false,
+    necessitePermisFeu: false
+  };
+
   showSeuilDialog.value = true;
-  console.log("CounterDetail - addNewSeuil called w/ : ", {
-    existingPMs: existingPMs.value,
-    typesPM: typesPM.value,
-    consumables: consumables.value,
-    typesDocuments: typesDocuments.value,
-  });
 };
 
 const editSeuil = (seuil) => {
   currentSeuil.value = { ...seuil };
+
+  const pm = seuil.planMaintenance;
+  currentPlan.value = {
+    id: pm?.id || null,
+    nom: pm?.nom || '',
+    type_id: pm?.type_id || null,
+    description: pm?.commentaire || '',
+    compteurIndex: 0,
+    consommables: pm?.consommables?.map(c => c.consommable_id || c.id) || [],
+    seuil: {
+      derniereIntervention: seuil.derniereIntervention || 0,
+      ecartInterventions: seuil.ecartInterventions || 0,
+      prochaineMaintenance: seuil.prochaineMaintenance || 0,
+      estGlissant: seuil.estGlissant || false
+    },
+    necessiteHabilitationElectrique: pm?.necessiteHabilitationElectrique || false,
+    necessitePermisFeu: pm?.necessitePermisFeu || false
+  };
+
   showSeuilDialog.value = true;
 };
 
 const closeSeuilDialog = () => {
   currentSeuil.value = null;
+  currentPlan.value = null;
   showSeuilDialog.value = false;
 };
 
@@ -441,27 +502,62 @@ const saveCounter = async (updatedCounter) => {
   }
 };
 
-const saveSeuil = async (seuilData) => {
+const handleFormSave = (data) => {
+  // Stocker les données du formulaire pour saveSeuil
+  currentPlan.value.pmMode = data.pmMode;
+  currentPlan.value.selectedExistingPMId = data.selectedExistingPMId;
+  saveSeuil();
+};
+
+const saveSeuil = async () => {
   try {
-    if (seuilData.id) {
+    saving.value = true;
+
+    let dataToSubmit;
+
+    if (currentPlan.value.pmMode === 'existing') {
+      // Mode PM existant
+      dataToSubmit = {
+        compteur: counterId,
+        equipmentId: counter.value?.equipement_info?.id || null,
+        planMaintenanceId: currentPlan.value.selectedExistingPMId,
+        seuil: currentPlan.value.seuil
+      };
+    } else {
+      // Mode nouveau PM
+      dataToSubmit = {
+        compteur: counterId,
+        equipmentId: counter.value?.equipement_info?.id || null,
+        planMaintenance: {
+          nom: currentPlan.value.nom,
+          type_id: currentPlan.value.type_id,
+          description: currentPlan.value.description,
+          consommables: currentPlan.value.consommables,
+          necessiteHabilitationElectrique: currentPlan.value.necessiteHabilitationElectrique,
+          necessitePermisFeu: currentPlan.value.necessitePermisFeu
+        },
+        seuil: currentPlan.value.seuil
+      };
+    }
+
+    if (currentSeuil.value?.id) {
       // Mise à jour d'un seuil existant
-      await api.put(`declenchements/${seuilData.id}/`, seuilData);
+      await api.put(`declenchements/${currentSeuil.value.id}/`, dataToSubmit);
     } else {
       // Création d'un nouveau seuil
-      await api.post("declenchements/", {
-        ...seuilData,
-        compteur: counterId,
-      });
+      await api.post("declenchements/", dataToSubmit);
     }
 
     await fetchCounter(); // Rafraîchir les données
-    successMessage.value = seuilData.id
+    successMessage.value = currentSeuil.value?.id
       ? "Seuil modifié avec succès"
       : "Seuil ajouté avec succès";
-    showSeuilDialog.value = false;
+    closeSeuilDialog();
   } catch (e) {
     errorMessage.value = "Erreur lors de la sauvegarde du seuil";
     console.error(e);
+  } finally {
+    saving.value = false;
   }
 };
 
