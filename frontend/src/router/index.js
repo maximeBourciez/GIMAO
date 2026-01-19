@@ -13,8 +13,8 @@ import AccountManagement from '@/views/Users/UserList.vue'
 import AfficherUser from '@/views/Users/UserDetail.vue'
 import ModifierUser from '@/views/Users/EditUser.vue'
 import CreerUser from '@/views/Users/CreateUser.vue'
-import Orders from '@/views/Orders/Orders.vue'
 import Stocks from '@/views/Stocks/Stocks.vue'
+import CreateConsumable from '@/views/Stocks/CreateConsumable.vue'
 import FailureList from '@/views/Failures/FailureList.vue'
 
 
@@ -114,19 +114,21 @@ const routes = [
     meta: { title: 'Créer un utilisateur' }
   },
 
-  {
-    path: '/Orders',
-    name: 'Orders',
-    component: Orders,
-    meta: { title: 'Commandes' }
 
-  },
+  // Stocks & Consommables --------------------------------------------------------
 
   {
     path: '/stocks',
     name: 'Stocks',
     component: Stocks,
     meta: { title: 'Stocks' }
+  },
+
+  {
+    path: '/CreateConsumable',
+    name: 'CreateConsumable',
+    component: CreateConsumable,
+    meta: { title: 'Créer un consommable' }
   },
 
 
