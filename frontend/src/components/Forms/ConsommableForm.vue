@@ -164,6 +164,7 @@ const save = async () => {
 
 const onMagasinCreated = (newMagasin) => {
     emit('magasin-created', newMagasin)
+    props.magasins.push(newMagasin)
     formData.value.magasin = newMagasin.id
 }
 </script>
