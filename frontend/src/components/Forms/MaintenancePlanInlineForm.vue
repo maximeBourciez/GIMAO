@@ -36,19 +36,19 @@
                 </v-col>
 
                 <v-col cols="12" md="4">
-                    <FormField v-model.number="plan.seuil.derniereIntervention" field-name="derniereIntervention"
+                    <FormField v-model="plan.seuil.derniereIntervention" field-name="derniereIntervention"
                         type="number" label="Dernière intervention" placeholder="0" min="0"
                         @update:model-value="updateProchaineMaintenance" />
                 </v-col>
 
                 <v-col cols="12" md="4">
-                    <FormField v-model.number="plan.seuil.ecartInterventions" field-name="ecartInterventions"
+                    <FormField v-model="plan.seuil.ecartInterventions" field-name="ecartInterventions"
                         type="number" label="Écart entre interventions" placeholder="0" min="0"
                         @update:model-value="updateProchaineMaintenance" />
                 </v-col>
 
                 <v-col cols="12" md="4">
-                    <FormField v-model.number="plan.seuil.prochaineMaintenance" field-name="prochaineMaintenance"
+                    <FormField v-model="plan.seuil.prochaineMaintenance" field-name="prochaineMaintenance"
                         type="number" label="Prochaine maintenance" :readonly="true" />
                 </v-col>
 
@@ -328,7 +328,7 @@ const getPMTypeLabel = (typeId) => {
 
 const isValid = computed(() => {
     // Vérifier d'abord que le seuil est valide
-    const seuilValid = plan.value.seuil?.ecartInterventions > 0
+    const seuilValid = Number(plan.value.seuil?.ecartInterventions) > 0
 
     if (!seuilValid) return false
 
@@ -345,8 +345,8 @@ const isValid = computed(() => {
 
 // Calcul automatique de la prochaine maintenance
 const updateProchaineMaintenance = () => {
-    const derniere = plan.value.seuil.derniereIntervention || 0
-    const intervalle = plan.value.seuil.ecartInterventions || 0
+    const derniere = Number(plan.value.seuil.derniereIntervention) || 0
+    const intervalle = Number(plan.value.seuil.ecartInterventions) || 0
     plan.value.seuil.prochaineMaintenance = derniere + intervalle
 }
 

@@ -85,7 +85,7 @@ export function useEquipmentForm(isEditMode = false) {
   const getEmptyCounter = () => ({
     id: null,
     nom: '',
-    valeurCourante: 0,
+    valeurCourante: null,
     unite: 'heures',
     estPrincipal: false
   });
@@ -103,9 +103,9 @@ export function useEquipmentForm(isEditMode = false) {
     necessitePermisFeu: false,
     seuil: {
       estGlissant: false,
-      derniereIntervention: 0,
-      ecartInterventions: 0,
-      prochaineMaintenance: 0
+      derniereIntervention: null,
+      ecartInterventions: null,
+      prochaineMaintenance: null
     }
   });
   const currentPlan = ref(getEmptyPlan());

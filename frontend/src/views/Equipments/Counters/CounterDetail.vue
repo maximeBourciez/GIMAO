@@ -519,6 +519,14 @@ const saveSeuil = async () => {
   try {
     saving.value = true;
 
+    // Normaliser les valeurs du seuil (null -> 0)
+    const normalizedSeuil = {
+      estGlissant: currentPlan.value.seuil.estGlissant,
+      derniereIntervention: currentPlan.value.seuil.derniereIntervention ?? 0,
+      ecartInterventions: currentPlan.value.seuil.ecartInterventions ?? 0,
+      prochaineMaintenance: currentPlan.value.seuil.prochaineMaintenance ?? 0
+    };
+
     let dataToSubmit;
 
     if (currentPlan.value.pmMode === 'existing') {
@@ -527,7 +535,7 @@ const saveSeuil = async () => {
         compteur: counterId,
         equipmentId: counter.value?.equipement_info?.id || null,
         planMaintenanceId: currentPlan.value.selectedExistingPMId,
-        seuil: currentPlan.value.seuil
+        seuil: normalizedSeuil
       };
     } else {
       // Mode nouveau PM
@@ -542,7 +550,7 @@ const saveSeuil = async () => {
           necessiteHabilitationElectrique: currentPlan.value.necessiteHabilitationElectrique,
           necessitePermisFeu: currentPlan.value.necessitePermisFeu
         },
-        seuil: currentPlan.value.seuil
+        seuil: normalizedSeuil
       };
     }
 
