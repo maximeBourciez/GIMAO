@@ -1,100 +1,200 @@
 <template>
-  <BaseForm v-model="formData" title="Ajouter des documents à l'intervention" :loading="loading"
-    :error-message="errorMessage" :success-message="successMessage" submit-button-text="Sauvegarder les documents"
-    @submit="handleSubmit">
-    <template #default="{ formData }">
-      <v-row v-for="(document, index) in documents" :key="index" class="mb-2">
-        <v-col cols="5">
-          <v-text-field v-model="document.name" label="Nom du document" required
-            :rules="[v => !!v || 'Le nom est requis']"></v-text-field>
-        </v-col>
-        <v-col cols="5">
-          <v-file-input v-model="document.file" label="Fichier" required
-            :rules="[v => !!v || 'Le fichier est requis']"></v-file-input>
-        </v-col>
-        <v-col cols="2" class="d-flex align-center">
-          <v-btn color="error" @click="removeDocument(index)" icon :disabled="documents.length === 1">
-            <v-icon>mdi-delete</v-icon>
-          </v-btn>
-        </v-col>
-      </v-row>
-
-      <v-btn color="secondary" @click="addDocument" class="mt-2" prepend-icon="mdi-plus">
-        Ajouter un autre document
-      </v-btn>
-    </template>
-  </BaseForm>
+	<BaseForm
+		v-model="formData"
+		title="Ajouter des documents au bon de travail"
+		:loading="loading"
+		:error-message="errorMessage"
+		:success-message="successMessage"
+		submit-button-text="Ajouter les documents"
+    submit-button-color="success"
+		@submit="handleSubmit"
+		@cancel="goBack"
+		@clear-error="errorMessage = ''"
+		@clear-success="successMessage = ''"
+	>
+		<template #default="{ formData }">
+      <DocumentForm
+        v-model="formData.documents"
+        :type-documents="typeDocuments"
+        :exclude-document-ids="alreadyLinkedDocumentIds"
+      />
+		</template>
+	</BaseForm>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import BaseForm from '@/components/common/BaseForm.vue';
+import DocumentForm from '@/components/Forms/DocumentForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 
 const route = useRoute();
 const router = useRouter();
+const store = useStore();
 const api = useApi(API_BASE_URL);
 
 const loading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 
-const formData = ref({});
-const documents = ref([{ name: '', file: null }]);
+const connectedUser = computed(() => store.getters.currentUser);
 
-const addDocument = () => {
-  documents.value.push({ name: '', file: null });
-};
+const bonTravailId = computed(() => Number(route.params.id));
 
-const removeDocument = (index) => {
-  if (documents.value.length > 1) {
-    documents.value.splice(index, 1);
+const typeDocuments = ref([]);
+const alreadyLinkedDocumentIds = ref([]);
+
+const formData = ref({
+  documents: [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
+});
+
+const loadTypeDocuments = async () => {
+  try {
+    typeDocuments.value = await api.get('types-documents/');
+  } catch (e) {
+    typeDocuments.value = [];
   }
 };
 
-const handleSubmit = async () => {
+const loadAlreadyLinkedDocuments = async () => {
+  try {
+    const bonId = bonTravailId.value;
+    if (!Number.isInteger(bonId) || bonId <= 0) {
+      alreadyLinkedDocumentIds.value = [];
+      return;
+    }
+    const bon = await api.get(`bons-travail/${bonId}/`);
+    const ids = Array.isArray(bon?.documentsBT)
+      ? bon.documentsBT
+        .map((d) => Number(d?.id))
+        .filter((x) => Number.isInteger(x) && x > 0)
+      : [];
+    alreadyLinkedDocumentIds.value = ids;
+  } catch (e) {
+    alreadyLinkedDocumentIds.value = [];
+  }
+};
+
+const linkExistingDocumentsToBonTravail = async (bonId, payload) => {
+  const docs = Array.isArray(payload?.documents) ? payload.documents : [];
+  const ids = docs
+    .map((d) => Number(d?.document_id))
+    .filter((x) => Number.isInteger(x) && x > 0);
+
+  const errors = [];
+  for (const id of ids) {
+    try {
+      await api.post(`bons-travail/${bonId}/ajouter_document/`, {
+        document_id: id,
+        user: connectedUser.value?.id,
+      });
+    } catch (e) {
+      errors.push(`Document #${id}`);
+    }
+  }
+  return errors;
+};
+
+const createNewDocumentsThenLinkToBonTravail = async (bonId, payload) => {
+  const docs = Array.isArray(payload?.documents) ? payload.documents : [];
+  const errors = [];
+
+  for (const doc of docs) {
+    if (!doc) continue;
+    const existingId = Number(doc.document_id);
+    if (Number.isInteger(existingId) && existingId > 0) continue;
+    if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim()) continue;
+    if (!doc.file || !doc.typeDocument_id) {
+      errors.push(doc.nomDocument || doc.file?.name || 'Document');
+      continue;
+    }
+
+    try {
+      const form = new FormData();
+      form.append('nomDocument', (doc.nomDocument || doc.file.name || '').toString());
+      form.append('typeDocument_id', String(doc.typeDocument_id));
+      form.append('cheminAcces', doc.file);
+
+      const created = await api.post('documents/', form);
+      const newId = Number(created?.id);
+      if (!Number.isInteger(newId) || newId <= 0) {
+        errors.push(doc.nomDocument || doc.file?.name || 'Document');
+        continue;
+      }
+
+      try {
+        await api.post(`bons-travail/${bonId}/ajouter_document/`, {
+          document_id: newId,
+          user: connectedUser.value?.id,
+        });
+      } catch (e) {
+        try {
+          await api.delete(`documents/${newId}/`);
+        } catch (_) {
+          // ignore
+        }
+        errors.push(doc.nomDocument || doc.file?.name || 'Document');
+      }
+    } catch (e) {
+      errors.push(doc.nomDocument || doc.file?.name || 'Document');
+    }
+  }
+
+  return errors;
+};
+
+const handleSubmit = async (payload) => {
   loading.value = true;
   errorMessage.value = '';
+  successMessage.value = '';
 
   try {
-    const intervention_id = route.params.id;
-    let allSuccess = true;
-    const errors = [];
-
-    for (const doc of documents.value) {
-      if (doc.name && doc.file) {
-        const formData = new FormData();
-        formData.append('nomDocumentIntervention', doc.name);
-        formData.append('lienDocumentIntervention', doc.file);
-        formData.append('intervention', intervention_id);
-
-        try {
-          await api.post('document-interventions/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-        } catch (error) {
-          console.error('Error while adding the document:', error);
-          allSuccess = false;
-          errors.push(doc.name);
-        }
-      }
+    const bonId = bonTravailId.value;
+    if (!Number.isInteger(bonId) || bonId <= 0) {
+      errorMessage.value = 'Bon de travail invalide.';
+      return;
     }
 
-    if (allSuccess) {
-      successMessage.value = 'Tous les documents ont été sauvegardés avec succès !';
-      setTimeout(() => {
-        router.push({ name: 'InterventionDetail', params: { id: intervention_id } });
-      }, 1500);
-    } else {
-      errorMessage.value = `Certains documents n'ont pas pu être sauvegardés: ${errors.join(', ')}`;
+    const docs = Array.isArray(payload?.documents) ? payload.documents : [];
+    const hasAnyDoc = docs.some((d) => {
+      const id = Number(d?.document_id);
+      if (Number.isInteger(id) && id > 0) return true;
+      return Boolean(d?.file || d?.typeDocument_id || (d?.nomDocument || '').trim());
+    });
+    if (!hasAnyDoc) {
+      errorMessage.value = 'Ajoute au moins un document.';
+      return;
     }
-  } catch (error) {
-    console.error('General error while adding documents:', error);
-    errorMessage.value = "Erreur lors de l'ajout des documents. Veuillez réessayer.";
+
+    const linkErrors = await linkExistingDocumentsToBonTravail(bonId, payload);
+    const createErrors = await createNewDocumentsThenLinkToBonTravail(bonId, payload);
+    const docErrors = [...linkErrors, ...createErrors];
+    if (docErrors.length) {
+      errorMessage.value = `Certains documents n'ont pas pu être ajoutés: ${docErrors.join(', ')}`;
+      return;
+    }
+
+    successMessage.value = 'Documents ajoutés avec succès.';
+    setTimeout(() => {
+      router.push({ name: 'InterventionDetail', params: { id: bonId } });
+    }, 600);
+  } catch (e) {
+    console.error("Erreur lors de l'ajout des documents:", e);
+    errorMessage.value = "Erreur lors de l'ajout des documents.";
   } finally {
     loading.value = false;
   }
 };
+
+const goBack = () => {
+  const bonId = bonTravailId.value;
+  router.push({ name: 'InterventionDetail', params: { id: bonId } });
+};
+
+onMounted(async () => {
+  await Promise.all([loadTypeDocuments(), loadAlreadyLinkedDocuments()]);
+});
 </script>

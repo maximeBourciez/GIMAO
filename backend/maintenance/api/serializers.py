@@ -4,7 +4,8 @@ from maintenance.models import (
     BonTravail,
     TypePlanMaintenance,
     PlanMaintenance,
-    PlanMaintenanceConsommable
+    PlanMaintenanceConsommable,
+    BonTravailConsommable
 )
 from equipement.models import Equipement, Compteur, StatutEquipement
 from utilisateur.models import Utilisateur
@@ -123,6 +124,13 @@ class DemandeInterventionDetailSerializer(DemandeInterventionSerializer):
 
 # ==================== BON TRAVAIL ====================
 
+class BonTravailConsommableWriteSerializer(serializers.Serializer):
+    consommable_id = serializers.PrimaryKeyRelatedField(
+        queryset=Consommable.objects.all(),
+        source='consommable'
+    )
+    quantite_utilisee = serializers.IntegerField(min_value=0, required=False, default=0)
+
 class BonTravailSerializer(serializers.ModelSerializer):
     """Serializer pour BonTravail"""
     demande_intervention = serializers.PrimaryKeyRelatedField(
@@ -149,6 +157,14 @@ class BonTravailSerializer(serializers.ModelSerializer):
         many=True,
         required=False
     )
+
+    consommables_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Consommable.objects.all(),
+        write_only=True,
+        many=True,
+        required=False
+    )
+    consommables = BonTravailConsommableWriteSerializer(many=True, write_only=True, required=False)
     
     class Meta:
         model = BonTravail
@@ -170,8 +186,74 @@ class BonTravailSerializer(serializers.ModelSerializer):
             'responsable',
             'utilisateur_assigne',
             'responsable_id',
-            'utilisateur_assigne_ids'
+            'utilisateur_assigne_ids',
+            'consommables_ids',
+            'consommables'
         ]
+
+    def _sync_consommables(self, bon_travail, consommables_dict):
+        if consommables_dict is None:
+            return
+
+        ids = set(consommables_dict.keys())
+
+        BonTravailConsommable.objects.filter(bon_travail=bon_travail).exclude(consommable_id__in=ids).delete()
+
+        existing = {
+            assoc.consommable_id: assoc
+            for assoc in BonTravailConsommable.objects.filter(bon_travail=bon_travail, consommable_id__in=ids)
+        }
+
+        to_create = []
+        to_update = []
+        for consommable_id, quantite in consommables_dict.items():
+            assoc = existing.get(consommable_id)
+            if assoc is None:
+                to_create.append(
+                    BonTravailConsommable(
+                        bon_travail=bon_travail,
+                        consommable_id=consommable_id,
+                        quantite_utilisee=quantite,
+                    )
+                )
+            elif assoc.quantite_utilisee != quantite:
+                assoc.quantite_utilisee = quantite
+                to_update.append(assoc)
+
+        if to_create:
+            BonTravailConsommable.objects.bulk_create(to_create)
+        if to_update:
+            BonTravailConsommable.objects.bulk_update(to_update, ['quantite_utilisee'])
+
+    def _extract_consommables_dict(self, validated_data):
+        """Retourne dict[int consommable_id] -> int quantite_utilisee, ou None si non fourni."""
+        items = validated_data.pop('consommables', None)
+        ids_only = validated_data.pop('consommables_ids', None)
+
+        if items is not None:
+            result = {}
+            for item in items:
+                consommable = item.get('consommable')
+                quantite = int(item.get('quantite_utilisee', 0) or 0)
+                result[int(consommable.id)] = max(0, quantite)
+            return result
+
+        if ids_only is not None:
+            return {int(consommable.id): 0 for consommable in ids_only}
+
+        return None
+
+    def create(self, validated_data):
+        consommables_dict = self._extract_consommables_dict(validated_data)
+        bon = super().create(validated_data)
+        self._sync_consommables(bon, consommables_dict)
+        return bon
+
+    def update(self, instance, validated_data):
+        consommables_dict = self._extract_consommables_dict(validated_data)
+        bon = super().update(instance, validated_data)
+        self._sync_consommables(bon, consommables_dict)
+        return bon
 
 
 class BonTravailDetailSerializer(serializers.ModelSerializer):
@@ -179,6 +261,9 @@ class BonTravailDetailSerializer(serializers.ModelSerializer):
     demande_intervention = DemandeInterventionDetailSerializer(read_only=True)
     responsable = UtilisateurSimpleSerializer(read_only=True)
     utilisateur_assigne = UtilisateurSimpleSerializer(many=True, read_only=True)
+    documentsBT = DocumentSerializer(source='documents', many=True, read_only=True)
+    documentsDI = DocumentSerializer(source='demande_intervention.documents', many=True, read_only=True)
+    consommables = serializers.SerializerMethodField()
     
     class Meta:
         model = BonTravail
@@ -195,9 +280,26 @@ class BonTravailDetailSerializer(serializers.ModelSerializer):
             'statut',
             'commentaire',
             'commentaire_refus_cloture',
+            'documentsBT',
+            'documentsDI',
+            'consommables',
             'demande_intervention',
             'responsable',
             'utilisateur_assigne'
+        ]
+
+    def get_consommables(self, obj):
+        associations = BonTravailConsommable.objects.filter(
+            bon_travail=obj
+        ).select_related('consommable')
+        return [
+            {
+                'consommable': assoc.consommable.id,
+                'designation': assoc.consommable.designation,
+                'image': assoc.consommable.lienImageConsommable.name.lstrip('/') if assoc.consommable.lienImageConsommable else None,
+                'quantite': assoc.quantite_utilisee,
+            }
+            for assoc in associations
         ]
 
 

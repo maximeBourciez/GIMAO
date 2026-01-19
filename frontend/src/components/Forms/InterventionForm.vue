@@ -66,40 +66,8 @@
 				</v-row>
 			</v-sheet>
 
-			<!-- Affectation -->
-			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
-				<h4 class="mb-3">Affectation</h4>
-				<v-row dense>
-					<v-col cols="12" md="6">
-						<FormSelect
-							v-model="formData.responsable_id"
-							field-name="responsable_id"
-							label="Responsable"
-							:items="responsableItems"
-							item-title="label"
-							item-value="id"
-							:disabled="responsableReadOnly"
-						/>
-					</v-col>
-
-					<v-col cols="12" md="6">
-						<FormSelect
-							v-model="formData.utilisateur_assigne_ids"
-							field-name="utilisateur_assigne_ids"
-							label="Utilisateurs assignés"
-							:items="assignableUserItems"
-							item-title="label"
-							item-value="id"
-							multiple
-							chips
-							clearable
-						/>
-					</v-col>
-				</v-row>
-			</v-sheet>
-
 			<!-- Détails -->
-			<v-sheet class="pa-4" elevation="1" rounded>
+			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
 				<h4 class="mb-3">Détails</h4>
 				<v-row dense>
 					<v-col cols="12">
@@ -127,13 +95,116 @@
 					</v-col>
 				</v-row>
 			</v-sheet>
+
+			<!-- Affectation -->
+			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
+				<h4 class="mb-3">Affectation</h4>
+				<v-row dense>
+					<v-col cols="12" md="6">
+						<FormSelect
+							v-model="formData.responsable_id"
+							field-name="responsable_id"
+							label="Responsable"
+							:items="responsableItems"
+							item-title="label"
+							item-value="id"
+							:disabled="responsableReadOnly"
+						/>
+					</v-col>
+
+					<v-col cols="12" md="6">
+						<FormSelect
+							v-model="formData.utilisateur_assigne_ids"
+							field-name="utilisateur_assigne_ids"
+							label="Techniciens assignés"
+							:items="assignableUserItems"
+							item-title="label"
+							item-value="id"
+							multiple
+							chips
+							clearable
+						/>
+					</v-col>
+				</v-row>
+			</v-sheet>
+
+			<!-- Consommables -->
+			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
+				<h4 class="mb-3">Consommables</h4>
+				<v-row
+					v-for="(c, index) in consommableLines"
+					:key="index"
+					dense
+					class="mb-2"
+				>
+					<v-col cols="12" md="7">
+						<FormSelect
+							v-model="c.consommable_id"
+							:field-name="`consommable_${index}`"
+							label="Consommable"
+							:items="getAvailableConsommablesForIndex(index)"
+							item-title="designation"
+							item-value="id"
+							clearable
+							@focus="markTouched('consommable', index)"
+							:error="shouldShowConsommableError(index) && Boolean(getConsommableLineError(index))"
+							:error-messages="shouldShowConsommableError(index) && getConsommableLineError(index) ? [getConsommableLineError(index)] : []"
+						/>
+					</v-col>
+
+					<v-col cols="10" md="4">
+						<FormField
+							v-model.number="c.quantite_utilisee"
+							:field-name="`quantite_utilisee_${index}`"
+							type="number"
+							label="Quantité"
+							placeholder="1"
+							min="0"
+							step="1"
+							@focus="markTouched('quantite', index)"
+							:error="Boolean(getQuantiteLineError(index))"
+							:error-messages="getQuantiteLineError(index) ? [getQuantiteLineError(index)] : []"
+						/>
+					</v-col>
+
+					<v-col cols="2" md="1" class="d-flex align-center justify-center">
+						<v-btn
+							icon="mdi-delete"
+							size="small"
+							color="error"
+							variant="text"
+							@click="removeConsommableLine(index)"
+						/>
+					</v-col>
+				</v-row>
+
+				<v-row dense>
+					<v-col cols="12">
+						<v-btn
+							color="primary"
+							variant="text"
+							prepend-icon="mdi-plus"
+							@click="addConsommableLine"
+						>
+							Ajouter un consommable
+						</v-btn>
+					</v-col>
+				</v-row>
+			</v-sheet>
+
+			<!-- Documents -->
+			<v-sheet v-if="typeDocumentItems.length" class="pa-4 mb-4" elevation="1" rounded>
+				<h4 class="mb-3">Documents</h4>
+				<DocumentForm v-model="formData.documents" :type-documents="typeDocumentItems" />
+			</v-sheet>
 		</template>
 	</BaseForm>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import { BaseForm, FormField, FormSelect, FormTextarea } from '@/components/common';
+import DocumentForm from '@/components/Forms/DocumentForm.vue';
 
 const props = defineProps({
 	modelValue: {
@@ -153,6 +224,14 @@ const props = defineProps({
 		default: () => ({})
 	},
 	users: {
+		type: Array,
+		default: () => []
+	},
+	consommables: {
+		type: Array,
+		default: () => []
+	},
+	typeDocuments: {
 		type: Array,
 		default: () => []
 	},
@@ -205,6 +284,146 @@ const userItems = computed(() =>
 	}))
 );
 
+const consommableItems = computed(() => props.consommables || []);
+const typeDocumentItems = computed(() => props.typeDocuments || []);
+
+const touched = reactive({
+	consommable: {},
+	quantite: {},
+});
+
+const markTouched = (type, index) => {
+	if (type === 'consommable') touched.consommable[index] = true;
+	if (type === 'quantite') touched.quantite[index] = true;
+};
+
+const ensureConsommablesLines = () => {
+	if (!formData.value) return;
+	if (!Array.isArray(formData.value.consommables)) {
+		formData.value.consommables = [];
+	}
+	if (formData.value.consommables.length === 0) {
+		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
+	}
+};
+
+watch(
+	() => formData.value,
+	() => {
+		ensureConsommablesLines();
+	},
+	{ immediate: true, deep: true }
+);
+
+const consommableLines = computed(() => {
+	ensureConsommablesLines();
+	return formData.value?.consommables || [];
+});
+
+const addConsommableLine = () => {
+	ensureConsommablesLines();
+	formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
+};
+
+const removeConsommableLine = (index) => {
+	ensureConsommablesLines();
+	formData.value.consommables.splice(index, 1);
+	if (formData.value.consommables.length === 0) {
+		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
+	}
+};
+
+watch(
+	() => formData.value?.consommables,
+	(lines) => {
+		if (!Array.isArray(lines)) return;
+		for (const line of lines) {
+			if (!line) continue;
+			const hasId = line.consommable_id !== null && line.consommable_id !== undefined && line.consommable_id !== '';
+			const hasQty = line.quantite_utilisee !== null && line.quantite_utilisee !== undefined && line.quantite_utilisee !== '';
+			// Si on choisit un consommable, on initialise la quantité à 1 si vide.
+			if (hasId && !hasQty) {
+				line.quantite_utilisee = 1;
+			}
+		}
+	},
+	{ deep: true }
+);
+
+const getSelectedConsommableIds = () => {
+	const ids = (Array.isArray(formData.value?.consommables) ? formData.value.consommables : [])
+		.map((x) => Number(x?.consommable_id))
+		.filter((x) => Number.isFinite(x));
+	return ids;
+};
+
+const getAvailableConsommablesForIndex = (index) => {
+	const selected = getSelectedConsommableIds();
+	const currentId = Number(formData.value?.consommables?.[index]?.consommable_id);
+	const blocked = new Set(selected.filter((id) => id !== currentId));
+	return consommableItems.value.filter((c) => !blocked.has(Number(c?.id)));
+};
+
+const getConsommableLineError = (index) => {
+	const line = formData.value?.consommables?.[index];
+	if (!line) return null;
+	const id = line.consommable_id;
+	const q = line.quantite_utilisee;
+
+	const hasId = id !== null && id !== undefined && id !== '';
+	const hasQty = q !== null && q !== undefined && q !== '';
+	if (!hasId && !hasQty) return null;
+	// Mais si l'utilisateur a mis une quantité, il faut un consommable.
+	if (!hasId && hasQty) return 'Choisir un consommable';
+
+	const numericId = Number(id);
+	if (!Number.isFinite(numericId)) return 'Consommable invalide';
+	const ids = getSelectedConsommableIds();
+	const count = ids.filter((x) => x === numericId).length;
+	if (count > 1) return 'Déjà sélectionné';
+	return null;
+};
+
+const getQuantiteLineError = (index) => {
+	const line = formData.value?.consommables?.[index];
+	if (!line) return null;
+	const id = line.consommable_id;
+	const q = line.quantite_utilisee;
+
+	const hasId = id !== null && id !== undefined && id !== '';
+	const hasQty = q !== null && q !== undefined && q !== '';
+	if (!hasId && !hasQty) return null;
+	if (hasId && !hasQty) return 'Quantité requise';
+	// Si pas de consommable, on ne force pas la quantité.
+	if (!hasId) return null;
+
+	const n = Number(q);
+	if (!Number.isFinite(n)) return 'Doit être un nombre';
+	if (!Number.isInteger(n)) return 'Doit être un entier';
+	if (n < 0) return 'Doit être ≥ 0';
+	return null;
+};
+
+const shouldShowConsommableError = (index) => Boolean(touched.consommable[index]);
+
+const getDocumentLineError = (doc) => {
+	if (!doc) return null;
+	const hasExistingId = doc.document_id !== null && doc.document_id !== undefined && doc.document_id !== '';
+	if (hasExistingId) {
+		const n = Number(doc.document_id);
+		if (!Number.isFinite(n)) return 'Document invalide';
+		return null;
+	}
+	const hasName = Boolean((doc.nomDocument ?? '').trim());
+	const hasType = doc.typeDocument_id !== null && doc.typeDocument_id !== undefined && doc.typeDocument_id !== '';
+	const hasFile = Boolean(doc.file);
+	if (!hasName && !hasType && !hasFile) return null;
+	if (!hasType) return 'Type requis';
+	if (!hasFile) return 'Fichier requis';
+	return null;
+};
+
+
 const ROLE_TECHNICIEN = 'Technicien';
 const ROLE_RESPONSABLE_GMAO = 'Responsable GMAO';
 
@@ -247,7 +466,7 @@ const validationSchema = computed(() => {
 			{ name: 'minLength', params: [2] },
 			{ name: 'maxLength', params: [2000] }
 		],
-		commentaire: [{ name: 'maxLength', params: [2000] }]
+		commentaire: [{ name: 'maxLength', params: [2000] }],
 	};
 
 	return schema;
@@ -273,6 +492,18 @@ const isFormValidForSubmit = computed(() => {
 	if (datePrevue && typeof datePrevue !== 'string') return false;
 	// datetime-local renvoie typiquement 'YYYY-MM-DDTHH:mm'
 	if (datePrevue && String(datePrevue).length < 16) return false;
+
+	ensureConsommablesLines();
+	const lines = Array.isArray(formData.value?.consommables) ? formData.value.consommables : [];
+	for (let i = 0; i < lines.length; i++) {
+		if (getConsommableLineError(i)) return false;
+		if (getQuantiteLineError(i)) return false;
+	}
+
+	const docs = Array.isArray(formData.value?.documents) ? formData.value.documents : [];
+	for (const doc of docs) {
+		if (getDocumentLineError(doc)) return false;
+	}
 	return true;
 });
 

@@ -141,6 +141,17 @@ export const BREADCRUMBS = {
         ];
     },
 
+	AddDocumentIntervention: (route) => {
+		return [
+			{ label: "Bons de travail", to: { name: "InterventionList" } },
+			{
+				label: `Bon de travail #${route.params.id}`,
+				to: { name: "InterventionDetail", params: { id: route.params.id } },
+			},
+			{ label: "Ajouter des documents" },
+		];
+	},
+
     /***************************************
      * Demandes d'intervention
      **************************************/
@@ -212,6 +223,12 @@ export const BREADCRUMBS = {
         {
             label: `Modifier`,
         },
+    ],
+
+    AddDocumentFailure: (route) => [
+        { label: "Demandes d'intervention", to: { name: "FailureList" } },
+        { label: `Demande d'intervention #${route.params.id}`, to: { name: "FailureDetail", params: { id: route.params.id } } },
+        { label: "Ajouter des documents" },
     ],
 
     /***************************************

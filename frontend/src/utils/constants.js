@@ -200,6 +200,12 @@ export const TABLE_HEADERS = {
 
     INTERVENTIONS: [
         {
+            title: "N°",
+            align: "center",
+            sortable: true,
+            value: "id",
+        },
+        {
             title: "Nom",
             align: "start",
             sortable: true,

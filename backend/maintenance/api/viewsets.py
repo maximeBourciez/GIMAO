@@ -6,9 +6,10 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 from django.db import transaction
 import json
-from donnees.models import Document
+from donnees.models import Document, TypeDocument
 from equipement.models import Equipement
 from utilisateur.models import Utilisateur, Log
+from stock.models import Consommable
 from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
 
 
@@ -19,6 +20,8 @@ from maintenance.models import (
     TypePlanMaintenance,
     PlanMaintenance,
     PlanMaintenanceConsommable,
+    BonTravailConsommable,
+    BonTravailDocument,
     PlanMaintenanceDocument,
     DemandeInterventionDocument
 )
@@ -131,10 +134,82 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             )
             
         demande.documents.remove(document_id)
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        Log.objects.create(
+            type='archivage',
+            nomTable='demande_intervention',
+            idCible={'demande_intervention_id': demande.id},
+            champsModifies={
+                'documents': {
+                    'valArchivage': {
+                        'document_id': int(document_id),
+                    }
+                }
+            },
+            utilisateur_id=utilisateur_id,
+        )
         
         # On utilise le serializer détaillé pour renvoyer la liste des documents mise à jour
         serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def ajouter_document(self, request, pk=None):
+        """Lie un document existant à une demande d'intervention.
+
+        Payload attendu:
+        - document_id: id du Document
+        """
+        demande = self.get_object()
+
+        document_id = request.data.get('document_id') or request.query_params.get('document_id')
+        if not document_id:
+            return Response({'error': 'Le champ document_id est requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            document_id = int(document_id)
+        except Exception:
+            return Response({'error': 'document_id doit être un entier.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not Document.objects.filter(id=document_id).exists():
+            return Response({'error': 'Document introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if demande.documents.filter(id=document_id).exists():
+            serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        before_documents = list(demande.documents.order_by('id').values_list('id', flat=True))
+        demande.documents.add(document_id)
+        after_documents = list(demande.documents.order_by('id').values_list('id', flat=True))
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        Log.objects.create(
+            type='modification',
+            nomTable='demande_intervention',
+            idCible={'demande_intervention_id': demande.id},
+            champsModifies={
+                'documents': {
+                    'ancien': before_documents,
+                    'nouveau': after_documents,
+                }
+            },
+            utilisateur_id=utilisateur_id,
+        )
+
+        serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     @transaction.atomic
@@ -265,13 +340,14 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     - GET /bons-travail/{id}/ : Détail d'un bon
     - PUT/PATCH /bons-travail/{id}/ : Modifie un bon
     - DELETE /bons-travail/{id}/ : Supprime un bon
-    - PATCH /bons-travail/{id}/updateStatus/ : Change le statut (endpoint unique)
+    - PATCH /bons-travail/{id}/updateStatus/ : Change le statut
+    - PATCH /bons-travail/{id}/delink_document/ : Délie un document du bon
     """
     queryset = BonTravail.objects.select_related(
         'demande_intervention',
         'demande_intervention__equipement',
         'responsable'
-    ).prefetch_related('utilisateur_assigne')
+    ).prefetch_related('utilisateur_assigne', 'documents', 'demande_intervention__documents')
     serializer_class = BonTravailSerializer
 
     def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
@@ -302,6 +378,104 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                     'nouveau': _to_json_value(apres)
                 }
         return champs
+
+    def _get_consommables_state(self, bon_travail_id):
+        return list(
+            BonTravailConsommable.objects.filter(bon_travail_id=bon_travail_id)
+            .order_by('consommable_id')
+            .values('consommable_id', 'quantite_utilisee')
+        )
+
+    def _get_documents_state(self, bon_travail_id):
+        return list(
+            BonTravailDocument.objects.filter(bon_travail_id=bon_travail_id)
+            .order_by('document_id')
+            .values_list('document_id', flat=True)
+        )
+
+    def _get_utilisateur_assigne_ids(self, bon):
+        return list(bon.utilisateur_assigne.order_by('id').values_list('id', flat=True))
+
+    def _normalize_id_list(self, raw):
+        if raw is None:
+            return []
+
+        if isinstance(raw, (list, tuple)):
+            values = raw
+        else:
+            values = [raw]
+
+        ids = []
+        for v in values:
+            try:
+                i = int(v)
+            except Exception:
+                continue
+            if i > 0:
+                ids.append(i)
+
+        # dédoublonne en conservant l'ordre
+        seen = set()
+        out = []
+        for i in ids:
+            if i in seen:
+                continue
+            seen.add(i)
+            out.append(i)
+        return out
+
+    def _sync_consommables_from_request(self, bon, request_data):
+        # Supporte deux formats :
+        # - consommables: [{consommable_id, quantite_utilisee}]
+        # - consommables_ids: [id, id]
+        if 'consommables' not in request_data and 'consommables_ids' not in request_data:
+            return
+
+        consommables_dict = {}
+        raw_lines = request_data.get('consommables')
+        raw_ids = request_data.get('consommables_ids')
+
+        if isinstance(raw_lines, (list, tuple)):
+            for line in raw_lines:
+                if not isinstance(line, dict):
+                    continue
+                cid = line.get('consommable_id')
+                if cid is None or cid == '':
+                    continue
+                try:
+                    cid = int(cid)
+                except Exception:
+                    continue
+                if cid <= 0:
+                    continue
+
+                q = line.get('quantite_utilisee', 0)
+                try:
+                    q = int(q)
+                except Exception:
+                    q = 0
+                consommables_dict[cid] = max(0, q)
+
+        elif isinstance(raw_ids, (list, tuple)):
+            for cid in raw_ids:
+                try:
+                    cid = int(cid)
+                except Exception:
+                    continue
+                if cid <= 0:
+                    continue
+                consommables_dict[cid] = 0
+
+        ids = set(consommables_dict.keys())
+
+        BonTravailConsommable.objects.filter(bon_travail=bon).exclude(consommable_id__in=ids).delete()
+
+        for consommable_id, quantite in consommables_dict.items():
+            BonTravailConsommable.objects.update_or_create(
+                bon_travail=bon,
+                consommable_id=consommable_id,
+                defaults={'quantite_utilisee': quantite},
+            )
 
     def get_serializer_class(self):
         """Utilise le serializer détaillé pour retrieve"""
@@ -345,6 +519,9 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             bon.date_assignation = timezone.now()
             bon.save(update_fields=['date_assignation'])
 
+        # Force refresh from DB pour que toutes les relations soient à jour
+        bon.refresh_from_db()
+
         response_serializer = self.get_serializer(bon)
         bon_data = response_serializer.data
         champs_modifies = {
@@ -357,7 +534,9 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             'date_assignation': {'valCreation': bon_data.get('date_assignation')},
             'demande_intervention_id': {'valCreation': bon_data.get('demande_intervention')},
             'responsable_id': {'valCreation': bon.responsable_id},
-            'utilisateur_assigne_ids': {'valCreation': list(bon.utilisateur_assigne.values_list('id', flat=True))}
+            'utilisateur_assigne_ids': {'valCreation': self._get_utilisateur_assigne_ids(bon)},
+            'consommables': {'valCreation': self._get_consommables_state(bon.id)},
+            'documents': {'valCreation': self._get_documents_state(bon.id)},
         }
 
         # Qui a effectué l'action ? (fallbacks)
@@ -376,9 +555,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         )
 
         return Response(bon_data, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=['get'])
-
 
     @action(detail=True, methods=['patch'])
     @transaction.atomic
@@ -489,8 +665,11 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         # Snapshot avant la mise à jour (sinon on relit l'état "après" et on ne détecte rien)
         avant_assigne_ids = list(bon_avant.utilisateur_assigne.values_list('id', flat=True))
+        avant_consommables = self._get_consommables_state(bon_avant.id)
 
-        super().partial_update(request, *args, **kwargs)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
         bon_apres = BonTravail.objects.get(pk=instance.pk)
         utilisateur_id = (
@@ -550,6 +729,14 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                         'nouveau': bon_apres.date_assignation.isoformat() if bon_apres.date_assignation else None,
                     }
 
+        if 'consommables' in request.data or 'consommables_ids' in request.data:
+            apres_consommables = self._get_consommables_state(bon_apres.id)
+            if avant_consommables != apres_consommables:
+                champs_modifies['consommables'] = {
+                    'ancien': avant_consommables,
+                    'nouveau': apres_consommables,
+                }
+
         if champs_modifies:
             self._create_log_entry(
                 type_action='modification',
@@ -561,6 +748,102 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(bon_apres)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'])
+    def delink_document(self, request, pk=None):
+        bon = self.get_object()
+        document_id = request.data.get('document_id')
+
+        if not document_id:
+            document_id = request.query_params.get('document_id')
+
+        if not document_id:
+            return Response(
+                {'error': 'Le paramètre document_id est requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not bon.documents.filter(id=document_id).exists():
+            return Response(
+                {'error': "Ce document n'est pas lié à ce bon"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        bon.documents.remove(document_id)
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+        self._create_log_entry(
+            type_action='archivage',
+            nom_table='bon_travail',
+            id_cible={'bon_travail_id': bon.id},
+            champs_modifies={
+                'documents': {
+                    'valArchivage': {
+                        'document_id': int(document_id),
+                    }
+                }
+            },
+            utilisateur_id=utilisateur_id,
+        )
+
+        serializer = BonTravailDetailSerializer(bon, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def ajouter_document(self, request, pk=None):
+        """Lie un document existant au BT.
+
+        Payload attendu:
+        - document_id: id du Document
+        """
+        bon = self.get_object()
+
+        document_id = request.data.get('document_id')
+        if not document_id:
+            return Response({'error': 'Le champ document_id est requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            document_id = int(document_id)
+        except Exception:
+            return Response({'error': 'document_id doit être un entier.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not Document.objects.filter(id=document_id).exists():
+            return Response({'error': 'Document introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if bon.documents.filter(id=document_id).exists():
+            serializer = BonTravailDetailSerializer(bon, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        before_documents = self._get_documents_state(bon.id)
+        bon.documents.add(document_id)
+        after_documents = self._get_documents_state(bon.id)
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        self._create_log_entry(
+            type_action='modification',
+            nom_table='bon_travail',
+            id_cible={'bon_travail_id': bon.id},
+            champs_modifies={
+                'documents': {
+                    'ancien': before_documents,
+                    'nouveau': after_documents,
+                },
+            },
+            utilisateur_id=utilisateur_id,
+        )
+
+        serializer = BonTravailDetailSerializer(bon, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
