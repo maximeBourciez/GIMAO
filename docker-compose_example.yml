@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mariadb:10.6
+    container_name: gimao_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 
+      MYSQL_DATABASE: 
+      MYSQL_USER: 
+      MYSQL_PASSWORD: 
+    volumes:
+      - db_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: gimao_phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_USER: 
+      PMA_PASSWORD: 
+    ports:
+      - "8080:80"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gimao_backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DJANGO_SETTINGS_MODULE=gimao.settings
+      - DJANGO_SUPERUSER_USERNAME=
+      - DJANGO_SUPERUSER_PASSWORD=
+      - DJANGO_SUPERUSER_EMAIL=
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gimao_frontend
+    ports:
+      - "8081:80"
+
+volumes:
+  db_data:

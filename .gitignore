@@ -34,3 +34,6 @@ backend/.venv/
 
 # Fichiers d'IDE   
 */.idea
+
+# Dokcer compose réel
+docker-compose.yaml
