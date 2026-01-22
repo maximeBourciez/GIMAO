@@ -36,4 +36,4 @@ backend/.venv/
 */.idea
 
 # Dokcer compose réel
-docker-compose.yaml
+docker-compose.yml
