@@ -96,10 +96,11 @@
                         v-model="formData.lieuParent"
                         field-name="lieuParent"
                         label="Lieu parent (optionnel)"
-                        :items="locationOptions"
+                        :items="locations"
                         item-title="nomLieu"
                         item-value="id"
                         clearable
+                        @change="console.log('Lieu parent sélectionné :', formData.lieuParent)"
                     />
                 </template>
             </v-col>
@@ -136,10 +137,6 @@ const props = defineProps({
         default: null
     },
     locations: {
-        type: Array,
-        default: () => []
-    },
-    locationOptions: {
         type: Array,
         default: () => []
     },
@@ -249,6 +246,8 @@ const save = async () => {
         lienPlan: formData.value.lienPlan || null,
         lieuParent: formData.value.lieuParent
     }
+
+    console.log(JSON.stringify(payload, null, 2))
 
     try {
         if (props.isEdit) {
