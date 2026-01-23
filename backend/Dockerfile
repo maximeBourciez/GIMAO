@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     iputils-ping \
     cron \
+	netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -18,10 +19,15 @@ RUN pip install --upgrade pip \
 
 COPY . .
 
-CMD sh -c "mkdir -p media/cron_logs && \
+CMD sh -c "while ! nc -z db 3306; do \
+    sleep 1; \
+    done; \
+	cd /app && \
+	mkdir -p media/cron_logs && \
     touch media/cron_logs/cron.log && \
+	ls -al /app && \
     python manage.py makemigrations && \
     python manage.py migrate && \
-    python manage.py createsuperuser --no-input || true && \
     python manage.py init_data && \
+    python manage.py createsuperuser --no-input || true && \
     python manage.py runserver 0.0.0.0:8000"
