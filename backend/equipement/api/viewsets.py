@@ -3,6 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 # Models
 from maintenance.models import DemandeIntervention, BonTravail
@@ -1085,6 +1086,7 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
 class DeclenchementViewSet(viewsets.ModelViewSet):
     """ ViewSet pour les seuils (declenchement): création/modification """
 
+    queryset = Declencher.objects.all()
     serializer_class = DeclenchementSerializer
 
 
@@ -1222,8 +1224,112 @@ class DeclenchementViewSet(viewsets.ModelViewSet):
                     document=document
                 )
 
-                
+
 
 
         serializer = DeclenchementSerializer(declencher)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+    @transaction.atomic
+    def partial_update(self, request, pk=None):
+        declenchement = get_object_or_404(Declencher, pk=pk)
+        utilisateur = request.user if request.user.is_authenticated else None
+
+        seuil_diff = json.loads(request.data.get('seuil_diff', '{}'))
+        pm_diff = json.loads(request.data.get('planMaintenance_diff', '{}'))
+
+        logs = []
+
+        # ============================
+        # 1. MISE À JOUR DU SEUIL
+        # ============================
+        if seuil_diff:
+            for champ, valeurs in seuil_diff.items():
+                if hasattr(declenchement, champ):
+                    setattr(declenchement, champ, valeurs.get('nouveau'))
+
+            declenchement.save()
+
+            logs.append(Log(
+                type="modification",
+                nomTable="gimao_declencher",
+                idCible={"id": declenchement.id},
+                champsModifies=seuil_diff,
+                utilisateur=utilisateur
+            ))
+
+        # ============================
+        # 2. MISE À JOUR PLAN MAINTENANCE
+        # ============================
+        plan = declenchement.planMaintenance
+
+        if plan and pm_diff:
+            for champ, valeurs in pm_diff.items():
+
+                # Champs simples
+                if champ in [
+                    "nom",
+                    "commentaire",
+                    "necessiteHabilitationElectrique",
+                    "necessitePermisFeu"
+                ]:
+                    setattr(plan, champ, valeurs.get("nouveau"))
+
+                # Type de PM
+                elif champ == "type_id":
+                    plan.type_plan_maintenance_id = valeurs.get("nouveau")
+
+                # Consommables
+                elif champ == "consommables":
+                    PlanMaintenanceConsommable.objects.filter(
+                        plan_maintenance=plan
+                    ).delete()
+
+                    for c in valeurs.get("nouveau", []):
+                        PlanMaintenanceConsommable.objects.create(
+                            plan_maintenance=plan,
+                            consommable_id=c.get("consommable_id"),
+                            quantite_necessaire=c.get("quantite_necessaire", 1)
+                        )
+
+                # Documents
+                elif champ == "documents":
+                    PlanMaintenanceDocument.objects.filter(
+                        plan_maintenance=plan
+                    ).delete()
+
+                    for index, doc in enumerate(valeurs.get("nouveau", [])):
+                        fichier = request.FILES.get(f'document_{index}')
+
+                        document = Document.objects.create(
+                            titre=doc.get("titre"),
+                            type_id=doc.get("type"),
+                            fichier=fichier
+                        )
+
+                        PlanMaintenanceDocument.objects.create(
+                            plan_maintenance=plan,
+                            document=document
+                        )
+
+            plan.save()
+
+            logs.append(Log(
+                type="modification",
+                nomTable="gimao_plan_maintenance",
+                idCible={"id": plan.id},
+                champsModifies=pm_diff,
+                utilisateur=utilisateur
+            ))
+
+        # ============================
+        # 3. LOGS
+        # ============================
+        if logs:
+            Log.objects.bulk_create(logs)
+
+        return Response(
+            {"detail": "Modifications appliquées avec succès"},
+            status=status.HTTP_200_OK
+        )

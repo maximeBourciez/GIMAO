@@ -17,7 +17,6 @@
             <div class="text-h6">{{ counter.nomCompteur }}</div>
           </v-col>
 
-
           <v-col cols="12" md="4">
             <strong>Valeur actuelle :</strong>
             <div class="text-h6">{{ counter.valeurCourante ?? "—" }}</div>
@@ -26,14 +25,17 @@
             <strong>Unité :</strong>
             <div class="text-h6">{{ counter.unite }}</div>
           </v-col>
-
-
         </v-row>
 
         <v-row dense class="mt-2">
           <v-col cols="12" md="4">
             <strong>Statut :</strong>
-            <v-chip :color="counter.estPrincipal ? 'primary' : 'grey'" label class="ml-2" size="small">
+            <v-chip
+              :color="counter.estPrincipal ? 'primary' : 'grey'"
+              label
+              class="ml-2"
+              size="small"
+            >
               {{ counter.estPrincipal ? "Principal" : "Secondaire" }}
             </v-chip>
           </v-col>
@@ -99,7 +101,11 @@
                   </v-col>
                   <v-col cols="12" md="3">
                     <strong>Type de seuil :</strong>
-                    <v-chip :color="seuil.estGlissant ? 'green' : 'orange'" size="small" label>
+                    <v-chip
+                      :color="seuil.estGlissant ? 'green' : 'orange'"
+                      size="small"
+                      label
+                    >
                       {{ seuil.estGlissant ? "Glissant" : "Fixe" }}
                     </v-chip>
                   </v-col>
@@ -136,10 +142,15 @@
                     <v-col cols="12">
                       <strong>Requis :</strong>
                       <div class="d-flex gap-3">
-                        <v-chip :color="seuil.planMaintenance.necessiteHabilitationElectrique
-                          ? 'orange'
-                          : 'grey'
-                          " size="small" label>
+                        <v-chip
+                          :color="
+                            seuil.planMaintenance.necessiteHabilitationElectrique
+                              ? 'orange'
+                              : 'grey'
+                          "
+                          size="small"
+                          label
+                        >
                           <v-icon left small>{{
                             seuil.planMaintenance.necessiteHabilitationElectrique
                               ? "mdi-check"
@@ -147,8 +158,13 @@
                           }}</v-icon>
                           Habilitation électrique
                         </v-chip>
-                        <v-chip :color="seuil.planMaintenance.necessitePermisFeu ? 'red' : 'grey'
-                          " size="small" label>
+                        <v-chip
+                          :color="
+                            seuil.planMaintenance.necessitePermisFeu ? 'red' : 'grey'
+                          "
+                          size="small"
+                          label
+                        >
                           <v-icon left small>{{
                             seuil.planMaintenance.necessitePermisFeu
                               ? "mdi-check"
@@ -164,17 +180,28 @@
                   <v-sheet class="pa-3 mb-3" elevation="0" rounded color="white">
                     <h5 class="mb-2">Consommables nécessaires</h5>
 
-                    <div v-if="!seuil.planMaintenance.consommables?.length" class="text-grey">
+                    <div
+                      v-if="!seuil.planMaintenance.consommables?.length"
+                      class="text-grey"
+                    >
                       Aucun consommable requis
                     </div>
 
-                    <v-row v-for="(consommable, consIndex) in seuil.planMaintenance
-                      .consommables" :key="consommable.id" dense class="mb-1">
+                    <v-row
+                      v-for="(consommable, consIndex) in seuil.planMaintenance
+                        .consommables"
+                      :key="consommable.id"
+                      dense
+                      class="mb-1"
+                    >
                       <v-col cols="8">
                         <v-icon left small>mdi-package-variant</v-icon>
                         {{ consommable.designation }}
                       </v-col>
-                      <v-col cols="4"> Quantité : {{ consommable.quantite_necessaire || consommable.quantite }} </v-col>
+                      <v-col cols="4">
+                        Quantité :
+                        {{ consommable.quantite_necessaire || consommable.quantite }}
+                      </v-col>
                     </v-row>
                   </v-sheet>
 
@@ -182,12 +209,19 @@
                   <v-sheet class="pa-3" elevation="0" rounded color="white">
                     <h5 class="mb-2">Documents associés</h5>
 
-                    <div v-if="!seuil.planMaintenance.documents?.length" class="text-grey">
+                    <div
+                      v-if="!seuil.planMaintenance.documents?.length"
+                      class="text-grey"
+                    >
                       Aucun document
                     </div>
 
-                    <v-row v-for="(doc, docIndex) in seuil.planMaintenance.documents" :key="doc.id" dense
-                      class="mb-2 align-center">
+                    <v-row
+                      v-for="(doc, docIndex) in seuil.planMaintenance.documents"
+                      :key="doc.id"
+                      dense
+                      class="mb-2 align-center"
+                    >
                       <v-col cols="3">
                         <strong>{{ doc.nom || doc.titre || "Sans titre" }}</strong>
                       </v-col>
@@ -201,7 +235,12 @@
                         </v-chip>
                       </v-col>
                       <v-col cols="1" class="text-right">
-                        <v-btn :href="BASE_URL + MEDIA_BASE_URL + doc.chemin" target="_blank" icon small>
+                        <v-btn
+                          :href="BASE_URL + MEDIA_BASE_URL + doc.chemin"
+                          target="_blank"
+                          icon
+                          small
+                        >
                           <v-icon>mdi-open-in-new</v-icon>
                         </v-btn>
                       </v-col>
@@ -265,26 +304,43 @@
   </v-card>
 
   <v-dialog v-model="showCounterDialog" max-width="1000px">
-    <CounterForm :counter="counter" :isCounterEdit="isCounterEdit" @close="closeCounterDialog" />
+    <CounterForm
+      :counter="counter"
+      :isCounterEdit="isCounterEdit"
+      @close="closeCounterDialog"
+    />
   </v-dialog>
 
   <v-dialog v-model="showSeuilDialog" max-width="1200px" scrollable>
     <v-card v-if="currentSeuil">
       <v-card-title class="text-h5 pa-4">
-        {{ currentSeuil.id ? 'Modifier le seuil' : 'Ajouter un nouveau seuil' }}
+        {{ currentSeuil.id ? "Modifier le seuil" : "Ajouter un nouveau seuil" }}
       </v-card-title>
       <v-divider></v-divider>
       <v-card-text class="pa-4">
-        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :types-p-m="typesPM"
-          :consumables="consumables" :existing-p-ms="existingPMs" :types-documents="typesDocuments" 
-          :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="false" @save="handleFormSave" />
+        <MaintenancePlanInlineForm
+          v-model="currentPlan"
+          :counters="countersForSelect"
+          :types-p-m="typesPM"
+          :consumables="consumables"
+          :existing-p-ms="existingPMs"
+          :types-documents="typesDocuments"
+          :show-pm-selection="true"
+          :is-edit-mode="!!currentSeuil.id"
+          :show-actions="false"
+          @save="handleFormSave"
+        />
       </v-card-text>
       <v-divider></v-divider>
       <v-card-actions class="pa-4">
         <v-spacer></v-spacer>
         <v-btn variant="text" @click="closeSeuilDialog">Annuler</v-btn>
-        <v-btn color="primary" :loading="saving" @click="handleFormSave({ pmMode: 'new', selectedExistingPMId: null })">
-          {{ currentSeuil.id ? 'Enregistrer les modifications' : 'Créer le seuil' }}
+        <v-btn
+          color="primary"
+          :loading="saving"
+          @click="handleFormSave({ pmMode: 'new', selectedExistingPMId: null })"
+        >
+          {{ currentSeuil.id ? "Enregistrer les modifications" : "Créer le seuil" }}
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -321,7 +377,11 @@ const successMessage = ref("");
 const showCounterDialog = ref(false);
 const showSeuilDialog = ref(false);
 
+const initialPlanSnapshot = ref(null);
+const initialSeuilSnapshot = ref(null);
+
 const isCounterEdit = ref(true);
+const isEditSeuil = ref(false);
 
 const api = useApi(API_BASE_URL);
 
@@ -329,13 +389,15 @@ const api = useApi(API_BASE_URL);
 const countersForSelect = computed(() => {
   if (!counter.value) return [];
 
-  return [{
-    id: counterId,
-    nom: counter.value.nomCompteur || 'Compteur actuel',
-    unite: counter.value.unite || 'heures',
-    valeurCourante: counter.value.valeurCourante || 0,
-    estPrincipal: counter.value.estPrincipal || false
-  }];
+  return [
+    {
+      id: counterId,
+      nom: counter.value.nomCompteur || "Compteur actuel",
+      unite: counter.value.unite || "heures",
+      valeurCourante: counter.value.valeurCourante || 0,
+      estPrincipal: counter.value.estPrincipal || false,
+    },
+  ];
 });
 
 const progressionData = computed(() => {
@@ -393,7 +455,7 @@ const fetchReferentials = async () => {
     api.get("consommables/"),
     api.get("types-plan-maintenance/"),
     api.get("types-documents/"),
-    api.get('plans-maintenance/'),
+    api.get("plans-maintenance/"),
   ]);
 
   consumables.value = cons;
@@ -442,9 +504,9 @@ const addNewSeuil = () => {
 
   currentPlan.value = {
     id: null,
-    nom: '',
+    nom: "",
     type_id: null,
-    description: '',
+    description: "",
     compteurIndex: 0,
     consommables: [],
     documents: [],
@@ -452,10 +514,10 @@ const addNewSeuil = () => {
       derniereIntervention: 0,
       ecartInterventions: 0,
       prochaineMaintenance: 0,
-      estGlissant: false
+      estGlissant: false,
     },
     necessiteHabilitationElectrique: false,
-    necessitePermisFeu: false
+    necessitePermisFeu: false,
   };
 
   showSeuilDialog.value = true;
@@ -467,28 +529,45 @@ const editSeuil = (seuil) => {
   const pm = seuil.planMaintenance;
   currentPlan.value = {
     id: pm?.id || null,
-    nom: pm?.nom || '',
+    nom: pm?.nom || "",
     type_id: pm?.type_id || null,
-    description: pm?.commentaire || '',
+    description: pm?.commentaire || "",
     compteurIndex: 0,
-    consommables: pm?.consommables?.map(c => ({
-      consommable_id: c.consommable_id || c.id,
-      quantite_necessaire: c.quantite_necessaire || 1
-    })) || [],
-    documents: pm?.documents?.map(d => ({
-      nom: d.nomDocument || d.nom,
-      type_id: d.typeDocument?.id || d.type_id,
-      file: null
-    })) || [],
+    consommables:
+      pm?.consommables?.map((c) => ({
+        consommable_id: c.consommable_id || c.id,
+        quantite_necessaire: c.quantite_necessaire || 1,
+      })) || [],
+    documents:
+      pm?.documents?.map((d) => ({
+        nom: d.nomDocument || d.nom,
+        type_id: d.typeDocument?.id || d.type_id,
+        file: null,
+      })) || [],
     seuil: {
       derniereIntervention: seuil.derniereIntervention || 0,
       ecartInterventions: seuil.ecartInterventions || 0,
       prochaineMaintenance: seuil.prochaineMaintenance || 0,
-      estGlissant: seuil.estGlissant || false
+      estGlissant: seuil.estGlissant || false,
     },
     necessiteHabilitationElectrique: pm?.necessiteHabilitationElectrique || false,
-    necessitePermisFeu: pm?.necessitePermisFeu || false
+    necessitePermisFeu: pm?.necessitePermisFeu || false,
   };
+
+  initialSeuilSnapshot.value = JSON.parse(JSON.stringify(currentPlan.value.seuil));
+  initialPlanSnapshot.value = JSON.parse(
+    JSON.stringify({
+      nom: currentPlan.value.nom,
+      type_id: currentPlan.value.type_id,
+      description: currentPlan.value.description,
+      necessiteHabilitationElectrique: currentPlan.value.necessiteHabilitationElectrique,
+      necessitePermisFeu: currentPlan.value.necessitePermisFeu,
+      consommables: currentPlan.value.consommables,
+      documents: currentPlan.value.documents,
+    })
+  );
+
+  isEditSeuil.value = true;
 
   showSeuilDialog.value = true;
 };
@@ -497,6 +576,7 @@ const closeSeuilDialog = () => {
   currentSeuil.value = null;
   currentPlan.value = null;
   showSeuilDialog.value = false;
+  isEditSeuil.value = false;
 };
 
 const saveCounter = async (updatedCounter) => {
@@ -518,65 +598,117 @@ const handleFormSave = (data) => {
   saveSeuil();
 };
 
+const diffObjects = (oldObj, newObj) => {
+  const diff = {};
+
+  Object.keys(newObj).forEach((key) => {
+    const oldVal = oldObj?.[key];
+    const newVal = newObj[key];
+
+    // comparaison simple
+    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+      diff[key] = {
+        ancien: oldVal ?? null,
+        nouveau: newVal ?? null,
+      };
+    }
+  });
+
+  return diff;
+};
+
 const saveSeuil = async () => {
   try {
-    saving.value = true
-    const formData = new FormData()
+    saving.value = true;
+    const formData = new FormData();
 
-    /* ===== SEUIL ===== */
-    formData.append('seuil', JSON.stringify({
-      derniereIntervention: currentPlan.value.seuil.derniereIntervention ?? 0,
-      ecartInterventions: currentPlan.value.seuil.ecartInterventions ?? 0,
-      prochaineMaintenance: currentPlan.value.seuil.prochaineMaintenance ?? null,
-      estGlissant: !!currentPlan.value.seuil.estGlissant
-    }))
+    if (isEditSeuil.value) {
+      const seuilDiff = diffObjects(initialSeuilSnapshot.value, currentPlan.value.seuil);
 
-    /* ===== COMPTEUR ===== */
-    formData.append('compteur', counterId)
+      const planDiff = diffObjects(initialPlanSnapshot.value, {
+        nom: currentPlan.value.nom,
+        type_id: currentPlan.value.type_id,
+        description: currentPlan.value.description,
+        necessiteHabilitationElectrique:
+          currentPlan.value.necessiteHabilitationElectrique,
+        necessitePermisFeu: currentPlan.value.necessitePermisFeu,
+        consommables: currentPlan.value.consommables,
+        documents: currentPlan.value.documents,
+      });
 
-    /* ===== PLAN DE MAINTENANCE ===== */
-    const docsAvecFichier = (currentPlan.value.documents || [])
-      .filter(d => d.file instanceof File)
+      formData.append("seuil_diff", JSON.stringify(seuilDiff));
+      formData.append("planMaintenance_diff", JSON.stringify(planDiff));
+      formData.append("seuil_id", currentSeuil.value.id);
 
-    const planMaintenance = {
-      nom: currentPlan.value.nom,
-      type_id: currentPlan.value.type_id,
-      commentaire: currentPlan.value.description,
-      necessiteHabilitationElectrique: !!currentPlan.value.necessiteHabilitationElectrique,
-      necessitePermisFeu: !!currentPlan.value.necessitePermisFeu,
+      /* fichiers uniquement si modifiés */
+      const docsAvecFichier = currentPlan.value.documents.filter(
+        (d) => d.file instanceof File
+      );
 
-      consommables: (currentPlan.value.consommables || []).map(c => ({
-        consommable_id: c.consommable_id,
-        quantite_necessaire: c.quantite_necessaire ?? 1
-      })),
+      docsAvecFichier.forEach((doc, index) => {
+        formData.append(`document_${index}`, doc.file);
+      });
 
-      documents: docsAvecFichier.map(doc => ({
-        titre: doc.nom,
-        type: doc.type_id
-      }))
+      await api.patch(`declenchements/${currentSeuil.value.id}/`, formData);
+    } else {
+      /* ===== SEUIL ===== */
+      formData.append(
+        "seuil",
+        JSON.stringify({
+          derniereIntervention: currentPlan.value.seuil.derniereIntervention ?? 0,
+          ecartInterventions: currentPlan.value.seuil.ecartInterventions ?? 0,
+          prochaineMaintenance: currentPlan.value.seuil.prochaineMaintenance ?? null,
+          estGlissant: !!currentPlan.value.seuil.estGlissant,
+        })
+      );
+
+      /* ===== COMPTEUR ===== */
+      formData.append("compteur", counterId);
+
+      /* ===== PLAN DE MAINTENANCE ===== */
+      const docsAvecFichier = (currentPlan.value.documents || []).filter(
+        (d) => d.file instanceof File
+      );
+
+      const planMaintenance = {
+        nom: currentPlan.value.nom,
+        type_id: currentPlan.value.type_id,
+        commentaire: currentPlan.value.description,
+        necessiteHabilitationElectrique: !!currentPlan.value
+          .necessiteHabilitationElectrique,
+        necessitePermisFeu: !!currentPlan.value.necessitePermisFeu,
+
+        consommables: (currentPlan.value.consommables || []).map((c) => ({
+          consommable_id: c.consommable_id,
+          quantite_necessaire: c.quantite_necessaire ?? 1,
+        })),
+
+        documents: docsAvecFichier.map((doc) => ({
+          titre: doc.nom,
+          type: doc.type_id,
+        })),
+      };
+
+      formData.append("planMaintenance", JSON.stringify(planMaintenance));
+
+      /* ===== FILES ===== */
+      docsAvecFichier.forEach((doc, index) => {
+        formData.append(`document_${index}`, doc.file);
+      });
+
+      /* ===== API ===== */
+      await api.post("declenchements/", formData);
     }
 
-    formData.append('planMaintenance', JSON.stringify(planMaintenance))
-
-    /* ===== FILES ===== */
-    docsAvecFichier.forEach((doc, index) => {
-      formData.append(`document_${index}`, doc.file)
-    })
-
-    /* ===== API ===== */
-    await api.post('declenchements/', formData)
-
-    await fetchCounter()
-    closeSeuilDialog()
-
+    await fetchCounter();
+    closeSeuilDialog();
   } catch (e) {
-    console.error(e)
-    errorMessage.value = "Erreur lors de la sauvegarde du seuil"
+    console.error(e);
+    errorMessage.value = "Erreur lors de la sauvegarde du seuil";
   } finally {
-    saving.value = false
+    saving.value = false;
   }
-}
-
+};
 
 onMounted(() => {
   loadPage();
