@@ -16,7 +16,7 @@
       Pas de données disponibles.
     </p>
 
-    <VTreeview v-else :items="processedItems" item-key="id" item-title="nomLieu" :open.sync="openNodes" activatable hoverable
+    <VTreeview v-else :items="processedItems" item-value="id" item-title="nomLieu" v-model:opened="openNodes" activatable hoverable
       rounded density="compact">
       <!-- Checkbox après la flèche par défaut -->
       <template #prepend="{ item }">
@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { VTreeview } from 'vuetify/labs/components'
 
 const props = defineProps({
@@ -88,6 +88,45 @@ const processedItems = computed(() => cleanItems(props.items));
 
 const openNodes = ref([]);
 
+// Retrieve path to a node to expand the tree
+const getPathToNode = (nodes, targetId, currentPath = []) => {
+  if (!nodes) return null;
+  for (const node of nodes) {
+    if (node.id == targetId) {
+      return currentPath;
+    }
+    if (node.children && node.children.length > 0) {
+      const result = getPathToNode(node.children, targetId, [...currentPath, node.id]);
+      if (result) return result;
+    }
+  }
+  return null;
+};
+
+// Watch selected to expand tree
+watch(
+  [() => props.selected, () => props.items],
+  () => {
+    if (!props.selected || !props.items) return;
+
+    const targetId = typeof props.selected === 'object' ? props.selected.id : props.selected;
+    console.log("LocationTreeView: targetId for expansion:", targetId);
+    
+    if (!targetId) return;
+
+    const path = getPathToNode(props.items, targetId);
+    console.log("LocationTreeView: found path:", path);
+    
+    if (path) {
+      // Add path ids to openNodes if not already present
+      const newOpen = new Set([...openNodes.value, ...path]);
+      openNodes.value = Array.from(newOpen);
+      console.log("LocationTreeView: new openNodes:", openNodes.value);
+    }
+  },
+  { immediate: true, deep: true }
+);
+
 // Détecte si sélection bloquée
 const isLocked = computed(() => props.lockSelection && props.selected !== null);
 
@@ -95,7 +134,7 @@ const isLocked = computed(() => props.lockSelection && props.selected !== null);
 const isSelected = (item) => {
   if (!props.selected) return false;
   const selectedId = typeof props.selected === 'object' ? props.selected.id : props.selected;
-  return selectedId === item.id;
+  return selectedId == item.id;
 };
 
 // Sélection via checkbox
@@ -118,7 +157,7 @@ const createWithoutParent = () => {
 const findNodeById = (nodes, id) => {
   if (!nodes) return null;
   for (const node of nodes) {
-    if (node.id === id) return node;
+    if (node.id == id) return node;
     if (node.children && node.children.length > 0) {
       const found = findNodeById(node.children, id);
       if (found) return found;
