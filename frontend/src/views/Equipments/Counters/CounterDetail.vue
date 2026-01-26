@@ -201,7 +201,7 @@
                         </v-chip>
                       </v-col>
                       <v-col cols="1" class="text-right">
-                        <v-btn :href="MEDIA_BASE_URL + doc.chemin" target="_blank" icon small>
+                        <v-btn :href="BASE_URL + MEDIA_BASE_URL + doc.chemin" target="_blank" icon small>
                           <v-icon>mdi-open-in-new</v-icon>
                         </v-btn>
                       </v-col>
@@ -295,7 +295,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useApi } from "@/composables/useApi";
-import { API_BASE_URL, MEDIA_BASE_URL } from "@/utils/constants";
+import { API_BASE_URL, MEDIA_BASE_URL, BASE_URL } from "@/utils/constants";
 import CounterForm from "./CounterForm.vue";
 import MaintenancePlanInlineForm from "@/components/Forms/MaintenancePlanInlineForm.vue";
 
@@ -520,63 +520,63 @@ const handleFormSave = (data) => {
 
 const saveSeuil = async () => {
   try {
-    saving.value = true;
+    saving.value = true
+    const formData = new FormData()
 
-    // Normaliser les valeurs du seuil (null -> 0)
-    const normalizedSeuil = {
-      estGlissant: currentPlan.value.seuil.estGlissant,
+    /* ===== SEUIL ===== */
+    formData.append('seuil', JSON.stringify({
       derniereIntervention: currentPlan.value.seuil.derniereIntervention ?? 0,
       ecartInterventions: currentPlan.value.seuil.ecartInterventions ?? 0,
-      prochaineMaintenance: currentPlan.value.seuil.prochaineMaintenance ?? 0
-    };
+      prochaineMaintenance: currentPlan.value.seuil.prochaineMaintenance ?? null,
+      estGlissant: !!currentPlan.value.seuil.estGlissant
+    }))
 
-    let dataToSubmit;
+    /* ===== COMPTEUR ===== */
+    formData.append('compteur', counterId)
 
-    if (currentPlan.value.pmMode === 'existing') {
-      // Mode PM existant
-      dataToSubmit = {
-        compteur: counterId,
-        equipmentId: counter.value?.equipement_info?.id || null,
-        planMaintenanceId: currentPlan.value.selectedExistingPMId,
-        seuil: normalizedSeuil
-      };
-    } else {
-      // Mode nouveau PM
-      dataToSubmit = {
-        compteur: counterId,
-        equipmentId: counter.value?.equipement_info?.id || null,
-        planMaintenance: {
-          nom: currentPlan.value.nom,
-          type_id: currentPlan.value.type_id,
-          description: currentPlan.value.description,
-          consommables: currentPlan.value.consommables,
-          necessiteHabilitationElectrique: currentPlan.value.necessiteHabilitationElectrique,
-          necessitePermisFeu: currentPlan.value.necessitePermisFeu
-        },
-        seuil: normalizedSeuil
-      };
+    /* ===== PLAN DE MAINTENANCE ===== */
+    const docsAvecFichier = (currentPlan.value.documents || [])
+      .filter(d => d.file instanceof File)
+
+    const planMaintenance = {
+      nom: currentPlan.value.nom,
+      type_id: currentPlan.value.type_id,
+      commentaire: currentPlan.value.description,
+      necessiteHabilitationElectrique: !!currentPlan.value.necessiteHabilitationElectrique,
+      necessitePermisFeu: !!currentPlan.value.necessitePermisFeu,
+
+      consommables: (currentPlan.value.consommables || []).map(c => ({
+        consommable_id: c.consommable_id,
+        quantite_necessaire: c.quantite_necessaire ?? 1
+      })),
+
+      documents: docsAvecFichier.map(doc => ({
+        titre: doc.nom,
+        type: doc.type_id
+      }))
     }
 
-    if (currentSeuil.value?.id) {
-      // Mise à jour d'un seuil existant
-      await api.put(`declenchements/${currentSeuil.value.id}/`, dataToSubmit);
-    } else {
-      // Création d'un nouveau seuil
-      await api.post("declenchements/", dataToSubmit);
-    }
+    formData.append('planMaintenance', JSON.stringify(planMaintenance))
 
-    await fetchCounter(); // Rafraîchir les données
-    successMessage.value = currentSeuil.value?.id
-      ? "Seuil modifié avec succès"
-      : "Seuil ajouté avec succès";
-    closeSeuilDialog();
+    /* ===== FILES ===== */
+    docsAvecFichier.forEach((doc, index) => {
+      formData.append(`document_${index}`, doc.file)
+    })
+
+    /* ===== API ===== */
+    await api.post('declenchements/', formData)
+
+    await fetchCounter()
+    closeSeuilDialog()
+
   } catch (e) {
-    errorMessage.value = "Erreur lors de la sauvegarde du seuil";
-    console.error(e);
+    console.error(e)
+    errorMessage.value = "Erreur lors de la sauvegarde du seuil"
   } finally {
-    saving.value = false;
+    saving.value = false
   }
-};
+}
+
 
 onMounted(() => {
   loadPage();
