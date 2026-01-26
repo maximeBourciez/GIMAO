@@ -3,6 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 # Models
 from maintenance.models import DemandeIntervention, BonTravail
@@ -20,7 +21,8 @@ from equipement.api.serializers import (
     CompteurSerializer,
     FamilleEquipementSerializer,
     EquipementAffichageSerializer,
-    EquipementCreateSerializer
+    EquipementCreateSerializer,
+    DeclenchementSerializer
 )
 
 from maintenance.models import PlanMaintenance, PlanMaintenanceConsommable, PlanMaintenanceDocument
@@ -1076,4 +1078,258 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
             'statuts',
             'compteurs',
             'documents'
+        )
+
+
+
+
+class DeclenchementViewSet(viewsets.ModelViewSet):
+    """ ViewSet pour les seuils (declenchement): création/modification """
+
+    queryset = Declencher.objects.all()
+    serializer_class = DeclenchementSerializer
+
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """ Creation d'un Seuil avec PM & compteur """
+        # Récupération et normalisation des données
+        data = dict(request.data)
+
+        # Extraire les valeurs uniques des listes (compatibilité FormData)
+        for key, value in list(data.items()):
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+
+        # Parser les objets JSON s'ils sont envoyés en tant que chaînes
+        plan_data = data.get('planMaintenance') or {}
+        if isinstance(plan_data, str):
+            try:
+                plan_data = json.loads(plan_data)
+            except json.JSONDecodeError:
+                plan_data = {}
+
+        seuil = data.get('seuil') or {}
+        if isinstance(seuil, str):
+            try:
+                seuil = json.loads(seuil)
+            except json.JSONDecodeError:
+                seuil = {}
+
+        # Récupérer le compteur existant ou créer un compteur minimal si on fournit un equipmentId
+        compteur_id = data.get('compteur') or data.get('compteurId')
+        equipment_id = data.get('equipmentId') or data.get('equipement') or data.get('equipmentId')
+
+        compteur = None
+        if compteur_id:
+            try:
+                compteur = Compteur.objects.get(id=compteur_id)
+            except Compteur.DoesNotExist:
+                return Response({'error': 'Compteur introuvable'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            if not equipment_id:
+                return Response({'error': 'Il faut fournir "compteur" ou "equipmentId"'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                equipment = Equipement.objects.get(id=equipment_id)
+            except Equipement.DoesNotExist:
+                return Response({'error': 'Équipement introuvable'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Créer un compteur par défaut lié à l'équipement
+            compteur = Compteur.objects.create(
+                equipement=equipment,
+                nomCompteur=plan_data.get('nom', f"Compteur pour {equipment.id}"),
+                valeurCourante=0,
+                unite=plan_data.get('unite', 'heures'),
+                estPrincipal=False,
+                type=plan_data.get('type', 'Général')
+            )
+
+        # Créer le plan de maintenance
+        plan = PlanMaintenance.objects.create(
+            equipement=compteur.equipement,
+            nom=plan_data.get('nom') or f"Plan {compteur.nomCompteur}",
+            type_plan_maintenance_id=plan_data.get('type_id') or plan_data.get('type'),
+            commentaire=plan_data.get('description') or plan_data.get('commentaire', ''),
+            necessiteHabilitationElectrique=bool(plan_data.get('necessiteHabilitationElectrique', False)),
+            necessitePermisFeu=bool(plan_data.get('necessitePermisFeu', False))
+        )
+
+        # Créer le déclencheur (seuil)
+        derniere = seuil.get('derniereIntervention') or seuil.get('derniereintervention') or 0
+        ecart = seuil.get('ecartInterventions') or seuil.get('intervalle') or 0
+        est_glissant = seuil.get('estGlissant', False)
+
+        try:
+            derniere = int(float(derniere))
+        except Exception:
+            derniere = 0
+
+        try:
+            ecart = float(ecart)
+        except Exception:
+            ecart = 0
+
+        prochaine = seuil.get('prochaineMaintenance')
+        if prochaine is None:
+            prochaine = int(derniere + ecart)
+        else:
+            try:
+                prochaine = int(float(prochaine))
+            except Exception:
+                prochaine = int(derniere + ecart)
+
+        declencher = Declencher.objects.create(
+            compteur=compteur,
+            planMaintenance=plan,
+            derniereIntervention=derniere,
+            ecartInterventions=ecart,
+            prochaineMaintenance=prochaine,
+            estGlissant=bool(est_glissant)
+        )
+
+        # Consommables pour le plan
+        for conso in plan_data.get('consommables', []) or []:
+            if isinstance(conso, dict):
+                consommable_id = conso.get('consommable_id') or conso.get('consommable')
+                quantite = conso.get('quantite_necessaire') or conso.get('quantite') or 1
+            else:
+                consommable_id = conso
+                quantite = 1
+
+            if consommable_id:
+                PlanMaintenanceConsommable.objects.create(
+                    plan_maintenance=plan,
+                    consommable_id=consommable_id,
+                    quantite_necessaire=quantite
+                )
+
+        # Documents pour le plan
+        documents = plan_data.get('documents', []) or []
+        for doc_index, doc_data in enumerate(documents):
+            # Récupérer le fichier uploadé depuis FormData
+            file_key = f'document_{doc_index}'
+            uploaded_file = request.FILES.get(file_key)
+
+            if uploaded_file:
+                # Créer le document
+                document = Document.objects.create(
+                    nomDocument=doc_data.get('titre', uploaded_file.name),
+                    cheminAcces=uploaded_file,
+                    typeDocument_id=doc_data.get('type')
+                )
+
+                # Lier le document au plan
+                PlanMaintenanceDocument.objects.create(
+                    plan_maintenance=plan,
+                    document=document
+                )
+
+
+
+
+        serializer = DeclenchementSerializer(declencher)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+    @transaction.atomic
+    def partial_update(self, request, pk=None):
+        declenchement = get_object_or_404(Declencher, pk=pk)
+        utilisateur = request.user if request.user.is_authenticated else None
+
+        seuil_diff = json.loads(request.data.get('seuil_diff', '{}'))
+        pm_diff = json.loads(request.data.get('planMaintenance_diff', '{}'))
+
+        logs = []
+
+        # ============================
+        # 1. MISE À JOUR DU SEUIL
+        # ============================
+        if seuil_diff:
+            for champ, valeurs in seuil_diff.items():
+                if hasattr(declenchement, champ):
+                    setattr(declenchement, champ, valeurs.get('nouveau'))
+
+            declenchement.save()
+
+            logs.append(Log(
+                type="modification",
+                nomTable="gimao_declencher",
+                idCible={"id": declenchement.id},
+                champsModifies=seuil_diff,
+                utilisateur=utilisateur
+            ))
+
+        # ============================
+        # 2. MISE À JOUR PLAN MAINTENANCE
+        # ============================
+        plan = declenchement.planMaintenance
+
+        if plan and pm_diff:
+            for champ, valeurs in pm_diff.items():
+
+                # Champs simples
+                if champ in [
+                    "nom",
+                    "commentaire",
+                    "necessiteHabilitationElectrique",
+                    "necessitePermisFeu"
+                ]:
+                    setattr(plan, champ, valeurs.get("nouveau"))
+
+                # Type de PM
+                elif champ == "type_id":
+                    plan.type_plan_maintenance_id = valeurs.get("nouveau")
+
+                # Consommables
+                elif champ == "consommables":
+                    PlanMaintenanceConsommable.objects.filter(
+                        plan_maintenance=plan
+                    ).delete()
+
+                    for c in valeurs.get("nouveau", []):
+                        PlanMaintenanceConsommable.objects.create(
+                            plan_maintenance=plan,
+                            consommable_id=c.get("consommable_id"),
+                            quantite_necessaire=c.get("quantite_necessaire", 1)
+                        )
+
+                # Documents
+                elif champ == "documents":
+                    PlanMaintenanceDocument.objects.filter(
+                        plan_maintenance=plan
+                    ).delete()
+
+                    for index, doc in enumerate(valeurs.get("nouveau", [])):
+                        fichier = request.FILES.get(f'document_{index}')
+
+                        document = Document.objects.create(
+                            titre=doc.get("titre"),
+                            type_id=doc.get("type"),
+                            fichier=fichier
+                        )
+
+                        PlanMaintenanceDocument.objects.create(
+                            plan_maintenance=plan,
+                            document=document
+                        )
+
+            plan.save()
+
+            logs.append(Log(
+                type="modification",
+                nomTable="gimao_plan_maintenance",
+                idCible={"id": plan.id},
+                champsModifies=pm_diff,
+                utilisateur=utilisateur
+            ))
+
+        # ============================
+        # 3. LOGS
+        # ============================
+        if logs:
+            Log.objects.bulk_create(logs)
+
+        return Response(
+            {"detail": "Modifications appliquées avec succès"},
+            status=status.HTTP_200_OK
         )

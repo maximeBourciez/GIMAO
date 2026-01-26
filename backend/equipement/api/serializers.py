@@ -441,3 +441,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
         return None
 
 
+class DeclenchementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Declencher
+        fields = '__all__'
