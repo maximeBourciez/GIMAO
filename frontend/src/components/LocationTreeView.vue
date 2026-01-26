@@ -16,7 +16,7 @@
       Pas de données disponibles.
     </p>
 
-    <VTreeview v-else :items="items" item-key="id" item-title="nomLieu" :open.sync="openNodes" activatable hoverable
+    <VTreeview v-else :items="processedItems" item-key="id" item-title="nomLieu" :open.sync="openNodes" activatable hoverable
       rounded density="compact">
       <!-- Checkbox après la flèche par défaut -->
       <template #prepend="{ item }">
@@ -26,6 +26,7 @@
           density="compact"
           hide-details 
           :disabled="isLocked && !isSelected(item)"
+          :style="{ marginLeft: !item.children ? '28px' : '0' }"
         />
       </template>
 
@@ -69,6 +70,21 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:selected", "create"]);
+
+const cleanItems = (nodes) => {
+  if (!nodes) return [];
+  return nodes.map(node => {
+    const newNode = { ...node };
+    if (newNode.children && newNode.children.length > 0) {
+      newNode.children = cleanItems(newNode.children);
+    } else {
+      delete newNode.children;
+    }
+    return newNode;
+  });
+};
+
+const processedItems = computed(() => cleanItems(props.items));
 
 const openNodes = ref([]);
 
@@ -123,10 +139,6 @@ const selectedName = computed(() => {
 
 
 <style scoped>
-/* Masquer la flèche d'expansion pour les items sans enfants */
-:deep(.v-treeview-item:not(:has(.v-treeview-item__children))) .v-treeview-item__toggle {
-  visibility: hidden;
-}
 
 /* S'assurer que tout est sur une seule ligne avec le bon espacement */
 :deep(.v-treeview-item__content) {
