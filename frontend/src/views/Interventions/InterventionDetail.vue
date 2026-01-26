@@ -116,7 +116,7 @@
                   <div class="detail-field">
                     <label class="detail-label">Responsable</label>
                     <div class="detail-value">
-                      <span v-if="data.responsable">{{ data.responsable.prenom }} {{ data.responsable.nomFamille }}</span>
+                      <span v-if="data.responsable">{{ formatUserDisplay(data.responsable) || 'Non spécifié' }}</span>
                       <span v-else>Non spécifié</span>
                     </div>
                   </div>
@@ -587,6 +587,15 @@ const toggleConsommablesDetails = () => {
 
 const toggleEquipementDetails = () => {
 	showEquipementDetails.value = !showEquipementDetails.value;
+};
+
+const formatUserDisplay = (user) => {
+  if (!user) return '';
+  const prenom = String(user.prenom || '').trim();
+  const nomFamille = String(user.nomFamille || '').trim();
+  if (prenom || nomFamille) return `${prenom} ${nomFamille}`.trim();
+  const nomUtilisateur = String(user.nomUtilisateur || '').trim();
+  return nomUtilisateur || '';
 };
 
 const openFailure = () => {

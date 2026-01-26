@@ -1,6 +1,6 @@
-from utilisateur.models import Role
 from maintenance.models import TypePlanMaintenance
 from donnees.models import TypeDocument
+from utilisateur.models import Utilisateur, Role
 
 def create_initial_data():
     # Création des rôles par défaut
@@ -38,3 +38,8 @@ def create_initial_data():
     ]
     for doc_type in types_document:
         TypeDocument.objects.get_or_create(nomTypeDocument=doc_type)
+
+    Utilisateur.objects.get_or_create(
+        nomUtilisateur="responsable",
+        defaults={"role": Role.objects.get(nomRole="Responsable GMAO")}
+    )
