@@ -51,7 +51,7 @@
 
     <!-- Chip avec le lieu -->
     <v-chip v-if="selected" color="primary" class="mt-2" closable @click:close="emit('update:selected', null)">
-      Lieu sélectionné : {{ selected.nomLieu }}
+      Lieu sélectionné : {{ selectedName }}
     </v-chip>
   </div>
 </template>
@@ -62,7 +62,7 @@ import { VTreeview } from 'vuetify/labs/components'
 
 const props = defineProps({
   items: Array,
-  selected: Object,
+  selected: [Object, Number, String],
   lockSelection: { type: Boolean, default: false },
   showTitle: { type: Boolean, default: true },
   showCreateButton: { type: Boolean, default: false },
@@ -77,7 +77,9 @@ const isLocked = computed(() => props.lockSelection && props.selected !== null);
 
 // Détecte si un item est celui sélectionné
 const isSelected = (item) => {
-  return props.selected && props.selected.id === item.id;
+  if (!props.selected) return false;
+  const selectedId = typeof props.selected === 'object' ? props.selected.id : props.selected;
+  return selectedId === item.id;
 };
 
 // Sélection via checkbox
@@ -97,6 +99,25 @@ const createWithoutParent = () => {
   emit("create", null);
 };
 
+const findNodeById = (nodes, id) => {
+  if (!nodes) return null;
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    if (node.children && node.children.length > 0) {
+      const found = findNodeById(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+const selectedName = computed(() => {
+  if (!props.selected) return '';
+  if (typeof props.selected === 'object') return props.selected.nomLieu;
+
+  const found = findNodeById(props.items, props.selected);
+  return found ? found.nomLieu : props.selected;
+});
 
 </script>
 
