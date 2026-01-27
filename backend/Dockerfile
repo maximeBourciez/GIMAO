@@ -30,4 +30,5 @@ CMD sh -c "while ! nc -z db 3306; do \
     python manage.py migrate && \
     python manage.py init_data && \
     python manage.py createsuperuser --no-input || true && \
-    python manage.py runserver 0.0.0.0:8000"
+    python manage.py crontab add && \
+    python manage.py runserver 0.0.0.0:8000 "

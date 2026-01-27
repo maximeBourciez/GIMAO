@@ -22,11 +22,8 @@ backend/media/*/*
 #Migrations de la base de données
 backend/*/migrations/0*.py
 
-#Mais ne pas ignorer le dossier cron_logs
-!backend/media/cron_logs/
-
-#Et ne pas ignorer le fichier cron.log
-!backend/media/cron_logs/cron.log
+# ignorer le fichier cron.log
+backend/media/cron_logs/cron.log
 
 # Suppression du venv backend
 backend/venv/

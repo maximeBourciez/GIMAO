@@ -142,10 +142,14 @@ LOGGING = {
 
 
 CRONJOBS = [
-    ('* * * * *', 'tasks.counterCron.update_counter'),
+    # Création auto des BT avec les compteurs 1 fois par jour à 3h00
+    ('0 3 * * *', 'tasks.counterCron.update_counter'),
+
+    # Maj des status des bons de travail toutes les 12 heures
+    ('0 */12 * * *', 'tasks.updateBtStatus.update_bt_status'),
 ]
 
 
 
-CORS_ALLOW_ALL_ORIGINS = True  # Uniquement pour le développement !
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
