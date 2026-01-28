@@ -101,7 +101,8 @@ const routes = [
     props: true,
     meta: {
       title: 'Afficher un utilisateur',
-      requiresPermission: 'user:viewDetail'
+      requiresPermission: 'user:viewDetail',
+      checksIfSelf: true
     }
   },
 
@@ -110,7 +111,7 @@ const routes = [
     name: 'EditUser',
     component: ModifierUser,
     props: true,
-    meta: { title: 'Modifier un utilisateur', requiresPermission: 'user:edit' }
+    meta: { title: 'Modifier un utilisateur', requiresPermission: 'user:edit', checksIfSelf: true }
   },
 
   {
@@ -471,6 +472,18 @@ router.beforeEach((to, from, next) => {
     const userPermissions = user?.permissions_names || []
 
     if (!userPermissions.includes(requiredPermission)) {
+
+      if(to.meta.checksIfSelf) {
+        // Vérifier si l'utilisateur essaie d'accéder à sa propre ressource
+        const userId = user.id
+        const routeId = parseInt(to.params.id)
+
+        if(userId === routeId) {
+          next()
+          return
+        }
+      }
+
       alert("Vous n'avez pas la permission d'accéder à cette page.")
       // Revenir à la page précédente ou au dashboard
       next(from.fullPath || '/')
