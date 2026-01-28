@@ -505,9 +505,7 @@ const formattedDemande = computed(() => {
   return {
     'Nom de la demande': demande.nom || 'Non spécifié',
     'Commentaire': demande.commentaire || 'Aucun commentaire',
-    'Demandeur': demande.utilisateur.prenom && demande.utilisateur.nomFamille
-      ? `${demande.utilisateur.prenom} ${demande.utilisateur.nomFamille}`
-      : 'Non spécifié',
+    'Demandeur': formatUserDisplay(demande.utilisateur) || 'Non spécifié',
     'Date de creation': formatDateTime(demande.date_creation) || 'Non spécifié',
   };
 });
