@@ -16,7 +16,7 @@
       Pas de données disponibles.
     </p>
 
-    <VTreeview v-else :items="items" item-key="id" item-title="nomLieu" :open.sync="openNodes" activatable hoverable
+    <VTreeview v-else :items="processedItems" item-value="id" item-title="nomLieu" v-model:opened="openNodes" activatable hoverable
       rounded density="compact">
       <!-- Checkbox après la flèche par défaut -->
       <template #prepend="{ item }">
@@ -26,6 +26,7 @@
           density="compact"
           hide-details 
           :disabled="isLocked && !isSelected(item)"
+          :style="{ marginLeft: !item.children ? '28px' : '0' }"
         />
       </template>
 
@@ -51,18 +52,18 @@
 
     <!-- Chip avec le lieu -->
     <v-chip v-if="selected" color="primary" class="mt-2" closable @click:close="emit('update:selected', null)">
-      Lieu sélectionné : {{ selected.nomLieu }}
+      Lieu sélectionné : {{ selectedName }}
     </v-chip>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { VTreeview } from 'vuetify/labs/components'
 
 const props = defineProps({
   items: Array,
-  selected: Object,
+  selected: [Object, Number, String],
   lockSelection: { type: Boolean, default: false },
   showTitle: { type: Boolean, default: true },
   showCreateButton: { type: Boolean, default: false },
@@ -70,14 +71,70 @@ const props = defineProps({
 
 const emit = defineEmits(["update:selected", "create"]);
 
+const cleanItems = (nodes) => {
+  if (!nodes) return [];
+  return nodes.map(node => {
+    const newNode = { ...node };
+    if (newNode.children && newNode.children.length > 0) {
+      newNode.children = cleanItems(newNode.children);
+    } else {
+      delete newNode.children;
+    }
+    return newNode;
+  });
+};
+
+const processedItems = computed(() => cleanItems(props.items));
+
 const openNodes = ref([]);
+
+// Retrieve path to a node to expand the tree
+const getPathToNode = (nodes, targetId, currentPath = []) => {
+  if (!nodes) return null;
+  for (const node of nodes) {
+    if (node.id == targetId) {
+      return currentPath;
+    }
+    if (node.children && node.children.length > 0) {
+      const result = getPathToNode(node.children, targetId, [...currentPath, node.id]);
+      if (result) return result;
+    }
+  }
+  return null;
+};
+
+// Watch selected to expand tree
+watch(
+  [() => props.selected, () => props.items],
+  () => {
+    if (!props.selected || !props.items) return;
+
+    const targetId = typeof props.selected === 'object' ? props.selected.id : props.selected;
+    console.log("LocationTreeView: targetId for expansion:", targetId);
+    
+    if (!targetId) return;
+
+    const path = getPathToNode(props.items, targetId);
+    console.log("LocationTreeView: found path:", path);
+    
+    if (path) {
+      // Add path ids to openNodes if not already present
+      const newOpen = new Set([...openNodes.value, ...path]);
+      openNodes.value = Array.from(newOpen);
+      console.log("LocationTreeView: new openNodes:", openNodes.value);
+    }
+  },
+  { immediate: true, deep: true }
+);
 
 // Détecte si sélection bloquée
 const isLocked = computed(() => props.lockSelection && props.selected !== null);
 
 // Détecte si un item est celui sélectionné
 const isSelected = (item) => {
-  return props.selected && props.selected.id === item.id;
+  if (!props.selected) return false;
+  const selectedId = typeof props.selected === 'object' ? props.selected.id : props.selected;
+  return selectedId == item.id;
 };
 
 // Sélection via checkbox
@@ -97,15 +154,30 @@ const createWithoutParent = () => {
   emit("create", null);
 };
 
+const findNodeById = (nodes, id) => {
+  if (!nodes) return null;
+  for (const node of nodes) {
+    if (node.id == id) return node;
+    if (node.children && node.children.length > 0) {
+      const found = findNodeById(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+const selectedName = computed(() => {
+  if (!props.selected) return '';
+  if (typeof props.selected === 'object') return props.selected.nomLieu;
+
+  const found = findNodeById(props.items, props.selected);
+  return found ? found.nomLieu : props.selected;
+});
 
 </script>
 
 
 <style scoped>
-/* Masquer la flèche d'expansion pour les items sans enfants */
-:deep(.v-treeview-item:not(:has(.v-treeview-item__children))) .v-treeview-item__toggle {
-  visibility: hidden;
-}
 
 /* S'assurer que tout est sur une seule ligne avec le bon espacement */
 :deep(.v-treeview-item__content) {

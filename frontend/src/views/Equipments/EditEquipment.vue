@@ -100,14 +100,11 @@ const handleSubmit = async () => {
   try {
     const fd = new FormData();
 
-    const equipementData = JSON.parse(JSON.stringify(formData.value));
-
     if (formData.value.lienImageEquipement instanceof File) {
       fd.append('lienImageEquipement', formData.value.lienImageEquipement);
       delete equipementData.lienImageEquipement;
     }
 
-    fd.append('data', JSON.stringify(equipementData));
     fd.append('changes', JSON.stringify(changes));
 
     await api.put(`equipements/${equipmentId.value}/`, fd, {
