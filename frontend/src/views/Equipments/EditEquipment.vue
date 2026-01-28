@@ -102,7 +102,7 @@ const handleSubmit = async () => {
 
     if (formData.value.lienImageEquipement instanceof File) {
       fd.append('lienImageEquipement', formData.value.lienImageEquipement);
-      delete equipementData.lienImageEquipement;
+      delete changes.lienImageEquipement;
     }
 
     fd.append('changes', JSON.stringify(changes));

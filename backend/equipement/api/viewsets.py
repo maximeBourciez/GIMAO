@@ -412,6 +412,8 @@ class EquipementViewSet(viewsets.ModelViewSet):
         if 'lienImageEquipement' in request.FILES:
             uploaded_file = request.FILES['lienImageEquipement']
             # Supprimer l'ancienne image si elle existe
+            print(f"Ancienne image: {equipement.lienImage}")
+            print(f"Nouvelle image: {uploaded_file}")
             if equipement.lienImage:
                 try:
                     equipement.lienImage.delete(save=False)
@@ -420,6 +422,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
             
             # Sauvegarder la nouvelle image
             equipement.lienImage = uploaded_file
+            modifications_appliquees['lienImageEquipement'] = 'updated'
             self._create_log_entry(
                 type_action='modification',
                 nom_table='equipement',
