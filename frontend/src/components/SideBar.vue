@@ -98,7 +98,7 @@ export default {
                 { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions (DI)", requiresPermission: "di:viewList" },
                 { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)", requiresPermission: "bt:viewList" },
                 { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes", requiresPermission: "user:viewList" },
-                { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", requiresPermission: "stocks:viewList" },
+                { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", requiresPermission: "stock:view" },
                 { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", requiresPermission: "loc:viewList" }
             ]
         };

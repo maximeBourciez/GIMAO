@@ -15,7 +15,7 @@ perms = [
     'mp:viewList', 'mp:viewDetail', 'mp:create', 'mp:edit', 'mp:delete', 'mp:export',
 
     # Gestion des stocks
-    'stock:viewList', 'stock:viewDetail', 'stock:export',
+    'stock:view', 'stock:export',
     'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
     'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export',
 
@@ -33,33 +33,49 @@ perms = [
 
     # Export de données
     'export:view', 
+
+    # Menu
+    'menu:view',
 ]
 
 perms_map = {
     "Responsable GMAO": [
-        perm for perm in perms  # Tous les droits
+        perm for perm in perms  # Tous les droits existants
     ],
 
     "Technicien": [
-        'di:viewList', 'di:viewDetail', 'di:create', 'di:editCreated', 
+        'di:viewList', 'di:viewDetail', 'di:create', 'di:editCreated',
+
         'bt:viewList', 'bt:viewDetail', 'bt:start', 'bt:end', 'bt:editAssigned',
+
         'eq:viewList', 'eq:viewDetail', 'eq:edit',
+
         'cp:viewList', 'cp:viewDetail', 'cp:edit',
-        'mp:viewList', 'mp:viewDetail', 
+
+        'mp:viewList', 'mp:viewDetail',
+
+        'stock:view',
     ],
 
     "Opérateur": [
         'di:viewList', 'di:viewDetail', 'di:create', 'di:editCreated',
+
         'bt:viewList', 'bt:viewDetail',
+
         'eq:viewList', 'eq:viewDetail',
     ],
 
     "Magasinier": [
         'bt:viewList', 'bt:viewDetail', 'bt:acceptConsumableRequest',
-        'stock:viewList', 'stock:viewDetail', 'stock:export',
-        'cons:viewList', 'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
+
+        'stock:view', 'stock:export',
+
+        'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
+
         'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export',
+
         'export:view',
     ],
 }
+
 

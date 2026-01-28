@@ -54,7 +54,9 @@ const checkIfMobile = () => {
  */
 const userRole = computed(() => store.getters.userRole)
 
-const userHasMenu = computed(() => ['Responsable GMAO', 'Technicien'].includes(userRole.value))
+const userHasMenu = computed(() => {
+  return store.getters.userPermissions.includes('menu:view')
+})
 
 /**
  * Pages publiques
