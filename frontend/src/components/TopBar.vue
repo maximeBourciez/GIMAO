@@ -84,13 +84,13 @@ export default {
       appTitle: "GIMAO",
       logo: require("@/assets/images/LogoGIMAO.png"),
       navigationItems: [
-        { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord", rolesAllowed: ["Responsable GMAO", "Technicien", "Magasinier"] },
-        { name: "EquipmentList", icon: "mdi-tools", title: "Équipements", rolesAllowed: ["Responsable GMAO", "Technicien"] },
-        { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions (DI)", rolesAllowed: ["Responsable GMAO", "Technicien"] },
-        { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)", rolesAllowed: ["Responsable GMAO", "Technicien"] },
-        { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes", rolesAllowed: ["Responsable GMAO"] },
-        { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", rolesAllowed: ["Magasinier", "Responsable GMAO"] },
-        { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", rolesAllowed: ["Responsable GMAO"] }
+        { name: "Dashboard", icon: "mdi-view-dashboard", title: "Tableau de bord", requiresPermission: null },
+        { name: "EquipmentList", icon: "mdi-tools", title: "Équipements", requiresPermission: "eq:viewList" },
+        { name: "FailureList", icon: "mdi-alert", title: "Demandes d'interventions (DI)", requiresPermission: "di:viewList" },
+        { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)", requiresPermission: "bt:viewList" },
+        { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes", requiresPermission: "user:viewList" },
+        { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", requiresPermission: "stocks:viewList" },
+        { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", requiresPermission: "loc:viewList" }
       ]
     };
   },
@@ -153,7 +153,7 @@ export default {
     filteredNavigationItems() {
       const role = this.user.role;
       return this.navigationItems.filter(item =>
-        item.rolesAllowed?.includes(role)
+        item.requiresPermission === null || this.$store.getters.hasPermission(item.requiresPermission)
       );
     }
   },
