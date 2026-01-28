@@ -5,20 +5,20 @@ export default createStore({
     user: null,
     isAuthenticated: false
   },
-  
+
   mutations: {
     setUser(state, user) {
       state.user = user
       state.isAuthenticated = !!user
     },
-    
+
     logout(state) {
       state.user = null
       state.isAuthenticated = false
       localStorage.removeItem('user')
     }
   },
-  
+
   actions: {
     initAuth({ commit }) {
       const user = localStorage.getItem('user')
@@ -31,20 +31,24 @@ export default createStore({
         }
       }
     },
-    
+
     logout({ commit }) {
       commit('logout')
     }
   },
-  
+
   getters: {
     isAuthenticated: state => state.isAuthenticated,
     currentUser: state => state.user,
     userRole: state => state.user?.role?.nomRole || null,
-    userPermissions: state => state.user?.permissions_names || []
+    userPermissions: state => state.user?.permissions_names || [],
+    hasPermission: (state, getters) => (perm) => {
+      if (!state.isAuthenticated) return false
+      return getters.userPermissions.includes(perm)
+    }
   },
-  
+
   modules: {
-    
+
   }
 })

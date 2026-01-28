@@ -16,7 +16,7 @@ perms = [
 
     # Gestion des stocks
     'stock:viewList', 'stock:viewDetail', 'stock:export',
-    'cons:viewList', 'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
+    'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
     'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export',
 
     # Gestion des utilisateurs
