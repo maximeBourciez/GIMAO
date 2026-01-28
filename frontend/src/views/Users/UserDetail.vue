@@ -91,6 +91,7 @@
 		class="floating-edit-button"
 		elevation="4"
 		@click="editUser"
+		v-if="canEditUser"
 	>
 		<v-icon size="large">mdi-pencil</v-icon>
 		<v-tooltip activator="parent" location="left">
@@ -102,12 +103,14 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants.js';
 
 const route = useRoute();
 const router = useRouter();
+const store = useStore();
 const userId = computed(() => route.params.id);
 
 const userData = ref(null);
@@ -116,6 +119,10 @@ const errorMessage = ref('');
 const successMessage = ref('');
 
 const api = useApi(API_BASE_URL);
+
+const canEditUser = computed(() => {
+	return store.getters.hasPermission('user:edit') || userData.value?.id === store.getters.currentUser.id;
+});
 
 const fullName = computed(() => {
 	const prenom = userData.value?.prenom ?? '';

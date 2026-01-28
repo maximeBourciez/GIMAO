@@ -3,7 +3,7 @@
     <v-row justify="center">
       <v-col cols="12" md="8" lg="6">
         <v-card class="pa-4">
-          <LocationTreeView :items="locations" :showCreateButton="true" @create="createLieu" />
+          <LocationTreeView :items="locations" :showCreateButton="store.getters.hasPermission('loc:create')" @create="createLieu" />
         </v-card>
       </v-col>
     </v-row>

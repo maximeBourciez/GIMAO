@@ -36,7 +36,7 @@
   </BaseDetailView>
 
   <!-- Bouton de modification -->
-  <v-btn color="primary" size="large" icon class="floating-edit-button" elevation="4" @click="editModelEquipment">
+  <v-btn color="primary" size="large" icon class="floating-edit-button" elevation="4" @click="editModelEquipment" v-if="store.getters.hasPermission('eqmod:edit')">
     <v-icon size="large">mdi-pencil</v-icon>
     <v-tooltip activator="parent" location="left">
       Modifier le modèle d'équipement

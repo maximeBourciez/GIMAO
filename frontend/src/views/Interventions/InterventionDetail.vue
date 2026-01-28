@@ -13,34 +13,35 @@
   >
     <template #default="{ data }">
       <v-row v-if="data">
-        
         <!-- Colonne gauche : champs du BT -->
         <v-col cols="12" md="6" class="detail-column">
           <h3 class="text-h6 mb-4 text-primary detail-title">{{ data.nom }}</h3>
           <div class="detail-field">
             <label class="detail-label">ID</label>
-            <div class="detail-value">{{ data.id || 'Non spécifié' }}</div>
+            <div class="detail-value">{{ data.id || "Non spécifié" }}</div>
           </div>
 
           <div class="detail-field">
             <label class="detail-label">Type</label>
-            <div class="detail-value">{{ INTERVENTION_TYPE[data.type] || data.type || 'Non spécifié' }}</div>
+            <div class="detail-value">
+              {{ INTERVENTION_TYPE[data.type] || data.type || "Non spécifié" }}
+            </div>
           </div>
 
           <div class="detail-field">
             <label class="detail-label">Statut</label>
             <div class="detail-value">
-              <v-chip
-                :color="getInterventionStatusColor(data.statut)"
-              >
-                {{ INTERVENTION_STATUS[data.statut] || data.statut || 'Non spécifié' }}
+              <v-chip :color="getInterventionStatusColor(data.statut)">
+                {{ INTERVENTION_STATUS[data.statut] || data.statut || "Non spécifié" }}
               </v-chip>
             </div>
           </div>
 
           <div class="detail-field">
             <label class="detail-label">Diagnostic</label>
-            <div class="detail-value text-pre">{{ data.diagnostic || 'Non spécifié' }}</div>
+            <div class="detail-value text-pre">
+              {{ data.diagnostic || "Non spécifié" }}
+            </div>
           </div>
 
           <div class="detail-field">
@@ -71,16 +72,38 @@
           <!-- Boutons d'action -->
           <v-row class="mt-6">
             <v-col cols="12" xl="6" class="py-1">
-              <v-btn color="info" block :disabled="!canStart" @click="openStartModal">Démarrer l'intervention</v-btn>
+              <v-btn color="info" block :disabled="!canStart" @click="openStartModal"
+                >Démarrer l'intervention</v-btn
+              >
             </v-col>
             <v-col cols="12" xl="6" class="py-1">
-              <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal">Terminer l'intervention</v-btn>
+              <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal"
+                >Terminer l'intervention</v-btn
+              >
             </v-col>
-            <v-col v-if="isResponsableGMAO" cols="12" xl="6" class="py-1">
-              <v-btn color="success" block :disabled="!canClose" @click="openCloseModal">Clôturer le BT</v-btn>
+            <v-col
+              v-if="store.getters.hasPermission('bt:acceptClosure')"
+              cols="12"
+              xl="6"
+              class="py-1"
+            >
+              <v-btn color="success" block :disabled="!canClose" @click="openCloseModal"
+                >Clôturer le BT</v-btn
+              >
             </v-col>
-            <v-col v-if="isResponsableGMAO" cols="12" xl="6" class="py-1">
-              <v-btn color="warning" block :disabled="!canRefuseClose" @click="openRefuseCloseModal">Refuser la clôture du BT</v-btn>
+            <v-col
+              v-if="store.getters.hasPermission('bt:refuseClosure')"
+              cols="12"
+              xl="6"
+              class="py-1"
+            >
+              <v-btn
+                color="warning"
+                block
+                :disabled="!canRefuseClose"
+                @click="openRefuseCloseModal"
+                >Refuser la clôture du BT</v-btn
+              >
             </v-col>
           </v-row>
         </v-col>
@@ -92,21 +115,28 @@
 
           <div class="detail-field">
             <label class="detail-label">Commentaire</label>
-            <div class="detail-value text-pre">{{ data.commentaire || 'Aucun commentaire' }}</div>
+            <div class="detail-value text-pre">
+              {{ data.commentaire || "Aucun commentaire" }}
+            </div>
           </div>
 
           <div class="detail-field">
             <label class="detail-label">Commentaire de refus de clôture</label>
-            <div class="detail-value text-pre">{{ data.commentaire_refus_cloture || 'Non spécifié' }}</div>
+            <div class="detail-value text-pre">
+              {{ data.commentaire_refus_cloture || "Non spécifié" }}
+            </div>
           </div>
 
           <!-- Section Affectation -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="showAffectation = !showAffectation">
+            <v-card-title
+              class="text-h6 d-flex align-center cursor-pointer"
+              @click="showAffectation = !showAffectation"
+            >
               Affectation
               <v-spacer></v-spacer>
               <v-icon>
-                {{ showAffectation ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                {{ showAffectation ? "mdi-chevron-up" : "mdi-chevron-down" }}
               </v-icon>
             </v-card-title>
             <v-expand-transition>
@@ -116,14 +146,21 @@
                   <div class="detail-field">
                     <label class="detail-label">Responsable</label>
                     <div class="detail-value">
-                      <span v-if="data.responsable">{{ formatUserDisplay(data.responsable) || 'Non spécifié' }}</span>
+                      <span v-if="data.responsable">{{
+                        formatUserDisplay(data.responsable) || "Non spécifié"
+                      }}</span>
                       <span v-else>Non spécifié</span>
                     </div>
                   </div>
                   <div class="detail-field">
                     <label class="detail-label">Utilisateurs assignés</label>
                     <div class="detail-value">
-                      <div v-if="Array.isArray(data.utilisateur_assigne) && data.utilisateur_assigne.length">
+                      <div
+                        v-if="
+                          Array.isArray(data.utilisateur_assigne) &&
+                          data.utilisateur_assigne.length
+                        "
+                      >
                         <div v-for="u in data.utilisateur_assigne" :key="u.id">
                           - {{ u.prenom }} {{ u.nomFamille }}
                         </div>
@@ -138,7 +175,10 @@
 
           <!-- Section DI -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleDemandeDetails">
+            <v-card-title
+              class="text-h6 d-flex align-center cursor-pointer"
+              @click="toggleDemandeDetails"
+            >
               Demande d'intervention
               <v-spacer></v-spacer>
               <v-btn
@@ -151,14 +191,18 @@
                 Ouvrir
               </v-btn>
               <v-icon>
-                {{ showDemandeDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                {{ showDemandeDetails ? "mdi-chevron-up" : "mdi-chevron-down" }}
               </v-icon>
             </v-card-title>
             <v-expand-transition>
               <div v-show="showDemandeDetails">
                 <v-divider></v-divider>
                 <v-card-text>
-                  <div v-for="(value, key) in formattedDemande" :key="key" class="detail-field">
+                  <div
+                    v-for="(value, key) in formattedDemande"
+                    :key="key"
+                    class="detail-field"
+                  >
                     <label class="detail-label">{{ key }}</label>
                     <div class="detail-value">{{ value }}</div>
                   </div>
@@ -167,52 +211,60 @@
             </v-expand-transition>
           </v-card>
 
-      <!-- Section Équipement (provient de la DI) -->
-      <v-card class="mt-4" elevation="2">
-        <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleEquipementDetails">
-          Équipement
-          <v-spacer></v-spacer>
-      <v-btn
-        color="primary"
-        size="small"
-        class="mr-2"
-        @click.stop="openEquipement"
-        :disabled="!equipementId"
-      >
-        Ouvrir
-      </v-btn>
-          <v-icon>
-            {{ showEquipementDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
-          </v-icon>
-        </v-card-title>
-        <v-expand-transition>
-          <div v-show="showEquipementDetails">
-            <v-divider></v-divider>
-            <v-card-text>
-              <div v-if="!equipement">
-                Aucun équipement associé
+          <!-- Section Équipement (provient de la DI) -->
+          <v-card class="mt-4" elevation="2">
+            <v-card-title
+              class="text-h6 d-flex align-center cursor-pointer"
+              @click="toggleEquipementDetails"
+            >
+              Équipement
+              <v-spacer></v-spacer>
+              <v-btn
+                color="primary"
+                size="small"
+                class="mr-2"
+                @click.stop="openEquipement"
+                :disabled="!equipementId"
+              >
+                Ouvrir
+              </v-btn>
+              <v-icon>
+                {{ showEquipementDetails ? "mdi-chevron-up" : "mdi-chevron-down" }}
+              </v-icon>
+            </v-card-title>
+            <v-expand-transition>
+              <div v-show="showEquipementDetails">
+                <v-divider></v-divider>
+                <v-card-text>
+                  <div v-if="!equipement">Aucun équipement associé</div>
+                  <div v-else>
+                    <div
+                      v-for="(value, key) in formattedEquipement"
+                      :key="key"
+                      class="detail-field"
+                    >
+                      <label class="detail-label">{{ key }}</label>
+                      <div class="detail-value">{{ value }}</div>
+                    </div>
+                  </div>
+                </v-card-text>
               </div>
-              <div v-else>
-                <div v-for="(value, key) in formattedEquipement" :key="key" class="detail-field">
-                  <label class="detail-label">{{ key }}</label>
-                  <div class="detail-value">{{ value }}</div>
-                </div>
-              </div>
-            </v-card-text>
-          </div>
-        </v-expand-transition>
-      </v-card>
+            </v-expand-transition>
+          </v-card>
 
           <!-- Section Documents -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleDocumentsDetails">
+            <v-card-title
+              class="text-h6 d-flex align-center cursor-pointer"
+              @click="toggleDocumentsDetails"
+            >
               Documents
               <v-spacer></v-spacer>
               <v-btn color="primary" size="small" class="mr-2" @click.stop="addDocument">
                 Ajouter
               </v-btn>
               <v-icon>
-                {{ showDocumentsDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                {{ showDocumentsDetails ? "mdi-chevron-up" : "mdi-chevron-down" }}
               </v-icon>
             </v-card-title>
             <v-expand-transition>
@@ -228,17 +280,32 @@
                     :items-per-page="-1"
                   >
                     <template #item.titre="{ item }">
-                      <span class="doc-truncate" :title="item.titre || ''">{{ item.titre || 'Document' }}</span>
+                      <span class="doc-truncate" :title="item.titre || ''">{{
+                        item.titre || "Document"
+                      }}</span>
                     </template>
                     <template #item.type_nom="{ item }">
-                      <span class="doc-truncate" :title="item.type_nom || ''">{{ item.type_nom || '—' }}</span>
+                      <span class="doc-truncate" :title="item.type_nom || ''">{{
+                        item.type_nom || "—"
+                      }}</span>
                     </template>
                     <template #item.actions="{ item }">
                       <div class="doc-actions">
-                        <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
+                        <v-btn
+                          icon
+                          size="small"
+                          color="primary"
+                          @click="downloadDocument(item)"
+                        >
                           <v-icon size="small">mdi-download</v-icon>
                         </v-btn>
-                        <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('BT', item)">
+                        <v-btn
+                          icon
+                          size="small"
+                          color="error"
+                          class="ml-1"
+                          @click="openDeleteDocumentModal('BT', item)"
+                        >
                           <v-icon size="small">mdi-delete</v-icon>
                         </v-btn>
                       </div>
@@ -254,17 +321,32 @@
                     :items-per-page="-1"
                   >
                     <template #item.titre="{ item }">
-                      <span class="doc-truncate" :title="item.titre || ''">{{ item.titre || 'Document' }}</span>
+                      <span class="doc-truncate" :title="item.titre || ''">{{
+                        item.titre || "Document"
+                      }}</span>
                     </template>
                     <template #item.type_nom="{ item }">
-                      <span class="doc-truncate" :title="item.type_nom || ''">{{ item.type_nom || '—' }}</span>
+                      <span class="doc-truncate" :title="item.type_nom || ''">{{
+                        item.type_nom || "—"
+                      }}</span>
                     </template>
                     <template #item.actions="{ item }">
                       <div class="doc-actions">
-                        <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
+                        <v-btn
+                          icon
+                          size="small"
+                          color="primary"
+                          @click="downloadDocument(item)"
+                        >
                           <v-icon size="small">mdi-download</v-icon>
                         </v-btn>
-                        <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('DI', item)">
+                        <v-btn
+                          icon
+                          size="small"
+                          color="error"
+                          class="ml-1"
+                          @click="openDeleteDocumentModal('DI', item)"
+                        >
                           <v-icon size="small">mdi-delete</v-icon>
                         </v-btn>
                       </div>
@@ -277,11 +359,14 @@
 
           <!-- Section Consommables (juste après Documents) -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleConsommablesDetails">
+            <v-card-title
+              class="text-h6 d-flex align-center cursor-pointer"
+              @click="toggleConsommablesDetails"
+            >
               Consommables
               <v-spacer></v-spacer>
               <v-icon>
-                {{ showConsommablesDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                {{ showConsommablesDetails ? "mdi-chevron-up" : "mdi-chevron-down" }}
               </v-icon>
             </v-card-title>
             <v-expand-transition>
@@ -300,7 +385,10 @@
                       <div class="d-flex justify-center">
                         <v-img
                           v-if="item.image"
-                          :src="`${BASE_URL}/media/${String(item.image).replace(/^\/+/, '')}`"
+                          :src="`${BASE_URL}/media/${String(item.image).replace(
+                            /^\/+/,
+                            ''
+                          )}`"
                           max-width="48"
                           max-height="48"
                           cover
@@ -309,10 +397,14 @@
                       </div>
                     </template>
                     <template #item.designation="{ item }">
-                      {{ item.designation || 'Non spécifié' }}
+                      {{ item.designation || "Non spécifié" }}
                     </template>
                     <template #item.quantite="{ item }">
-                      {{ Number.isFinite(item.quantite) ? item.quantite : (item.quantite ?? 0) }}
+                      {{
+                        Number.isFinite(item.quantite)
+                          ? item.quantite
+                          : item.quantite ?? 0
+                      }}
                     </template>
                   </v-data-table>
                   <p v-else class="text-caption text-grey">Aucun consommable associé</p>
@@ -325,115 +417,120 @@
     </template>
   </BaseDetailView>
 
-    <!-- Bouton flottant : modifier le BT -->
-    <v-btn
-      v-if="intervention && isResponsableGMAO"
-      color="primary"
-      size="large"
-      icon
-      elevation="4"
-      class="floating-create-button"
-      @click="goToEditIntervention"
-    >
-      <v-icon>mdi-pencil</v-icon>
-    </v-btn>
+  <!-- Bouton flottant : modifier le BT -->
+  <v-btn
+    v-if="canUserEditBT"
+    color="primary"
+    size="large"
+    icon
+    elevation="4"
+    class="floating-create-button"
+    @click="goToEditIntervention"
+  >
+    <v-icon>mdi-pencil</v-icon>
+  </v-btn>
 
-    <!-- Modales de confirmation (comme DI) -->
-    <ConfirmationModal
-      v-model="showStart"
-      type="info"
-      title="Démarrer l'intervention"
-      message="Êtes-vous sûr de vouloir démarrer cette intervention ?"
-      confirm-text="Démarrer"
-      confirm-icon="mdi-play"
-      :loading="actionLoading"
-      @confirm="startIntervention"
-      @cancel="showStart = false"
-    />
-    <ConfirmationModal
-      v-model="showFinish"
-      type="info"
-      title="Terminer l'intervention"
-      message="Êtes-vous sûr de vouloir terminer cette intervention ?"
-      confirm-text="Terminer"
-      confirm-icon="mdi-check"
-      :loading="actionLoading"
-      @confirm="finishIntervention"
-      @cancel="showFinish = false"
-    />
-    <ConfirmationModal
-      v-model="showClose"
-      type="success"
-      title="Clôturer le bon de travail"
-      message="Êtes-vous sûr de vouloir clôturer ce bon de travail ?"
-      confirm-text="Clôturer"
-      confirm-icon="mdi-check-circle-outline"
-      :loading="actionLoading"
-      @confirm="closeBonTravail"
-      @cancel="showClose = false"
-    />
+  <!-- Modales de confirmation (comme DI) -->
+  <ConfirmationModal
+    v-model="showStart"
+    type="info"
+    title="Démarrer l'intervention"
+    message="Êtes-vous sûr de vouloir démarrer cette intervention ?"
+    confirm-text="Démarrer"
+    confirm-icon="mdi-play"
+    :loading="actionLoading"
+    @confirm="startIntervention"
+    @cancel="showStart = false"
+  />
+  <ConfirmationModal
+    v-model="showFinish"
+    type="info"
+    title="Terminer l'intervention"
+    message="Êtes-vous sûr de vouloir terminer cette intervention ?"
+    confirm-text="Terminer"
+    confirm-icon="mdi-check"
+    :loading="actionLoading"
+    @confirm="finishIntervention"
+    @cancel="showFinish = false"
+  />
+  <ConfirmationModal
+    v-model="showClose"
+    type="success"
+    title="Clôturer le bon de travail"
+    message="Êtes-vous sûr de vouloir clôturer ce bon de travail ?"
+    confirm-text="Clôturer"
+    confirm-icon="mdi-check-circle-outline"
+    :loading="actionLoading"
+    @confirm="closeBonTravail"
+    @cancel="showClose = false"
+  />
 
-    <ConfirmationModal
-      v-model="showDeleteDocument"
-      type="error"
-      title="Supprimer le document"
-      :message="deleteDocumentMessage"
-      confirm-text="Supprimer"
-      confirm-icon="mdi-delete"
-      :loading="actionLoading"
-      @confirm="confirmDeleteDocument"
-      @cancel="showDeleteDocument = false"
-    />
+  <ConfirmationModal
+    v-model="showDeleteDocument"
+    type="error"
+    title="Supprimer le document"
+    :message="deleteDocumentMessage"
+    confirm-text="Supprimer"
+    confirm-icon="mdi-delete"
+    :loading="actionLoading"
+    @confirm="confirmDeleteDocument"
+    @cancel="showDeleteDocument = false"
+  />
 
-    <!-- Refuser la clôture : formulaire (commentaire obligatoire) -->
-    <v-dialog v-model="showRefuseClose" max-width="600" scrollable>
-      <v-card>
-        <v-card-text class="pa-6">
-          <BaseForm
-            v-model="refuseCloseFormData"
-            title="Refuser la clôture"
-            :validation-schema="refuseCloseValidationSchema"
-            :loading="actionLoading"
-            :error-message="errorMessage"
-            :success-message="successMessage"
-            submit-button-text="Refuser"
-            submit-button-color="warning"
-            cancel-button-text="Annuler"
-            :custom-cancel-action="() => (showRefuseClose = false)"
-            :handleSubmit="refuseCloseBonTravail"
-            @clear-error="errorMessage = ''"
-            @clear-success="successMessage = ''"
-            elevation="0"
-          >
-            <template #default>
-              <v-row dense>
-                <v-col cols="12">
-                  <FormTextarea
-                    v-model="refuseCloseFormData.commentaire_refus_cloture"
-                    field-name="commentaire_refus_cloture"
-                    label="Commentaire de refus"
-                    rows="4"
-                  />
-                </v-col>
-              </v-row>
-            </template>
-          </BaseForm>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-
+  <!-- Refuser la clôture : formulaire (commentaire obligatoire) -->
+  <v-dialog v-model="showRefuseClose" max-width="600" scrollable>
+    <v-card>
+      <v-card-text class="pa-6">
+        <BaseForm
+          v-model="refuseCloseFormData"
+          title="Refuser la clôture"
+          :validation-schema="refuseCloseValidationSchema"
+          :loading="actionLoading"
+          :error-message="errorMessage"
+          :success-message="successMessage"
+          submit-button-text="Refuser"
+          submit-button-color="warning"
+          cancel-button-text="Annuler"
+          :custom-cancel-action="() => (showRefuseClose = false)"
+          :handleSubmit="refuseCloseBonTravail"
+          @clear-error="errorMessage = ''"
+          @clear-success="successMessage = ''"
+          elevation="0"
+        >
+          <template #default>
+            <v-row dense>
+              <v-col cols="12">
+                <FormTextarea
+                  v-model="refuseCloseFormData.commentaire_refus_cloture"
+                  field-name="commentaire_refus_cloture"
+                  label="Commentaire de refus"
+                  rows="4"
+                />
+              </v-col>
+            </v-row>
+          </template>
+        </BaseForm>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { useStore } from 'vuex';
-import BaseDetailView from '@/components/common/BaseDetailView.vue';
-import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
-import { BaseForm, FormTextarea } from '@/components/common';
-import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, BASE_URL, MEDIA_BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
-import { formatDateTime, getInterventionStatusColor } from '@/utils/helpers';
+import { ref, onMounted, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { useStore } from "vuex";
+import BaseDetailView from "@/components/common/BaseDetailView.vue";
+import ConfirmationModal from "@/components/common/ConfirmationModal.vue";
+import { BaseForm, FormTextarea } from "@/components/common";
+import { useApi } from "@/composables/useApi";
+import {
+  API_BASE_URL,
+  BASE_URL,
+  MEDIA_BASE_URL,
+  INTERVENTION_STATUS,
+  INTERVENTION_TYPE,
+} from "@/utils/constants";
+import { formatDateTime, getInterventionStatusColor } from "@/utils/helpers";
 
 const router = useRouter();
 const route = useRoute();
@@ -444,17 +541,16 @@ const api = useApi(API_BASE_URL);
 const currentUser = computed(() => store.getters.currentUser);
 
 const userRole = computed(() => store.getters.userRole);
-const isResponsableGMAO = computed(() => userRole.value === 'Responsable GMAO');
 
 const intervention = ref(null);
 const loading = ref(false);
 const actionLoading = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
+const errorMessage = ref("");
+const successMessage = ref("");
 
 const MESSAGE_TIMEOUT_MS = 3000;
 
-const actionMode = ref('download');
+const actionMode = ref("download");
 const showDemandeDetails = ref(false);
 const showDocumentsDetails = ref(false);
 const showConsommablesDetails = ref(false);
@@ -470,63 +566,94 @@ const deleteDocumentContext = ref({ scope: null, item: null });
 
 const deleteDocumentMessage = computed(() => {
   const item = deleteDocumentContext.value?.item;
-  const name = item?.titre || item?.nomDocumentIntervention || item?.nomDocument || 'ce document';
+  const name =
+    item?.titre || item?.nomDocumentIntervention || item?.nomDocument || "ce document";
   return `Êtes-vous sûr de vouloir supprimer le document "${name}" ?`;
 });
 
 const refuseCloseFormData = ref({
-  commentaire_refus_cloture: ''
+  commentaire_refus_cloture: "",
 });
 
 const refuseCloseValidationSchema = {
-  commentaire_refus_cloture: ['required', { name: 'maxLength', params: [500] }]
+  commentaire_refus_cloture: ["required", { name: "maxLength", params: [500] }],
 };
 
 const documentHeaders = [
-  { title: 'Nom du document', value: 'titre' },
-  { title: 'Type', value: 'type_nom' },
-  { title: 'Actions', value: 'actions', sortable: false }
+  { title: "Nom du document", value: "titre" },
+  { title: "Type", value: "type_nom" },
+  { title: "Actions", value: "actions", sortable: false },
 ];
 
 const consommableHeaders = [
-  { title: 'Image', value: 'image', sortable: false, align: 'center' },
-  { title: 'Désignation', value: 'designation' },
-  { title: 'Quantité', value: 'quantite', align: 'center' },
+  { title: "Image", value: "image", sortable: false, align: "center" },
+  { title: "Désignation", value: "designation" },
+  { title: "Quantité", value: "quantite", align: "center" },
 ];
 
 const demandeId = computed(() => intervention.value?.demande_intervention?.id);
 
-const equipement = computed(() => intervention.value?.demande_intervention?.equipement || null);
+const equipement = computed(
+  () => intervention.value?.demande_intervention?.equipement || null
+);
 const equipementId = computed(() => equipement.value?.id);
 
 const formattedDemande = computed(() => {
   const demande = intervention.value?.demande_intervention;
   if (!demande) return {};
   return {
-    'Nom de la demande': demande.nom || 'Non spécifié',
-    'Commentaire': demande.commentaire || 'Aucun commentaire',
-    'Demandeur': demande.utilisateur.prenom && demande.utilisateur.nomFamille
-      ? `${demande.utilisateur.prenom} ${demande.utilisateur.nomFamille}`
-      : 'Non spécifié',
-    'Date de creation': formatDateTime(demande.date_creation) || 'Non spécifié',
+    "Nom de la demande": demande.nom || "Non spécifié",
+    Commentaire: demande.commentaire || "Aucun commentaire",
+    Demandeur:
+      demande.utilisateur.prenom && demande.utilisateur.nomFamille
+        ? `${demande.utilisateur.prenom} ${demande.utilisateur.nomFamille}`
+        : "Non spécifié",
+    "Date de creation": formatDateTime(demande.date_creation) || "Non spécifié",
   };
 });
 
 const formattedEquipement = computed(() => {
-	const e = equipement.value;
-	if (!e) return {};
-	return {
-    'Référence': e.reference || 'Non spécifié',
-    'Désignation': e.designation || 'Non spécifié',
-    'Lieu': e.lieu || 'Non spécifié',
-    'Statut': e.dernier_statut?.statut || 'Non spécifié'
+  const e = equipement.value;
+  if (!e) return {};
+  return {
+    Référence: e.reference || "Non spécifié",
+    Désignation: e.designation || "Non spécifié",
+    Lieu: e.lieu || "Non spécifié",
+    Statut: e.dernier_statut?.statut || "Non spécifié",
   };
 });
 
-const canClose = computed(() => !!intervention.value && !intervention.value.date_cloture);
-const canStart = computed(() => ['EN_ATTENTE', 'EN_RETARD'].includes(intervention.value?.statut));
-const canFinish = computed(() => intervention.value?.statut === 'EN_COURS');
-const canRefuseClose = computed(() => intervention.value?.statut === 'TERMINE');
+const canClose = computed(
+  () =>
+    !!intervention.value &&
+    !intervention.value.date_cloture &&
+    intervention.value.statut === "TERMINE" &&
+    store.getters.hasPermission("bt:acceptClosure")
+);
+const canStart = computed(
+  () =>
+    ["EN_ATTENTE", "EN_RETARD"].includes(intervention.value?.statut) &&
+    store.getters.hasPermission("bt:start")
+);
+const canFinish = computed(
+  () => intervention.value?.statut === "EN_COURS" && store.getters.hasPermission("bt:end")
+);
+const canRefuseClose = computed(
+  () =>
+    intervention.value?.statut === "TERMINE" &&
+    store.getters.hasPermission("bt:refuseClosure")
+);
+
+const canUserEditBT = computed(() => {
+  const isAssigned = intervention.value?.utilisateur_assigne
+    .map((u) => u.id)
+    .includes(currentUser.value.id);
+  const isCreator = intervention.value?.utilisateur_createur?.id === currentUser.value.id;
+  const canEditAssignedBT = store.getters.hasPermission("bt:editAssigned");
+  const canEditAllBT = store.getters.hasPermission("bt:editAll");
+  console.log(isAssigned, isCreator, canEditAllBT);
+  return (isAssigned && canEditAssignedBT) || canEditAllBT || isCreator;
+});
 
 const openStartModal = () => {
   showStart.value = true;
@@ -541,7 +668,7 @@ const openCloseModal = () => {
 };
 
 const openRefuseCloseModal = () => {
-  refuseCloseFormData.value = { commentaire_refus_cloture: '' };
+  refuseCloseFormData.value = { commentaire_refus_cloture: "" };
   showRefuseClose.value = true;
 };
 
@@ -553,24 +680,24 @@ const openDeleteDocumentModal = (scope, item) => {
 const goToEditIntervention = () => {
   const id = intervention.value?.id ?? route.params.id;
   if (!id) return;
-  router.push({ name: 'EditIntervention', params: { id } });
+  router.push({ name: "EditIntervention", params: { id } });
 };
 
 const fetchData = async () => {
   loading.value = true;
-  errorMessage.value = '';
+  errorMessage.value = "";
   try {
     intervention.value = await api.get(`bons-travail/${route.params.id}`);
   } catch (error) {
-    errorMessage.value = 'Erreur lors du chargement des données';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    errorMessage.value = "Erreur lors du chargement des données";
+    setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
   } finally {
     loading.value = false;
   }
 };
 
 const toggleActionMode = () => {
-  actionMode.value = actionMode.value === 'download' ? 'delete' : 'download';
+  actionMode.value = actionMode.value === "download" ? "delete" : "download";
 };
 
 const toggleDemandeDetails = () => {
@@ -586,40 +713,40 @@ const toggleConsommablesDetails = () => {
 };
 
 const toggleEquipementDetails = () => {
-	showEquipementDetails.value = !showEquipementDetails.value;
+  showEquipementDetails.value = !showEquipementDetails.value;
 };
 
 const formatUserDisplay = (user) => {
-  if (!user) return '';
-  const prenom = String(user.prenom || '').trim();
-  const nomFamille = String(user.nomFamille || '').trim();
+  if (!user) return "";
+  const prenom = String(user.prenom || "").trim();
+  const nomFamille = String(user.nomFamille || "").trim();
   if (prenom || nomFamille) return `${prenom} ${nomFamille}`.trim();
-  const nomUtilisateur = String(user.nomUtilisateur || '').trim();
-  return nomUtilisateur || '';
+  const nomUtilisateur = String(user.nomUtilisateur || "").trim();
+  return nomUtilisateur || "";
 };
 
 const openFailure = () => {
   if (demandeId.value) {
-  router.push({
-    name: 'FailureDetail',
-    params: { id: demandeId.value },
-    query: { from: 'intervention', interventionId: route.params.id }
-  });
+    router.push({
+      name: "FailureDetail",
+      params: { id: demandeId.value },
+      query: { from: "intervention", interventionId: route.params.id },
+    });
   }
 };
 
 const openEquipement = () => {
   if (!equipementId.value) return;
   router.push({
-    name: 'EquipmentDetail',
+    name: "EquipmentDetail",
     params: { id: equipementId.value },
-    query: { from: 'intervention', interventionId: route.params.id }
+    query: { from: "intervention", interventionId: route.params.id },
   });
 };
 
 const addDocument = () => {
   if (!intervention.value?.id) return;
-  router.push({ name: 'AddDocumentIntervention', params: { id: intervention.value.id } });
+  router.push({ name: "AddDocumentIntervention", params: { id: intervention.value.id } });
 };
 
 const closeBonTravail = async () => {
@@ -627,16 +754,16 @@ const closeBonTravail = async () => {
   actionLoading.value = true;
   try {
     await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
-      statut: 'CLOTURE',
-      user: currentUser.value?.id
+      statut: "CLOTURE",
+      user: currentUser.value?.id,
     });
-    successMessage.value = 'Bon de travail clôturé';
-    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    successMessage.value = "Bon de travail clôturé";
+    setTimeout(() => (successMessage.value = ""), MESSAGE_TIMEOUT_MS);
     showClose.value = false;
     await fetchData();
   } catch (error) {
-    errorMessage.value = 'Erreur lors de la clôture du bon de travail';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    errorMessage.value = "Erreur lors de la clôture du bon de travail";
+    setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
   } finally {
     actionLoading.value = false;
   }
@@ -647,17 +774,17 @@ const refuseCloseBonTravail = async () => {
   actionLoading.value = true;
   try {
     await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
-      statut: 'EN_COURS',
+      statut: "EN_COURS",
       commentaire_refus_cloture: refuseCloseFormData.value.commentaire_refus_cloture,
-      user: currentUser.value?.id
+      user: currentUser.value?.id,
     });
-    successMessage.value = 'Clôture refusée';
-    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    successMessage.value = "Clôture refusée";
+    setTimeout(() => (successMessage.value = ""), MESSAGE_TIMEOUT_MS);
     showRefuseClose.value = false;
     await fetchData();
   } catch (error) {
-    errorMessage.value = 'Erreur lors du refus de clôture';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    errorMessage.value = "Erreur lors du refus de clôture";
+    setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
   } finally {
     actionLoading.value = false;
   }
@@ -668,16 +795,16 @@ const startIntervention = async () => {
   actionLoading.value = true;
   try {
     await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
-      statut: 'EN_COURS',
-      user: currentUser.value?.id
+      statut: "EN_COURS",
+      user: currentUser.value?.id,
     });
-    successMessage.value = 'Intervention démarrée';
-    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    successMessage.value = "Intervention démarrée";
+    setTimeout(() => (successMessage.value = ""), MESSAGE_TIMEOUT_MS);
     showStart.value = false;
     await fetchData();
   } catch (error) {
     errorMessage.value = "Erreur lors du démarrage de l'intervention";
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
   } finally {
     actionLoading.value = false;
   }
@@ -688,16 +815,16 @@ const finishIntervention = async () => {
   actionLoading.value = true;
   try {
     await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
-      statut: 'TERMINE',
-      user: currentUser.value?.id
+      statut: "TERMINE",
+      user: currentUser.value?.id,
     });
-    successMessage.value = 'Intervention terminée';
-    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    successMessage.value = "Intervention terminée";
+    setTimeout(() => (successMessage.value = ""), MESSAGE_TIMEOUT_MS);
     showFinish.value = false;
     await fetchData();
   } catch (error) {
     errorMessage.value = "Erreur lors de la fin de l'intervention";
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
   } finally {
     actionLoading.value = false;
   }
@@ -707,7 +834,7 @@ const downloadDocument = (item) => {
   const raw = item?.path || item?.lienDocumentIntervention || item?.cheminAcces;
   if (!raw) return;
 
-  const path = String(raw).replace(/^\/+/, '').split('/media/').pop();
+  const path = String(raw).replace(/^\/+/, "").split("/media/").pop();
 
   fetch(`${MEDIA_BASE_URL}${path}`)
     .then((response) => {
@@ -716,25 +843,25 @@ const downloadDocument = (item) => {
     })
     .then((blob) => {
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
+      const a = document.createElement("a");
+      a.style.display = "none";
       a.href = url;
-      a.download = path.split('/').pop() || 'document';
+      a.download = path.split("/").pop() || "document";
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
     })
     .catch(() => {
-      errorMessage.value = 'Erreur lors du téléchargement du fichier';
-      setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+      errorMessage.value = "Erreur lors du téléchargement du fichier";
+      setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
     });
 };
 
 const deleteDocumentBT = async (item) => {
   const documentId = item?.id;
   if (!documentId || !intervention.value?.id) {
-    errorMessage.value = 'Impossible de supprimer : informations manquantes.';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    errorMessage.value = "Impossible de supprimer : informations manquantes.";
+    setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
     return;
   }
 
@@ -742,20 +869,20 @@ const deleteDocumentBT = async (item) => {
     await api.patch(`bons-travail/${intervention.value.id}/delink_document/`, {
       document_id: documentId,
     });
-    successMessage.value = 'Document supprimé';
-    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    successMessage.value = "Document supprimé";
+    setTimeout(() => (successMessage.value = ""), MESSAGE_TIMEOUT_MS);
     await fetchData();
   } catch (error) {
-    errorMessage.value = 'Erreur lors de la suppression du document';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    errorMessage.value = "Erreur lors de la suppression du document";
+    setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
   }
 };
 
 const deleteDocumentDI = async (item) => {
   const documentId = item?.id;
   if (!documentId || !demandeId.value) {
-    errorMessage.value = 'Impossible de supprimer : informations manquantes.';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    errorMessage.value = "Impossible de supprimer : informations manquantes.";
+    setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
     return;
   }
 
@@ -763,12 +890,12 @@ const deleteDocumentDI = async (item) => {
     await api.patch(`demandes-intervention/${demandeId.value}/delink_document/`, {
       document_id: documentId,
     });
-    successMessage.value = 'Document supprimé';
-    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    successMessage.value = "Document supprimé";
+    setTimeout(() => (successMessage.value = ""), MESSAGE_TIMEOUT_MS);
     await fetchData();
   } catch (error) {
-    errorMessage.value = 'Erreur lors de la suppression du document';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
+    errorMessage.value = "Erreur lors de la suppression du document";
+    setTimeout(() => (errorMessage.value = ""), MESSAGE_TIMEOUT_MS);
   }
 };
 
@@ -778,9 +905,9 @@ const confirmDeleteDocument = async () => {
 
   actionLoading.value = true;
   try {
-    if (scope === 'BT') {
+    if (scope === "BT") {
       await deleteDocumentBT(item);
-    } else if (scope === 'DI') {
+    } else if (scope === "DI") {
       await deleteDocumentDI(item);
     }
     showDeleteDocument.value = false;

@@ -61,7 +61,7 @@
     </v-row>
 
     <!-- Bouton flottant en bas à droite -->
-    <v-btn 
+    <v-btn
       v-if="showCreateButton" 
       color="primary" 
       size="large" 
@@ -77,7 +77,7 @@
     </v-btn>
 
     <!-- Filtres par Magasin sticky en bas -->
-    <div class="magasin-filter-sticky">
+    <div class="magasin-filter-sticky" v-if="store.getters.hasPermission('mag:viewList')">
       <v-container fluid>
         <MagasinFilter 
           :magasins="magasins"
@@ -91,6 +91,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import BaseListView from '@/components/common/BaseListView.vue';
 import MagasinFilter from '@/components/Stock/MagasinFilter.vue';
 import StockStatistics from '@/components/Stock/StockStatistics.vue';
@@ -101,10 +102,6 @@ const props = defineProps({
   title: {
     type: String,
     default: 'Liste des Consommables'
-  },
-  showCreateButton: {
-    type: Boolean,
-    default: true
   },
   createButtonText: {
     type: String,
@@ -120,6 +117,7 @@ const emit = defineEmits(['create', 'row-click', 'consommables-loaded']);
 
 const consommablesApi = useApi(API_BASE_URL);
 const magasinsApi = useApi(API_BASE_URL);
+const store = useStore();
 
 const errorMessage = ref('');
 const selectedMagasin = ref(null);
@@ -128,6 +126,8 @@ const selectedStockFilter = ref(null);
 const consommables = computed(() => consommablesApi.data.value || []);
 const magasins = computed(() => magasinsApi.data.value || []);
 const loading = computed(() => consommablesApi.loading.value || magasinsApi.loading.value);
+
+const showCreateButton = computed(() => store.getters.hasPermission('cons:create'));
 
 // Headers du tableau
 const tableHeaders = [

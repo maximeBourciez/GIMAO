@@ -83,7 +83,7 @@
 
 
   <!-- Bouton flottant pour modifier -->
-  <v-btn color="primary" size="large" icon class="floating-edit-button" elevation="4" @click="editManufacturer">
+  <v-btn color="primary" size="large" icon class="floating-edit-button" elevation="4" @click="editManufacturer" v-if="store.getters.hasPermission('man:edit')">
     <v-icon size="large">mdi-pencil</v-icon>
     <v-tooltip activator="parent" location="left">
       Modifier le fabricant

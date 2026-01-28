@@ -83,7 +83,7 @@
 
 
   <!-- Bouton flottant pour modifier -->
-  <v-btn color="primary" size="large" icon class="floating-edit-button" elevation="4" @click="editSupplier">
+  <v-btn color="primary" size="large" icon class="floating-edit-button" elevation="4" @click="editSupplier" v-if="store.getters.hasPermission('sup:edit')">
     <v-icon size="large">mdi-pencil</v-icon>
     <v-tooltip activator="parent" location="left">
       Modifier le fournisseur

@@ -18,7 +18,7 @@
   </BaseListView>
 
   <!-- Bouton flottant en bas à droite -->
-  <v-btn color="primary" size="large" icon class="floating-add-button" elevation="4" @click="goToSupplierCreation">
+  <v-btn color="primary" size="large" icon class="floating-add-button" elevation="4" @click="goToSupplierCreation" v-if="store.getters.hasPermission('sup:create')">
     <v-icon size="large">mdi-plus</v-icon>
     <v-tooltip activator="parent" location="left">
       {{ createButtonText }}
@@ -33,6 +33,7 @@ import { ref, onMounted } from 'vue';
 import { useApi } from '@/composables/useApi.js';
 import { API_BASE_URL, TABLE_HEADERS } from '@/utils/constants';
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 
 // Données 
 const title = 'Liste des fournisseurs';
@@ -41,6 +42,7 @@ const suppliers = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const router = useRouter();
+const store = useStore();
 const createButtonText = 'Créer un nouveau fournisseur';
 
 
