@@ -30,8 +30,8 @@
     </v-file-input>
 
     <!-- Prévisualisation de l'image -->
-    <v-card v-if="previewUrl" class="mt-3" elevation="2" max-width="300">
-      <v-img :src="previewUrl" aspect-ratio="16/9" cover>
+    <v-card v-if="previewUrl || defaultPreviewImage" class="mt-3" elevation="2" max-width="300">
+      <v-img :src="previewUrl ? previewUrl : defaultPreviewImage ? BASE_URL + defaultPreviewImage : null" aspect-ratio="16/9" cover>
         <template #placeholder>
           <v-row class="fill-height ma-0" align="center" justify="center">
             <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -45,6 +45,7 @@
 
 <script setup>
 import { ref, watch, onBeforeUnmount } from 'vue';
+import { BASE_URL } from '@/utils/constants';
 
 defineOptions({
   inheritAttrs: false
@@ -118,6 +119,10 @@ const props = defineProps({
   rules: {
     type: Array,
     default: () => []
+  },
+  defaultPreviewImage: {
+    type: String,
+    default: ''
   }
 });
 
