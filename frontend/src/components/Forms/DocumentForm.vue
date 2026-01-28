@@ -77,7 +77,7 @@
 							<FormSelect
 								v-model="createForm.typeDocument_id"
 								field-name="document_create_type"
-								label="Type"
+							label="Type *"
 								:items="typeDocuments"
 								item-title="nomTypeDocument"
 								item-value="id"
@@ -87,7 +87,7 @@
 							<FormFileInput
 								v-model="createForm.file"
 								field-name="document_create_file"
-								label="Fichier"
+							label="Fichier *"
 								prepend-inner-icon="mdi-file-document"
 								clearable
 							/>

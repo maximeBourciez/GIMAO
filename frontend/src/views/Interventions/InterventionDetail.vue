@@ -707,7 +707,7 @@ const downloadDocument = (item) => {
 
   const path = String(raw).replace(/^\/+/, '').split('/media/').pop();
 
-  fetch(`${MEDIA_BASE_URL}${path}`)
+  fetch(`${BASE_URL}${MEDIA_BASE_URL}${path}`)
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.blob();

@@ -87,7 +87,7 @@ class LieuViewSet(viewsets.ModelViewSet):
         """
         data = request.data
         nom = data.get('nomLieu')
-        parent_id = data.get('lieuParent')
+        parent_id = data.get('parentId')
         type_lieu = data.get('typeLieu')
 
         # Si on a un parent, vérifier qu'il existe

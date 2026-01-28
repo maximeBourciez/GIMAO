@@ -199,6 +199,7 @@ import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, MEDIA_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
 import { useStore } from 'vuex';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';
+import { BASE_URL } from '../../utils/constants';
 
 const store = useStore();
 const router = useRouter();
@@ -388,7 +389,7 @@ const toggleActionMode = () => {
 
 const downloadDocument = async (item) => {
   try {
-    const response = await fetch(`${MEDIA_BASE_URL}${item.path}`);
+    const response = await fetch(`${BASE_URL}${MEDIA_BASE_URL}${item.path}`);
     const blob = await response.blob(); 
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
