@@ -128,7 +128,7 @@ const routes = [
     path: '/stocks',
     name: 'Stocks',
     component: Stocks,
-    meta: { title: 'Stocks', requiresPermission: 'stocks:viewList' }
+    meta: { title: 'Stocks', requiresPermission: 'stock:view' }
   },
 
   {

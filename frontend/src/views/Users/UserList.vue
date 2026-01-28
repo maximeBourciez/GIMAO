@@ -56,6 +56,7 @@
     class="floating-add-button"
     elevation="4"
     @click="goToCreerUser"
+    v-if="store.getters.hasPermission('user:create')"
   >
     <v-icon size="large">mdi-plus</v-icon>
     <v-tooltip activator="parent" location="left">

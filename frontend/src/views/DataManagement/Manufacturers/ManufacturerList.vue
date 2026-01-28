@@ -10,7 +10,7 @@
       </v-chip>
     </template>
 
-    <template #item.actions="{ item }">
+    <template #item.actions="{ item }" v-if="store.getters.hasPermission('man:viewDetail')">
       <v-btn icon size="small" @click.stop="goToManufacturerDetail(item.id)">
         <v-icon>mdi-eye</v-icon>
       </v-btn>
@@ -18,7 +18,7 @@
   </BaseListView>
 
   <!-- Bouton flottant en bas à droite -->
-  <v-btn color="primary" size="large" icon class="floating-add-button" elevation="4" @click="goToManufacturerCreation">
+  <v-btn color="primary" size="large" icon class="floating-add-button" elevation="4" @click="goToManufacturerCreation" v-if="store.getters.hasPermission('man:create')">
     <v-icon size="large">mdi-plus</v-icon>
     <v-tooltip activator="parent" location="left">
       {{ createButtonText }}
