@@ -315,8 +315,6 @@ const routes = [
     meta: { title: 'Ajouter un document au bon de travail', requiresPermissions: ['bt:editAll', 'bt:editAssigned'], permissionMode: 'OR' }
   },
 
-
-
   // Equipements ---------------------------------------------------------------
 
   {

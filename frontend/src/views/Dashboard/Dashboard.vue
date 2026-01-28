@@ -1,126 +1,51 @@
 <template>
   <v-container fluid style="max-width: 90%">
+    <div class="dashboard">
 
-    <!-- ================= RESPONSABLE ================= -->
-    <template v-if="isResponsable">
+      <!-- STATS COMPONENT -->
+      <StatsComponent v-if="hasStats" :perms="getPermsForStats" />
 
-      <!-- Stats -->
-      <v-row justify="center">
-        <v-col cols="12">
-          <StatsComponent :role="role" />
-        </v-col>
-      </v-row>
+      <div v-if="role === 'Responsable GMAO'" class="row two-columns">
+        <!-- FAILURE LIST COMPONENT -->
+        <FailureListComponent
+          :compact="true"
+          :limit="5"
+          :show-create-button="true"
+          @row-click="handleRowClickDI"
+          @create-click="handleCreateDI"
+        />
 
-      <!-- Failures / Interventions sur une ligne -->
-      <v-row justify="center" class="mt-4">
-        <v-col cols="12" md="6">
-          <v-card rounded="">
-            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" :showCreateButton="false" />
+        <!-- INTERVENTION LIST COMPONENT -->
+        <InterventionListComponent
+          :compact="true"
+          :limit="5"
+          :show-create-button="true"
+          @row-click="handleRowClickBT"
+          @create-click="handleCreateBT"
+        />
+      </div>
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI" :showCreateButton="false">
-              Créer une DI
-            </v-btn>
+      <div v-else class="column">
+        <!-- FAILURE LIST COMPONENT -->
+        <FailureListComponent
+          :compact="true"
+          :limit="5"
+          :show-create-button="true"
+          @row-click="handleRowClickDI"
+          @create-click="handleCreateDI"
+        />
 
+        <!-- INTERVENTION LIST COMPONENT -->
+        <InterventionListComponent
+          :compact="true"
+          :limit="5"
+          :show-create-button="true"
+          @row-click="handleRowClickBT"
+          @create-click="handleCreateBT"
+        />
+      </div>
 
-          </v-card>
-        </v-col>
-
-        <v-col cols="12" md="6">
-          <v-card rounded="">
-            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" />
-
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
-              Créer un BT
-            </v-btn>
-          </v-card>
-        </v-col>
-      </v-row>
-    </template>
-
-    <!-- ============ TECHNICIEN ============ -->
-    <template v-else-if="isTechnicien">
-
-      <!-- Stats -->
-      <v-row justify="center">
-        <v-col cols="12">
-          <StatsComponent :role="role" />
-        </v-col>
-      </v-row>
-
-      <!-- Interventions + Failures en colonne -->
-      <v-row justify="center" class="mt-4">
-        <v-col cols="12" md="10">
-          <v-card rounded="" class="mb-4">
-            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" />
-          </v-card>
-          <v-card rounded="">
-            <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" :showCreateButton="false" />
-
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
-              Créer une DI
-            </v-btn>
-          </v-card>
-        </v-col>
-      </v-row>
-
-    </template>
-
-    <!-- ================= OPÉRATEUR ================= -->
-    <template v-else-if="isOperateur">
-      <v-row justify="center" class="dashboard">
-
-        <!-- Stats -->
-        <v-col cols="12">
-          <StatsComponent :role="role" :full="statsFull" />
-        </v-col>
-
-
-
-
-        <v-col cols="12">
-          <v-card rounded="" class="mb-4">
-            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
-              Créer une DI
-            </v-btn>
-          </v-card>
-        </v-col>
-
-        <v-col cols="12">
-          <v-card rounded="">
-            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
-          </v-card>
-        </v-col>
-      </v-row>
-
-      <!-- Bouton logout opérateur -->
-      <v-btn v-if="isOperateur" color="primary" icon size="large" elevation="4" class="floating-logout-button"
-        @click="logout">
-        <v-icon class="mr-2">mdi-logout</v-icon> Se déconnecter
-        <v-tooltip activator="parent" location="left">
-          Se déconnecter
-        </v-tooltip>
-      </v-btn>
-
-    </template>
-
-    <!-- ================= MAGASINIER ================= -->
-    <template v-else-if="isMagasinier">
-      <v-row justify="center">
-        <v-col cols="12" md="10">
-          <Stocks />
-        </v-col>
-
-        <v-btn color="primary" icon size="large" elevation="4" class="floating-logout-button-magasinier"
-          @click="logout">
-          <v-icon>mdi-logout</v-icon>
-          <v-tooltip activator="parent" location="left">
-            Se déconnecter
-          </v-tooltip>
-        </v-btn>
-      </v-row>
-    </template>
-
+    </div>
   </v-container>
 </template>
 
@@ -143,10 +68,14 @@ const role = computed(() => store.getters.userRole)
 /**
  * Helpers
  */
-const isResponsable = computed(() => role.value === 'Responsable GMAO')
-const isTechnicien = computed(() => role.value === 'Technicien')
-const isOperateur = computed(() => role.value === 'Opérateur')
-const isMagasinier = computed(() => role.value === 'Magasinier')
+const getPermsForStats = () => {
+  const perm = store.getters.hasPermission('dash:stats.full') || store.getters.hasPermission('dash:stats.bt') || store.getters.hasPermission('dash:stats.di')
+  return perm
+}
+
+const hasStats = computed(() => {
+  return store.getters.hasPermission('dash:stats.full') || store.getters.hasPermission('dash:stats.bt') || store.getters.hasPermission('dash:stats.di')
+})
 
 onMounted(() => {
   console.log('Dashboard mounted - role:', role.value)
