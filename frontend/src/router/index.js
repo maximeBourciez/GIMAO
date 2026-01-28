@@ -88,7 +88,10 @@ const routes = [
     path: '/UserList',
     name: 'UserList',
     component: AccountManagement,
-    meta: { title: 'Gestion des Comptes' }
+    meta: {
+      title: 'Gestion des Comptes',
+      requiresPermission: 'user:viewList'
+    }
   },
 
   {
@@ -96,7 +99,11 @@ const routes = [
     name: 'UserDetail',
     component: AfficherUser,
     props: true,
-    meta: { title: 'Afficher un utilisateur' }
+    meta: {
+      title: 'Afficher un utilisateur',
+      requiresPermission: 'user:viewDetail',
+      checksIfSelf: true
+    }
   },
 
   {
@@ -104,14 +111,14 @@ const routes = [
     name: 'EditUser',
     component: ModifierUser,
     props: true,
-    meta: { title: 'Modifier un utilisateur' }
+    meta: { title: 'Modifier un utilisateur', requiresPermission: 'user:edit', checksIfSelf: true }
   },
 
   {
     path: '/CreateUser',
     name: 'CreateUser',
     component: CreerUser,
-    meta: { title: 'Créer un utilisateur' }
+    meta: { title: 'Créer un utilisateur', requiresPermission: 'user:create' }
   },
 
 
@@ -121,21 +128,78 @@ const routes = [
     path: '/stocks',
     name: 'Stocks',
     component: Stocks,
-    meta: { title: 'Stocks' }
+    meta: { title: 'Stocks', requiresPermission: 'stocks:viewList' }
   },
 
   {
     path: '/CreateConsumable',
     name: 'CreateConsumable',
     component: CreateConsumable,
-    meta: { title: 'Créer un consommable' }
+    meta: { title: 'Créer un consommable', requiresPermission: 'cons:create' }
   },
 
+  {
+    path: '/EditConsumable/:id',
+    name: 'EditConsumable',
+    component: CreateConsumable,
+    props: true,
+    meta: { title: 'Modifier un consommable', requiresPermission: 'cons:edit' }
+  },
 
+  {
+    path: '/ConsumableDetail/:id',
+    name: 'ConsumableDetail',
+    component: CreateConsumable,
+    props: true,
+    meta: { title: 'Détails du consommable', requiresPermission: 'cons:viewDetail' }
+  },
 
-  // Consommables ------------------------------------------------------------------
+  {
+    path: '/DeleteConsumable/:id',
+    name: 'DeleteConsumable',
+    component: CreateConsumable,
+    props: true,
+    meta: { title: 'Supprimer un consommable', requiresPermission: 'cons:delete' }
+  },
 
+  // Magasins
+  {
+    path: '/MagasinList',
+    name: 'MagasinList',
+    component: Stocks,
+    meta: { title: 'Magasins', requiresPermission: 'mag:viewList' }
+  },
 
+  {
+    path: '/MagasinDetail/:id',
+    name: 'MagasinDetail',
+    component: Stocks,
+    props: true,
+    meta: { title: 'Détails du magasin', requiresPermission: 'mag:viewDetail' }
+  },
+
+  {
+    path: '/CreateMagasin',
+    name: 'CreateMagasin',
+    component: Stocks,
+    meta: { title: 'Créer un magasin', requiresPermission: 'mag:create' }
+  },
+
+  {
+    path: '/EditMagasin/:id',
+    name: 'EditMagasin',
+    component: Stocks,
+    props: true,
+    meta: { title: 'Modifier un magasin', requiresPermission: 'mag:edit' }
+  },
+
+  {
+    path: '/DeleteMagasin/:id',
+    name: 'DeleteMagasin',
+    component: Stocks,
+    props: true,
+    meta: { title: 'Supprimer un magasin', requiresPermission: 'mag:delete' }
+  },
 
 
   // Fabricants ------------------------------------------------------------------
@@ -144,14 +208,14 @@ const routes = [
     path: '/ManufacturerList',
     name: 'ManufacturerList',
     component: ManufacturerList,
-    meta: { title: 'Fabricants' }
+    meta: { title: 'Fabricants', requiresPermission: 'man:viewList' }
   },
 
   {
     path: '/CreateManufacturer',
     name: 'CreateManufacturer',
     component: CreateManufacturer,
-    meta: { title: 'Creer un Fabricant' }
+    meta: { title: 'Creer un Fabricant', requiresPermission: 'man:create' }
   },
 
   {
@@ -159,14 +223,14 @@ const routes = [
     name: 'ManufacturerDetail',
     component: ManufacturerDetail,
     props: true,
-    meta: { title: 'Détails d\'un fabricant' }
+    meta: { title: 'Détails d\'un fabricant', requiresPermission: 'man:viewDetail' }
   },
   {
     path: '/EditManufacturer/:id',
     name: 'EditManufacturer',
     component: EditManufacturer,
     props: true,
-    meta: { title: 'Modifier un Fabricant' }
+    meta: { title: 'Modifier un Fabricant', requiresPermission: 'man:edit' }
   },
 
   // Fournisseurs ------------------------------------------------------------------
@@ -175,14 +239,14 @@ const routes = [
     path: '/SupplierList',
     name: 'SupplierList',
     component: SupplierList,
-    meta: { title: 'Fournisseurs' }
+    meta: { title: 'Fournisseurs', requiresPermission: 'sup:viewList' }
   },
 
   {
     path: '/CreateSupplier',
     name: 'CreateSupplier',
     component: CreateSupplier,
-    meta: { title: 'Creer un Fournisseur' }
+    meta: { title: 'Creer un Fournisseur', requiresPermission: 'sup:create' }
   },
 
   {
@@ -190,14 +254,14 @@ const routes = [
     name: 'SupplierDetail',
     component: SupplierDetail,
     props: true,
-    meta: { title: 'Détails d\'un Fournisseur' }
+    meta: { title: 'Détails d\'un Fournisseur', requiresPermission: 'sup:viewDetail' }
   },
   {
     path: '/EditSupplier/:id',
     name: 'EditSupplier',
     component: EditSupplier,
     props: true,
-    meta: { title: 'Modifier un Fournisseur' }
+    meta: { title: 'Modifier un Fournisseur', requiresPermission: 'sup:edit' }
   },
 
 
@@ -208,7 +272,7 @@ const routes = [
     path: '/DataManagement',
     name: 'DataManagement',
     component: DataManagement,
-    meta: { title: 'Gestion des données' }
+    meta: { title: 'Gestion des données', requiresPermission: 'loc:viewList' }
   },
 
   // Bon de travail ---------------------------------------------------------------
@@ -217,7 +281,7 @@ const routes = [
     path: '/InterventionList',
     name: 'InterventionList',
     component: InterventionList,
-    meta: { title: 'Bon de travail' }
+    meta: { title: 'Bon de travail', requiresPermission: 'bt:viewList' }
   },
 
   {
@@ -225,14 +289,14 @@ const routes = [
     name: 'InterventionDetail',
     component: InterventionDetail,
     props: true,
-    meta: { title: 'Détails du bon de travail' }
+    meta: { title: 'Détails du bon de travail', requiresPermission: 'bt:viewDetail' }
   },
 
   {
     path: '/CreateIntervention/',
     name: 'CreateIntervention',
     component: CreateIntervention,
-    meta: { title: 'Créer un bon de travail' }
+    meta: { title: 'Créer un bon de travail', requiresPermission: 'bt:create' }
   },
 
   {
@@ -240,7 +304,7 @@ const routes = [
     name: 'EditIntervention',
     component: EditIntervention,
     props: true,
-    meta: { title: 'Modifier un bon de travail' }
+    meta: { title: 'Modifier un bon de travail', requiresPermission: 'bt:edit' }
   },
 
   {
@@ -248,7 +312,7 @@ const routes = [
     name: 'AddDocumentIntervention',
     component: AddDocumentIntervention,
     props: true,
-    meta: { title: 'Ajouter un document au bon de travail' }
+    meta: { title: 'Ajouter un document au bon de travail', requiresPermission: 'bt:edit' }
   },
 
 
@@ -259,7 +323,7 @@ const routes = [
     path: '/EquipmentList',
     name: 'EquipmentList',
     component: EquipmentList,
-    meta: { title: 'Équipements' }
+    meta: { title: 'Équipements', requiresPermission: 'eq:viewList' }
   },
 
   {
@@ -267,28 +331,28 @@ const routes = [
     name: 'EquipmentDetail',
     component: EquipmentDetail,
     props: true,
-    meta: { title: 'Descriptif de l\'équipement' }
+    meta: { title: 'Descriptif de l\'équipement', requiresPermission: 'eq:viewDetail' }
   },
 
   {
     path: '/CreateEquipment',
     name: 'CreateEquipment',
     component: CreateEquipment,
-    meta: { title: 'Ajouter Equipement' }
+    meta: { title: 'Ajouter Equipement', requiresPermission: 'eq:create' }
   },
 
   {
     path: '/EditEquipment/:id',
     name: 'EditEquipment',
     component: EditEquipment,
-    meta: { title: 'Modifier Equipement' }
+    meta: { title: 'Modifier Equipement', requiresPermission: 'eq:edit' }
   },
 
   {
     path: '/CounterDetail/:id',
     name: 'CounterDetail',
     component: CounterDetail,
-    meta: { title: 'Détails du compteur' }
+    meta: { title: 'Détails du compteur', requiresPermission: 'cp:viewDetail' }
   },
 
   // Defaillance ---------------------------------------------------------------
@@ -296,7 +360,7 @@ const routes = [
     path: '/FailureList',
     name: 'FailureList',
     component: FailureList,
-    meta: { title: 'Demandes d\'interventions' }
+    meta: { title: 'Demandes d\'interventions', requiresPermission: 'di:viewList' }
   },
 
   {
@@ -304,7 +368,7 @@ const routes = [
     name: 'CreateFailure',
     component: CreateFailure,
     props: true,
-    meta: { title: 'Demande d\'intervention' }
+    meta: { title: 'Demande d\'intervention', requiresPermission: 'di:create' }
   },
 
   {
@@ -312,7 +376,7 @@ const routes = [
     name: 'FailureDetail',
     component: FailureDetail,
     props: true,
-    meta: { title: 'Détails de la demande ' }
+    meta: { title: 'Détails de la demande ', requiresPermission: 'di:viewDetail' }
   },
 
   {
@@ -320,7 +384,7 @@ const routes = [
     name: 'EditFailure',
     component: EditFailure,
     props: true,
-    meta: { title: 'Modifier la demande d\'intervention' }
+    meta: { title: 'Modifier la demande d\'intervention', requiresPermission: 'di:edit' }
   },
 
   {
@@ -328,7 +392,7 @@ const routes = [
     name: 'AddDocumentFailure',
     component: AddDocumentFailure,
     props: true,
-    meta: { title: 'Ajouter un document à la demande d\'intervention' }
+    meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermission: 'di:edit' }
   },
 
   // Lieux ---------------------------------------------------------------
@@ -337,14 +401,14 @@ const routes = [
     path: '/LocationList',
     name: 'LocationList',
     component: LocationList,
-    meta: { title: 'Lieux' }
+    meta: { title: 'Lieux', requiresPermission: 'loc:viewList' }
   },
 
   {
     path: '/CreateLocation',
     name: 'CreateLocation',
     component: CreateLocation,
-    meta: { title: 'Creer un lieu' }
+    meta: { title: 'Creer un lieu', requiresPermission: 'loc:create' }
   },
 
   {
@@ -352,7 +416,7 @@ const routes = [
     name: 'LocationDetail',
     component: LocationDetail,
     props: true,
-    meta: { title: 'Détails d\'un lieu' }
+    meta: { title: 'Détails d\'un lieu', requiresPermission: 'loc:viewDetail' }
   },
 
 
@@ -362,30 +426,28 @@ const routes = [
     path: '/ModelEquipmentList',
     name: 'ModelEquipmentList',
     component: ModelEquipmentList,
-    meta: { title: 'Modèle' }
+    meta: { title: 'Modèle', requiresPermission: 'eqmod:viewList' } 
   },
 
   {
     path: '/CreateModelEquipment',
     name: 'CreateModelEquipment',
     component: CreateModelEquipment,
-    meta: { title: 'Creer un modele equipement' }
+    meta: { title: 'Creer un modele equipement', requiresPermission: 'eqmod:create' }
   },
 
   {
     path: '/ModelEquipmentDetail/:id',
     name: 'ModelEquipmentDetail',
     component: ModelEquipmentDetail,
-    meta: { title: 'Detail du modele equipement' }
+    meta: { title: 'Detail du modele equipement', requiresPermission: 'eqmod:viewDetail' }
   },
   {
     path: '/EditModelEquipment/:id',
     name: 'EditModelEquipment',
     component: EditModelEquipment,
-    meta: { title: 'Modifier modele equipement' }
+    meta: { title: 'Modifier modele equipement', requiresPermission: 'eqmod:edit' }
   }
-
-
 ]
 
 const router = createRouter({
@@ -401,6 +463,32 @@ router.beforeEach((to, from, next) => {
   if (to.meta.public) {
     next()
     return
+  }
+
+  // Vérification des permissions si nécessaire
+  const requiredPermission = to.meta.requiresPermission
+  if (requiredPermission) {
+    const user = JSON.parse(localStorage.getItem('user'))
+    const userPermissions = user?.permissions_names || []
+
+    if (!userPermissions.includes(requiredPermission)) {
+
+      if(to.meta.checksIfSelf) {
+        // Vérifier si l'utilisateur essaie d'accéder à sa propre ressource
+        const userId = user.id
+        const routeId = parseInt(to.params.id)
+
+        if(userId === routeId) {
+          next()
+          return
+        }
+      }
+
+      alert("Vous n'avez pas la permission d'accéder à cette page.")
+      // Revenir à la page précédente ou au dashboard
+      next(from.fullPath || '/')
+      return
+    }
   }
 
   // Si non authentifié, rediriger vers login

@@ -12,6 +12,12 @@ class Role(models.Model):
     rang = models.PositiveSmallIntegerField(
         help_text="Rang du rôle pour hiérarchiser les permissions (plus petit = plus élevé)"
     )
+    permissions = models.ManyToManyField(
+        'Permission',
+        through='RolePermission',
+        related_name='roles',
+        help_text="Permissions associées à ce rôle"
+    )
 
     def __str__(self):
         return self.nomRole
@@ -173,3 +179,56 @@ class Log(models.Model):
         verbose_name = 'Log'
         verbose_name_plural = 'Logs'
         ordering = ['-date']
+
+
+
+class Permission(models.Model):
+    """
+    Représente une permission spécifique attribuée à un rôle.
+    """
+    nomPermission = models.CharField(
+        max_length=100,
+        help_text="Nom de la permission (ex: ajouter_utilisateur, supprimer_equipement)",
+        unique=True
+    )
+
+    description = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Description détaillée de la permission"
+    )
+
+    def __str__(self):
+        return f"{self.nomPermission}"
+    
+    class Meta:
+        db_table = 'gimao_permission'
+        verbose_name = 'Permission'
+        verbose_name_plural = 'Permissions'
+
+
+class RolePermission(models.Model):
+    """
+    Modèle intermédiaire pour lier les rôles aux permissions < autoriser >.
+    """
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.CASCADE,
+        related_name="role_permissions",
+        help_text="Rôle auquel la permission est attribuée"
+    )
+    permission = models.ForeignKey(
+        Permission,
+        on_delete=models.CASCADE,
+        related_name="permission_roles",
+        help_text="Permission attribuée au rôle"
+    )
+
+    def __str__(self):
+        return f"{self.role.nomRole} - {self.permission.nomPermission}"
+    
+    class Meta:
+        db_table = 'gimao_role_permission'
+        verbose_name = 'Rôle-Permission'
+        verbose_name_plural = 'Rôles-Permissions'
+        unique_together = ('role', 'permission')

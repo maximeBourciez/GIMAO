@@ -1,6 +1,7 @@
 from maintenance.models import TypePlanMaintenance
 from donnees.models import TypeDocument
-from utilisateur.models import Utilisateur, Role
+from utilisateur.models import Utilisateur, Role, Permission, RolePermission
+from . import perms_data
 
 def create_initial_data():
     # Création des rôles par défaut
@@ -43,3 +44,18 @@ def create_initial_data():
         nomUtilisateur="responsable",
         defaults={"role": Role.objects.get(nomRole="Responsable GMAO")}
     )
+
+
+    for perm_name in perms_data.perms:
+        Permission.objects.get_or_create(
+            nomPermission=perm_name
+        )
+
+    for role_name, perm_list in perms_data.perms_map.items():
+        role = Role.objects.get(nomRole=role_name)
+        for perm_name in perm_list:
+            perm = Permission.objects.get(nomPermission=perm_name)
+            RolePermission.objects.get_or_create(
+                role=role,
+                permission=perm
+            )
