@@ -40,7 +40,8 @@ export default createStore({
   getters: {
     isAuthenticated: state => state.isAuthenticated,
     currentUser: state => state.user,
-    userRole: state => state.user?.role?.nomRole || null
+    userRole: state => state.user?.role?.nomRole || null,
+    userPermissions: state => state.user?.permissions || []
   },
   
   modules: {
