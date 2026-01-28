@@ -426,7 +426,7 @@ const validationSchema = {
     numSerie: [{ name: 'minLength', params: [1] }, { name: 'maxLength', params: [100] }],
     designation: ['required', { name: 'maxLength', params: [100] }],
     reference: ['required', { name: 'maxLength', params: [100] }],
-    dateMiseEnService: [],
+    dateMiseEnService: ['required'],
     prixAchat: ['numeric', 'positive'],
   },
   step2: {
