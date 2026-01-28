@@ -10,7 +10,7 @@
             <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels" :fournisseurs="fournisseurs"
               :fabricants="fabricants" :familles="familles" :locations="locations" :consumables="consumables"
               :equipment-statuses="equipmentStatuses" :show-counters="false" @file-upload="handleFileUpload"
-              @location-created="handleLocationCreated" />
+              @location-created="handleLocationCreated" :lienImageEquipement="formData.lienImageEquipement" />
           </template>
         </BaseForm>
       </v-container>

@@ -50,11 +50,11 @@ export function useEquipmentForm(isEditMode = false) {
     statut: null,
     consommables: [],
     compteurs: [],
-    plansMaintenance : [],
+    plansMaintenance: [],
     createurEquipement: getCurrentUserId()
   });
 
-  
+
 
   const initialData = ref(null);
 
@@ -81,7 +81,7 @@ export function useEquipmentForm(isEditMode = false) {
       label
     }));
   });
-  
+
   const getEmptyCounter = () => ({
     id: null,
     nom: '',
@@ -187,6 +187,7 @@ export function useEquipmentForm(isEditMode = false) {
         designation: eq.designation || '',
         dateMiseEnService: formattedDate,
         prixAchat: eq.prixAchat || null,
+        lienImageEquipement: eq.lienImage ? (MEDIA_BASE_URL + eq.lienImage) : null,
         modeleEquipement: eq.modele?.id || null,
         fournisseur: eq.fournisseur?.id || null,
         fabricant: eq.fabricant?.id || null,
@@ -303,7 +304,7 @@ export function useEquipmentForm(isEditMode = false) {
   const handlePlanEdit = (plan) => {
     editingPlanIndex.value = formData.value.plansMaintenance.indexOf(plan);
     isPlanEditMode.value = true;
-    currentPlan.value = { 
+    currentPlan.value = {
       ...plan,
       seuil: { ...plan.seuil },
       consommables: [...plan.consommables]
@@ -457,7 +458,7 @@ export function useEquipmentForm(isEditMode = false) {
     loadingData,
     errorMessage,
     successMessage,
-    
+
     // Data
     locations,
     equipmentModels,
@@ -468,18 +469,18 @@ export function useEquipmentForm(isEditMode = false) {
     typesPM,
     typesDocuments,
     equipmentStatuses,
-    
+
     // Counter state
     currentCounter,
     editingCounterIndex,
     isCounterEditMode,
     existingPMs,
-    
+
     // Plan state
     currentPlan,
     editingPlanIndex,
     isPlanEditMode,
-    
+
     // Dialogs
     showCounterDialog,
     showPlanDialog,
@@ -487,7 +488,7 @@ export function useEquipmentForm(isEditMode = false) {
     showFournisseurDialog,
     showModeleDialog,
     showFamilleDialog,
-    
+
     // Methods
     validateForm,
     handleFileUpload,
@@ -495,7 +496,7 @@ export function useEquipmentForm(isEditMode = false) {
     fetchEquipment,
     fetchDocs,
     detectChanges,
-    
+
     // Counter methods
     getEmptyCounter,
     handleCounterAdd,
@@ -503,7 +504,7 @@ export function useEquipmentForm(isEditMode = false) {
     handleCounterDelete,
     saveCurrentCounter,
     closeCounterDialog,
-    
+
     // Plan methods
     getEmptyPlan,
     handlePlanAdd,
@@ -511,14 +512,14 @@ export function useEquipmentForm(isEditMode = false) {
     handlePlanDelete,
     savePlan,
     closePlanDialog,
-    
+
     // Dialog handlers
     handleFabricantCreated,
     handleFournisseurCreated,
     handleModeleCreated,
     handleFamilleCreated,
     handleLocationCreated,
-    
+
     // Utilities
     api,
     router
