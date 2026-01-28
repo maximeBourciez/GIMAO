@@ -17,6 +17,8 @@
           submit-button-text="Enregistrer les modifications"
           :is-edit="true"
           :initial-data="failureData"
+          :equipments="equipments"
+          :types-documents="typesDocuments"
           @updated="handleUpdated"
           @close="handleClose"
         />
@@ -40,6 +42,24 @@ const failureId = computed(() => route.params.id || null)
 const loading = ref(false)
 const errorLoading = ref('')
 const failureData = ref(null)
+const equipments = ref([])
+const typesDocuments = ref([])
+
+const fetchEquipments = async () => {
+  try {
+    equipments.value = await api.get('equipements/')
+  } catch (error) {
+    console.error('Erreur lors de la récupération des équipements:', error)
+  }
+}
+
+const fetchTypesDocuments = async () => {
+  try {
+    typesDocuments.value = await api.get('types-documents/')
+  } catch (error) {
+    console.error('Erreur lors de la récupération des types de documents:', error)
+  }
+}
 
 const fetchFailureData = async () => {
   loading.value = true
@@ -48,10 +68,22 @@ const fetchFailureData = async () => {
   try {
     const response = await api.get(`demandes-intervention/${failureId.value}/`)
     
+    // Formatter les documents existants pour DocumentForm (utiliser document_id)
+    const documentsLines = Array.isArray(response?.documentsDI)
+      ? response.documentsDI.map((d) => ({
+          document_id: d?.id ?? null,
+          nomDocument: '',
+          typeDocument_id: null,
+          file: null
+        }))
+      : []
+    
     failureData.value = {
       id: failureId.value,
       nom: response.nom || '',
-      commentaire: response.commentaire || ''
+      commentaire: response.commentaire || '',
+      equipement_id: response.equipement?.id || null,
+      documents: documentsLines.length ? documentsLines : []
     }
   } catch (error) {
     console.error('Erreur lors de la récupération des données:', error)
@@ -70,6 +102,8 @@ const handleClose = () => {
 }
 
 onMounted(() => {
+  fetchEquipments()
+  fetchTypesDocuments()
   fetchFailureData()
 })
 </script>

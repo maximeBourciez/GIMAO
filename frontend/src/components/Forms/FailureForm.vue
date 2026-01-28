@@ -21,7 +21,7 @@
                 />
             </v-col>
 
-            <v-col cols="12" v-if="!isEdit">
+            <v-col cols="12">
                 <FormSelect
                     v-model="formData.equipement_id"
                     field-name="equipement_id"
@@ -30,6 +30,7 @@
                     item-title="designation"
                     item-value="id"
                     placeholder="Sélectionner un équipement"
+                    :disabled="isEdit"
                 />
             </v-col>
 
@@ -44,12 +45,12 @@
                 />
             </v-col>
 
-            <!-- Documents (uniquement en création) -->
-            <v-col cols="12" v-if="!isEdit">
+            <!-- Documents -->
+            <v-col cols="12">
                 <v-divider class="my-4"></v-divider>
-                <v-card-subtitle class="text-h6 font-weight-bold px-0 pb-2">
+                <div class="pb-2" style="font-size: 20px;">
                     Documents (optionnels)
-                </v-card-subtitle>
+                </div>
 
                 <DocumentForm v-model="formData.documents" :type-documents="typesDocuments" />
             </v-col>
@@ -119,6 +120,7 @@ const validationSchema = computed(() => {
 const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const originalFormData = ref(null)
 
 // Initialiser les données
 watch(() => props.initialData, (newData) => {
@@ -129,11 +131,110 @@ watch(() => props.initialData, (newData) => {
             commentaire: newData.commentaire || '',
             documents: newData.documents || []
         }
+        // Sauvegarder l'état original pour comparaison
+        if (props.isEdit) {
+            originalFormData.value = JSON.parse(JSON.stringify(formData.value))
+        }
     }
 }, { immediate: true, deep: true })
 
 const close = () => {
     emit('close')
+}
+
+// Fonction pour lier les documents existants à la DI
+const linkExistingDocuments = async (demandeId, documents) => {
+    const docs = Array.isArray(documents) ? documents : []
+    const ids = docs
+        .map(d => Number(d?.document_id))
+        .filter(x => Number.isInteger(x) && x > 0)
+
+    const errors = []
+    for (const id of ids) {
+        try {
+            await useApi(API_BASE_URL).post(`demandes-intervention/${demandeId}/ajouter_document/`, {
+                document_id: id
+            })
+        } catch (e) {
+            errors.push(`Document #${id}`)
+        }
+    }
+    return errors
+}
+
+// Fonction pour créer de nouveaux documents et les lier à la DI
+const createNewDocuments = async (demandeId, documents) => {
+    const docs = Array.isArray(documents) ? documents : []
+    const errors = []
+
+    for (const doc of docs) {
+        if (!doc) continue
+        const existingId = Number(doc.document_id)
+        if (Number.isInteger(existingId) && existingId > 0) continue
+        if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim()) continue
+        if (!doc.file || !doc.typeDocument_id) {
+            errors.push(doc.nomDocument || doc.file?.name || 'Document')
+            continue
+        }
+
+        try {
+            const form = new FormData()
+            form.append('nomDocument', (doc.nomDocument || doc.file.name || '').toString())
+            form.append('typeDocument_id', String(doc.typeDocument_id))
+            form.append('cheminAcces', doc.file)
+
+            const api = useApi(API_BASE_URL)
+            const created = await api.post('documents/', form)
+            const newId = Number(created?.id)
+            if (!Number.isInteger(newId) || newId <= 0) {
+                errors.push(doc.nomDocument || doc.file?.name || 'Document')
+                continue
+            }
+
+            try {
+                await api.post(`demandes-intervention/${demandeId}/ajouter_document/`, {
+                    document_id: newId
+                })
+            } catch (e) {
+                try {
+                    await api.delete(`documents/${newId}/`)
+                } catch (_) {}
+                errors.push(doc.nomDocument || doc.file?.name || 'Document')
+            }
+        } catch (e) {
+            errors.push(doc.nomDocument || doc.file?.name || 'Document')
+        }
+    }
+
+    return errors
+}
+
+// Fonction pour délier les documents retirés
+const removeUnlinkedDocuments = async (demandeId, currentDocuments) => {
+    const originalDocs = Array.isArray(originalFormData.value?.documents) ? originalFormData.value.documents : []
+    const currentDocs = Array.isArray(currentDocuments) ? currentDocuments : []
+
+    const originalIds = originalDocs
+        .map(d => Number(d?.document_id))
+        .filter(x => Number.isInteger(x) && x > 0)
+
+    const currentIds = currentDocs
+        .map(d => Number(d?.document_id))
+        .filter(x => Number.isInteger(x) && x > 0)
+
+    const removedIds = originalIds.filter(id => !currentIds.includes(id))
+
+    const errors = []
+    for (const id of removedIds) {
+        try {
+            await useApi(API_BASE_URL).patch(`demandes-intervention/${demandeId}/delink_document/`, {
+                document_id: id
+            })
+        } catch (e) {
+            errors.push(`Document #${id}`)
+        }
+    }
+    return errors
 }
 
 const save = async () => {
@@ -154,6 +255,18 @@ const save = async () => {
             const response = await api.patch(`demandes-intervention/${props.initialData.id}/`, payload)
             console.log('Demande d\'intervention modifiée avec succès:', response)
 
+            // Gestion des documents (retrait + existants + nouveaux)
+            const removeErrors = await removeUnlinkedDocuments(props.initialData.id, formData.value.documents)
+            const linkErrors = await linkExistingDocuments(props.initialData.id, formData.value.documents)
+            const createErrors = await createNewDocuments(props.initialData.id, formData.value.documents)
+            const docErrors = [...removeErrors, ...linkErrors, ...createErrors]
+            
+            if (docErrors.length) {
+                errorMessage.value = `Certains documents n'ont pas pu être traités: ${docErrors.join(', ')}`
+                loading.value = false
+                return
+            }
+
             successMessage.value = 'Demande d\'intervention modifiée avec succès'
             emit('updated', response)
         } else {
@@ -164,44 +277,27 @@ const save = async () => {
                 return
             }
 
-            // Utilisation de FormData pour envoyer les fichiers
-            const formDataToSend = new FormData()
-            formDataToSend.append('nom', formData.value.nom)
-            formDataToSend.append('commentaire', formData.value.commentaire || '')
-            formDataToSend.append('equipement_id', formData.value.equipement_id)
-            formDataToSend.append('utilisateur_id', props.connectedUserId)
-
-            // Préparation des documents (métadonnées en JSON, fichiers séparés)
-            const validDocs = formData.value.documents
-                .filter(doc => {
-                    const hasFile = doc.cheminAcces || doc.file
-                    const hasType = doc.typeDocument_id
-                    const hasName = doc.nomDocument
-                    return hasFile && hasType && hasName
-                })
-
-            if (validDocs.length > 0) {
-                const docMetadata = validDocs.map((doc, index) => ({
-                    nomDocument: doc.nomDocument,
-                    typeDocument_id: doc.typeDocument_id
-                }))
-                formDataToSend.append('documents', JSON.stringify(docMetadata))
-
-                // Ajouter chaque fichier avec la convention document_{index}
-                validDocs.forEach((doc, index) => {
-                    const file = doc.cheminAcces?.[0] || doc.cheminAcces || doc.file?.[0] || doc.file
-                    if (file) {
-                        formDataToSend.append(`document_${index}`, file)
-                    }
-                })
+            // Création de la DI
+            const payload = {
+                nom: formData.value.nom,
+                commentaire: formData.value.commentaire || '',
+                equipement_id: formData.value.equipement_id,
+                utilisateur_id: props.connectedUserId
             }
 
-            const response = await api.post('demandes-intervention/', formDataToSend, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            })
+            const response = await api.post('demandes-intervention/', payload)
             console.log('Demande d\'intervention créée avec succès:', response)
+
+            // Gestion des documents (existants + nouveaux)
+            const linkErrors = await linkExistingDocuments(response.id, formData.value.documents)
+            const createErrors = await createNewDocuments(response.id, formData.value.documents)
+            const docErrors = [...linkErrors, ...createErrors]
+            
+            if (docErrors.length) {
+                errorMessage.value = `DI créée mais certains documents n'ont pas pu être ajoutés: ${docErrors.join(', ')}`
+                loading.value = false
+                return
+            }
 
             successMessage.value = 'Demande d\'intervention créée avec succès'
             emit('created', response)

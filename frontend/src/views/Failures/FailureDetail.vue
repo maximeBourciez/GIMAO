@@ -173,6 +173,20 @@
     @cancel="showCreateInterventionModal = false"
   />
 
+  <!-- Modale de confirmation pour supprimer un document -->
+  <ConfirmationModal
+    v-model="showDeleteDocModal"
+    type="error"
+    title="Supprimer le document"
+    message="Êtes-vous sûr de vouloir supprimer le document ? \n\nCette action est irréversible."
+    confirm-text="Supprimer"
+    cancel-text="Annuler"
+    confirm-icon="mdi-delete"
+    :loading="deleteDocLoading"  
+    @confirm="confirmDeleteDocument()"
+    @cancel="cancelDeleteDocument()"
+  />
+
   <!-- Bouton modifier -->
   <v-btn
     v-if="canEditFailure"
@@ -406,19 +420,36 @@ const downloadDocument = async (item) => {
   }
 };
 
-const deleteDocument = async (item) => {
-  if (confirm(`Êtes-vous sûr de vouloir supprimer le document "${item.titre}" ?`)) {
-    try {
-      console.log("kawabunga");
-      const response = await failureApi.patch(`demandes-intervention/${route.params.id}/delink_document/`, {
-        document_id: item.id
-      });
-      console.log(response);
-      await fetchData();
-      successMessage.value = 'Document supprimé';
-    } catch (error) {
-      errorMessage.value = 'Erreur lors de la suppression du document';
-    }
+const showDeleteDocModal = ref(false);
+const deleteDocLoading = ref(false);
+const docToDelete = ref(null);
+
+const deleteDocument = (item) => {
+  docToDelete.value = item;
+  showDeleteDocModal.value = true;
+};
+
+const cancelDeleteDocument = () => {
+  showDeleteDocModal.value = false;
+  docToDelete.value = null;
+};
+
+const confirmDeleteDocument = async () => {
+  if (!docToDelete.value) return;
+  
+  deleteDocLoading.value = true;
+  try {
+    await failureApi.patch(`demandes-intervention/${route.params.id}/delink_document/`, {
+      document_id: docToDelete.value.id
+    });
+    await fetchData();
+    successMessage.value = 'Document supprimé';
+    showDeleteDocModal.value = false;
+    docToDelete.value = null;
+  } catch (error) {
+    errorMessage.value = 'Erreur lors de la suppression du document';
+  } finally {
+    deleteDocLoading.value = false;
   }
 };
 
