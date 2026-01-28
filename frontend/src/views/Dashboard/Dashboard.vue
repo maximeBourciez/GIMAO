@@ -27,7 +27,7 @@
 
         <v-col cols="12" md="6">
           <v-card rounded="">
-            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" show-statut-filter/>
 
             <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
               Créer un BT
@@ -51,7 +51,7 @@
       <v-row justify="center" class="mt-4">
         <v-col cols="12" md="10">
           <v-card rounded="" class="mb-4">
-            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" show-statut-filter />
           </v-card>
           <v-card rounded="">
             <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI"
@@ -89,7 +89,7 @@
 
         <v-col cols="12">
           <v-card rounded="">
-            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" />
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" show-statut-filter />
           </v-card>
         </v-col>
       </v-row>

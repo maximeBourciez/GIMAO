@@ -20,6 +20,18 @@
 		@clear-error="errorMessage = ''"
 	>
 		<template #filters>
+			<v-select
+				v-if="showStatutFilter"
+				v-model="selectedStatut"
+				label="Statut"
+				:items="statutOptions"
+				item-title="title"
+				item-value="value"
+				density="compact"
+				variant="outlined"
+				clearable
+				hide-details
+			/>
 			<slot name="filters"></slot>
 		</template>
 
@@ -129,7 +141,8 @@ const props = defineProps({
 		validator: (v) => ['auto', 'mobile', 'light', 'full'].includes(v)
 	},
 
-	// Optional filters (used when the component fetches data)
+	// Filters
+	showStatutFilter: { type: Boolean, default: false },
 	statut: { type: String, default: '' }
 });
 
@@ -144,28 +157,57 @@ const containerWidth = ref(0);
 const tableContainer = ref(null);
 let resizeObserver;
 let rafId = null;
-const includeClotureInFetch = ref(false);
+const cachedItemsWithoutCloture = ref([]);
+const cachedItemsWithCloture = ref([]);
+const hasFetchedCloture = ref(false);
+
+const selectedStatut = ref('');
+
+const statutOptions = computed(() => {
+	const options = [
+		{ value: '', title: 'Tous (hors clôturés)' },
+		{ value: 'ALL', title: 'Tous (avec clôturés)' }
+	];
+	for (const [value, label] of Object.entries(INTERVENTION_STATUS)) {
+		options.push({ value, title: label });
+	}
+	return options;
+});
 
 const loading = computed(() => api.loading.value);
-const fetchedItems = computed(() => api.data.value || []);
 
 const allItems = computed(() => {
 	if (Array.isArray(props.items)) return props.items;
-	return fetchedItems.value;
+	
+	// Détermine si on a besoin des clôturés
+	const activeStatut = props.showStatutFilter ? selectedStatut.value : props.statut;
+	const needsCloture = activeStatut === 'CLOTURE' || activeStatut === 'ALL';
+	
+	// Utilise le cache approprié
+	if (needsCloture && hasFetchedCloture.value) {
+		return cachedItemsWithCloture.value;
+	}
+	return cachedItemsWithoutCloture.value;
 });
 
 // Filtre côté front :
 // - statut vide => comportement historique: on masque les BT clôturés
+// - statut 'ALL' => tous les BT (avec clôturés)
 // - statut renseigné => on n'affiche que ce statut (y compris CLOTURE)
 const filteredItems = computed(() => {
 	const items = Array.isArray(allItems.value) ? allItems.value : [];
-	const selectedStatut = String(props.statut || '').trim();
+	const activeStatut = props.showStatutFilter ? selectedStatut.value : props.statut;
+	const statutValue = String(activeStatut || '').trim();
 
-	if (!selectedStatut) {
+	if (!statutValue) {
 		return items.filter((i) => i && i.statut !== 'CLOTURE');
 	}
 
-	return items.filter((i) => i && i.statut === selectedStatut);
+	if (statutValue === 'ALL') {
+		return items;
+	}
+
+	return items.filter((i) => i && i.statut === statutValue);
 });
 
 const resolvedVariant = computed(() => {
@@ -208,11 +250,13 @@ const fetchBonsTravail = async ({ includeCloture } = { includeCloture: false }) 
 
 	errorMessage.value = '';
 	try {
-		includeClotureInFetch.value = !!includeCloture;
 		if (includeCloture) {
 			await api.get('bons-travail', { cloture: true });
+			cachedItemsWithCloture.value = api.data.value || [];
+			hasFetchedCloture.value = true;
 		} else {
 			await api.get('bons-travail');
+			cachedItemsWithoutCloture.value = api.data.value || [];
 		}
 
 		emit('loaded', allItems.value);
@@ -247,21 +291,15 @@ watch(
 );
 
 watch(
-	() => props.statut,
-	(newStatut, oldStatut) => {
-		// On évite de rappeler le backend à chaque changement.
-		// On refetch uniquement quand on demande explicitement les clôturés (CLOTURE),
-		// ou quand on quitte ce filtre pour revenir sur la vue par défaut.
+	() => props.showStatutFilter ? selectedStatut.value : props.statut,
+	(newStatut) => {
+		// On fetch les clôturés une seule fois si nécessaire
 		const next = String(newStatut || '').trim();
-		const prev = String(oldStatut || '').trim();
+		const needsCloture = next === 'CLOTURE' || next === 'ALL';
 
-		if (next === 'CLOTURE' && !includeClotureInFetch.value) {
+		// Fetch uniquement si on a besoin des clôturés et qu'on ne les a pas encore
+		if (needsCloture && !hasFetchedCloture.value) {
 			fetchBonsTravail({ includeCloture: true });
-			return;
-		}
-
-		if (prev === 'CLOTURE' && next !== 'CLOTURE' && includeClotureInFetch.value) {
-			fetchBonsTravail({ includeCloture: false });
 		}
 	}
 );
