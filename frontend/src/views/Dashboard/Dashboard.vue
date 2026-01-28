@@ -5,47 +5,76 @@
       <!-- STATS COMPONENT -->
       <StatsComponent v-if="hasStats" :perms="getPermsForStats" />
 
-      <div v-if="role === 'Responsable GMAO'" class="row two-columns">
-        <!-- FAILURE LIST COMPONENT -->
-        <FailureListComponent
-          :compact="true"
-          :limit="5"
-          :show-create-button="true"
-          @row-click="handleRowClickDI"
-          @create-click="handleCreateDI"
-        />
 
-        <!-- INTERVENTION LIST COMPONENT -->
-        <InterventionListComponent
-          :compact="true"
-          :limit="5"
-          :show-create-button="true"
-          @row-click="handleRowClickBT"
-          @create-click="handleCreateBT"
-        />
+      <!-- Dashboard horizontal -->
+      <v-row dense v-if="hasDIandBtHorizontal">
+        <v-col cols="12" md="6">
+          <v-card rounded="">
+            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" :showCreateButton="false" />
+
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI" :showCreateButton="false">
+              Créer une DI
+            </v-btn>
+
+
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <v-card rounded="">
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" />
+
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
+              Créer un BT
+            </v-btn>
+          </v-card>
+        </v-col>   
+      </v-row>
+
+      <!-- Dashboard vertical --> 
+      <div v-else-if="store.getters.hasPermission('dash:display.vertical')" class="column">
+        <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.di')">
+          <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" :showCreateButton="false"/>
+
+          <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI" :showCreateButton="false">
+            Créer une DI
+          </v-btn>
+        </v-card>
+
+        <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.bt')" >
+          <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" />
+
+          <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
+            Créer un BT
+          </v-btn>
+        </v-card>
       </div>
 
-      <div v-else class="column">
-        <!-- FAILURE LIST COMPONENT -->
-        <FailureListComponent
-          :compact="true"
-          :limit="5"
-          :show-create-button="true"
-          @row-click="handleRowClickDI"
-          @create-click="handleCreateDI"
-        />
-
-        <!-- INTERVENTION LIST COMPONENT -->
-        <InterventionListComponent
-          :compact="true"
-          :limit="5"
-          :show-create-button="true"
-          @row-click="handleRowClickBT"
-          @create-click="handleCreateBT"
-        />
+      <div v-else-if="store.getters.hasPermission('dash:display.magasin')">
+        <p>Vous n'avez pas les permissions nécessaires pour afficher le tableau de bord.</p>
       </div>
+
 
     </div>
+
+
+
+
+
+
+
+
+    <v-btn
+      class="floating-logout-button"
+      color="primary"
+      dark
+      @click="logout"
+      v-if="!store.getters.hasPermission('menu.view')"
+    >
+      <v-icon left>mdi-logout</v-icon>
+      Se déconnecter
+    </v-btn>
+
   </v-container>
 </template>
 
@@ -66,7 +95,7 @@ const router = useRouter()
 const role = computed(() => store.getters.userRole)
 
 /**
- * Helpers
+ * Perms
  */
 const getPermsForStats = () => {
   const perm = store.getters.hasPermission('dash:stats.full') || store.getters.hasPermission('dash:stats.bt') || store.getters.hasPermission('dash:stats.di')
@@ -76,9 +105,15 @@ const getPermsForStats = () => {
 const hasStats = computed(() => {
   return store.getters.hasPermission('dash:stats.full') || store.getters.hasPermission('dash:stats.bt') || store.getters.hasPermission('dash:stats.di')
 })
+const hasDIandBtHorizontal = computed(() => {
+  return store.getters.hasPermission('dash:display.di') && store.getters.hasPermission('dash:display.bt') && !store.getters.hasPermission('dash:display.vertical');
+})
+
 
 onMounted(() => {
-  console.log('Dashboard mounted - role:', role.value)
+  console.log('Dashboard mounted -- perms for stats:', getPermsForStats())
+  console.log('Has stats:', hasStats.value)
+  console.log('Has DI and BT horizontal:', hasDIandBtHorizontal.value)
 })
 
 const logout = () => {

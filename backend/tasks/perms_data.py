@@ -45,7 +45,7 @@ perms = [
 
 perms_map = {
     "Responsable GMAO": [
-        perm for perm in perms  # Tous les droits existants
+        perm for perm in perms not 'dash:display.vertical'
     ],
 
     "Technicien": [

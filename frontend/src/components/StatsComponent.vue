@@ -54,17 +54,14 @@ const buildUrl = () => {
 }
 
 const fetchStats = async () => {
-    console.log('Fetching stats for userId:', store.getters.userId);
     loading.value = true;
     error.value = null;
 
     try {
         const url = buildUrl();
-        console.log('Fetching stats from URL:', url);
         const response = await api.get(url);
 
         stats.value = response.stats;
-        console.log('Stats fetched successfully:', stats);
 
     } catch (err) {
         error.value = err;
@@ -72,12 +69,6 @@ const fetchStats = async () => {
     } finally {
         loading.value = false;
     }
-
-    console.log('Fetched stats:', {
-        stats: stats.value,
-        loading: loading.value,
-        error: error.value
-    });
 }
 
 onMounted(() => {
