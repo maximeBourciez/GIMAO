@@ -36,6 +36,11 @@ perms = [
 
     # Menu
     'menu:view',
+
+    # Dashboard
+    'dash:display.di', 'dash:display.bt', 'dash:display.eq', 'dash:display.mag',
+    'dash:stats.full', 'dash:stats.bt', 'dash:stats.di',
+    'dash:display.vertical',
 ]
 
 perms_map = {
@@ -55,6 +60,8 @@ perms_map = {
         'mp:viewList', 'mp:viewDetail',
 
         'stock:view',
+
+        'dash:display.di', 'dash:display.bt', 'dash:stats.bt',
     ],
 
     "Opérateur": [
@@ -63,6 +70,8 @@ perms_map = {
         'bt:viewList', 'bt:viewDetail',
 
         'eq:viewList', 'eq:viewDetail',
+
+        'dash:display.di', 'dash:display.eq', 'dash:stats.di','dash:display.vertical',
     ],
 
     "Magasinier": [
@@ -75,6 +84,8 @@ perms_map = {
         'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export',
 
         'export:view',
+
+        'dash:display.mag'
     ],
 }
 

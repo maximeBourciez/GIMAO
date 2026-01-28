@@ -28,11 +28,10 @@ export default {
   data() {
     return {
       menu_items: [
-        { name: "Lieux", route: "/LocationList", icon: "mdi-map-marker", color: "blue", requiresPermission: "location:viewList" },
-        { name: "Catégories d'équipements", route: "/CategoryEquipmentList", icon: "mdi-shape", color: "green", requiresPermission: "categoryequipment:viewList" },
-        { name: "Fournisseurs", route: "/SupplierList", icon: "mdi-truck", color: "orange", requiresPermission: "supplier:viewList" },
-        { name: "Fabricants", route: "/ManufacturerList", icon: "mdi-factory", color: "red", requiresPermission: "manufacturer:viewList" },
-        { name: "Modèles d'équipements", route: "/ModelEquipmentList", icon: "mdi-cog", color: "purple", requiresPermission: "modelequipement:viewList" },
+        { name: "Lieux", route: "/LocationList", icon: "mdi-map-marker", color: "blue", requiresPermission: "loc:viewList" },
+        { name: "Fournisseurs", route: "/SupplierList", icon: "mdi-truck", color: "orange", requiresPermission: "sup:viewList" },
+        { name: "Fabricants", route: "/ManufacturerList", icon: "mdi-factory", color: "red", requiresPermission: "man:viewList" },
+        { name: "Modèles d'équipements", route: "/ModelEquipmentList", icon: "mdi-cog", color: "purple", requiresPermission: "eqmod:viewList" },
       ],
     };
   },

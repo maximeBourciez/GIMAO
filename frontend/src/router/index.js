@@ -90,7 +90,7 @@ const routes = [
     component: AccountManagement,
     meta: {
       title: 'Gestion des Comptes',
-      requiresPermission: 'user:viewList'
+      requiresPermissions: ['user:viewList']
     }
   },
 
@@ -101,7 +101,7 @@ const routes = [
     props: true,
     meta: {
       title: 'Afficher un utilisateur',
-      requiresPermission: 'user:viewDetail',
+      requiresPermissions: ['user:viewDetail'],
       checksIfSelf: true
     }
   },
@@ -111,14 +111,14 @@ const routes = [
     name: 'EditUser',
     component: ModifierUser,
     props: true,
-    meta: { title: 'Modifier un utilisateur', requiresPermission: 'user:edit', checksIfSelf: true }
+    meta: { title: 'Modifier un utilisateur', requiresPermissions: ['user:edit'], checksIfSelf: true }
   },
 
   {
     path: '/CreateUser',
     name: 'CreateUser',
     component: CreerUser,
-    meta: { title: 'Créer un utilisateur', requiresPermission: 'user:create' }
+    meta: { title: 'Créer un utilisateur', requiresPermissions: ['user:create'] }
   },
 
 
@@ -128,14 +128,14 @@ const routes = [
     path: '/stocks',
     name: 'Stocks',
     component: Stocks,
-    meta: { title: 'Stocks', requiresPermission: 'stock:view' }
+    meta: { title: 'Stocks', requiresPermissions: ['stock:view'] }
   },
 
   {
     path: '/CreateConsumable',
     name: 'CreateConsumable',
     component: CreateConsumable,
-    meta: { title: 'Créer un consommable', requiresPermission: 'cons:create' }
+    meta: { title: 'Créer un consommable', requiresPermissions: ['cons:create'] }
   },
 
   {
@@ -143,7 +143,7 @@ const routes = [
     name: 'EditConsumable',
     component: CreateConsumable,
     props: true,
-    meta: { title: 'Modifier un consommable', requiresPermission: 'cons:edit' }
+    meta: { title: 'Modifier un consommable', requiresPermissions: ['cons:edit'] }
   },
 
   {
@@ -151,7 +151,7 @@ const routes = [
     name: 'ConsumableDetail',
     component: CreateConsumable,
     props: true,
-    meta: { title: 'Détails du consommable', requiresPermission: 'cons:viewDetail' }
+    meta: { title: 'Détails du consommable', requiresPermissions: ['cons:viewDetail'] }
   },
 
   {
@@ -159,7 +159,7 @@ const routes = [
     name: 'DeleteConsumable',
     component: CreateConsumable,
     props: true,
-    meta: { title: 'Supprimer un consommable', requiresPermission: 'cons:delete' }
+    meta: { title: 'Supprimer un consommable', requiresPermissions: ['cons:delete'] }
   },
 
   // Magasins
@@ -167,7 +167,7 @@ const routes = [
     path: '/MagasinList',
     name: 'MagasinList',
     component: Stocks,
-    meta: { title: 'Magasins', requiresPermission: 'mag:viewList' }
+    meta: { title: 'Magasins', requiresPermissions: ['mag:viewList'] }
   },
 
   {
@@ -175,14 +175,14 @@ const routes = [
     name: 'MagasinDetail',
     component: Stocks,
     props: true,
-    meta: { title: 'Détails du magasin', requiresPermission: 'mag:viewDetail' }
+    meta: { title: 'Détails du magasin', requiresPermissions: ['mag:viewDetail'] }
   },
 
   {
     path: '/CreateMagasin',
     name: 'CreateMagasin',
     component: Stocks,
-    meta: { title: 'Créer un magasin', requiresPermission: 'mag:create' }
+    meta: { title: 'Créer un magasin', requiresPermissions: ['mag:create'] }
   },
 
   {
@@ -190,7 +190,7 @@ const routes = [
     name: 'EditMagasin',
     component: Stocks,
     props: true,
-    meta: { title: 'Modifier un magasin', requiresPermission: 'mag:edit' }
+    meta: { title: 'Modifier un magasin', requiresPermissions: ['mag:edit'] }
   },
 
   {
@@ -198,7 +198,7 @@ const routes = [
     name: 'DeleteMagasin',
     component: Stocks,
     props: true,
-    meta: { title: 'Supprimer un magasin', requiresPermission: 'mag:delete' }
+    meta: { title: 'Supprimer un magasin', requiresPermissions: ['mag:delete'] }
   },
 
 
@@ -208,14 +208,14 @@ const routes = [
     path: '/ManufacturerList',
     name: 'ManufacturerList',
     component: ManufacturerList,
-    meta: { title: 'Fabricants', requiresPermission: 'man:viewList' }
+    meta: { title: 'Fabricants', requiresPermissions: ['man:viewList'] }
   },
 
   {
     path: '/CreateManufacturer',
     name: 'CreateManufacturer',
     component: CreateManufacturer,
-    meta: { title: 'Creer un Fabricant', requiresPermission: 'man:create' }
+    meta: { title: 'Creer un Fabricant', requiresPermissions: ['man:create'] }
   },
 
   {
@@ -223,14 +223,14 @@ const routes = [
     name: 'ManufacturerDetail',
     component: ManufacturerDetail,
     props: true,
-    meta: { title: 'Détails d\'un fabricant', requiresPermission: 'man:viewDetail' }
+    meta: { title: 'Détails d\'un fabricant', requiresPermissions: ['man:viewDetail'] }
   },
   {
     path: '/EditManufacturer/:id',
     name: 'EditManufacturer',
     component: EditManufacturer,
     props: true,
-    meta: { title: 'Modifier un Fabricant', requiresPermission: 'man:edit' }
+    meta: { title: 'Modifier un Fabricant', requiresPermissions: ['man:edit'] }
   },
 
   // Fournisseurs ------------------------------------------------------------------
@@ -239,14 +239,14 @@ const routes = [
     path: '/SupplierList',
     name: 'SupplierList',
     component: SupplierList,
-    meta: { title: 'Fournisseurs', requiresPermission: 'sup:viewList' }
+    meta: { title: 'Fournisseurs', requiresPermissions: ['sup:viewList'] }
   },
 
   {
     path: '/CreateSupplier',
     name: 'CreateSupplier',
     component: CreateSupplier,
-    meta: { title: 'Creer un Fournisseur', requiresPermission: 'sup:create' }
+    meta: { title: 'Creer un Fournisseur', requiresPermissions: ['sup:create'] }
   },
 
   {
@@ -254,14 +254,14 @@ const routes = [
     name: 'SupplierDetail',
     component: SupplierDetail,
     props: true,
-    meta: { title: 'Détails d\'un Fournisseur', requiresPermission: 'sup:viewDetail' }
+    meta: { title: 'Détails d\'un Fournisseur', requiresPermissions: ['sup:viewDetail'] }
   },
   {
     path: '/EditSupplier/:id',
     name: 'EditSupplier',
     component: EditSupplier,
     props: true,
-    meta: { title: 'Modifier un Fournisseur', requiresPermission: 'sup:edit' }
+    meta: { title: 'Modifier un Fournisseur', requiresPermissions: ['sup:edit'] }
   },
 
 
@@ -272,7 +272,7 @@ const routes = [
     path: '/DataManagement',
     name: 'DataManagement',
     component: DataManagement,
-    meta: { title: 'Gestion des données', requiresPermission: 'loc:viewList' }
+    meta: { title: 'Gestion des données', requiresPermissions: ['loc:viewList'] }
   },
 
   // Bon de travail ---------------------------------------------------------------
@@ -281,7 +281,7 @@ const routes = [
     path: '/InterventionList',
     name: 'InterventionList',
     component: InterventionList,
-    meta: { title: 'Bon de travail', requiresPermission: 'bt:viewList' }
+    meta: { title: 'Bon de travail', requiresPermissions: ['bt:viewList'] }
   },
 
   {
@@ -289,14 +289,14 @@ const routes = [
     name: 'InterventionDetail',
     component: InterventionDetail,
     props: true,
-    meta: { title: 'Détails du bon de travail', requiresPermission: 'bt:viewDetail' }
+    meta: { title: 'Détails du bon de travail', requiresPermissions: ['bt:viewDetail'] }
   },
 
   {
     path: '/CreateIntervention/',
     name: 'CreateIntervention',
     component: CreateIntervention,
-    meta: { title: 'Créer un bon de travail', requiresPermission: 'bt:create' }
+    meta: { title: 'Créer un bon de travail', requiresPermissions: ['bt:create'] }
   },
 
   {
@@ -304,7 +304,7 @@ const routes = [
     name: 'EditIntervention',
     component: EditIntervention,
     props: true,
-    meta: { title: 'Modifier un bon de travail', requiresPermission: 'bt:edit' }
+    meta: { title: 'Modifier un bon de travail', requiresPermissions: ['bt:editAll', 'bt:editAssigned'], permissionMode: 'OR' }
   },
 
   {
@@ -312,7 +312,7 @@ const routes = [
     name: 'AddDocumentIntervention',
     component: AddDocumentIntervention,
     props: true,
-    meta: { title: 'Ajouter un document au bon de travail', requiresPermission: 'bt:edit' }
+    meta: { title: 'Ajouter un document au bon de travail', requiresPermissions: ['bt:editAll', 'bt:editAssigned'], permissionMode: 'OR' }
   },
 
 
@@ -323,7 +323,7 @@ const routes = [
     path: '/EquipmentList',
     name: 'EquipmentList',
     component: EquipmentList,
-    meta: { title: 'Équipements', requiresPermission: 'eq:viewList' }
+    meta: { title: 'Équipements', requiresPermissions: ['eq:viewList'] }
   },
 
   {
@@ -331,28 +331,28 @@ const routes = [
     name: 'EquipmentDetail',
     component: EquipmentDetail,
     props: true,
-    meta: { title: 'Descriptif de l\'équipement', requiresPermission: 'eq:viewDetail' }
+    meta: { title: 'Descriptif de l\'équipement', requiresPermissions: ['eq:viewDetail'] }
   },
 
   {
     path: '/CreateEquipment',
     name: 'CreateEquipment',
     component: CreateEquipment,
-    meta: { title: 'Ajouter Equipement', requiresPermission: 'eq:create' }
+    meta: { title: 'Ajouter Equipement', requiresPermissions: ['eq:create'] }
   },
 
   {
     path: '/EditEquipment/:id',
     name: 'EditEquipment',
     component: EditEquipment,
-    meta: { title: 'Modifier Equipement', requiresPermission: 'eq:edit' }
+    meta: { title: 'Modifier Equipement', requiresPermissions: ['eq:edit'] }
   },
 
   {
     path: '/CounterDetail/:id',
     name: 'CounterDetail',
     component: CounterDetail,
-    meta: { title: 'Détails du compteur', requiresPermission: 'cp:viewDetail' }
+    meta: { title: 'Détails du compteur', requiresPermissions: ['cp:viewDetail'] }
   },
 
   // Defaillance ---------------------------------------------------------------
@@ -360,7 +360,7 @@ const routes = [
     path: '/FailureList',
     name: 'FailureList',
     component: FailureList,
-    meta: { title: 'Demandes d\'interventions', requiresPermission: 'di:viewList' }
+    meta: { title: 'Demandes d\'interventions', requiresPermissions: ['di:viewList'] }
   },
 
   {
@@ -368,7 +368,7 @@ const routes = [
     name: 'CreateFailure',
     component: CreateFailure,
     props: true,
-    meta: { title: 'Demande d\'intervention', requiresPermission: 'di:create' }
+    meta: { title: 'Demande d\'intervention', requiresPermissions: ['di:create'] }
   },
 
   {
@@ -376,7 +376,7 @@ const routes = [
     name: 'FailureDetail',
     component: FailureDetail,
     props: true,
-    meta: { title: 'Détails de la demande ', requiresPermission: 'di:viewDetail' }
+    meta: { title: 'Détails de la demande ', requiresPermissions: ['di:viewDetail'] }
   },
 
   {
@@ -384,7 +384,7 @@ const routes = [
     name: 'EditFailure',
     component: EditFailure,
     props: true,
-    meta: { title: 'Modifier la demande d\'intervention', requiresPermission: 'di:edit' }
+    meta: { title: 'Modifier la demande d\'intervention', requiresPermissions: ['di:edit'] }
   },
 
   {
@@ -392,7 +392,7 @@ const routes = [
     name: 'AddDocumentFailure',
     component: AddDocumentFailure,
     props: true,
-    meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermission: 'di:edit' }
+    meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:edit'] }
   },
 
   // Lieux ---------------------------------------------------------------
@@ -401,14 +401,14 @@ const routes = [
     path: '/LocationList',
     name: 'LocationList',
     component: LocationList,
-    meta: { title: 'Lieux', requiresPermission: 'loc:viewList' }
+    meta: { title: 'Lieux', requiresPermissions: ['loc:viewList'] }
   },
 
   {
     path: '/CreateLocation',
     name: 'CreateLocation',
     component: CreateLocation,
-    meta: { title: 'Creer un lieu', requiresPermission: 'loc:create' }
+    meta: { title: 'Creer un lieu', requiresPermissions: ['loc:create'] }
   },
 
   {
@@ -416,7 +416,7 @@ const routes = [
     name: 'LocationDetail',
     component: LocationDetail,
     props: true,
-    meta: { title: 'Détails d\'un lieu', requiresPermission: 'loc:viewDetail' }
+    meta: { title: 'Détails d\'un lieu', requiresPermissions: ['loc:viewDetail'] }
   },
 
 
@@ -426,27 +426,27 @@ const routes = [
     path: '/ModelEquipmentList',
     name: 'ModelEquipmentList',
     component: ModelEquipmentList,
-    meta: { title: 'Modèle', requiresPermission: 'eqmod:viewList' } 
+    meta: { title: 'Modèle', requiresPermissions: ['eqmod:viewList'] } 
   },
 
   {
     path: '/CreateModelEquipment',
     name: 'CreateModelEquipment',
     component: CreateModelEquipment,
-    meta: { title: 'Creer un modele equipement', requiresPermission: 'eqmod:create' }
+    meta: { title: 'Creer un modele equipement', requiresPermissions: ['eqmod:create'] }
   },
 
   {
     path: '/ModelEquipmentDetail/:id',
     name: 'ModelEquipmentDetail',
     component: ModelEquipmentDetail,
-    meta: { title: 'Detail du modele equipement', requiresPermission: 'eqmod:viewDetail' }
+    meta: { title: 'Detail du modele equipement', requiresPermissions: ['eqmod:viewDetail'] }
   },
   {
     path: '/EditModelEquipment/:id',
     name: 'EditModelEquipment',
     component: EditModelEquipment,
-    meta: { title: 'Modifier modele equipement', requiresPermission: 'eqmod:edit' }
+    meta: { title: 'Modifier modele equipement', requiresPermissions: ['eqmod:edit'] }
   }
 ]
 
@@ -457,47 +457,53 @@ const router = createRouter({
 
 // Protection des routes
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem('user')
+  const userRaw = localStorage.getItem('user')
+  const isAuthenticated = !!userRaw
 
-  // Si la route est publique, laisser passer
   if (to.meta.public) {
     next()
     return
   }
 
-  // Vérification des permissions si nécessaire
-  const requiredPermission = to.meta.requiresPermission
-  if (requiredPermission) {
-    const user = JSON.parse(localStorage.getItem('user'))
-    const userPermissions = user?.permissions_names || []
+  if (!isAuthenticated) {
+    next('/login')
+    return
+  }
 
-    if (!userPermissions.includes(requiredPermission)) {
+  const user = JSON.parse(userRaw)
+  const userPermissions = user?.permissions_names || []
 
-      if(to.meta.checksIfSelf) {
-        // Vérifier si l'utilisateur essaie d'accéder à sa propre ressource
+  const requiredPermissions = to.meta.requiresPermissions
+  const permissionMode = to.meta.permissionMode || 'OR'
+
+  if (requiredPermissions && requiredPermissions.length > 0) {
+
+    const hasPermission =
+      permissionMode === 'AND'
+        ? requiredPermissions.every(p => userPermissions.includes(p))
+        : requiredPermissions.some(p => userPermissions.includes(p))
+
+    if (!hasPermission) {
+
+      // Cas spécial : ressource "self"
+      if (to.meta.checksIfSelf) {
         const userId = user.id
         const routeId = parseInt(to.params.id)
 
-        if(userId === routeId) {
+        if (userId === routeId) {
           next()
           return
         }
       }
 
       alert("Vous n'avez pas la permission d'accéder à cette page.")
-      // Revenir à la page précédente ou au dashboard
       next(from.fullPath || '/')
       return
     }
   }
 
-  // Si non authentifié, rediriger vers login
-  if (!isAuthenticated) {
-    next('/login')
-    return
-  }
-
   next()
 })
+
 
 export default router
