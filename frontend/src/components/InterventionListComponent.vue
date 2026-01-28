@@ -78,7 +78,7 @@
 		<!-- Responsable -->
 		<template #item.responsable="{ item }">
 			<span v-if="item.responsable">
-				{{ item.responsable.prenom }} {{ item.responsable.nomFamille }}
+				{{ formatUserDisplay(item.responsable) || '-' }}
 			</span>
 			<span v-else>-</span>
 		</template>
@@ -267,6 +267,15 @@ const fetchBonsTravail = async ({ includeCloture } = { includeCloture: false }) 
 
 const onRowClick = (item) => {
 	emit('row-click', item);
+};
+
+const formatUserDisplay = (user) => {
+	if (!user) return '';
+	const prenom = String(user.prenom || '').trim();
+	const nomFamille = String(user.nomFamille || '').trim();
+	if (prenom || nomFamille) return `${prenom} ${nomFamille}`.trim();
+	const nomUtilisateur = String(user.nomUtilisateur || '').trim();
+	return nomUtilisateur || '';
 };
 
 const observeTableContainer = () => {

@@ -125,7 +125,7 @@
                     <div class="detail-value">
                       <div v-if="Array.isArray(data.utilisateur_assigne) && data.utilisateur_assigne.length">
                         <div v-for="u in data.utilisateur_assigne" :key="u.id">
-                          - {{ u.prenom }} {{ u.nomFamille }}
+                          - {{ formatUserDisplay(u) || 'Non spécifié' }}
                         </div>
                       </div>
                       <div v-else>Non spécifié</div>
