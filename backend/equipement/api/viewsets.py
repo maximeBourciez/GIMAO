@@ -295,6 +295,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
                 nouveau = modification.get('nouvelle')
                 
                 if field == 'lieu' and isinstance(nouveau, dict):
+                    print(nouveau)
                     nouveau = nouveau.get('id')
                 
                 # Appliquer la modification
@@ -309,6 +310,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
                             champs_modifies={field: {'ancien': ancien, 'nouveau': nouveau}},
                             utilisateur=utilisateur
                         )
+                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
                     except Lieu.DoesNotExist:
                         pass
                 
