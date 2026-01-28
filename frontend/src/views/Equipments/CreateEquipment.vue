@@ -6,7 +6,7 @@
           :success-message="successMessage" :loading-message="loadingData ? 'Chargement des données...' : ''"
           :validation-schema="validationSchema" submit-button-text="Créer un Équipement" :handleSubmit="handleSubmit"
           actions-container-class="d-flex justify-end gap-2 mt-3" submit-button-class="mt-3"
-          cancel-button-class="mt-3 mr-3" :showActions="step === EQUIPMENT_CREATE_STEPS.length">
+          cancel-button-class="mt-3 mr-3" :showActions="showFormActions">
           <template #default="{ validation }">
             <v-stepper v-model="step" :steps="EQUIPMENT_CREATE_STEPS.length" justify="center" alt-labels>
               <v-stepper-header class="justify-center">
@@ -256,7 +256,11 @@
                     Précédent
                   </v-btn>
 
-                  <v-btn type="button" variant="text" color="primary" v-if="step < EQUIPMENT_CREATE_STEPS.length"
+                  <v-btn
+                    type="button"
+                    variant="text"
+                    color="primary"
+                    v-if="step < EQUIPMENT_CREATE_STEPS.length && !(step === 6 && !hasCounters)"
                     @click="nextStep" :disabled="!canGoToNextStep(validation)">
                     Suivant
                   </v-btn>
@@ -349,7 +353,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { BaseForm } from '@/components/common';
 import { API_BASE_URL, EQUIPMENT_CREATE_STEPS, COUNTER_UNITS } from '@/utils/constants';
 import { useEquipmentForm } from '@/composables/useEquipmentForm';
@@ -420,6 +424,12 @@ const showConsommableDialog = ref(false);
 const magasins = ref([]);
 const openedMaintenancePanels = ref([0]);
 
+const hasCounters = computed(() => (formData.value?.compteurs?.length ?? 0) > 0);
+// Affiche les actions (dont "Créer") à l'étape 6 si aucun compteur, sinon seulement à la dernière étape.
+const showFormActions = computed(() =>
+  step.value === EQUIPMENT_CREATE_STEPS.length || (step.value === 6 && !hasCounters.value)
+);
+
 //Règles de validation par étape
 const validationSchema = {
   step1: {
@@ -445,7 +455,7 @@ const validationSchema = {
   step5: {
   },
   step6: {
-    compteurs: ['required', { name: 'minItems', params: [1] }],
+    // compteurs: ['required', { name: 'minItems', params: [1] }],
   },
   step7: {
   },
@@ -453,11 +463,11 @@ const validationSchema = {
 
 const handleSubmit = async () => {
   // Validation basique : au moins un compteur requis
-  if (formData.value.compteurs.length === 0) {
-    errorMessage.value = 'Au moins un compteur est requis';
-    step.value = 6;  // Rediriger vers l'étape des compteurs
-    return;
-  }
+  // if (formData.value.compteurs.length === 0) {
+  //   errorMessage.value = 'Au moins un compteur est requis';
+  //   step.value = 6;  // Rediriger vers l'étape des compteurs
+  //   return;
+  // }
 
   // Validation des compteurs
   const invalidCounters = formData.value.compteurs.filter(c =>
@@ -652,6 +662,14 @@ const isStepEditable = (stepNumber) => {
 
 const canGoToNextStep = (validation) => {
   if (!validation) return true;
+  // Si aucun compteur, on ne va pas au step 7 (on crée directement au step 6).
+  if (step.value === 6 && !hasCounters.value) return false;
+
+  // Si on a des compteurs, on empêche la navigation si un compteur est incomplet.
+  if (step.value === 6 && hasCounters.value) {
+    const hasInvalidCounter = (formData.value.compteurs || []).some(c => !c.nom || !c.unite);
+    if (hasInvalidCounter) return false;
+  }
   return validation.isStepValid(step.value, formData.value);
 };
 
