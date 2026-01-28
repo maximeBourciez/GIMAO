@@ -159,7 +159,6 @@ const logout = () => {
 
   // Rediriger vers login avec un reload complet pour nettoyer tout le state
   window.location.href = '/login';
-
 }
 
 // Gestion click DI

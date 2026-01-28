@@ -41,7 +41,7 @@ export default createStore({
     isAuthenticated: state => state.isAuthenticated,
     currentUser: state => state.user,
     userRole: state => state.user?.role?.nomRole || null,
-    userPermissions: state => state.user?.permissions || []
+    userPermissions: state => state.user?.permissions_names || []
   },
   
   modules: {
