@@ -23,7 +23,8 @@ class UtilisateurSerializer(serializers.ModelSerializer):
         queryset=Role.objects.all(),
         source='role',
         write_only=True
-    )
+    ),
+    permissions_names = serializers.SerializerMethodField()
     
     class Meta:
         model = Utilisateur
@@ -38,9 +39,16 @@ class UtilisateurSerializer(serializers.ModelSerializer):
             'dateCreation',
             'actif',
             'role',
-            'role_id'
+            'role_id',
+            'permissions_names'
         ]
         read_only_fields = ['derniereConnexion', 'dateCreation']
+
+    def get_permissions_names(self, obj):
+        """Retourne les noms des permissions associées au rôle de l'utilisateur"""
+        if obj.role:
+            return [perm.nomPermission for perm in obj.role.permissions.all()]
+        return []
 
 
 class UtilisateurCreateSerializer(serializers.ModelSerializer):

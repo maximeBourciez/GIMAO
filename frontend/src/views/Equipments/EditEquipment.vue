@@ -10,7 +10,7 @@
             <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels" :fournisseurs="fournisseurs"
               :fabricants="fabricants" :familles="familles" :locations="locations" :consumables="consumables"
               :equipment-statuses="equipmentStatuses" :show-counters="false" @file-upload="handleFileUpload"
-              @location-created="handleLocationCreated" @open-lieu-dialog="handleOpenLieuDialog" />
+              @location-created="handleLocationCreated" :lienImageEquipement="formData.lienImageEquipement" @open-lieu-dialog="handleOpenLieuDialog" />
           </template>
         </BaseForm>
       </v-container>
@@ -132,7 +132,7 @@ const handleSubmit = async () => {
 
     if (formData.value.lienImageEquipement instanceof File) {
       fd.append('lienImageEquipement', formData.value.lienImageEquipement);
-      delete equipementData.lienImageEquipement;
+      delete changes.lienImageEquipement;
     }
 
     fd.append('changes', JSON.stringify(changes));

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib import messages
 from django.utils.crypto import get_random_string
-from .models import Role, Utilisateur, Log
+from .models import Role, Utilisateur, Log , Permission, RolePermission
 
 
 class RoleAdmin(admin.ModelAdmin):
@@ -98,3 +98,5 @@ class LogAdmin(admin.ModelAdmin):
 admin.site.register(Role, RoleAdmin)
 admin.site.register(Utilisateur, UtilisateurAdmin)
 admin.site.register(Log, LogAdmin)
+admin.site.register(Permission)
+admin.site.register(RolePermission)

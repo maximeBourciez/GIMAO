@@ -60,7 +60,7 @@
         <v-col cols="12" md="8">
           <!-- Section image -->
           <v-card elevation="2" class="mb-4">
-            <v-img v-if="data.lienImage" :src="`/media/${data.lienImage}`" aspect-ratio="4/3" class="rounded-lg"
+            <v-img v-if="data.lienImage" :src="`${BASE_URL}/media/${data.lienImage}`" aspect-ratio="4/3" class="rounded-lg"
               style="max-height: 30vh; object-fit: cover;" alt="Image de l'équipement">
               <template v-slot:placeholder>
                 <v-row class="fill-height ma-0" align="center" justify="center">
