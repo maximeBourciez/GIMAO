@@ -51,56 +51,7 @@
                     Documents (optionnels)
                 </v-card-subtitle>
 
-                <v-sheet class="pa-4 mb-4" variant="outlined" rounded>
-                    <v-row v-for="(doc, index) in formData.documents" :key="index" dense class="mb-3 align-center">
-                        <v-col cols="4">
-                            <v-text-field
-                                v-model="doc.nomDocument"
-                                label="Titre *"
-                                variant="outlined"
-                                dense
-                                hide-details
-                            />
-                        </v-col>
-
-                        <v-col cols="4">
-                            <v-file-input
-                                v-model="doc.file"
-                                dense
-                                variant="outlined"
-                                show-size
-                                label="Document *"
-                                hide-details
-                                prepend-icon=""
-                                prepend-inner-icon="mdi-paperclip"
-                            />
-                        </v-col>
-
-                        <v-col cols="3">
-                            <v-select
-                                v-model="doc.typeDocument"
-                                :items="typesDocuments"
-                                item-title="nomTypeDocument"
-                                item-value="id"
-                                label="Type *"
-                                variant="outlined"
-                                dense
-                                hide-details
-                            />
-                        </v-col>
-
-                        <v-col cols="1" class="d-flex justify-center">
-                            <v-btn icon color="error" size="small" @click="removeDocument(index)">
-                                <v-icon>mdi-delete</v-icon>
-                            </v-btn>
-                        </v-col>
-                    </v-row>
-
-                    <v-btn color="primary" variant="outlined" class="mt-2" @click="addDocument">
-                        <v-icon left>mdi-plus</v-icon>
-                        Ajouter un document
-                    </v-btn>
-                </v-sheet>
+                <DocumentForm v-model="formData.documents" :type-documents="typesDocuments" />
             </v-col>
         </v-row>
     </BaseForm>
@@ -109,6 +60,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { BaseForm, FormField, FormSelect, FormTextarea } from '@/components/common'
+import DocumentForm from '@/components/Forms/DocumentForm.vue'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
 
@@ -180,18 +132,6 @@ watch(() => props.initialData, (newData) => {
     }
 }, { immediate: true, deep: true })
 
-const addDocument = () => {
-    formData.value.documents.push({
-        nomDocument: '',
-        file: null,
-        typeDocument: null
-    })
-}
-
-const removeDocument = (index) => {
-    formData.value.documents.splice(index, 1)
-}
-
 const close = () => {
     emit('close')
 }
@@ -233,19 +173,26 @@ const save = async () => {
 
             // Préparation des documents (métadonnées en JSON, fichiers séparés)
             const validDocs = formData.value.documents
-                .filter(doc => doc.file && doc.typeDocument && doc.nomDocument)
+                .filter(doc => {
+                    const hasFile = doc.cheminAcces || doc.file
+                    const hasType = doc.typeDocument_id
+                    const hasName = doc.nomDocument
+                    return hasFile && hasType && hasName
+                })
 
             if (validDocs.length > 0) {
                 const docMetadata = validDocs.map((doc, index) => ({
                     nomDocument: doc.nomDocument,
-                    typeDocument_id: doc.typeDocument
+                    typeDocument_id: doc.typeDocument_id
                 }))
                 formDataToSend.append('documents', JSON.stringify(docMetadata))
 
                 // Ajouter chaque fichier avec la convention document_{index}
                 validDocs.forEach((doc, index) => {
-                    const file = doc.file[0] || doc.file
-                    formDataToSend.append(`document_${index}`, file)
+                    const file = doc.cheminAcces?.[0] || doc.cheminAcces || doc.file?.[0] || doc.file
+                    if (file) {
+                        formDataToSend.append(`document_${index}`, file)
+                    }
                 })
             }
 
