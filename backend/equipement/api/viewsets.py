@@ -241,22 +241,6 @@ class EquipementViewSet(viewsets.ModelViewSet):
             if isinstance(value, list) and len(value) == 1:
                 data[key] = value[0]
 
-        # Récupérer les données JSON
-        json_data = data.get("data")
-        if not json_data:
-            return Response(
-                {"error": "Aucune donnée JSON fournie"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            equipement_data = json.loads(json_data)
-        except json.JSONDecodeError:
-            return Response(
-                {"error": "Format JSON invalide pour les données de l'équipement"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         # Récupérer les changements
         changes_data = data.get("changes")
         if not changes_data:
@@ -274,7 +258,6 @@ class EquipementViewSet(viewsets.ModelViewSet):
             )
 
         print('Données de la requête:')
-        print(f"  JSON: {equipement_data}")
         print(f"  Changements: {changes}")
         print(f"  Fichiers: {list(request.FILES.keys())}")
 
@@ -409,65 +392,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
                         utilisateur=utilisateur
                     )
 
-        # 3. Compteurs
-        if 'compteurs' in changes:
-            compteurs_data = changes['compteurs']
-            
-            # Compteurs à supprimer
-            if 'supprimes' in compteurs_data:
-                for compteur_id in compteurs_data['supprimes']:
-                    try:
-                        compteur = Compteur.objects.get(id=compteur_id, equipement=equipement)
-                        nom_compteur = compteur.nomCompteur
-                        
-                        # Supprimer le compteur
-                        compteur.delete()
-                        
-                        print(f"Compteur supprimé: {nom_compteur} (ID: {compteur_id})")
-                        
-                        # Log de suppression
-                        self._create_log_entry(
-                            type_action='suppression',
-                            nom_table='compteur',
-                            id_cible={'compteur_id': compteur_id},
-                            champs_modifies={'compteur_deleted': True, 'equipmentId': equipement.id, 'nomCompteur': nom_compteur},
-                            utilisateur=utilisateur
-                        )
-                        
-                    except Compteur.DoesNotExist:
-                        print(f"Compteur à supprimer introuvable: ID {compteur_id}")
-            
-            # Compteurs à modifier
-            if 'modifies' in compteurs_data:
-                for compteur_mod in compteurs_data['modifies']:
-                    compteur_id = compteur_mod.get('id')
-                    if not compteur_id:
-                        continue
-                    
-                    try:
-                        compteur = Compteur.objects.get(id=compteur_id, equipement=equipement)
-                        modifications = compteur_mod.get('modifications', {})
-                        
-                        # Mettre à jour les champs du compteur
-                        self._update_compteur_from_changes(compteur, modifications, request)
-                        
-                        print(f"Compteur modifié: {compteur.nomCompteur} (ID: {compteur_id})")
-                        
-                        # Log de modification
-                        self._create_log_entry(
-                            type_action='modification',
-                            nom_table='compteur',
-                            id_cible={'compteur_id': compteur_id},
-                            champs_modifies={'modifications': modifications},
-                            utilisateur=utilisateur
-                        )
-                        
-                    except Compteur.DoesNotExist:
-                        print(f"Compteur à modifier introuvable: ID {compteur_id}")
-                    except Exception as e:
-                        print(f"Erreur lors de la modification du compteur {compteur_id}: {e}")
-
-        # 4. Gestion des fichiers d'image de l'équipement
+        # 3. Gestion des fichiers d'image de l'équipement
         if 'lienImageEquipement' in request.FILES:
             uploaded_file = request.FILES['lienImageEquipement']
             # Supprimer l'ancienne image si elle existe
