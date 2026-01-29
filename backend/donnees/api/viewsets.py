@@ -151,6 +151,24 @@ class DocumentViewSet(viewsets.ModelViewSet):
         out = DocumentSimpleSerializer(document, context={'request': request})
         return Response(out.data, status=status.HTTP_201_CREATED)
 
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        """
+        Supprime un document et son fichier physique.
+        Les liaisons avec DI/BT/PM/Consommables sont supprimées en cascade grâce aux FK on_delete=CASCADE
+        dans les tables through (DemandeInterventionDocument, BonTravailDocument, etc).
+        """
+        instance = self.get_object()
+        
+        # Supprimer le fichier physique si il existe
+        if instance.cheminAcces:
+            instance.cheminAcces.delete(save=False)
+        
+        # Supprimer l'instance (les liaisons M2M seront supprimées en cascade)
+        instance.delete()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @action(detail=False, methods=['get'])
     def par_type(self, request):
         """
