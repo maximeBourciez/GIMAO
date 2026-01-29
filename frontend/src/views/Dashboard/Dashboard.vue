@@ -24,7 +24,7 @@
           <v-card rounded="">
             <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" />
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT" v-if="store.getters.hasPermission('bt:create')">
               Créer un BT
             </v-btn>
           </v-card>
