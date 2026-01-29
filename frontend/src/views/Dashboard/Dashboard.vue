@@ -55,7 +55,7 @@
       </div>
 
       <!-- Equipement standalone -->
-      <div v-if="store.getters.hasPermission('dash:display.eq')">
+      <div v-if="store.getters.hasPermission('dash:display.eq') && !store.getters.hasPermission('dash:display.vertical') && !store.getters.hasPermission('dash:display.di')">
       <v-card rounded="" v-if="store.getters.hasPermission('dash:display.eq')">
         <EquipmentListComponent title="Liste des Équipements" :showSearch="true" @row-click="handleRowClickEquipment" :getItemsBySelf="true" />
         </v-card>

@@ -61,6 +61,8 @@ perms_map = {
 
         'stock:view',
 
+        'menu:view',
+
         'dash:display.di', 'dash:display.bt', 'dash:stats.bt',
     ],
 
