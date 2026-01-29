@@ -46,34 +46,43 @@ class FournitureConsommableSerializer(serializers.ModelSerializer):
                   'quantite', 'prix_unitaire', 'date_reference_prix']
 
 
+class StockerSerializer(serializers.ModelSerializer):
+    """Serializer pour le modèle Stocker (stock en magasin)"""
+    magasin_nom = serializers.CharField(source='magasin.nom', read_only=True)
+    
+    class Meta:
+        model = Stocker
+        fields = ['id', 'magasin', 'magasin_nom', 'quantite']
+
+
 class ConsommableDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour le modèle Consommable avec informations du magasin"""
-    magasin_details = serializers.SerializerMethodField()
     fournitures = FournitureConsommableSerializer(many=True, read_only=True)
+    stocks = StockerSerializer(many=True, read_only=True)
     quantite_totale = serializers.SerializerMethodField()
     
     class Meta:
         model = Consommable
-        fields = ['id', 'designation', 'lienImageConsommable', 'magasin', 'magasin_details',
-                  'fournitures', 'quantite_totale', 'seuilStockFaible', 'documents']
+        fields = ['id', 'designation', 'lienImageConsommable', 'magasins',
+                  'fournitures', 'stocks', 'quantite_totale', 'seuilStockFaible', 'documents']
     
-    def get_magasin_details(self, obj):
-        if obj.magasin:
-            return {
-                'id': obj.magasin.id,
-                'nom': obj.magasin.nom,
-                'estMobile': obj.magasin.estMobile,
-            }
-        return None
+
     
     def get_quantite_totale(self, obj):
-        # Somme des quantités de toutes les fournitures
-        total = sum(fourniture.quantite for fourniture in obj.fournitures.all())
+        # Somme des quantités de tous les stocks
+        total = sum(stock.quantite for stock in obj.stocks.all())
         return total
 
 
 class PorterSurSerializer(serializers.ModelSerializer):
     """Serializer pour le modèle PorterSur (fourniture de consommable)"""
+    distribution = serializers.ListField(
+        child=serializers.DictField(),
+        write_only=True,
+        required=False,
+        help_text="Liste de {magasin: id, quantite: int} pour la distribution"
+    )
+
     class Meta:
         model = PorterSur
         fields = '__all__'

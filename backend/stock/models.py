@@ -20,7 +20,7 @@ class Magasin(models.Model):
 class Consommable(models.Model):
     designation = models.CharField(max_length=50)
     lienImageConsommable = models.ImageField(upload_to='images/', null=True, blank=True)
-    magasin = models.ForeignKey(Magasin, on_delete=models.CASCADE)
+    magasins = models.ManyToManyField(Magasin, through='Stocker', related_name='consommables', blank=True)
     seuilStockFaible = models.IntegerField(validators=[MinValueValidator(0)], blank=True, null=True, help_text="Seuil en dessous duquel le stock est considéré comme faible")
     documents = models.ManyToManyField('donnees.Document', blank=True, help_text="Documents associés au consommable")
     
@@ -64,17 +64,31 @@ class PorterSur(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(0)]
     )
-    date_reference_prix = models.DateField()
+    date_reference_prix = models.DateTimeField()
     
     class Meta:
         db_table = 'gimao_porter_sur'
         verbose_name = 'Fourniture de consommable'
         verbose_name_plural = 'Fournitures de consommables'
-        unique_together = ['consommable', 'fournisseur', 'fabricant']
+        unique_together = ['consommable', 'fournisseur', 'fabricant', 'date_reference_prix']
     
     def __str__(self):
-        return f"{self.consommable} - {self.fournisseur} - {self.fabricant}"
+        return f"{self.consommable} - {self.fournisseur} - {self.fabricant} ({self.date_reference_prix})"
 
+
+class Stocker(models.Model):
+    consommable = models.ForeignKey(Consommable, on_delete=models.CASCADE, related_name='stocks')
+    magasin = models.ForeignKey(Magasin, on_delete=models.CASCADE, related_name='stocks')
+    quantite = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+
+    class Meta:
+        db_table = 'gimao_stocker'
+        verbose_name = 'Stock en magasin'
+        verbose_name_plural = 'Stocks en magasin'
+        unique_together = ['consommable', 'magasin']
+
+    def __str__(self):
+        return f"{self.consommable} dans {self.magasin} : {self.quantite}"
 
 
 class EstCompatible(models.Model):
