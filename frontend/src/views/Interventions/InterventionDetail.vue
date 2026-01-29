@@ -220,56 +220,24 @@
                 <v-divider></v-divider>
                 <v-card-text>
                   <h4 class="text-subtitle-1 mb-2">Documents du BT</h4>
-                  <v-data-table
-                    :headers="documentHeaders"
-                    :items="data.documentsBT || data.liste_documents_intervention || []"
-                    class="elevation-1"
-                    hide-default-footer
-                    :items-per-page="-1"
-                  >
-                    <template #item.titre="{ item }">
-                      <span class="doc-truncate" :title="item.titre || ''">{{ item.titre || 'Document' }}</span>
-                    </template>
-                    <template #item.type_nom="{ item }">
-                      <span class="doc-truncate" :title="item.type_nom || ''">{{ item.type_nom || '—' }}</span>
-                    </template>
-                    <template #item.actions="{ item }">
-                      <div class="doc-actions">
-                        <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
-                          <v-icon size="small">mdi-download</v-icon>
-                        </v-btn>
-                        <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('BT', item)">
-                          <v-icon size="small">mdi-delete</v-icon>
-                        </v-btn>
-                      </div>
-                    </template>
-                  </v-data-table>
+                  <DocumentList
+                    :documents="data.documentsBT || data.liste_documents_intervention || []"
+                    :show-type="true"
+                    @delete-success="handleDeleteSuccess"
+                    @delete-error="handleDeleteError"
+                    @download-error="handleDownloadError"
+                    @download-success="handleDownloadSuccess"
+                  />
 
                   <h4 class="text-subtitle-1 mt-6 mb-2">Documents de la DI</h4>
-                  <v-data-table
-                    :headers="documentHeaders"
-                    :items="data.documentsDI || []"
-                    class="elevation-1"
-                    hide-default-footer
-                    :items-per-page="-1"
-                  >
-                    <template #item.titre="{ item }">
-                      <span class="doc-truncate" :title="item.titre || ''">{{ item.titre || 'Document' }}</span>
-                    </template>
-                    <template #item.type_nom="{ item }">
-                      <span class="doc-truncate" :title="item.type_nom || ''">{{ item.type_nom || '—' }}</span>
-                    </template>
-                    <template #item.actions="{ item }">
-                      <div class="doc-actions">
-                        <v-btn icon size="small" color="primary" @click="downloadDocument(item)">
-                          <v-icon size="small">mdi-download</v-icon>
-                        </v-btn>
-                        <v-btn icon size="small" color="error" class="ml-1" @click="openDeleteDocumentModal('DI', item)">
-                          <v-icon size="small">mdi-delete</v-icon>
-                        </v-btn>
-                      </div>
-                    </template>
-                  </v-data-table>
+                  <DocumentList
+                    :documents="data.documentsDI || []"
+                    :show-type="true"
+                    @delete-success="handleDeleteSuccess"
+                    @delete-error="handleDeleteError"
+                    @download-error="handleDownloadError"
+                    @download-success="handleDownloadSuccess"
+                  />
                 </v-card-text>
               </div>
             </v-expand-transition>
@@ -373,18 +341,6 @@
       @cancel="showClose = false"
     />
 
-    <ConfirmationModal
-      v-model="showDeleteDocument"
-      type="error"
-      title="Supprimer le document"
-      :message="deleteDocumentMessage"
-      confirm-text="Supprimer"
-      confirm-icon="mdi-delete"
-      :loading="actionLoading"
-      @confirm="confirmDeleteDocument"
-      @cancel="showDeleteDocument = false"
-    />
-
     <!-- Refuser la clôture : formulaire (commentaire obligatoire) -->
     <v-dialog v-model="showRefuseClose" max-width="600" scrollable>
       <v-card>
@@ -430,6 +386,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useStore } from 'vuex';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
+import DocumentList from '@/components/DocumentList.vue';
 import { BaseForm, FormTextarea } from '@/components/common';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, BASE_URL, MEDIA_BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
@@ -465,15 +422,6 @@ const showStart = ref(false);
 const showFinish = ref(false);
 const showClose = ref(false);
 const showRefuseClose = ref(false);
-const showDeleteDocument = ref(false);
-const deleteDocumentContext = ref({ scope: null, item: null });
-
-const deleteDocumentMessage = computed(() => {
-  const item = deleteDocumentContext.value?.item;
-  const name = item?.titre || item?.nomDocumentIntervention || item?.nomDocument || 'ce document';
-  return `Êtes-vous sûr de vouloir supprimer le document "${name}" ?`;
-});
-
 const refuseCloseFormData = ref({
   commentaire_refus_cloture: ''
 });
@@ -541,11 +489,6 @@ const openCloseModal = () => {
 const openRefuseCloseModal = () => {
   refuseCloseFormData.value = { commentaire_refus_cloture: '' };
   showRefuseClose.value = true;
-};
-
-const openDeleteDocumentModal = (scope, item) => {
-  deleteDocumentContext.value = { scope, item };
-  showDeleteDocument.value = true;
 };
 
 const goToEditIntervention = () => {
@@ -701,91 +644,25 @@ const finishIntervention = async () => {
   }
 };
 
-const downloadDocument = (item) => {
-  const raw = item?.path || item?.lienDocumentIntervention || item?.cheminAcces;
-  if (!raw) return;
-
-  const path = String(raw).replace(/^\/+/, '').split('/media/').pop();
-
-  fetch(`${BASE_URL}${MEDIA_BASE_URL}${path}`)
-    .then((response) => {
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return response.blob();
-    })
-    .then((blob) => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = path.split('/').pop() || 'document';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-    })
-    .catch(() => {
-      errorMessage.value = 'Erreur lors du téléchargement du fichier';
-      setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
-    });
+const handleDownloadError = (message) => {
+  errorMessage.value = message || 'Erreur lors du téléchargement du fichier';
+  setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
 };
 
-const deleteDocumentBT = async (item) => {
-  const documentId = item?.id;
-  if (!documentId || !intervention.value?.id) {
-    errorMessage.value = 'Impossible de supprimer : informations manquantes.';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
-    return;
-  }
-
-  try {
-    await api.patch(`bons-travail/${intervention.value.id}/delink_document/`, {
-      document_id: documentId,
-    });
-    successMessage.value = 'Document supprimé';
-    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
-    await fetchData();
-  } catch (error) {
-    errorMessage.value = 'Erreur lors de la suppression du document';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
-  }
+const handleDownloadSuccess = () => {
+  successMessage.value = 'Document téléchargé';
+  setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
 };
 
-const deleteDocumentDI = async (item) => {
-  const documentId = item?.id;
-  if (!documentId || !demandeId.value) {
-    errorMessage.value = 'Impossible de supprimer : informations manquantes.';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
-    return;
-  }
-
-  try {
-    await api.patch(`demandes-intervention/${demandeId.value}/delink_document/`, {
-      document_id: documentId,
-    });
-    successMessage.value = 'Document supprimé';
-    setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
-    await fetchData();
-  } catch (error) {
-    errorMessage.value = 'Erreur lors de la suppression du document';
-    setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
-  }
+const handleDeleteSuccess = async () => {
+  successMessage.value = 'Document supprimé';
+  setTimeout(() => (successMessage.value = ''), MESSAGE_TIMEOUT_MS);
+  await fetchData();
 };
 
-const confirmDeleteDocument = async () => {
-  const { scope, item } = deleteDocumentContext.value || {};
-  if (!scope || !item) return;
-
-  actionLoading.value = true;
-  try {
-    if (scope === 'BT') {
-      await deleteDocumentBT(item);
-    } else if (scope === 'DI') {
-      await deleteDocumentDI(item);
-    }
-    showDeleteDocument.value = false;
-    deleteDocumentContext.value = { scope: null, item: null };
-  } finally {
-    actionLoading.value = false;
-  }
+const handleDeleteError = (message) => {
+  errorMessage.value = message || 'Erreur lors de la suppression du document';
+  setTimeout(() => (errorMessage.value = ''), MESSAGE_TIMEOUT_MS);
 };
 
 onMounted(fetchData);

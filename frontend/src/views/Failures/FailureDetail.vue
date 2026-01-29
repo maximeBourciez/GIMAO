@@ -105,9 +105,10 @@
                 <DocumentList
                   :documents="data.documentsDI || []"
                   :show-type="true"
-                  :deleting="deleteDocLoading"
-                  @download="downloadDocument"
-                  @delete="deleteDocument"
+                  @delete-success="handleDeleteSuccess"
+                  @delete-error="handleDeleteError"
+                  @download-error="handleDownloadError"
+                  @download-success="handleDownloadSuccess"
                 />
               </v-card-text>
             </v-expand-transition>
@@ -157,20 +158,6 @@
     :loading="createInterventionLoading"  
     @confirm="handleCreateIntervention()"
     @cancel="showCreateInterventionModal = false"
-  />
-
-  <!-- Modale de confirmation pour supprimer un document -->
-  <ConfirmationModal
-    v-model="showDeleteDocModal"
-    type="error"
-    title="Supprimer le document"
-    message="Êtes-vous sûr de vouloir supprimer le document ? \n\nCette action est irréversible."
-    confirm-text="Supprimer"
-    cancel-text="Annuler"
-    confirm-icon="mdi-delete"
-    :loading="deleteDocLoading"  
-    @confirm="confirmDeleteDocument()"
-    @cancel="cancelDeleteDocument()"
   />
 
   <!-- Bouton modifier -->
@@ -384,54 +371,21 @@ const toggleActionMode = () => {
   actionMode.value = actionMode.value === 'download' ? 'delete' : 'download';
 };
 
-const downloadDocument = async (item) => {
-  try {
-    const response = await fetch(`${BASE_URL}${MEDIA_BASE_URL}${item.path}`);
-    const blob = await response.blob(); 
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = item.path.split('/').pop();
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    successMessage.value = 'Document téléchargé';
-  } catch (error) {
-    console.log(error);
-    errorMessage.value = 'Erreur lors du téléchargement';
-  }
+const handleDownloadError = (message) => {
+  errorMessage.value = message || 'Erreur lors du téléchargement';
 };
 
-const showDeleteDocModal = ref(false);
-const deleteDocLoading = ref(false);
-const docToDelete = ref(null);
-
-const deleteDocument = (item) => {
-  docToDelete.value = item;
-  showDeleteDocModal.value = true;
+const handleDownloadSuccess = () => {
+  successMessage.value = 'Document téléchargé';
 };
 
-const cancelDeleteDocument = () => {
-  showDeleteDocModal.value = false;
-  docToDelete.value = null;
+const handleDeleteSuccess = async () => {
+  successMessage.value = 'Document supprimé';
+  await fetchData();
 };
 
-const confirmDeleteDocument = async () => {
-  if (!docToDelete.value) return;
-  
-  deleteDocLoading.value = true;
-  try {
-    await documentApi.remove(`documents/${docToDelete.value.id}/`);
-    await fetchData();
-    successMessage.value = 'Document supprimé';
-    showDeleteDocModal.value = false;
-    docToDelete.value = null;
-  } catch (error) {
-    errorMessage.value = 'Erreur lors de la suppression du document';
-  } finally {
-    deleteDocLoading.value = false;
-  }
+const handleDeleteError = (message) => {
+  errorMessage.value = message || 'Erreur lors de la suppression du document';
 };
 
 const editCurrentFailure = () => {

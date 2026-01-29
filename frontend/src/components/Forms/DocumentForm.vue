@@ -48,7 +48,7 @@
 					icon="mdi-delete"
 					size="small"
 					color="error"
-					@click="removeDocument(index)"
+					@click="openDeleteModal(index)"
 				/>
 			</v-col>
 		</v-row>
@@ -65,12 +65,27 @@
 				</v-btn>
 			</v-col>
 		</v-row>
+
+		<!-- Modale de confirmation de suppression -->
+		<ConfirmationModal
+			v-model="showDeleteModal"
+			type="error"
+			title="Supprimer le document"
+			message="Êtes-vous sûr de vouloir supprimer ce document ?\n\nCette action est irréversible."
+			confirm-text="Supprimer"
+			cancel-text="Annuler"
+			confirm-icon="mdi-delete"
+			:loading="deletingDoc"
+			@confirm="confirmDelete"
+			@cancel="cancelDelete"
+		/>
 	</div>
 </template>
 
 <script setup>
-import { computed, onMounted, provide } from 'vue';
+import { computed, onMounted, provide, ref } from 'vue';
 import { FormField, FormSelect, FormFileInput } from '@/components/common';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 
@@ -142,21 +157,53 @@ const addDocument = () => {
 	emit('update:modelValue', [...current, { ...EMPTY_ROW }]);
 };
 
-const removeDocument = async (index) => {
+const showDeleteModal = ref(false);
+const deletingDoc = ref(false);
+const indexToDelete = ref(null);
+
+const openDeleteModal = (index) => {
 	const current = normalize(props.modelValue);
 	const doc = current[index];
 	
+	// Si c'est un document existant (avec ID), on ouvre la modale
+	if (doc?.document_id && Number.isInteger(Number(doc.document_id)) && Number(doc.document_id) > 0) {
+		indexToDelete.value = index;
+		showDeleteModal.value = true;
+	} else {
+		// Sinon, on supprime directement la ligne vide
+		const next = current.filter((_, i) => i !== index);
+		emit('update:modelValue', next.length ? next : [{ ...EMPTY_ROW }]);
+	}
+};
+
+const cancelDelete = () => {
+	showDeleteModal.value = false;
+	indexToDelete.value = null;
+};
+
+const confirmDelete = async () => {
+	if (indexToDelete.value === null) return;
+	
+	const current = normalize(props.modelValue);
+	const doc = current[indexToDelete.value];
+	
 	// Si le document a un ID (document existant), on le supprime du backend
 	if (doc?.document_id && Number.isInteger(Number(doc.document_id)) && Number(doc.document_id) > 0) {
+		deletingDoc.value = true;
 		try {
 			const api = useApi(API_BASE_URL);
 			await api.remove(`documents/${doc.document_id}/`);
 		} catch (error) {
 			console.error('Erreur lors de la suppression du document:', error);
+		} finally {
+			deletingDoc.value = false;
 		}
 	}
 	
-	const next = current.filter((_, i) => i !== index);
+	const next = current.filter((_, i) => i !== indexToDelete.value);
 	emit('update:modelValue', next.length ? next : [{ ...EMPTY_ROW }]);
+	
+	showDeleteModal.value = false;
+	indexToDelete.value = null;
 };
 </script>

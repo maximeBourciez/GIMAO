@@ -128,6 +128,12 @@
 				</v-row>
 			</v-sheet>
 
+			<!-- Documents -->
+			<v-sheet v-if="typeDocumentItems.length" class="pa-4 mb-4" elevation="1" rounded>
+				<h4 class="mb-3">Documents</h4>
+				<DocumentForm v-model="formData.documents" :type-documents="typeDocumentItems" />
+			</v-sheet>
+
 			<!-- Consommables -->
 			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
 				<h4 class="mb-3">Consommables</h4>
@@ -172,7 +178,6 @@
 							icon="mdi-delete"
 							size="small"
 							color="error"
-							variant="text"
 							@click="removeConsommableLine(index)"
 						/>
 					</v-col>
@@ -192,11 +197,6 @@
 				</v-row>
 			</v-sheet>
 
-			<!-- Documents -->
-			<v-sheet v-if="typeDocumentItems.length" class="pa-4 mb-4" elevation="1" rounded>
-				<h4 class="mb-3">Documents</h4>
-				<DocumentForm v-model="formData.documents" :type-documents="typeDocumentItems" />
-			</v-sheet>
 		</template>
 	</BaseForm>
 </template>

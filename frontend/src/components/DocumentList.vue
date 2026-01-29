@@ -1,57 +1,76 @@
 <template>
-  <v-data-table
-    :headers="headers"
-    :items="documents"
-    class="elevation-1 document-table"
-    hide-default-footer
-    :items-per-page="-1"
-  >
-    <template #item.name="{ item }">
-      <div style="word-wrap: break-word; white-space: normal;">
-        {{ item.titre }}
-      </div>
-    </template>
-    
-    <template #item.type="{ item }">
-      {{ item.type_nom }}
-    </template>
-    
-    <template #item.actions="{ item }">
-      <div class="text-no-wrap">
-        <v-btn
-          icon
-          size="small"
-          color="primary"
-          class="mr-2"
-          @click="$emit('download', item)"
-          :disabled="downloading"
-        >
-          <v-icon>mdi-download</v-icon>
-        </v-btn>
-        
-        <v-btn
-          icon
-          size="small"
-          color="error"
-          @click="$emit('delete', item)"
-          :disabled="deleting"
-        >
-          <v-icon>mdi-delete</v-icon>
-        </v-btn>
-      </div>
-    </template>
-    
-    <template #no-data>
-      <div class="text-center pa-4">
-        <v-icon size="48" color="grey-lighten-1">mdi-file-document-outline</v-icon>
-        <p class="text-grey mt-2">Aucun document</p>
-      </div>
-    </template>
-  </v-data-table>
+  <div>
+    <v-data-table
+      :headers="headers"
+      :items="documents"
+      class="elevation-1 document-table"
+      hide-default-footer
+      :items-per-page="-1"
+    >
+      <template #item.name="{ item }">
+        <div style="word-wrap: break-word; white-space: normal;">
+          {{ item.titre }}
+        </div>
+      </template>
+      
+      <template #item.type="{ item }">
+        {{ item.type_nom }}
+      </template>
+      
+      <template #item.actions="{ item }">
+        <div class="text-no-wrap">
+          <v-btn
+            icon
+            size="small"
+            color="primary"
+            class="mr-2"
+            @click="handleDownload(item)"
+            :disabled="downloadingDoc"
+          >
+            <v-icon>mdi-download</v-icon>
+          </v-btn>
+          
+          <v-btn
+            icon
+            size="small"
+            color="error"
+            @click="openDeleteModal(item)"
+            :disabled="deletingDoc"
+          >
+            <v-icon>mdi-delete</v-icon>
+          </v-btn>
+        </div>
+      </template>
+      
+      <template #no-data>
+        <div class="text-center pa-4">
+          <v-icon size="48" color="grey-lighten-1">mdi-file-document-outline</v-icon>
+          <p class="text-grey mt-2">Aucun document</p>
+        </div>
+      </template>
+    </v-data-table>
+
+    <!-- Modale de confirmation de suppression -->
+    <ConfirmationModal
+      v-model="showDeleteModal"
+      type="error"
+      title="Supprimer le document"
+      :message="deleteMessage"
+      confirm-text="Supprimer"
+      cancel-text="Annuler"
+      confirm-icon="mdi-delete"
+      :loading="deletingDoc"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
+  </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useApi } from '@/composables/useApi';
+import { BASE_URL, MEDIA_BASE_URL, API_BASE_URL } from '@/utils/constants';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 
 const props = defineProps({
   documents: {
@@ -61,18 +80,88 @@ const props = defineProps({
   showType: {
     type: Boolean,
     default: false
-  },
-  downloading: {
-    type: Boolean,
-    default: false
-  },
-  deleting: {
-    type: Boolean,
-    default: false
   }
 });
 
-defineEmits(['download', 'delete']);
+const emit = defineEmits(['delete-success', 'delete-error', 'download-error', 'download-success']);
+
+const api = useApi(API_BASE_URL);
+
+const downloadingDoc = ref(false);
+const deletingDoc = ref(false);
+const showDeleteModal = ref(false);
+const docToDelete = ref(null);
+
+const deleteMessage = computed(() => {
+  const name = docToDelete.value?.titre || 'ce document';
+  return `Êtes-vous sûr de vouloir supprimer le document "${name}" ?\n\nCette action est irréversible.`;
+});
+
+const openDeleteModal = (item) => {
+  docToDelete.value = item;
+  showDeleteModal.value = true;
+};
+
+const cancelDelete = () => {
+  showDeleteModal.value = false;
+  docToDelete.value = null;
+};
+
+const confirmDelete = async () => {
+  if (!docToDelete.value?.id) {
+    emit('delete-error', 'ID du document introuvable');
+    showDeleteModal.value = false;
+    docToDelete.value = null;
+    return;
+  }
+
+  deletingDoc.value = true;
+  try {
+    await api.remove(`documents/${docToDelete.value.id}/`);
+    showDeleteModal.value = false;
+    docToDelete.value = null;
+    emit('delete-success');
+  } catch (error) {
+    emit('delete-error', 'Erreur lors de la suppression du document');
+  } finally {
+    deletingDoc.value = false;
+  }
+};
+
+const handleDownload = async (item) => {
+  downloadingDoc.value = true;
+  try {
+    const raw = item?.path || item?.lienDocumentIntervention || item?.cheminAcces;
+    if (!raw) {
+      emit('download-error', 'Chemin du document introuvable');
+      return;
+    }
+
+    const path = String(raw).replace(/^\/+/, '').split('/media/').pop();
+    const response = await fetch(`${BASE_URL}${MEDIA_BASE_URL}${path}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = path.split('/').pop() || 'document';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    emit('download-success');
+  } catch (error) {
+    emit('download-error', 'Erreur lors du téléchargement du document');
+  } finally {
+    downloadingDoc.value = false;
+  }
+};
 
 const headers = computed(() => {
   const baseHeaders = [
