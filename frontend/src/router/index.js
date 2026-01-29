@@ -15,6 +15,7 @@ import ModifierUser from '@/views/Users/EditUser.vue'
 import CreerUser from '@/views/Users/CreateUser.vue'
 import Stocks from '@/views/Stocks/Stocks.vue'
 import CreateConsumable from '@/views/Stocks/CreateConsumable.vue'
+import ConsumableDetail from '@/views/Stocks/ConsumableDetail.vue'
 import FailureList from '@/views/Failures/FailureList.vue'
 
 
@@ -147,9 +148,9 @@ const routes = [
   },
 
   {
-    path: '/ConsumableDetail/:id',
-    name: 'ConsumableDetail',
-    component: CreateConsumable,
+    path: '/Consumable/:id',
+    name: 'Consumable',
+    component: ConsumableDetail,
     props: true,
     meta: { title: 'Détails du consommable', requiresPermission: 'cons:viewDetail' }
   },
@@ -426,7 +427,7 @@ const routes = [
     path: '/ModelEquipmentList',
     name: 'ModelEquipmentList',
     component: ModelEquipmentList,
-    meta: { title: 'Modèle', requiresPermission: 'eqmod:viewList' } 
+    meta: { title: 'Modèle', requiresPermission: 'eqmod:viewList' }
   },
 
   {
@@ -473,12 +474,12 @@ router.beforeEach((to, from, next) => {
 
     if (!userPermissions.includes(requiredPermission)) {
 
-      if(to.meta.checksIfSelf) {
+      if (to.meta.checksIfSelf) {
         // Vérifier si l'utilisateur essaie d'accéder à sa propre ressource
         const userId = user.id
         const routeId = parseInt(to.params.id)
 
-        if(userId === routeId) {
+        if (userId === routeId) {
           next()
           return
         }
