@@ -102,27 +102,13 @@
 
             <v-expand-transition>
               <v-card-text v-show="showDocumentsDetails">
-
-                <v-data-table :headers="documentHeaders" :items="data.documentsDI || []"
-                  class="elevation-1" hide-default-footer :items-per-page="-1">
-                  <template #item.name="{ item }">
-                    {{ item.titre }}
-                  </template>
-                  <template #item.actions="{ item }">
-                    <v-btn icon size="small" :color="'primary'" class="mr-2"
-                      @click="downloadDocument(item)">
-                      <v-icon>
-                        mdi-download
-                      </v-icon>
-                    </v-btn>
-                    <v-btn icon size="small" :color="'error'"
-                      @click="deleteDocument(item)">
-                      <v-icon>
-                        mdi-delete
-                      </v-icon>
-                    </v-btn>
-                  </template>
-                </v-data-table>
+                <DocumentList
+                  :documents="data.documentsDI || []"
+                  :show-type="true"
+                  :deleting="deleteDocLoading"
+                  @download="downloadDocument"
+                  @delete="deleteDocument"
+                />
               </v-card-text>
             </v-expand-transition>
           </v-card>
@@ -209,6 +195,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
+import DocumentList from '@/components/DocumentList.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, MEDIA_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
 import { useStore } from 'vuex';
@@ -251,11 +238,6 @@ const formatDate = (dateString) => {
     minute: '2-digit'
   });
 };
-
-const documentHeaders = [
-  { title: 'Nom du document', key: 'name' },
-  { title: 'Actions', key: 'actions', sortable: false }
-];
 
 const canClose = computed(() => FAILURE_STATUS[ defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 const canCreateIntervention = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
