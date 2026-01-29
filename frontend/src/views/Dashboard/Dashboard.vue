@@ -48,22 +48,18 @@
             Créer un BT
           </v-btn>
         </v-card>
+
+        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.eq')">
+          <EquipmentListComponent title="Liste des Équipements" :showSearch="true" @row-click="handleRowClickEquipment" :getItemsBySelf="true" />
+        </v-card>
+
+        
       </div>
 
-      <div v-else-if="store.getters.hasPermission('dash:display.magasin')">
-        <p>Vous n'avez pas les permissions nécessaires pour afficher le tableau de bord.</p>
+      <div v-else-if="store.getters.hasPermission('dash:display.mag')">
+        <Stocks />
       </div>
-
-
     </div>
-
-
-
-
-
-
-
-
     <v-btn
       class="floating-logout-button"
       color="primary"
@@ -86,6 +82,7 @@ import { useRouter } from 'vue-router'
 
 import FailureListComponent from '@/components/FailureListComponent.vue'
 import InterventionListComponent from '@/components/InterventionListComponent.vue'
+import EquipmentListComponent from '@/components/EquipmentListComponent.vue'
 import StatsComponent from '@/components/StatsComponent.vue'
 import Stocks from '@/views/Stocks/Stocks.vue'
 
@@ -143,6 +140,11 @@ const handleCreateBT = () => {
     name: 'CreateIntervention',
     query: { from: 'dashboard' }
   })
+}
+
+// Gestion click Equipment
+const handleRowClickEquipment = (equipment) => {
+  router.push({ name: 'EquipmentDetail', params: { id: equipment.id } })
 }
 
 const statsFull = computed(() => isResponsable.value)
