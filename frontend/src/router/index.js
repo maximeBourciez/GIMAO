@@ -382,7 +382,7 @@ const routes = [
     name: 'EditFailure',
     component: EditFailure,
     props: true,
-    meta: { title: 'Modifier la demande d\'intervention', requiresPermissions: ['di:edit'] }
+    meta: { title: 'Modifier la demande d\'intervention', requiresPermissions: ['di:editCreated', 'di:editAll'], permissionMode: 'OR' }
   },
 
   {
@@ -390,7 +390,7 @@ const routes = [
     name: 'AddDocumentFailure',
     component: AddDocumentFailure,
     props: true,
-    meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:edit'] }
+    meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:editCreated', 'di:editAll'], permissionMode: 'OR' }
   },
 
   // Lieux ---------------------------------------------------------------
