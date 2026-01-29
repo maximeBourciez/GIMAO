@@ -46,6 +46,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import { useApi } from '@/composables/useApi.js';
 import { API_BASE_URL } from '@/utils/constants';
@@ -54,6 +55,7 @@ import BaseDetailView from '@/components/common/BaseDetailView.vue';
 const route = useRoute();
 const router = useRouter();
 const api = useApi(API_BASE_URL);
+const store = useStore();
 
 const modelEquipment = ref(null);
 const isLoading = ref(true);
