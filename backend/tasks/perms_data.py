@@ -45,7 +45,7 @@ perms = [
 
 perms_map = {
     "Responsable GMAO": [
-        perm for perm in perms not 'dash:display.vertical'
+        perm for perm in perms if perm not in ['dash:display.vertical', 'dash:display.eq', 'dash:display.mag' ]
     ],
 
     "Technicien": [

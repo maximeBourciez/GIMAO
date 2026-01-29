@@ -62,7 +62,7 @@
       </div>
 
       <!-- Dashboard magasinier -->
-      <div v-else-if="store.getters.hasPermission('dash:display.mag')">
+      <div v-if="store.getters.hasPermission('dash:display.mag')">
         <Stocks />
       </div>
     </div>
