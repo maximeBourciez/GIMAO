@@ -72,12 +72,12 @@
           <!-- Boutons d'action -->
           <v-row class="mt-6">
             <v-col cols="12" xl="6" class="py-1">
-              <v-btn color="info" block :disabled="!canStart" @click="openStartModal"
+              <v-btn color="info" block :disabled="!canStart" @click="openStartModal" v-if="canStartIntervention"
                 >Démarrer l'intervention</v-btn
               >
             </v-col>
             <v-col cols="12" xl="6" class="py-1">
-              <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal"
+              <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal" v-if="canFinishIntervention"
                 >Terminer l'intervention</v-btn
               >
             </v-col>
@@ -87,7 +87,7 @@
               xl="6"
               class="py-1"
             >
-              <v-btn color="success" block :disabled="!canClose" @click="openCloseModal"
+              <v-btn color="success" block :disabled="!canClose" @click="openCloseModal" v-if="store.getters.hasPermission('bt:acceptClosure')"
                 >Clôturer le BT</v-btn
               >
             </v-col>
@@ -644,15 +644,32 @@ const canRefuseClose = computed(
     store.getters.hasPermission("bt:refuseClosure")
 );
 
+// Méthodes pour cacher les boutons si l'utilisateur n'a pas les droits
+const canStartIntervention = computed(() => {
+  const isAssigned = isUserAssignedToIntervention.value;
+  const isCreator = intervention.value?.utilisateur_createur?.id === currentUser.value.id
+  return (isAssigned || isCreator);
+});
+
+const canFinishIntervention = computed(() => {
+  const isAssigned = isUserAssignedToIntervention.value;
+  const isCreator = intervention.value?.utilisateur_createur?.id === currentUser.value.id;
+  return  (isAssigned || isCreator);
+});
+
 const canUserEditBT = computed(() => {
-  const isAssigned = intervention.value?.utilisateur_assigne
-    .map((u) => u.id)
-    .includes(currentUser.value.id);
+  const isAssigned = isUserAssignedToIntervention.value;
   const isCreator = intervention.value?.utilisateur_createur?.id === currentUser.value.id;
   const canEditAssignedBT = store.getters.hasPermission("bt:editAssigned");
   const canEditAllBT = store.getters.hasPermission("bt:editAll");
-  console.log(isAssigned, isCreator, canEditAllBT);
   return (isAssigned && canEditAssignedBT) || canEditAllBT || isCreator;
+});
+
+const isUserAssignedToIntervention = computed(() => {
+  if (!intervention.value || !currentUser.value) return false;
+  return intervention.value.utilisateur_assigne
+    .map((u) => u.id)
+    .includes(currentUser.value.id);
 });
 
 const openStartModal = () => {
