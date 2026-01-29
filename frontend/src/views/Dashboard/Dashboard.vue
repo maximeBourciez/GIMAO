@@ -107,11 +107,6 @@ const hasDIandBtHorizontal = computed(() => {
 })
 
 
-onMounted(() => {
-  console.log('Dashboard mounted -- perms for stats:', getPermsForStats())
-  console.log('Has stats:', hasStats.value)
-  console.log('Has DI and BT horizontal:', hasDIandBtHorizontal.value)
-})
 
 const logout = () => {
   // Supprimer les données du store et du localStorage
@@ -123,7 +118,7 @@ const logout = () => {
 
 // Gestion click DI
 const handleRowClickDI = (failure) => {
-  router.push({ name: 'FailureDetail', params: { id: failure.id } })
+  router.push({ name: 'FailureDetail', params: { id: failure.id }, query: { from: 'dashboard' } })
 }
 
 const handleCreateDI = () => {
@@ -132,7 +127,7 @@ const handleCreateDI = () => {
 
 // Gestion click BT
 const handleRowClickBT = (intervention) => {
-  router.push({ name: 'InterventionDetail', params: { id: intervention.id } })
+  router.push({ name: 'InterventionDetail', params: { id: intervention.id }, query: { from: 'dashboard' } })
 }
 
 const handleCreateBT = () => {
@@ -144,7 +139,7 @@ const handleCreateBT = () => {
 
 // Gestion click Equipment
 const handleRowClickEquipment = (equipment) => {
-  router.push({ name: 'EquipmentDetail', params: { id: equipment.id } })
+  router.push({ name: 'EquipmentDetail', params: { id: equipment.id }, query: { from: 'dashboard' } })
 }
 
 const statsFull = computed(() => isResponsable.value)
