@@ -68,13 +68,14 @@ const fetchFailureData = async () => {
   try {
     const response = await api.get(`demandes-intervention/${failureId.value}/`)
     
-    // Formatter les documents existants pour DocumentForm (utiliser document_id)
+    // Formatter les documents existants pour DocumentForm
     const documentsLines = Array.isArray(response?.documentsDI)
       ? response.documentsDI.map((d) => ({
           document_id: d?.id ?? null,
-          nomDocument: '',
-          typeDocument_id: null,
-          file: null
+          nomDocument: d?.nomDocument || d?.titre || '',
+          typeDocument_id: d?.type ?? null,
+          file: null,
+          existingFileName: d?.path ? d.path.split('/').pop() : null
         }))
       : []
     

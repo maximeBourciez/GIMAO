@@ -11,7 +11,7 @@
 					:model-value="doc.nomDocument"
 					@update:modelValue="(value) => updateDocument(index, { nomDocument: value })"
 					:field-name="`document_nom_${index}`"
-					label="Nom (optionnel)"
+					label="Nom"
 					placeholder="Nom du document"
 					clearable
 				/>
@@ -69,10 +69,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, provide, watch } from 'vue';
+import { computed, onMounted, provide } from 'vue';
 import { FormField, FormSelect, FormFileInput } from '@/components/common';
 import { useApi } from '@/composables/useApi';
-import { useFormValidation } from '@/composables/useFormValidation';
 import { API_BASE_URL } from '@/utils/constants';
 
 const props = defineProps({
@@ -103,23 +102,6 @@ const normalize = (value) => {
 
 const documents = computed(() => normalize(props.modelValue));
 
-// Créer un schéma de validation dynamique basé sur le nombre de documents
-const validationSchema = computed(() => {
-	const schema = {};
-	documents.value.forEach((doc, index) => {
-		// Type est requis
-		schema[`document_type_${index}`] = ['required'];
-		// Fichier est requis seulement si pas de fichier existant
-		if (!doc.existingFileName) {
-			schema[`document_file_${index}`] = ['required'];
-		}
-	});
-	return schema;
-});
-
-// Utiliser useFormValidation avec le schéma dynamique (accepte un computed)
-const validation = useFormValidation(validationSchema);
-
 // Fonction isFieldRequired personnalisée pour gérer les fichiers existants
 const isFieldRequired = (fieldName) => {
 	// Extraire l'index du nom du champ
@@ -140,8 +122,7 @@ const isFieldRequired = (fieldName) => {
 	return false;
 };
 
-// Fournir validation et isFieldRequired aux composants enfants
-provide('validation', validation);
+// Fournir isFieldRequired aux composants enfants
 provide('isFieldRequired', isFieldRequired);
 
 onMounted(() => {
@@ -169,7 +150,7 @@ const removeDocument = async (index) => {
 	if (doc?.document_id && Number.isInteger(Number(doc.document_id)) && Number(doc.document_id) > 0) {
 		try {
 			const api = useApi(API_BASE_URL);
-			await api.delete(`documents/${doc.document_id}/`);
+			await api.remove(`documents/${doc.document_id}/`);
 		} catch (error) {
 			console.error('Erreur lors de la suppression du document:', error);
 		}

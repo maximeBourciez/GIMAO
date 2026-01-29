@@ -206,6 +206,7 @@ const store = useStore();
 const router = useRouter();
 const route = useRoute();
 const failureApi = useApi(API_BASE_URL);
+const documentApi = useApi(API_BASE_URL);
 const equipmentApi = useApi(API_BASE_URL);
 const patchApi = useApi(API_BASE_URL);
 
@@ -421,9 +422,7 @@ const confirmDeleteDocument = async () => {
   
   deleteDocLoading.value = true;
   try {
-    await failureApi.patch(`demandes-intervention/${route.params.id}/delink_document/`, {
-      document_id: docToDelete.value.id
-    });
+    await documentApi.remove(`documents/${docToDelete.value.id}/`);
     await fetchData();
     successMessage.value = 'Document supprimé';
     showDeleteDocModal.value = false;
