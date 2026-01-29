@@ -48,6 +48,26 @@ export const BREADCRUMBS = {
 			];
 		}
 
+        if(route.query.from === "intervention-dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Bon de travail #${route.query.interventionId}`,
+                    to: {
+                        name: "InterventionDetail",
+                        params: { id: route.query.interventionId },
+                        query: { from: "dashboard" },
+                    },
+                },
+                {
+                    label: `Équipement #${route.params.id}`,
+                },
+            ];
+        }
+
         if(route.query.from === "dashboard") {
             return [
                 {
@@ -167,6 +187,22 @@ export const BREADCRUMBS = {
     },
 
     EditIntervention: (route) => {
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Bon de travail #${route.params.id}`,
+                    to: { name: "InterventionDetail", params: { id: route.params.id }, query: { from: route.query.from } },
+                },
+                {
+                    label: "Modifier",
+                },
+            ];
+        }
+
         return [
             { label: "Bons de travail", to: { name: "InterventionList" } },
             {
@@ -178,6 +214,23 @@ export const BREADCRUMBS = {
     },
 
 	AddDocumentIntervention: (route) => {
+
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Bon de travail #${route.params.id}`,
+                    to: { name: "InterventionDetail", params: { id: route.params.id }, query: { from: route.query.from } },
+                },
+                {
+                    label: "Ajouter des documents",
+                },
+            ];
+        }
+
 		return [
 			{ label: "Bons de travail", to: { name: "InterventionList" } },
 			{
@@ -275,11 +328,30 @@ export const BREADCRUMBS = {
         },
     ],
 
-    AddDocumentFailure: (route) => [
-        { label: "Demandes d'intervention", to: { name: "FailureList" } },
-        { label: `Demande d'intervention #${route.params.id}`, to: { name: "FailureDetail", params: { id: route.params.id } } },
-        { label: "Ajouter des documents" },
-    ],
+    AddDocumentFailure: (route) =>{ 
+
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Demande d'intervention #${route.params.id}`,
+                    to: { name: "FailureDetail", params: { id: route.params.id }, query: { from: route.query.from } },
+                },
+                {
+                    label: "Ajouter des documents",
+                },
+            ];
+        }
+
+        return [
+            { label: "Demandes d'intervention", to: { name: "FailureList" } },
+            { label: `Demande d'intervention #${route.params.id}`, to: { name: "FailureDetail", params: { id: route.params.id } } },
+            { label: "Ajouter des documents" },
+        ]
+},
 
     /***************************************
      * Magasin

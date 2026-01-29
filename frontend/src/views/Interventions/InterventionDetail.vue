@@ -260,7 +260,7 @@
             >
               Documents
               <v-spacer></v-spacer>
-              <v-btn color="primary" size="small" class="mr-2" @click.stop="addDocument">
+              <v-btn color="primary" size="small" class="mr-2" @click.stop="addDocument" v-if="canUserEditBT">
                 Ajouter
               </v-btn>
               <v-icon>
@@ -678,8 +678,14 @@ const openDeleteDocumentModal = (scope, item) => {
 };
 
 const goToEditIntervention = () => {
-  const id = intervention.value?.id ?? route.params.id;
+  const id = intervention.value?.id ?? route.params.id; 
   if (!id) return;
+
+  if(route.query.from){
+    router.push({ name: "EditIntervention", params: { id }, query: { from: route.query.from, interventionId: route.params.id } });
+    return;
+  }
+
   router.push({ name: "EditIntervention", params: { id } });
 };
 
@@ -737,6 +743,16 @@ const openFailure = () => {
 
 const openEquipement = () => {
   if (!equipementId.value) return;
+
+  if(route.query.from){
+    router.push({
+      name: "EquipmentDetail",
+      params: { id: equipementId.value },
+      query: { from: "intervention-" +route.query.from, interventionId: route.params.id },
+    });
+    return;
+  }
+
   router.push({
     name: "EquipmentDetail",
     params: { id: equipementId.value },
@@ -746,6 +762,11 @@ const openEquipement = () => {
 
 const addDocument = () => {
   if (!intervention.value?.id) return;
+  if(route.query.from){
+    router.push({ name: "AddDocumentIntervention", params: { id: intervention.value.id }, query: { from: route.query.from, interventionId: route.params.id } });
+    return;
+  }
+
   router.push({ name: "AddDocumentIntervention", params: { id: intervention.value.id } });
 };
 

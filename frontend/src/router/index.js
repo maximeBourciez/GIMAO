@@ -390,7 +390,7 @@ const routes = [
     name: 'AddDocumentFailure',
     component: AddDocumentFailure,
     props: true,
-    meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:editCreated', 'di:editAll'], permissionMode: 'OR'   }
+    meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:editCreated', 'di:editAll'], permissionMode: 'OR' }
   },
 
   // Lieux ---------------------------------------------------------------
@@ -424,7 +424,7 @@ const routes = [
     path: '/ModelEquipmentList',
     name: 'ModelEquipmentList',
     component: ModelEquipmentList,
-    meta: { title: 'Modèle', requiresPermissions: ['eqmod:viewList'] } 
+    meta: { title: 'Modèle', requiresPermissions: ['eqmod:viewList'] }
   },
 
   {
@@ -474,6 +474,9 @@ router.beforeEach((to, from, next) => {
   const requiredPermissions = to.meta.requiresPermissions
   const permissionMode = to.meta.permissionMode || 'OR'
 
+  // -----------------------------
+  // Permissions
+  // -----------------------------
   if (requiredPermissions && requiredPermissions.length > 0) {
 
     const hasPermission =
@@ -483,7 +486,7 @@ router.beforeEach((to, from, next) => {
 
     if (!hasPermission) {
 
-      // Cas spécial : ressource "self"
+      // Cas spécial : self
       if (to.meta.checksIfSelf) {
         const userId = user.id
         const routeId = parseInt(to.params.id)
@@ -502,6 +505,7 @@ router.beforeEach((to, from, next) => {
 
   next()
 })
+
 
 
 export default router
