@@ -390,7 +390,7 @@ const routes = [
     name: 'AddDocumentFailure',
     component: AddDocumentFailure,
     props: true,
-    meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:editCreated', 'di:editAll'], permissionMode: 'OR' }
+    meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:editCreated', 'di:editAll'], permissionMode: 'OR'   }
   },
 
   // Lieux ---------------------------------------------------------------

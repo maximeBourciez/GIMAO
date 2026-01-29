@@ -71,12 +71,11 @@
       color="primary"
       dark
       @click="logout"
-      v-if="!store.getters.hasPermission('menu.view')"
+      v-if="!store.getters.hasPermission('menu:view')"
     >
       <v-icon left>mdi-logout</v-icon>
       Se déconnecter
     </v-btn>
-
   </v-container>
 </template>
 
