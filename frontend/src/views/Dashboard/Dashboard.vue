@@ -52,10 +52,16 @@
         <v-card rounded="" v-if="store.getters.hasPermission('dash:display.eq')">
           <EquipmentListComponent title="Liste des Équipements" :showSearch="true" @row-click="handleRowClickEquipment" :getItemsBySelf="true" />
         </v-card>
-
-        
       </div>
 
+      <!-- Equipement standalone -->
+      <div v-if="store.getters.hasPermission('dash:display.eq')">
+      <v-card rounded="" v-if="store.getters.hasPermission('dash:display.eq')">
+        <EquipmentListComponent title="Liste des Équipements" :showSearch="true" @row-click="handleRowClickEquipment" :getItemsBySelf="true" />
+        </v-card>
+      </div>
+
+      <!-- Dashboard magasinier -->
       <div v-else-if="store.getters.hasPermission('dash:display.mag')">
         <Stocks />
       </div>
