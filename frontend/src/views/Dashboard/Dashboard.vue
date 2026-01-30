@@ -24,7 +24,7 @@
           <v-card rounded="">
             <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" />
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT" v-if="store.getters.hasPermission('bt:create')">
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT" v-if="store.getters.hasPermission('bt:createa')">
               Créer un BT
             </v-btn>
           </v-card>
@@ -33,11 +33,30 @@
 
       <!-- Dashboard vertical --> 
       <div v-else-if="store.getters.hasPermission('dash:display.vertical')" class="column">
-        <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.di')">
-          <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" :showCreateButton="false"/>
+        <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.diCreated')">
+          <FailureListComponent @row-click="handleRowClickDI" title="Vos DI" :showSearch="true" 
+          :showCreateButton="false" :api-endpoint="`demandes-intervention/par_utilisateur/?utilisateur_id=${store.getters.currentUser.id}`"/>
 
           <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI" :showCreateButton="false">
             Créer une DI
+          </v-btn>
+        </v-card>
+
+        <v-card rounded=""  v-else-if="store.getters.hasPermission('dash:display.di')">
+          <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" 
+          :showCreateButton="false"/>
+
+          <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI" :showCreateButton="false">
+            Créer une DI
+          </v-btn>
+        </v-card>
+
+        <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.btAssigned')" >
+          <InterventionListComponent @row-click="handleRowClickBT" title="Vos BT Assignés" :showSearch="true" :showCreateButton="false"
+            :apiEndpoint="`bons-travail/assigne_a/?utilisateur_id=${store.getters.currentUser.id}`"/>
+
+          <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
+            Créer un BT
           </v-btn>
         </v-card>
 
@@ -148,6 +167,10 @@ const handleRowClickEquipment = (equipment) => {
 }
 
 const statsFull = computed(() => isResponsable.value)
+
+onMounted(() => {
+  console.log('Perms: ', store.getters.userPermissions)
+})
 </script>
 
 

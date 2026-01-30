@@ -122,6 +122,7 @@ const props = defineProps({
 	// Data sourcing
 	items: { type: Array, default: null },
 	fetchOnMount: { type: Boolean, default: true },
+	apiEndpoint: { type: String, default: 'bons-travail' },
 
 	// DataTable columns
 	variant: {
@@ -212,9 +213,9 @@ const fetchBonsTravail = async ({ includeCloture } = { includeCloture: false }) 
 	try {
 		includeClotureInFetch.value = !!includeCloture;
 		if (includeCloture) {
-			await api.get('bons-travail', { cloture: true });
+			await api.get(props.apiEndpoint, { cloture: true });
 		} else {
-			await api.get('bons-travail');
+			await api.get(props.apiEndpoint);
 		}
 
 		emit('loaded', allItems.value);

@@ -93,10 +93,21 @@ class LogAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         """Les logs ne peuvent pas être modifiés"""
         return False
+    
+class PermissionAdmin(admin.ModelAdmin):
+    list_display = ('nomPermission', 'description')
+    search_fields = ('nomPermission',)
+    ordering = ('nomPermission',)
+
+class RolePermissionAdmin(admin.ModelAdmin):
+    list_display = ('role', 'permission')
+    list_filter = ('role',)
+    search_fields = ('role__nomRole', 'permission__nomPermission')
+    ordering = ('role', 'permission')
 
 
 admin.site.register(Role, RoleAdmin)
 admin.site.register(Utilisateur, UtilisateurAdmin)
 admin.site.register(Log, LogAdmin)
-admin.site.register(Permission)
-admin.site.register(RolePermission)
+admin.site.register(Permission, PermissionAdmin)
+admin.site.register(RolePermission, RolePermissionAdmin)

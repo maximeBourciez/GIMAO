@@ -94,6 +94,23 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(demandes, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def par_utilisateur(self, request):
+        """
+        Filtre les demandes par utilisateur
+        Query param: utilisateur_id
+        """
+        utilisateur_id = request.query_params.get('utilisateur_id')
+        if not utilisateur_id:
+            return Response(
+                {'error': 'Le paramètre utilisateur_id est requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        demandes = self.queryset.filter(utilisateur_id=utilisateur_id)
+        serializer = self.get_serializer(demandes, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'])
     def traiter(self, request, pk=None):
         """Marque une demande comme traitée"""
@@ -114,6 +131,7 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['patch'])
     def delink_document(self, request, pk=None):
+        """  Délie un document d'une demande d'intervention."""
         demande = self.get_object()
         document_id = request.data.get('document_id')
         
@@ -214,6 +232,7 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def transform_to_bon_travail(self, request, *args, **kwargs):
+        """Transforme une demande d'intervention en bon de travail."""
         demande = self.get_object()
         print(demande, request.data.get('responsable'))
 
@@ -748,6 +767,23 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(bon_apres)
         return Response(serializer.data)
+
+
+    @action(detail=False, methods=['get'])
+    def assigne_a(self, request, pk=None):
+        """Retourne la liste des BT assignés à un utilisateur."""
+        user = request.query_params.get('utilisateur_id')
+        if not user:
+            return Response(
+                {'error': 'Le paramètre utilisateur_id est requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Récupérer les BT assignés à l'utilisateur ( user in utilisateur_assigne )
+        bons = self.queryset.filter(utilisateur_assigne__id=user)
+        serializer = self.get_serializer(bons, many=True)
+        return Response(serializer.data)
+        
 
     @action(detail=True, methods=['patch'])
     def delink_document(self, request, pk=None):
