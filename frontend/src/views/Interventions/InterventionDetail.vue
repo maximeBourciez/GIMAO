@@ -195,7 +195,8 @@
               <div v-else>
                 <div v-for="(value, key) in formattedEquipement" :key="key" class="detail-field">
                   <label class="detail-label">{{ key }}</label>
-                  <div class="detail-value">{{ value }}</div>
+                  <div v-if="key !== 'Statut'" class="detail-value">{{ value }}</div>
+                  <v-chip v-else :color="getStatusColor(value)" variant="tonal">{{ getStatusLabel(value) }}</v-chip>
                 </div>
               </div>
             </v-card-text>
@@ -390,7 +391,7 @@ import DocumentList from '@/components/DocumentList.vue';
 import { BaseForm, FormTextarea } from '@/components/common';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, BASE_URL, MEDIA_BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
-import { formatDateTime, getInterventionStatusColor } from '@/utils/helpers';
+import { formatDateTime, getInterventionStatusColor, getStatusColor, getStatusLabel } from '@/utils/helpers';
 
 const router = useRouter();
 const route = useRoute();

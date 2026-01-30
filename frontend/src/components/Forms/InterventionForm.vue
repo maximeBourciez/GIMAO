@@ -3,17 +3,15 @@
 		v-model="formData"
 		v-bind="mergedBaseFormProps"
 		:validation-schema="validationSchema"
-		:loading="state.loading"
-		:error-message="state.errorMessage"
-		:success-message="state.successMessage"
+		:loading="loading"
+		:error-message="errorMessage"
+		:success-message="successMessage"
 		:custom-disabled="!isFormValidForSubmit"
-		:handleSubmit="forwardSubmit"
+		:handleSubmit="save"
+		:custom-cancel-action="close"
 		actions-container-class="d-flex justify-end gap-2 mt-2"
 		submit-button-class="mt-2"
 		cancel-button-class="mt-2 mr-3"
-		@cancel="emit('cancel')"
-		@clear-error="emit('clear-error')"
-		@clear-success="emit('clear-success')"
 	>
 		<template #default>
 			<!-- Informations générales -->
@@ -28,7 +26,7 @@
 							:items="equipments"
 							item-title="designation"
 							item-value="id"
-							:disabled="equipementReadOnly"
+						:disabled="isEdit"
 						/>
 					</v-col>
 
@@ -108,7 +106,7 @@
 							:items="responsableItems"
 							item-title="label"
 							item-value="id"
-							:disabled="responsableReadOnly"
+							:disabled="isEdit"
 						/>
 					</v-col>
 
@@ -202,26 +200,36 @@
 </template>
 
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { computed, reactive, watch, ref } from 'vue';
 import { BaseForm, FormField, FormSelect, FormTextarea } from '@/components/common';
 import DocumentForm from '@/components/Forms/DocumentForm.vue';
+import { useApi } from '@/composables/useApi';
+import { API_BASE_URL } from '@/utils/constants';
 
 const props = defineProps({
-	modelValue: {
-		type: Object,
-		required: true
+	title: {
+		type: String,
+		default: 'Bon de travail'
 	},
-	equipementReadOnly: {
+	submitButtonText: {
+		type: String,
+		default: 'Valider'
+	},
+	submitButtonColor: {
+		type: String,
+		default: 'primary'
+	},
+	isEdit: {
 		type: Boolean,
 		default: false
+	},
+	initialData: {
+		type: Object,
+		default: () => ({})
 	},
 	equipments: {
 		type: Array,
 		default: () => []
-	},
-	baseFormProps: {
-		type: Object,
-		default: () => ({})
 	},
 	users: {
 		type: Array,
@@ -235,35 +243,330 @@ const props = defineProps({
 		type: Array,
 		default: () => []
 	},
-	responsableReadOnly: {
-		type: Boolean,
-		default: false
-	},
-	state: {
-		type: Object,
-		default: () => ({
-			loading: false,
-			errorMessage: '',
-			successMessage: ''
+	connectedUserId: {
+		type: Number,
+		default: null
+	}
+});
+
+const emit = defineEmits(['created', 'updated', 'close']);
+
+const formData = ref({
+	equipement_id: null,
+	nom: '',
+	type: 'CORRECTIF',
+	date_prevue: null,
+	commentaire: '',
+	diagnostic: '',
+	responsable_id: null,
+	utilisateur_assigne_ids: [],
+	consommables: [{ consommable_id: null, quantite_utilisee: null }],
+	documents: [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
+});
+
+const originalFormData = ref(null);
+const loading = ref(false);
+const errorMessage = ref('');
+const successMessage = ref('');
+
+// Initialiser les données
+watch(() => props.initialData, (newData) => {
+	if (newData && Object.keys(newData).length > 0) {
+		formData.value = {
+			equipement_id: newData.equipement_id || null,
+			nom: newData.nom || '',
+			type: newData.type || 'CORRECTIF',
+			date_prevue: newData.date_prevue || null,
+			commentaire: newData.commentaire || '',
+			diagnostic: newData.diagnostic || '',
+			responsable_id: newData.responsable_id || null,
+			utilisateur_assigne_ids: newData.utilisateur_assigne_ids || [],
+			consommables: newData.consommables?.length ? newData.consommables : [{ consommable_id: null, quantite_utilisee: null }],
+			documents: newData.documents?.length ? newData.documents : [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
+		};
+		// Sauvegarder l'état original pour comparaison
+		if (props.isEdit) {
+			originalFormData.value = JSON.parse(JSON.stringify(formData.value));
+		}
+	}
+}, { immediate: true, deep: true });
+
+const close = () => {
+	emit('close');
+};
+
+const buildConsommablesPayload = (source) => {
+	const lines = Array.isArray(source?.consommables) ? source.consommables : [];
+	return lines
+		.filter((c) => c && c.consommable_id !== null && c.consommable_id !== undefined && c.consommable_id !== '')
+		.map((c) => {
+			const id = Number(c.consommable_id);
+			const qRaw = Number.isFinite(Number(c.quantite_utilisee)) ? Number(c.quantite_utilisee) : 0;
+			const q = Math.max(0, Math.trunc(qRaw));
+			return { consommable_id: id, quantite_utilisee: q };
 		})
+		.sort((a, b) => a.consommable_id - b.consommable_id);
+};
+
+const createAndLinkDocuments = async (bonTravailId, documents, originalDocuments = []) => {
+	const docs = Array.isArray(documents) ? documents : [];
+	const errors = [];
+	const api = useApi(API_BASE_URL);
+
+	for (const doc of docs) {
+		if (!doc) continue;
+		
+		// Ignorer les lignes vides
+		if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim()) continue;
+		
+		// Gérer les documents existants (mise à jour seulement si modifié)
+		if (doc.document_id) {
+			// Trouver le document original
+			const original = originalDocuments.find(o => o.document_id === doc.document_id);
+			
+			// Vérifier si au moins un champ a changé
+			const hasChanges = 
+				(original && doc.nomDocument !== original.nomDocument) ||
+				(original && doc.typeDocument_id !== original.typeDocument_id) ||
+				doc.file; // Nouveau fichier = toujours un changement
+			
+			if (!hasChanges) {
+				// Aucun changement, on passe au suivant
+				continue;
+			}
+			
+			try {
+				// Toujours utiliser FormData pour la compatibilité avec le backend
+				const form = new FormData();
+				form.append('nomDocument', doc.nomDocument || '');
+				form.append('typeDocument_id', String(doc.typeDocument_id));
+				if (doc.file) {
+					form.append('cheminAcces', doc.file);
+				}
+				await api.patch(`documents/${doc.document_id}/`, form);
+			} catch (e) {
+				console.error('Erreur lors de la mise à jour du document:', e);
+				errors.push(doc.nomDocument || 'Document existant');
+			}
+			continue;
+		}
+		
+		// Vérifier les champs requis pour les nouveaux documents
+		if (!doc.file || !doc.typeDocument_id) {
+			errors.push(doc.nomDocument || 'Document');
+			continue;
+		}
+
+		try {
+			const form = new FormData();
+			form.append('nomDocument', (doc.nomDocument || doc.file.name || '').toString());
+			form.append('typeDocument_id', String(doc.typeDocument_id));
+			form.append('cheminAcces', doc.file);
+
+			const created = await api.post('documents/', form);
+			const newId = Number(created?.id);
+			if (!Number.isInteger(newId) || newId <= 0) {
+				errors.push(doc.nomDocument || doc.file?.name || 'Document');
+				continue;
+			}
+
+			try {
+				await api.post(`bons-travail/${bonTravailId}/ajouter_document/`, {
+					document_id: newId,
+					user: props.connectedUserId,
+				});
+			} catch (e) {
+				try {
+					await api.remove(`documents/${newId}/`);
+				} catch (_) {}
+				errors.push(doc.nomDocument || doc.file?.name || 'Document');
+			}
+		} catch (e) {
+			errors.push(doc.nomDocument || doc.file?.name || 'Document');
+		}
 	}
 
-});
+	return errors;
+};
 
-const emit = defineEmits(['update:modelValue', 'submit', 'cancel', 'clear-error', 'clear-success']);
+const buildPatchPayload = (payload) => {
+	const original = originalFormData.value;
+	if (!original) return {};
 
-const formData = computed({
-	get: () => props.modelValue,
-	set: (value) => emit('update:modelValue', value)
-});
+	const patch = {};
+
+	if ((payload?.nom ?? '') !== (original?.nom ?? '')) patch.nom = payload.nom;
+	if ((payload?.type ?? null) !== (original?.type ?? null)) patch.type = payload.type;
+	if ((payload?.diagnostic ?? '') !== (original?.diagnostic ?? '')) patch.diagnostic = payload.diagnostic;
+	if ((payload?.commentaire ?? '') !== (original?.commentaire ?? '')) patch.commentaire = payload.commentaire;
+	if ((payload?.responsable_id ?? null) !== (original?.responsable_id ?? null)) patch.responsable_id = payload.responsable_id;
+
+	const currentDatePrevue = payload?.date_prevue || null;
+	const originalDatePrevue = original?.date_prevue || null;
+	if ((currentDatePrevue ?? null) !== (originalDatePrevue ?? null)) {
+		patch.date_prevue =
+			currentDatePrevue && String(currentDatePrevue).length === 16
+				? `${currentDatePrevue}:00`
+				: currentDatePrevue || null;
+	}
+
+	const newIds = (Array.isArray(payload?.utilisateur_assigne_ids) ? payload.utilisateur_assigne_ids : [])
+		.map((x) => Number(x))
+		.filter((x) => Number.isFinite(x));
+	const oldIds = (Array.isArray(original?.utilisateur_assigne_ids) ? original.utilisateur_assigne_ids : [])
+		.map((x) => Number(x))
+		.filter((x) => Number.isFinite(x));
+	const sameIds = newIds.length === oldIds.length && newIds.every((id, i) => id === oldIds[i]);
+	if (!sameIds) {
+		patch.utilisateur_assigne_ids = newIds;
+	}
+
+	const newConsommables = buildConsommablesPayload(payload);
+	const oldConsommables = buildConsommablesPayload(original);
+	const sameConsommables = JSON.stringify(newConsommables) === JSON.stringify(oldConsommables);
+	if (!sameConsommables) {
+		patch.consommables = newConsommables;
+	}
+
+	return patch;
+};
+
+const haveDocumentsChanged = (payload) => {
+	const originalDocs = Array.isArray(originalFormData.value?.documents) ? originalFormData.value.documents : [];
+	const currentDocs = Array.isArray(payload?.documents) ? payload.documents : [];
+
+	// Vérifier si de nouveaux documents vont être créés
+	const hasNewDocuments = currentDocs.some((doc) => {
+		if (!doc) return false;
+		const existingId = Number(doc.document_id);
+		if (Number.isInteger(existingId) && existingId > 0) return false;
+		return doc.file || doc.typeDocument_id || (doc.nomDocument || '').trim();
+	});
+	if (hasNewDocuments) return true;
+
+	// Vérifier si des documents existants ont été modifiés
+	for (const doc of currentDocs) {
+		if (!doc?.document_id) continue;
+		const original = originalDocs.find(o => o.document_id === doc.document_id);
+		if (!original) continue;
+		
+		const hasChanges = 
+			doc.nomDocument !== original.nomDocument ||
+			doc.typeDocument_id !== original.typeDocument_id ||
+			doc.file; // Nouveau fichier
+		
+		if (hasChanges) return true;
+	}
+
+	return false;
+};
+
+const save = async () => {
+	loading.value = true;
+	errorMessage.value = '';
+	successMessage.value = '';
+
+	const api = useApi(API_BASE_URL);
+
+	try {
+		if (!props.connectedUserId) {
+			errorMessage.value = 'Utilisateur non identifié';
+			loading.value = false;
+			return;
+		}
+
+		if (props.isEdit) {
+			// Mode édition
+			const patch = buildPatchPayload(formData.value);
+			const documentsChanged = haveDocumentsChanged(formData.value);
+			
+			if (Object.keys(patch).length === 0 && !documentsChanged) {
+				successMessage.value = 'Aucune modification à enregistrer';
+				loading.value = false;
+				return;
+			}
+
+			// Appliquer le patch seulement s'il y a des changements de champs
+			if (Object.keys(patch).length > 0) {
+				patch.user = props.connectedUserId;
+				await api.patch(`bons-travail/${props.initialData.id}/`, patch);
+			}
+
+			// Gestion des documents avec détection de changements
+			const docErrors = await createAndLinkDocuments(
+				props.initialData.id,
+				formData.value.documents,
+				originalFormData.value.documents
+			);
+			if (docErrors.length) {
+				errorMessage.value = `Certains documents n'ont pas pu être traités: ${docErrors.join(', ')}`;
+				loading.value = false;
+				return;
+			}
+
+			successMessage.value = 'Bon de travail modifié avec succès';
+			emit('updated');
+		} else {
+			// Mode création
+			const createdDemande = await api.post('demandes-intervention/', {
+				nom: formData.value.nom,
+				commentaire: formData.value.commentaire,
+				equipement_id: formData.value.equipement_id,
+				utilisateur_id: props.connectedUserId
+			});
+
+			await api.patch(`demandes-intervention/${createdDemande.id}/updateStatus/`, {
+				statut: 'TRANSFORMEE'
+			});
+
+			const createdBonTravail = await api.post('bons-travail/', {
+				demande_intervention: createdDemande.id,
+				utilisateur_id: props.connectedUserId,
+				nom: formData.value.nom,
+				type: formData.value.type,
+				date_prevue:
+					formData.value.date_prevue && String(formData.value.date_prevue).length === 16
+						? `${formData.value.date_prevue}:00`
+						: formData.value.date_prevue || null,
+				commentaire: formData.value.commentaire,
+				diagnostic: formData.value.diagnostic,
+				responsable_id: formData.value.responsable_id,
+				utilisateur_assigne_ids: (Array.isArray(formData.value?.utilisateur_assigne_ids) ? formData.value.utilisateur_assigne_ids : [])
+					.map((x) => Number(x))
+					.filter((x) => Number.isFinite(x) && x > 0),
+				consommables: buildConsommablesPayload(formData.value)
+			});
+
+			// Gestion des documents
+			const docErrors = await createAndLinkDocuments(createdBonTravail.id, formData.value.documents);
+			if (docErrors.length) {
+				errorMessage.value = `BT créé mais certains documents n'ont pas pu être ajoutés: ${docErrors.join(', ')}`;
+				loading.value = false;
+				return;
+			}
+
+			successMessage.value = 'Bon de travail créé avec succès';
+			emit('created', createdBonTravail);
+		}
+
+		setTimeout(() => {
+			emit('close');
+		}, 1500);
+	} catch (error) {
+		console.error('Erreur lors de l\'enregistrement:', error);
+		errorMessage.value = error.message || 'Une erreur est survenue lors de l\'enregistrement du bon de travail';
+	} finally {
+		loading.value = false;
+	}
+};
 
 const mergedBaseFormProps = computed(() => ({
-	title: props.baseFormProps?.title ?? 'Bon de travail',
-	submitButtonText: props.baseFormProps?.submitButtonText ?? 'Valider',
-	submitButtonColor: props.baseFormProps?.submitButtonColor ?? 'primary',
-	elevation: props.baseFormProps?.elevation ?? 2,
-	cardClass: props.baseFormProps?.cardClass ?? 'rounded-lg',
-	contentClass: props.baseFormProps?.contentClass ?? 'pa-6'
+	title: props.title,
+	submitButtonText: props.submitButtonText,
+	submitButtonColor: props.submitButtonColor,
+	elevation: 2,
+	cardClass: 'rounded-lg',
+	contentClass: 'pa-6'
 }));
 
 const typeItems = [
@@ -506,9 +809,5 @@ const isFormValidForSubmit = computed(() => {
 	}
 	return true;
 });
-
-const forwardSubmit = (payload) => {
-	emit('submit', payload);
-};
 </script>
 
