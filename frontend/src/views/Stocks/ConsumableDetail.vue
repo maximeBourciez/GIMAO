@@ -6,7 +6,6 @@
     :loading="loading"
     :breadcrumbs="breadcrumbs"
     show-back-button
-    @back="goBack"
   >
     <!-- Contenu Principal -->
     <template #default>
@@ -184,10 +183,6 @@ const formatDate = (dateString) => {
 const formatPrice = (price) => {
     if (!price) return '-';
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(price);
-};
-
-const goBack = () => {
-    router.back();
 };
 
 onMounted(fetchConsumable);
