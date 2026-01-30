@@ -21,6 +21,6 @@ const handleCreate = () => {
 };
 
 const handleRowClick = (item) => {
-  router.push({ name: 'Consumable', params: { id: item.id } });
+  router.push({ name: 'ConsumableDetail', params: { id: item.id } });
 };
 </script>

@@ -34,19 +34,19 @@ export const BREADCRUMBS = {
             ];
         }
 
-		if (route.query.from === "intervention") {
-			return [
-				{ label: "Bons de travail", to: { name: "InterventionList" } },
-				{
-					label: `Bon de travail #${route.query.interventionId}`,
-					to: {
-						name: "InterventionDetail",
-						params: { id: route.query.interventionId },
-					},
-				},
-				{ label: `Équipement #${route.params.id}` },
-			];
-		}
+        if (route.query.from === "intervention") {
+            return [
+                { label: "Bons de travail", to: { name: "InterventionList" } },
+                {
+                    label: `Bon de travail #${route.query.interventionId}`,
+                    to: {
+                        name: "InterventionDetail",
+                        params: { id: route.query.interventionId },
+                    },
+                },
+                { label: `Équipement #${route.params.id}` },
+            ];
+        }
 
         return [{
             label: "Équipements",
@@ -141,16 +141,16 @@ export const BREADCRUMBS = {
         ];
     },
 
-	AddDocumentIntervention: (route) => {
-		return [
-			{ label: "Bons de travail", to: { name: "InterventionList" } },
-			{
-				label: `Bon de travail #${route.params.id}`,
-				to: { name: "InterventionDetail", params: { id: route.params.id } },
-			},
-			{ label: "Ajouter des documents" },
-		];
-	},
+    AddDocumentIntervention: (route) => {
+        return [
+            { label: "Bons de travail", to: { name: "InterventionList" } },
+            {
+                label: `Bon de travail #${route.params.id}`,
+                to: { name: "InterventionDetail", params: { id: route.params.id } },
+            },
+            { label: "Ajouter des documents" },
+        ];
+    },
 
     /***************************************
      * Demandes d'intervention
@@ -186,7 +186,7 @@ export const BREADCRUMBS = {
     ],
 
     CreateFailure: (route) => {
-        if(route.query.from === "dashboard") {
+        if (route.query.from === "dashboard") {
             return [
                 {
                     label: "Tableau de bord",
@@ -232,12 +232,22 @@ export const BREADCRUMBS = {
     ],
 
     /***************************************
-     * Magasin
+     * Stock
      **************************************/
     Stocks: (route) => [
         {
             label: "Magasin",
             to: { name: "Stocks" },
+        },
+    ],
+    ConsumableDetail: (route) => [
+        {
+            label: "Magasin",
+            to: { name: "Stocks" },
+        },
+        {
+            label: `Consommable #${route.params.id}`,
+            to: { name: "ConsumableDetail", params: { id: route.params.id } },
         },
     ],
 

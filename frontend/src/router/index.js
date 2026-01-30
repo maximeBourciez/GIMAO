@@ -149,7 +149,7 @@ const routes = [
 
   {
     path: '/Consumable/:id',
-    name: 'Consumable',
+    name: 'ConsumableDetail',
     component: ConsumableDetail,
     props: true,
     meta: { title: 'Détails du consommable', requiresPermission: 'cons:viewDetail' }
