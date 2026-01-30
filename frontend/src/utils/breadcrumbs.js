@@ -68,6 +68,27 @@ export const BREADCRUMBS = {
             ];
         }
 
+        if(route.query.from === "failure-dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Demande d'intervention #${route.query.failureID}`,
+                    to: {
+                        name: "FailureDetail",
+                        params: { id: route.query.failureID },
+                        query: { from: "dashboard" },
+                    },
+                },
+                {
+                    label: `Équipement #${route.params.id}`,
+                },
+            ];
+        }
+
+
         if(route.query.from === "dashboard") {
             return [
                 {

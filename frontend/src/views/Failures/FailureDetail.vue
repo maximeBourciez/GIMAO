@@ -370,6 +370,16 @@ const openCreateInterventionModal = () => {
 
 const openEquipment = () => {
   if (defaillance.value?.equipement?.id) {
+    if(route.query?.from) {
+      router.push({
+        name: 'EquipmentDetail',
+        params: { id: defaillance.value.equipement.id },
+        query:  {from: "failure-" + route.query.from,  failureID: defaillance.value.id}
+      });
+      return;
+    }
+
+
     router.push({
       name: 'EquipmentDetail',
       params: { id: defaillance.value.equipement.id },
