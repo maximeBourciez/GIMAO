@@ -2,6 +2,7 @@
   <BaseListView ref="tableContainer" :title="title" :headers="tableHeaders" :items="failures" :loading="loading"
     :error-message="errorMessage" :no-data-text="noDataText" :no-data-icon="noDataIcon" :show-search="showSearch"
     :internalSearch="true" :show-create-button="false" @row-click="handleRowClick" @clear-error="errorMessage = ''">
+
     <!-- Colonne Createur -->
     <template #item.createur="{ item }">
       {{ item.utilisateur.prenom ?? '' }} {{ item.utilisateur.nomFamille ?? '' }}
@@ -9,12 +10,15 @@
     <template #item.commentaire="{ item }">
       {{ item.commentaire.length > 50 ? item.commentaire.substring(0, 50) + '...' : item.commentaire }}
     </template>
+
     <!-- Colonne Statut -->
     <template #item.statut="{ item }">
       <v-chip :color="item.statut ? FAILURE_STATUS_COLORS[item.statut] : 'grey'" dark>
         {{ FAILURE_STATUS[item.statut] }}
       </v-chip>
     </template>
+
+
     <!-- Colonne Equipement -->
     <template #item.equipement="{ item }">
       {{ item.equipement.designation }}
@@ -22,6 +26,8 @@
 
 
   </BaseListView>
+
+
   <!-- Bouton flottant en bas à droite -->
   <v-btn v-if="showCreateButton" color="primary" size="large" icon class="floating-add-button" elevation="4"
     @click="$emit('create')">
@@ -31,11 +37,15 @@
     </v-tooltip>
   </v-btn>
 </template>
+
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
 import { TABLE_HEADERS, API_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
+import { useStore } from 'vuex';
+
+
 const props = defineProps({
   createButtonText: {
     type: String,
@@ -53,10 +63,6 @@ const props = defineProps({
     type: String,
     default: 'demandes-intervention/'
   },
-  showCreateButton: {
-    type: Boolean,
-    default: false
-  },
   templateHeader: {
     type: Boolean,
     default: false
@@ -68,6 +74,10 @@ const props = defineProps({
   showSearch: {
     type: Boolean,
     default: true
+  },
+  showCreateButton: {
+    type: Boolean,
+    default: true
   }
 });
 const emit = defineEmits(['create', 'row-click']);
@@ -76,6 +86,10 @@ const errorMessage = ref('');
 const failures = computed(() => api.data.value || []);
 const loading = computed(() => api.loading.value);
 const containerWidth = ref(0);
+const store = useStore();
+
+
+
 const tableHeaders = computed(() => {
   if (containerWidth.value < 860) {
     return TABLE_HEADERS.FAILURES_SUPER_LIGHT;

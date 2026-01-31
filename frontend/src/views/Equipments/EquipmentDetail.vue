@@ -77,15 +77,15 @@
           <!-- Boutons d'action -->
           <v-card elevation="2" class="mb-4">
             <v-card-actions class="justify-center pa-4">
-              <v-btn color="warning" prepend-icon="mdi-alert-circle" @click="signalFailure">
-                Signaler une défaillance
+              <v-btn color="warning" prepend-icon="mdi-alert-circle" @click="signalFailure" v-if="store.getters.hasPermission('di:create')">
+                Créer une demande d'intervention (DI)
               </v-btn>
             </v-card-actions>
           </v-card>
 
           <!-- Section compteurs -->
           <div>
-            <v-card elevation="2" class="mb-4">
+            <v-card elevation="2" class="mb-4" v-if="store.getters.hasPermission('cp:viewList')">
               <v-card-title class="text-h6">Compteurs</v-card-title>
               <v-divider></v-divider>
               <v-card-text>
@@ -103,7 +103,7 @@
 
               </v-card-text>
               <div class="justify-end d-flex">
-                <v-btn text color="primary align-self-end" class="my-2 mx-2" @click="openAddCounterDialog">
+                <v-btn text color="primary align-self-end" class="my-2 mx-2" @click="openAddCounterDialog" v-if="store.getters.hasPermission('cp:create')">
                   Ajouter un compteur
                 </v-btn>
               </div>
@@ -136,13 +136,6 @@
                 </v-data-table>
                 <p v-else class="text-caption text-grey">Aucune intervention enregistrée</p>
               </v-card-text>
-
-              <div class="justify-end d-flex">
-                <v-btn text color="primary" class="my-2 mx-2"
-                  @click="router.push({ name: 'CreateFailure', query: { equipementId: data.id } })">
-                  Ajouter une DI
-                </v-btn>
-              </div>
             </v-card>
 
 
@@ -204,6 +197,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
@@ -215,12 +209,13 @@ import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, TABLE_HEADERS } from '@/ut
 const router = useRouter();
 const route = useRoute();
 const api = useApi(API_BASE_URL);
+const store = useStore();
 
 const equipement = computed(() => api.data.value || {});
 const isLoading = computed(() => api.loading.value);
 const errorMessage = ref('');
 const successMessage = ref('');
-const showEditButton = ref(true);
+const showEditButton = ref(store.getters.hasPermission('eq:edit'));
 const editButtonText = ref('Modifier l\'équipement');
 
 // Dialog compteur

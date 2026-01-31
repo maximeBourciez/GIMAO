@@ -54,9 +54,9 @@
                         <VTreeview 
                             v-else 
                             :items="locations" 
-                            item-key="id" 
+                            item-value="id" 
                             item-title="nomLieu"
-                            :open.sync="openNodes"
+                            v-model:opened="openNodes"
                             activatable
                             hoverable
                             rounded
@@ -175,6 +175,22 @@ const successMessage = ref('')
 const selectedParent = ref(null)
 const openNodes = ref([])
 
+// Récupère le chemin d'ancêtres (liste d'ids) pour pouvoir ouvrir l'arborescence
+// jusqu'au lieu cible.
+const getPathToNode = (nodes, targetId, currentPath = []) => {
+    if (!nodes) return null
+    for (const node of nodes) {
+        if (node.id == targetId) {
+            return currentPath
+        }
+        if (node.children && node.children.length > 0) {
+            const result = getPathToNode(node.children, targetId, [...currentPath, node.id])
+            if (result) return result
+        }
+    }
+    return null
+}
+
 // Initialiser les données
 watch(() => props.initialData, (newData) => {
     if (newData && Object.keys(newData).length > 0) {
@@ -206,6 +222,20 @@ watch(() => [props.parentId, props.locations], ([newParentId, newLocations]) => 
         formData.value.lieuParent = newParentId
     }
 }, { immediate: true, deep: true })
+
+// Ouvrir automatiquement l'arborescence jusqu'au parent sélectionné.
+watch(
+    [() => formData.value.lieuParent, () => props.locations, () => props.useTreeView],
+    ([lieuParentId, locations, useTreeView]) => {
+        if (!useTreeView || !lieuParentId || !locations || locations.length === 0) return
+
+        const path = getPathToNode(locations, lieuParentId)
+        if (path) {
+            openNodes.value = Array.from(new Set([...(openNodes.value || []), ...path]))
+        }
+    },
+    { immediate: true, deep: true }
+)
 
 // Gestion de la sélection dans le TreeView
 const isSelected = (item) => {

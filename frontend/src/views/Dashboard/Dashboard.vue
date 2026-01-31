@@ -15,9 +15,9 @@
       <v-row justify="center" class="mt-4">
         <v-col cols="12" md="6">
           <v-card rounded="">
-            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" />
+            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" :showCreateButton="false" />
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI" :showCreateButton="false">
               Créer une DI
             </v-btn>
 
@@ -27,7 +27,7 @@
 
         <v-col cols="12" md="6">
           <v-card rounded="">
-            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" show-statut-filter/>
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" show-statut-filter/>
 
             <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
               Créer un BT
@@ -51,11 +51,11 @@
       <v-row justify="center" class="mt-4">
         <v-col cols="12" md="10">
           <v-card rounded="" class="mb-4">
-            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" show-statut-filter />
+            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" show-statut-filter />
+
           </v-card>
           <v-card rounded="">
-            <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI"
-              :showSearch="true" />
+            <FailureListComponent @create="handleCreate" @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" :showCreateButton="false" />
 
             <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI">
               Créer une DI
@@ -97,7 +97,7 @@
       <!-- Bouton logout opérateur -->
       <v-btn v-if="isOperateur" color="primary" icon size="large" elevation="4" class="floating-logout-button"
         @click="logout">
-        <v-icon>mdi-logout</v-icon>
+        <v-icon class="mr-2">mdi-logout</v-icon> Se déconnecter
         <v-tooltip activator="parent" location="left">
           Se déconnecter
         </v-tooltip>
@@ -159,7 +159,6 @@ const logout = () => {
 
   // Rediriger vers login avec un reload complet pour nettoyer tout le state
   window.location.href = '/login';
-
 }
 
 // Gestion click DI
@@ -219,8 +218,11 @@ const statsFull = computed(() => isResponsable.value)
 .floating-logout-button {
   position: fixed !important;
   bottom: 24px;
-  right: 24px;
+  left: 24px;
   z-index: 100;
+  border-radius: 5px !important;
+  width: auto !important;
+  padding: 0 12px !important;
 }
 
 .floating-logout-button-magasinier {

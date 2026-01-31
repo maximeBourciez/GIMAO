@@ -114,6 +114,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
+import { useStore } from 'vuex';
 import { useDisplay } from 'vuetify';
 import BaseListView from '@/components/common/BaseListView.vue';
 import { useApi } from '@/composables/useApi';
@@ -126,9 +127,9 @@ const props = defineProps({
 	subtitle: { type: String, default: '' },
 	showSearch: { type: Boolean, default: true },
 	internalSearch: { type: Boolean, default: true },
-	showCreateButton: { type: Boolean, default: false },
 	createButtonText: { type: String, default: 'Créer' },
 	noDataText: { type: String, default: 'Aucun bon de travail' },
+	showCreateButton: { type: Boolean, default: true },
 
 	// Data sourcing
 	items: { type: Array, default: null },
@@ -147,6 +148,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['row-click', 'create', 'loaded']);
+const store = useStore();
+const showCreateButton = computed(() => store.getters.hasPermission('bt:create'));
 
 const { smAndDown, lgAndUp } = useDisplay();
 

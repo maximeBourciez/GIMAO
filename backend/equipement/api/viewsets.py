@@ -1,4 +1,6 @@
 import json
+import datetime
+from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.db import transaction
@@ -56,11 +58,23 @@ class EquipementViewSet(viewsets.ModelViewSet):
 
     def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur):
         """Crée une entrée de log"""
+        
+        def make_serializable(obj):
+            if isinstance(obj, Decimal):
+                return str(obj)
+            if isinstance(obj, (datetime.datetime, datetime.date)):
+                return obj.isoformat()
+            if isinstance(obj, dict):
+                return {k: make_serializable(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [make_serializable(v) for v in obj]
+            return obj
+
         Log.objects.create(
             type=type_action,
             nomTable=nom_table,
-            idCible=id_cible,
-            champsModifies=champs_modifies,
+            idCible=make_serializable(id_cible),
+            champsModifies=make_serializable(champs_modifies),
             utilisateur=utilisateur
         )
 
@@ -398,6 +412,8 @@ class EquipementViewSet(viewsets.ModelViewSet):
         if 'lienImageEquipement' in request.FILES:
             uploaded_file = request.FILES['lienImageEquipement']
             # Supprimer l'ancienne image si elle existe
+            print(f"Ancienne image: {equipement.lienImage}")
+            print(f"Nouvelle image: {uploaded_file}")
             if equipement.lienImage:
                 try:
                     equipement.lienImage.delete(save=False)
@@ -406,6 +422,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
             
             # Sauvegarder la nouvelle image
             equipement.lienImage = uploaded_file
+            modifications_appliquees['lienImageEquipement'] = 'updated'
             self._create_log_entry(
                 type_action='modification',
                 nom_table='equipement',

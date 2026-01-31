@@ -35,7 +35,7 @@
 
             <v-col cols="12" md="6">
                 <FormFileInput label="Image de l'équipement" placeholder="Sélectionner une image" accept="image/*"
-                    prepend-inner-icon="mdi-camera" @update:model-value="handleFileUpload" />
+                    prepend-inner-icon="mdi-camera" @update:model-value="handleFileUpload" :defaultPreviewImage="lienImageEquipement"/>
             </v-col>
         </template>
 
@@ -167,10 +167,7 @@
                     </template>
                     <template #item.options="{ item }">
                         <div>
-                            {{ item.estGlissant && item.estPrincipal ? 'Glissant et Principal' :
-                                item.estGlissant ? 'Glissant' :
-                                    item.estPrincipal ? 'Principal' :
-                                        'Aucune' }}
+                            {{ item.estPrincipal ? '   Principal' : '   Aucune' }}
                         </div>
                     </template>
                     <template #item.planMaintenance="{ item }">
@@ -232,6 +229,10 @@ const props = defineProps({
     equipmentStatuses: {
         type: Array,
         default: () => []
+    },
+    lienImageEquipement: {
+        type: String,
+        default: ''
     },
     step: {
         type: Number,

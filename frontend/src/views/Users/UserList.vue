@@ -56,6 +56,7 @@
     class="floating-add-button"
     elevation="4"
     @click="goToCreerUser"
+    v-if="store.getters.hasPermission('user:create')"
   >
     <v-icon size="large">mdi-plus</v-icon>
     <v-tooltip activator="parent" location="left">
@@ -67,6 +68,7 @@
 <script setup>
 import BaseListView from '@/components/common/BaseListView.vue';
 import { ref, computed, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 import { useRouter } from 'vue-router';
@@ -75,6 +77,7 @@ import { useRouter } from 'vue-router';
 const title = 'Gestion des comptes';
 const router = useRouter();
 const createButtonText = "Créer un nouvel utilisateur";
+const store = useStore();
 
 // Headers Vuetify 3 (même format que dans TABLE_HEADERS)
 const headers = [

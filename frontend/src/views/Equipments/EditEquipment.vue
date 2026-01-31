@@ -10,11 +10,20 @@
             <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels" :fournisseurs="fournisseurs"
               :fabricants="fabricants" :familles="familles" :locations="locations" :consumables="consumables"
               :equipment-statuses="equipmentStatuses" :show-counters="false" @file-upload="handleFileUpload"
-              @location-created="handleLocationCreated" />
+              @location-created="handleLocationCreated" :lienImageEquipement="formData.lienImageEquipement" @open-lieu-dialog="handleOpenLieuDialog" />
           </template>
         </BaseForm>
       </v-container>
     </v-main>
+
+    <v-dialog v-model="showLieuDialog" max-width="600" scrollable>
+      <v-card>
+        <v-card-text class="pa-6">
+          <LieuForm :parent-id="selectedParentLieuId" :locations="locations" @created="handleLieuCreated"
+            @close="showLieuDialog = false" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="showFabricantDialog" max-width="80%">
       <FabricantForm @created="handleFabricantCreated" @close="showFabricantDialog = false" />
@@ -45,6 +54,7 @@ import FabricantForm from '@/components/Forms/FabricantForm.vue';
 import FournisseurForm from '@/components/Forms/FournisseurForm.vue';
 import ModeleEquipementForm from '@/components/Forms/ModeleEquipementForm.vue';
 import FamilleEquipementForm from '@/components/Forms/FamilleEquipementForm.vue';
+import LieuForm from '@/components/Forms/LieuForm.vue';
 
 const route = useRoute();
 
@@ -83,6 +93,26 @@ const {
 
 const equipmentId = computed(() => route.params.id || null);
 
+const showLieuDialog = ref(false);
+const selectedParentLieuId = ref(null);
+
+const handleOpenLieuDialog = (parentId) => {
+  selectedParentLieuId.value = parentId;
+  showLieuDialog.value = true;
+};
+
+const handleLieuCreated = async (newLieu) => {
+  try {
+    // Rafraîchir la liste des lieux et sélectionner le nouveau si possible
+    await fetchData();
+    if (newLieu?.id) {
+      formData.value.lieu = newLieu.id;
+    }
+  } finally {
+    showLieuDialog.value = false;
+  }
+};
+
 
 const handleSubmit = async () => {
   if (!validateForm()) return;
@@ -102,7 +132,7 @@ const handleSubmit = async () => {
 
     if (formData.value.lienImageEquipement instanceof File) {
       fd.append('lienImageEquipement', formData.value.lienImageEquipement);
-      delete equipementData.lienImageEquipement;
+      delete changes.lienImageEquipement;
     }
 
     fd.append('changes', JSON.stringify(changes));

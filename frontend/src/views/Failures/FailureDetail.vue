@@ -41,18 +41,18 @@
 
           
           <v-row>
-            <v-col cols="12">
+            <v-col cols="12" v-if="store.getters.hasPermission('di:transform')">
               <v-btn color="primary" block :disabled="!canCreateIntervention" @click="openCreateInterventionModal">
                 <v-icon class="mx-2" left>mdi-wrench</v-icon>
                 Transformer en bon de travail
               </v-btn>
             </v-col>
-            <v-col cols="6">
+            <v-col cols="6" v-if="store.getters.hasPermission('di:accept')">
               <v-btn color="success" block :disabled="!canAccept" @click="openAcceptModal">
                 Accepter la demande
               </v-btn>
             </v-col>
-            <v-col cols="6">
+            <v-col cols="6" v-if="store.getters.hasPermission('di:refuse')">
               <v-btn color="error" block :disabled="!canClose" @click="openRejectModal">
                 Refuser la demande
               </v-btn>
@@ -233,12 +233,13 @@ const canClose = computed(() => FAILURE_STATUS[ defaillance.value?.statut] === F
 const canCreateIntervention = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 const canAccept = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE);
 
-// Permission de modification: rôle "Opérateur" OU créateur de la demande
+// Permission de modification: Perm d'édition + créateur de la défaillance ou perm d'édition de toutes les défaillances
 const canEditFailure = computed(() => {
   if (!currentUser.value || !defaillance.value) return false;
-  const isOperateur = userRole.value === 'Opérateur';
-  const isCreator = defaillance.value.utilisateur?.id === currentUser.value.id;
-  return isOperateur || isCreator;
+  const canEdit = store.getters.hasPermission('di:editCreated');
+  const isCreator = defaillance.value.utilisateur.id === currentUser.value.id;
+  const canEditAllDis = store.getters.hasPermission('di:editAll');
+  return (canEdit && isCreator) || canEditAllDis;
 });
 
 const formattedEquipmentLabel = computed(() => {

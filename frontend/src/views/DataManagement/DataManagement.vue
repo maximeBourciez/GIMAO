@@ -8,7 +8,7 @@
           </v-col>
         </v-row>
         <v-row justify="center">
-          <v-col v-for="menu_item in menu_items" :key="menu_item.name" cols="12" sm="6" md="4" lg="3">
+          <v-col v-for="menu_item in filtered_menu_items" :key="menu_item.name" cols="12" sm="6" md="4" lg="3">
             <v-card elevation="2" class="rounded-lg pa-4 mb-4 data_card" @click="navigate_to(menu_item.route)">
               <v-card-text class="text-center">
                 <v-icon :color="menu_item.color" size="64" class="mb-4">{{ menu_item.icon }}</v-icon>
@@ -28,16 +28,23 @@ export default {
   data() {
     return {
       menu_items: [
-        { name: "Lieux", route: "/LocationList", icon: "mdi-map-marker", color: "blue" },
-        { name: "Fournisseurs", route: "/SupplierList", icon: "mdi-truck", color: "orange" },
-        { name: "Fabricants", route: "/ManufacturerList", icon: "mdi-factory", color: "red" },
-        { name: "Modèles d'équipements", route: "/ModelEquipmentList", icon: "mdi-cog", color: "purple" },
+        { name: "Lieux", route: "/LocationList", icon: "mdi-map-marker", color: "blue", requiresPermission: "loc:viewList" },
+        { name: "Fournisseurs", route: "/SupplierList", icon: "mdi-truck", color: "orange", requiresPermission: "sup:viewList" },
+        { name: "Fabricants", route: "/ManufacturerList", icon: "mdi-factory", color: "red", requiresPermission: "man:viewList" },
+        { name: "Modèles d'équipements", route: "/ModelEquipmentList", icon: "mdi-cog", color: "purple", requiresPermission: "eqmod:viewList" },
       ],
     };
   },
   methods: {
     navigate_to(route) {
       this.$router.push(route);
+    },
+  },
+  computed: {
+    filtered_menu_items() {
+      return this.menu_items.filter(item => {
+        return this.$store.getters.hasPermission(item.requiresPermission);
+      });
     },
   },
 };

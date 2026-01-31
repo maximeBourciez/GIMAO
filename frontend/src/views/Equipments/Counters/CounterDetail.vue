@@ -256,7 +256,7 @@
 
               <!-- Boutons d'action pour ce seuil -->
               <div class="d-flex justify-end mt-3">
-                <v-btn color="primary" size="small" @click="editSeuil(seuil)">
+                <v-btn color="primary" size="small" @click="editSeuil(seuil)" v-if="store.getters.hasPermission('mp:edit')">
                   <v-icon left small>mdi-pencil</v-icon>
                   Modifier ce seuil
                 </v-btn>
@@ -292,11 +292,11 @@
         Retour
       </v-btn>
       <v-spacer />
-      <v-btn color="primary" @click="showEditCounterDialog(true)">
+      <v-btn color="primary" @click="showEditCounterDialog(true);" v-if="store.getters.hasPermission('cp:edit')">
         <v-icon left>mdi-pencil</v-icon>
         Modifier le compteur
       </v-btn>
-      <v-btn color="success" @click="addNewSeuil">
+      <v-btn color="success" @click="addNewSeuil" v-if="store.getters.hasPermission('mp:add')">
         <v-icon left>mdi-plus</v-icon>
         Ajouter un seuil
       </v-btn>
@@ -350,6 +350,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useStore } from "vuex";
 import { useApi } from "@/composables/useApi";
 import { API_BASE_URL, MEDIA_BASE_URL, BASE_URL } from "@/utils/constants";
 import CounterForm from "./CounterForm.vue";
@@ -357,6 +358,7 @@ import MaintenancePlanInlineForm from "@/components/Forms/MaintenancePlanInlineF
 
 const route = useRoute();
 const router = useRouter();
+const store = useStore();
 const counterId = Number(route.params.id);
 
 const counter = ref(null);

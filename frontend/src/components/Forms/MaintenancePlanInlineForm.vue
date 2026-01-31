@@ -83,7 +83,7 @@
                         <template #item="{ props, item }">
                             <v-list-item v-bind="props">
                                 <template #title>{{ item.raw.nom }}</template>
-                                <template #subtitle>{{ getPMTypeLabel(item.raw.type_id) }}</template>
+                                <template #subtitle>{{ getPMTypeLabel(item.raw.type_id ?? item.raw.type) }}</template>
                             </v-list-item>
                         </template>
                     </v-select>
@@ -106,9 +106,9 @@
                         <div class="font-weight-medium">{{ getPMTypeLabel(selectedExistingPM.type_id) }}</div>
                     </v-col>
                 </v-row>
-                <div v-if="selectedExistingPM.commentaire" class="mt-2">
+                <div v-if="selectedExistingPM.description || selectedExistingPM.commentaire" class="mt-2">
                     <div class="text-caption">Commentaire</div>
-                    <div>{{ selectedExistingPM.commentaire }}</div>
+                    <div>{{ selectedExistingPM.description || selectedExistingPM.commentaire }}</div>
                 </div>
                 <div v-if="selectedExistingPM.necessiteHabilitationElectrique || selectedExistingPM.necessitePermisFeu"
                     class="mt-2">
@@ -352,7 +352,9 @@ const isValid = computed(() => {
     if (!seuilValid) return false
 
     if (props.showPmSelection && pmMode.value === 'existing') {
-        return !!selectedExistingPMId.value
+        return !!selectedExistingPMId.value &&
+            plan.value.compteurIndex !== null &&
+            plan.value.compteurIndex !== undefined
     }
 
     return plan.value.nom &&
@@ -360,6 +362,40 @@ const isValid = computed(() => {
         plan.value.type_id !== null &&
         plan.value.compteurIndex !== null &&
         plan.value.compteurIndex !== undefined
+})
+
+const applyExistingPMToPlan = (pm) => {
+    if (!pm) return
+
+    plan.value = {
+        ...plan.value,
+        nom: pm.nom ?? plan.value.nom,
+        type_id: pm.type_id ?? pm.type ?? plan.value.type_id,
+        description: pm.description ?? pm.commentaire ?? plan.value.description,
+        necessiteHabilitationElectrique: !!pm.necessiteHabilitationElectrique,
+        necessitePermisFeu: !!pm.necessitePermisFeu,
+        consommables: Array.isArray(pm.consommables) ? pm.consommables.map(c => ({ ...c })) : [],
+        documents: Array.isArray(pm.documents) ? pm.documents.map(d => ({ ...d })) : []
+    }
+}
+
+watch(pmMode, (mode) => {
+    localError.value = ''
+    if (mode !== 'existing') {
+        selectedExistingPMId.value = null
+        return
+    }
+    if (selectedExistingPM.value) {
+        applyExistingPMToPlan(selectedExistingPM.value)
+    }
+})
+
+watch(selectedExistingPMId, () => {
+    localError.value = ''
+    if (!props.showPmSelection) return
+    if (pmMode.value !== 'existing') return
+    if (!selectedExistingPM.value) return
+    applyExistingPMToPlan(selectedExistingPM.value)
 })
 
 // Calcul automatique de la prochaine maintenance
