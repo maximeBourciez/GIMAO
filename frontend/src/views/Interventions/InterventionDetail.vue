@@ -216,15 +216,15 @@
         <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleEquipementDetails">
           Équipement
           <v-spacer></v-spacer>
-      <v-btn
-        color="primary"
-        size="small"
-        class="mr-2"
-        @click.stop="openEquipement"
-        :disabled="!equipementId"
-      >
-        Ouvrir
-      </v-btn>
+          <v-btn
+            color="primary"
+            size="small"
+            class="mr-2"
+            @click.stop="openEquipement"
+            :disabled="!equipementId"
+          >
+            Ouvrir
+          </v-btn>
           <v-icon>
             {{ showEquipementDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
           </v-icon>
@@ -243,8 +243,10 @@
                   <v-chip v-else :color="getStatusColor(value)" variant="tonal">{{ getStatusLabel(value) }}</v-chip>
                 </div>
               </div>
-            </v-expand-transition>
-          </v-card>
+            </v-card-text>
+          </div>
+        </v-expand-transition>
+      </v-card>
 
           <!-- Section Documents -->
           <v-card class="mt-4" elevation="2">
