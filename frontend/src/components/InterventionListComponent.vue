@@ -114,14 +114,15 @@ const props = defineProps({
 	title: { type: String, default: 'Liste des bons de travail' },
 	subtitle: { type: String, default: '' },
 	showSearch: { type: Boolean, default: true },
-	internalSearch: { type: Boolean, default: true },
-	createButtonText: { type: String, default: 'Créer' },
+	internalSearch: { type: Boolean, default: false },
+	createButtonText: { type: String, default: '' },
 	noDataText: { type: String, default: 'Aucun bon de travail' },
 	showCreateButton: { type: Boolean, default: true },
 
 	// Data sourcing
 	items: { type: Array, default: null },
 	fetchOnMount: { type: Boolean, default: true },
+	apiEndpoint: { type: String, default: 'bons-travail' },
 
 	// DataTable columns
 	variant: {
@@ -136,7 +137,6 @@ const props = defineProps({
 
 const emit = defineEmits(['row-click', 'create', 'loaded']);
 const store = useStore();
-const showCreateButton = computed(() => store.getters.hasPermission('bt:create'));
 
 const { smAndDown, lgAndUp } = useDisplay();
 
@@ -213,9 +213,9 @@ const fetchBonsTravail = async ({ includeCloture } = { includeCloture: false }) 
 	try {
 		includeClotureInFetch.value = !!includeCloture;
 		if (includeCloture) {
-			await api.get('bons-travail', { cloture: true });
+			await api.get(props.apiEndpoint, { cloture: true });
 		} else {
-			await api.get('bons-travail');
+			await api.get(props.apiEndpoint);
 		}
 
 		emit('loaded', allItems.value);
@@ -271,6 +271,9 @@ watch(
 
 onMounted(() => {
 	fetchBonsTravail({ includeCloture: false });
+
+	console.log('InterventionListComponent mounted');
+	console.log('Show create button:', props.showCreateButton);
 	
 	// Initialise l'observateur de redimensionnement
 	try {

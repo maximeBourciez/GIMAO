@@ -91,7 +91,7 @@
             <v-card-title class="d-flex align-center"  @click="showDocumentsDetails = !showDocumentsDetails">
               <span>Documents</span>
               <v-spacer></v-spacer>
-              <v-btn color="primary" class="mr-2" size="small" @click="handleAddDocument">
+              <v-btn color="primary" class="mr-2" size="small" @click="handleAddDocument" v-if="canEditFailure">
                 <v-icon left>mdi-plus</v-icon>
                 Ajouter
               </v-btn>
@@ -109,14 +109,14 @@
                     {{ item.titre }}
                   </template>
                   <template #item.actions="{ item }">
-                    <v-btn icon size="small" :color="'primary'" class="mr-2"
-                      @click="downloadDocument(item)">
+                    <v-btn icon size="small" :color="'primary'" class="mr-2" @click="downloadDocument(item)"
+                      v-if="canEditFailure">
                       <v-icon>
                         mdi-download
                       </v-icon>
                     </v-btn>
                     <v-btn icon size="small" :color="'error'"
-                      @click="deleteDocument(item)">
+                      @click="deleteDocument(item)" v-if="canEditFailure">
                       <v-icon>
                         mdi-delete
                       </v-icon>
@@ -255,6 +255,8 @@ const canEditFailure = computed(() => {
   return (canEdit && isCreator) || canEditAllDis;
 });
 
+
+
 const formattedEquipmentLabel = computed(() => {
   if (!defaillance.value?.equipement) return {};
   const eq = defaillance.value.equipement;
@@ -368,6 +370,16 @@ const openCreateInterventionModal = () => {
 
 const openEquipment = () => {
   if (defaillance.value?.equipement?.id) {
+    if(route.query?.from) {
+      router.push({
+        name: 'EquipmentDetail',
+        params: { id: defaillance.value.equipement.id },
+        query:  {from: "failure-" + route.query.from,  failureID: defaillance.value.id}
+      });
+      return;
+    }
+
+
     router.push({
       name: 'EquipmentDetail',
       params: { id: defaillance.value.equipement.id },
@@ -377,6 +389,14 @@ const openEquipment = () => {
 };
 
 const handleAddDocument = () => {
+  if(route.query?.from) {
+    router.push({
+      name: 'AddDocumentFailure',
+      params: { id: route.params.id },
+      query: { from: route.query.from }
+    });
+    return;
+  }
   router.push({
     name: 'AddDocumentFailure',
     params: { id: route.params.id }

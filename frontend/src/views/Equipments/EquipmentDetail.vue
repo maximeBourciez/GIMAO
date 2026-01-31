@@ -376,6 +376,16 @@ const formatValue = (value) => {
 
 const viewIntervention = (intervention) => {
   if (intervention && intervention.id) {
+    if(route.query.from === 'dashboard') {
+      router.push({
+        name: 'InterventionDetail',
+        params: { id: intervention.id },
+        query: { from: route.query.from }
+      });
+      return;
+    }
+
+
     router.push({
       name: 'InterventionDetail',
       params: { id: intervention.id },
