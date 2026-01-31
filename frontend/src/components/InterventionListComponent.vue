@@ -255,10 +255,15 @@ const fetchBonsTravail = async ({ includeCloture } = { includeCloture: false }) 
 	try {
 		if (includeCloture) {
 			await api.get(props.apiEndpoint, { cloture: true });
+			cachedItemsWithCloture.value = api.data.value || [];
+			hasFetchedCloture.value = true;
 		} else {
 			await api.get(props.apiEndpoint);
+			cachedItemsWithoutCloture.value = api.data.value || [];
 		}
 
+
+		
 		emit('loaded', allItems.value);
 	} catch (error) {
 		errorMessage.value = 'Erreur lors du chargement des bons de travail';
@@ -315,9 +320,6 @@ watch(
 
 onMounted(() => {
 	fetchBonsTravail({ includeCloture: false });
-
-	console.log('InterventionListComponent mounted');
-	console.log('Show create button:', props.showCreateButton);
 	
 	// Initialise l'observateur de redimensionnement
 	try {

@@ -106,6 +106,7 @@
                   v-if="(data.documentsDI || []).length > 0"
                   :documents="data.documentsDI || []"
                   :show-type="true"
+                  :show-delete="canEditFailure"
                   @delete-success="handleDeleteSuccess"
                   @delete-error="handleDeleteError"
                   @download-error="handleDownloadError"

@@ -111,7 +111,7 @@ const props = defineProps({
   },
   showSearch: {
     type: Boolean,
-    default: false
+    default: true
   },
   showCreateButton: {
     type: Boolean,

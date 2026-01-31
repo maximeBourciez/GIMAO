@@ -24,7 +24,7 @@
           <v-card rounded="">
             <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" show-statut-filter/>
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT" v-if="store.getters.hasPermission('bt:createa')">
+            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT" v-if="store.getters.hasPermission('bt:create')">
               Créer un BT
             </v-btn>
           </v-card>
@@ -52,7 +52,7 @@
         </v-card>
 
         <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.btAssigned')" >
-          <InterventionListComponent @row-click="handleRowClickBT" title="Vos BT Assignés" :showSearch="true" :showCreateButton="false"
+          <InterventionListComponent @row-click="handleRowClickBT" title="Vos BT Assignés" :showSearch="true" :showCreateButton="false"  show-statut-filter
             :apiEndpoint="`bons-travail/assigne_a/?utilisateur_id=${store.getters.currentUser.id}`"/>
 
           <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
@@ -61,7 +61,7 @@
         </v-card>
 
         <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.bt')" >
-          <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" />
+          <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false"  show-statut-filter />
 
           <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
             Créer un BT
