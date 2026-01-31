@@ -475,7 +475,7 @@ export const TABLE_HEADERS = {
      *******************************/
     DOCUMENTS: [
         {
-            title: "Doucument",
+            title: "Document",
             value: "nomDocument",
             sortable: false,
             align: "center",
@@ -487,7 +487,7 @@ export const TABLE_HEADERS = {
             align: "center",
         },
         {
-            title: "Télécharger",
+            title: "Actions",
             value: "action",
             sortable: false,
             align: "center",

@@ -14,7 +14,9 @@
       </template>
       
       <template #item.type="{ item }">
-        {{ item.type_nom }}
+        <div style="word-wrap: break-word; white-space: normal;">
+          {{ item.type_nom }}
+        </div>
       </template>
       
       <template #item.actions="{ item }">
@@ -23,7 +25,7 @@
             icon
             size="small"
             color="primary"
-            class="mr-2"
+            :class="{ 'mr-1': showDelete }"
             @click="handleDownload(item)"
             :disabled="downloadingDoc"
           >
@@ -31,6 +33,7 @@
           </v-btn>
           
           <v-btn
+            v-if="showDelete"
             icon
             size="small"
             color="error"
@@ -69,7 +72,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useApi } from '@/composables/useApi';
-import { BASE_URL, MEDIA_BASE_URL, API_BASE_URL } from '@/utils/constants';
+import { BASE_URL, MEDIA_BASE_URL, API_BASE_URL, TABLE_HEADERS } from '@/utils/constants';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 
 const props = defineProps({
@@ -80,6 +83,10 @@ const props = defineProps({
   showType: {
     type: Boolean,
     default: false
+  },
+  showDelete: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -164,15 +171,18 @@ const handleDownload = async (item) => {
 };
 
 const headers = computed(() => {
-  const baseHeaders = [
-    { title: 'Nom du document', key: 'name' }
-  ];
+  // Mapper les headers de constants.js au format Vuetify 3
+  const baseHeaders = TABLE_HEADERS.DOCUMENTS.map(h => ({
+    title: h.title,
+    key: h.value === 'nomDocument' ? 'name' : h.value === 'typeDocument' ? 'type' : h.value === 'action' ? 'actions' : h.value,
+    align: h.align,
+    sortable: h.sortable
+  }));
   
-  if (props.showType) {
-    baseHeaders.push({ title: 'Type', key: 'type' });
+  if (!props.showType) {
+    // Filtrer la colonne Type si showType est false
+    return baseHeaders.filter(h => h.key !== 'type');
   }
-  
-  baseHeaders.push({ title: 'Actions', key: 'actions' });
   
   return baseHeaders;
 });
@@ -195,12 +205,12 @@ const headers = computed(() => {
 
 .document-table :deep(td:nth-child(2)),
 .document-table :deep(th:nth-child(2)) {
-  width: 150px !important;
+  width: auto !important;
 }
 
 .document-table :deep(td:last-child),
 .document-table :deep(th:last-child) {
-  width: 120px !important;
+  width: 110px !important;
   text-align: center;
 }
 </style>
