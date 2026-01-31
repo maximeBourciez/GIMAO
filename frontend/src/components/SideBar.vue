@@ -52,7 +52,7 @@
             <v-list dense>
                 <v-list-item class="py-2 user-info-item" @click="goToMyUserDetail">
                     <template #prepend>
-                        <v-avatar size="36" :color="userPhotoUrl ? 'transparent' : 'primary'">
+                        <v-avatar size="36" :color="userPhotoUrl ? 'grey-lighten-3' : 'primary'">
                             <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
                             <span v-else class="text-white">{{ userInitials }}</span>
                         </v-avatar>
@@ -79,7 +79,7 @@
 </template>
 
 <script>
-import { MEDIA_BASE_URL } from '@/utils/constants';
+import { MEDIA_BASE_URL, BASE_URL } from '@/utils/constants';
 
 export default {
     name: "Sidebar",
@@ -146,7 +146,7 @@ export default {
             const raw = this.currentUserRaw;
             const path = raw?.photoProfil;
             if (!path || typeof path !== 'string' || path.trim() === '') return '';
-            return `${MEDIA_BASE_URL}${path}`;
+            return `${BASE_URL}${MEDIA_BASE_URL}${path}`;
         },
 
         userInitials() {

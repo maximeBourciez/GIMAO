@@ -21,7 +21,7 @@
                 />
             </v-col>
 
-            <v-col cols="12" v-if="!isEdit">
+            <v-col cols="12">
                 <FormSelect
                     v-model="formData.equipement_id"
                     field-name="equipement_id"
@@ -30,6 +30,7 @@
                     item-title="designation"
                     item-value="id"
                     placeholder="Sélectionner un équipement"
+                    :disabled="isEdit"
                 />
             </v-col>
 
@@ -44,63 +45,14 @@
                 />
             </v-col>
 
-            <!-- Documents (uniquement en création) -->
-            <v-col cols="12" v-if="!isEdit">
+            <!-- Documents -->
+            <v-col cols="12">
                 <v-divider class="my-4"></v-divider>
-                <v-card-subtitle class="text-h6 font-weight-bold px-0 pb-2">
+                <div class="pb-2" style="font-size: 20px;">
                     Documents (optionnels)
-                </v-card-subtitle>
+                </div>
 
-                <v-sheet class="pa-4 mb-4" variant="outlined" rounded>
-                    <v-row v-for="(doc, index) in formData.documents" :key="index" dense class="mb-3 align-center">
-                        <v-col cols="4">
-                            <v-text-field
-                                v-model="doc.nomDocument"
-                                label="Titre *"
-                                variant="outlined"
-                                dense
-                                hide-details
-                            />
-                        </v-col>
-
-                        <v-col cols="4">
-                            <v-file-input
-                                v-model="doc.file"
-                                dense
-                                variant="outlined"
-                                show-size
-                                label="Document *"
-                                hide-details
-                                prepend-icon=""
-                                prepend-inner-icon="mdi-paperclip"
-                            />
-                        </v-col>
-
-                        <v-col cols="3">
-                            <v-select
-                                v-model="doc.typeDocument"
-                                :items="typesDocuments"
-                                item-title="nomTypeDocument"
-                                item-value="id"
-                                label="Type *"
-                                variant="outlined"
-                                dense
-                                hide-details
-                            />
-                        </v-col>
-
-                        <v-col cols="1" class="d-flex justify-center">
-                            <v-btn icon color="error" size="small" @click="removeDocument(index)">
-                                <v-icon>mdi-delete</v-icon>
-                            </v-btn>
-                        </v-col>
-                    </v-row>
-
-                    <v-btn color="primary" variant="outlined" class="mt-2" @click="addDocument">
-                        <v-icon left>mdi-plus</v-icon>
-                        Ajouter un document
-                    </v-btn>
-                </v-sheet>
+                <DocumentForm v-model="formData.documents" :type-documents="typesDocuments" />
             </v-col>
         </v-row>
     </BaseForm>
@@ -109,6 +61,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { BaseForm, FormField, FormSelect, FormTextarea } from '@/components/common'
+import DocumentForm from '@/components/Forms/DocumentForm.vue'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
 
@@ -167,6 +120,7 @@ const validationSchema = computed(() => {
 const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const originalFormData = ref(null)
 
 // Initialiser les données
 watch(() => props.initialData, (newData) => {
@@ -177,23 +131,96 @@ watch(() => props.initialData, (newData) => {
             commentaire: newData.commentaire || '',
             documents: newData.documents || []
         }
+        // Sauvegarder l'état original pour comparaison
+        if (props.isEdit) {
+            originalFormData.value = JSON.parse(JSON.stringify(formData.value))
+        }
     }
 }, { immediate: true, deep: true })
 
-const addDocument = () => {
-    formData.value.documents.push({
-        nomDocument: '',
-        file: null,
-        typeDocument: null
-    })
-}
-
-const removeDocument = (index) => {
-    formData.value.documents.splice(index, 1)
-}
-
 const close = () => {
     emit('close')
+}
+
+// Fonction pour créer de nouveaux documents et les lier à la DI
+const createAndLinkDocuments = async (demandeId, documents, originalDocuments = []) => {
+    const docs = Array.isArray(documents) ? documents : []
+    const errors = []
+    const api = useApi(API_BASE_URL)
+
+    for (const doc of docs) {
+        if (!doc) continue
+        
+        // Ignorer les lignes vides
+        if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim()) continue
+        
+        // Gérer les documents existants (mise à jour seulement si modifié)
+        if (doc.document_id) {
+            // Trouver le document original
+            const original = originalDocuments.find(o => o.document_id === doc.document_id)
+            
+            // Vérifier si au moins un champ a changé
+            const hasChanges = 
+                (original && doc.nomDocument !== original.nomDocument) ||
+                (original && doc.typeDocument_id !== original.typeDocument_id) ||
+                doc.file // Nouveau fichier = toujours un changement
+            
+            if (!hasChanges) {
+                // Aucun changement, on passe au suivant
+                continue
+            }
+            
+            try {
+                // Toujours utiliser FormData pour la compatibilité avec le backend
+                const form = new FormData()
+                form.append('nomDocument', doc.nomDocument || '')
+                form.append('typeDocument_id', String(doc.typeDocument_id))
+                if (doc.file) {
+                    form.append('cheminAcces', doc.file)
+                }
+                await api.patch(`documents/${doc.document_id}/`, form)
+            } catch (e) {
+                console.error('Erreur lors de la mise à jour du document:', e)
+                errors.push(doc.nomDocument || 'Document existant')
+            }
+            continue
+        }
+        
+        // Vérifier les champs requis pour les nouveaux documents
+        if (!doc.file || !doc.typeDocument_id) {
+            errors.push(doc.nomDocument || 'Document')
+            continue
+        }
+
+        try {
+            const form = new FormData()
+            form.append('nomDocument', (doc.nomDocument || doc.file.name || '').toString())
+            form.append('typeDocument_id', String(doc.typeDocument_id))
+            form.append('cheminAcces', doc.file)
+
+            const created = await api.post('documents/', form)
+            const newId = Number(created?.id)
+            if (!Number.isInteger(newId) || newId <= 0) {
+                errors.push(doc.nomDocument || doc.file?.name || 'Document')
+                continue
+            }
+
+            try {
+                await api.post(`demandes-intervention/${demandeId}/ajouter_document/`, {
+                    document_id: newId
+                })
+            } catch (e) {
+                try {
+                    await api.remove(`documents/${newId}/`)
+                } catch (_) {}
+                errors.push(doc.nomDocument || doc.file?.name || 'Document')
+            }
+        } catch (e) {
+            errors.push(doc.nomDocument || doc.file?.name || 'Document')
+        }
+    }
+
+    return errors
 }
 
 const save = async () => {
@@ -213,6 +240,21 @@ const save = async () => {
 
             const response = await api.patch(`demandes-intervention/${props.initialData.id}/`, payload)
             console.log('Demande d\'intervention modifiée avec succès:', response)
+            console.log('Documents à traiter:', formData.value.documents)
+
+            // Gestion des documents (création + liaison + mise à jour)
+            const createErrors = await createAndLinkDocuments(
+                props.initialData.id, 
+                formData.value.documents,
+                props.initialData.documents || [] // Documents originaux pour comparaison
+            )
+            console.log('Erreurs création documents:', createErrors)
+            
+            if (createErrors.length) {
+                errorMessage.value = `Certains documents n'ont pas pu être traités: ${createErrors.join(', ')}`
+                loading.value = false
+                return
+            }
 
             successMessage.value = 'Demande d\'intervention modifiée avec succès'
             emit('updated', response)
@@ -224,37 +266,25 @@ const save = async () => {
                 return
             }
 
-            // Utilisation de FormData pour envoyer les fichiers
-            const formDataToSend = new FormData()
-            formDataToSend.append('nom', formData.value.nom)
-            formDataToSend.append('commentaire', formData.value.commentaire || '')
-            formDataToSend.append('equipement_id', formData.value.equipement_id)
-            formDataToSend.append('utilisateur_id', props.connectedUserId)
-
-            // Préparation des documents (métadonnées en JSON, fichiers séparés)
-            const validDocs = formData.value.documents
-                .filter(doc => doc.file && doc.typeDocument && doc.nomDocument)
-
-            if (validDocs.length > 0) {
-                const docMetadata = validDocs.map((doc, index) => ({
-                    nomDocument: doc.nomDocument,
-                    typeDocument_id: doc.typeDocument
-                }))
-                formDataToSend.append('documents', JSON.stringify(docMetadata))
-
-                // Ajouter chaque fichier avec la convention document_{index}
-                validDocs.forEach((doc, index) => {
-                    const file = doc.file[0] || doc.file
-                    formDataToSend.append(`document_${index}`, file)
-                })
+            // Création de la DI
+            const payload = {
+                nom: formData.value.nom,
+                commentaire: formData.value.commentaire || '',
+                equipement_id: formData.value.equipement_id,
+                utilisateur_id: props.connectedUserId
             }
 
-            const response = await api.post('demandes-intervention/', formDataToSend, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            })
+            const response = await api.post('demandes-intervention/', payload)
             console.log('Demande d\'intervention créée avec succès:', response)
+
+            // Gestion des documents (création + liaison)
+            const createErrors = await createAndLinkDocuments(response.id, formData.value.documents)
+            
+            if (createErrors.length) {
+                errorMessage.value = `DI créée mais certains documents n'ont pas pu être ajoutés: ${createErrors.join(', ')}`
+                loading.value = false
+                return
+            }
 
             successMessage.value = 'Demande d\'intervention créée avec succès'
             emit('created', response)

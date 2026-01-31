@@ -25,33 +25,34 @@
 
             <!-- Documents techniques -->
             <v-card-text>
-              <h4 class="mb-2">Documents techniques</h4>
-              <v-data-table v-if="technicalDocuments.length > 0" :headers="technicalDocumentsHeaders"
-                :items="technicalDocuments" class="elevation-1 mb-4" hide-default-footer>
-                <template #item.action="{ item }">
-                  <v-btn v-if="item.lienDocumentTechnique" icon size="small" color="primary"
-                    @click="downloadDocument(item.lienDocumentTechnique, item.nomDocumentTechnique)">
-                    <v-icon>mdi-download</v-icon>
-                  </v-btn>
-                  <span v-else class="text-caption text-grey">Non disponible</span>
-                </template>
-              </v-data-table>
+              <h4 class="mb-2">Documents des plans de maintenance</h4>
+              <DocumentList
+                v-if="technicalDocuments.length > 0"
+                :documents="technicalDocuments"
+                :show-type="true"
+                :show-delete="false"
+                @download-success="handleDownloadSuccess"
+                @download-error="handleDownloadError"
+                @delete-success="handleDeleteSuccess"
+                @delete-error="handleDeleteError"
+              />
               <p v-else class="text-caption text-grey">Aucun document technique disponible</p>
             </v-card-text>
 
-            <!-- Autres documents (défaillances et interventions) -->
-            <v-card-text v-if="othersDocuments.length > 0">
-              <h4 class="mb-2">Documents associés</h4>
-              <v-data-table :headers="TABLE_HEADERS.DOCUMENTS" :items="othersDocuments" class="elevation-1 mb-4"
-                hide-default-footer>
-                <template #item.action="{ item }">
-                  <v-btn v-if="item.lienDocument" icon size="small" color="primary"
-                    @click="downloadDocument(item.lienDocument, item.nomDocument)">
-                    <v-icon>mdi-download</v-icon>
-                  </v-btn>
-                  <span v-else class="text-caption text-grey">Non disponible</span>
-                </template>
-              </v-data-table>
+            <!-- Documents de l'équipement -->
+            <v-card-text>
+              <h4 class="mb-2">Documents de l'équipement</h4>
+              <DocumentList
+                v-if="equipmentDocuments.length > 0"
+                :documents="equipmentDocuments"
+                :show-type="true"
+                :show-delete="false"
+                @download-success="handleDownloadSuccess"
+                @download-error="handleDownloadError"
+                @delete-success="handleDeleteSuccess"
+                @delete-error="handleDeleteError"
+              />
+              <p v-else class="text-caption text-grey">Aucun document associé à l'équipement</p>
             </v-card-text>
           </v-card>
         </v-col>
@@ -200,6 +201,7 @@ import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
+import DocumentList from '@/components/DocumentList.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';
 import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, TABLE_HEADERS } from '@/utils/constants';
@@ -227,53 +229,26 @@ const getEmptyCounter = () => ({
   estPrincipal: false,
 });
 
-const technicalDocumentsHeaders = [
-  { title: 'Document technique', key: 'nomDocumentTechnique', align: 'start' },
-  { title: 'Télécharger', key: 'action', align: 'start', sortable: false }
-];
-
-const othersDocumentsHeaders = [
-  { title: 'Type', key: 'type', align: 'start' },
-  { title: 'Document', key: 'nomDocument', align: 'start' },
-  { title: 'Télécharger', key: 'action', align: 'start', sortable: false }
-];
-
-// Documents techniques (corrigé)
+// Documents des plans de maintenance (techniques)
 const technicalDocuments = computed(() => {
-  return equipement.value.liste_documents_techniques || [];
+  const docs = equipement.value.documents || [];
+  return docs.map(doc => ({
+    id: doc.id,
+    titre: doc.titre,
+    path: doc.path,
+    type_nom: doc.type_nom || '-'
+  }));
 });
 
-const othersDocuments = computed(() => {
-  const documents = [];
-
-  (equipement.value.liste_documents_defaillance || []).forEach(doc => {
-    documents.push({
-      type: 'Défaillance',
-      nomDocument: doc.nomDocumentDefaillance || 'Document sans nom',
-      lienDocument: doc.lienDocumentDefaillance,
-      source: 'defaillance'
-    });
-  });
-
-  (equipement.value.liste_documents_intervention || []).forEach(doc => {
-    documents.push({
-      type: 'Intervention',
-      nomDocument: doc.nomDocumentIntervention || 'Document sans nom',
-      lienDocument: doc.lienDocumentIntervention,
-      source: 'intervention'
-    });
-  });
-
-  (equipement.value.documents || []).forEach(doc => {
-    documents.push({
-      type: 'Équipement',
-      nomDocument: doc.nomDocument || 'Document sans nom',
-      lienDocument: doc.lienDocument,
-      source: 'equipement'
-    });
-  });
-
-  return documents;
+// Documents directement associés à l'équipement
+const equipmentDocuments = computed(() => {
+  const docs = equipement.value.documents_equipement || [];
+  return docs.map(doc => ({
+    id: doc.id,
+    titre: doc.titre,
+    path: doc.path,
+    type_nom: doc.type_nom || '-'
+  }));
 });
 
 const equipmentDetails = computed(() => {
@@ -403,56 +378,13 @@ const signalFailure = () => {
   }
 };
 
-const downloadDocument = async (lien, nomFichier) => {
-  if (!lien) {
-    errorMessage.value = 'Aucun lien de document disponible';
-    return;
-  }
-
-  try {
-    let cleanedLink = lien;
-    if (lien.includes('/media/')) {
-      cleanedLink = lien.split('/media/')[1];
-    }
-
-    if (cleanedLink.startsWith('/')) {
-      cleanedLink = cleanedLink.substring(1);
-    }
-
-    const fullUrl = `${BASE_URL}/media/${cleanedLink}`;
-    console.log('Téléchargement depuis:', fullUrl);
-
-    const response = await fetch(fullUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = nomFichier || 'document';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-
-    successMessage.value = 'Document téléchargé avec succès';
-    setTimeout(() => successMessage.value = '', 3000);
-  } catch (error) {
-    console.error('Erreur lors du téléchargement:', error);
-    errorMessage.value = 'Erreur lors du téléchargement du fichier';
-  }
-};
-
 const viewCounter = (counter) => {
   router.push({
     name: 'CounterDetail',
     params: { id: counter.id },
     query: { from: 'equipment', equipmentId: equipmentDetails.value.id }
-  })
-}
+  });
+};
 
 const openAddCounterDialog = () => {
   currentCounter.value = getEmptyCounter();
@@ -492,6 +424,29 @@ const saveCounter = async () => {
     console.error('Erreur lors de la création du compteur:', error);
     errorMessage.value = 'Erreur lors de la création du compteur';
   }
+};
+
+
+
+const handleDownloadSuccess = (message) => {
+  successMessage.value = message;
+  setTimeout(() => successMessage.value = '', 3000);
+};
+
+const handleDownloadError = (message) => {
+  errorMessage.value = message;
+  setTimeout(() => errorMessage.value = '', 3000);
+};
+
+const handleDeleteSuccess = async () => {
+  successMessage.value = 'Document supprimé avec succès';
+  await fetchEquipmentData();
+  setTimeout(() => successMessage.value = '', 3000);
+};
+
+const handleDeleteError = (message) => {
+  errorMessage.value = message;
+  setTimeout(() => errorMessage.value = '', 3000);
 };
 
 onMounted(() => {

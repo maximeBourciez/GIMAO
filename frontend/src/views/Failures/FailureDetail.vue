@@ -102,27 +102,17 @@
 
             <v-expand-transition>
               <v-card-text v-show="showDocumentsDetails">
-
-                <v-data-table :headers="documentHeaders" :items="data.documentsDI || []"
-                  class="elevation-1" hide-default-footer :items-per-page="-1">
-                  <template #item.name="{ item }">
-                    {{ item.titre }}
-                  </template>
-                  <template #item.actions="{ item }">
-                    <v-btn icon size="small" :color="'primary'" class="mr-2" @click="downloadDocument(item)"
-                      v-if="canEditFailure">
-                      <v-icon>
-                        mdi-download
-                      </v-icon>
-                    </v-btn>
-                    <v-btn icon size="small" :color="'error'"
-                      @click="deleteDocument(item)" v-if="canEditFailure">
-                      <v-icon>
-                        mdi-delete
-                      </v-icon>
-                    </v-btn>
-                  </template>
-                </v-data-table>
+                <DocumentList
+                  v-if="(data.documentsDI || []).length > 0"
+                  :documents="data.documentsDI || []"
+                  :show-type="true"
+                  :show-delete="canEditFailure"
+                  @delete-success="handleDeleteSuccess"
+                  @delete-error="handleDeleteError"
+                  @download-error="handleDownloadError"
+                  @download-success="handleDownloadSuccess"
+                />
+                <p v-else class="text-caption text-grey">Aucun document associé</p>
               </v-card-text>
             </v-expand-transition>
           </v-card>
@@ -195,15 +185,18 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
+import DocumentList from '@/components/DocumentList.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, MEDIA_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
 import { useStore } from 'vuex';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';
+import { BASE_URL } from '../../utils/constants';
 
 const store = useStore();
 const router = useRouter();
 const route = useRoute();
 const failureApi = useApi(API_BASE_URL);
+const documentApi = useApi(API_BASE_URL);
 const equipmentApi = useApi(API_BASE_URL);
 const patchApi = useApi(API_BASE_URL);
 
@@ -236,11 +229,6 @@ const formatDate = (dateString) => {
     minute: '2-digit'
   });
 };
-
-const documentHeaders = [
-  { title: 'Nom du document', key: 'name' },
-  { title: 'Actions', key: 'actions', sortable: false }
-];
 
 const canClose = computed(() => FAILURE_STATUS[ defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
 const canCreateIntervention = computed(() => FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.EN_ATTENTE || FAILURE_STATUS[defaillance.value?.statut] === FAILURE_STATUS.ACCEPTEE);
@@ -407,39 +395,21 @@ const toggleActionMode = () => {
   actionMode.value = actionMode.value === 'download' ? 'delete' : 'download';
 };
 
-const downloadDocument = async (item) => {
-  try {
-    const response = await fetch(`${MEDIA_BASE_URL}${item.path}`);
-    const blob = await response.blob(); 
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = item.path.split('/').pop();
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    successMessage.value = 'Document téléchargé';
-  } catch (error) {
-    console.log(error);
-    errorMessage.value = 'Erreur lors du téléchargement';
-  }
+const handleDownloadError = (message) => {
+  errorMessage.value = message || 'Erreur lors du téléchargement';
 };
 
-const deleteDocument = async (item) => {
-  if (confirm(`Êtes-vous sûr de vouloir supprimer le document "${item.titre}" ?`)) {
-    try {
-      console.log("kawabunga");
-      const response = await failureApi.patch(`demandes-intervention/${route.params.id}/delink_document/`, {
-        document_id: item.id
-      });
-      console.log(response);
-      await fetchData();
-      successMessage.value = 'Document supprimé';
-    } catch (error) {
-      errorMessage.value = 'Erreur lors de la suppression du document';
-    }
-  }
+const handleDownloadSuccess = () => {
+  successMessage.value = 'Document téléchargé';
+};
+
+const handleDeleteSuccess = async () => {
+  successMessage.value = 'Document supprimé';
+  await fetchData();
+};
+
+const handleDeleteError = (message) => {
+  errorMessage.value = message || 'Erreur lors de la suppression du document';
 };
 
 const editCurrentFailure = () => {

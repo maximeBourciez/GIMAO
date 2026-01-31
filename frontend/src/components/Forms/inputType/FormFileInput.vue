@@ -1,6 +1,9 @@
 <template>
   <div>
-    <label v-if="label" class="field-label">{{ label }}</label>
+    <label v-if="label" class="field-label">
+      {{ label }}
+      <span v-if="isRequired" class="required-asterisk">*</span>
+    </label>
     <v-file-input
       :model-value="modelValue"
       @update:model-value="handleFileChange"
@@ -44,12 +47,15 @@
 </template>
 
 <script setup>
-import { ref, watch, onBeforeUnmount } from 'vue';
+import { ref, watch, onBeforeUnmount, inject, computed } from 'vue';
 import { BASE_URL } from '@/utils/constants';
 
 defineOptions({
   inheritAttrs: false
 });
+
+// Inject validation context from parent
+const isFieldRequired = inject('isFieldRequired', null);
 
 const props = defineProps({
   modelValue: {
@@ -120,6 +126,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  name: {
+    type: String,
+    default: ''
+  },
   defaultPreviewImage: {
     type: String,
     default: ''
@@ -127,6 +137,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+// Determine if field is required
+const isRequired = computed(() => {
+  if (!props.name || !isFieldRequired) return false;
+  return isFieldRequired(props.name);
+});
 
 const previewUrl = ref(null);
 
@@ -181,5 +197,10 @@ onBeforeUnmount(() => {
   font-size: 0.875rem;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
+}
+
+.required-asterisk {
+  color: rgb(var(--v-theme-error));
+  margin-left: 2px;
 }
 </style>
