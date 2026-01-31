@@ -48,6 +48,59 @@ export const BREADCRUMBS = {
 			];
 		}
 
+        if(route.query.from === "intervention-dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Bon de travail #${route.query.interventionId}`,
+                    to: {
+                        name: "InterventionDetail",
+                        params: { id: route.query.interventionId },
+                        query: { from: "dashboard" },
+                    },
+                },
+                {
+                    label: `Équipement #${route.params.id}`,
+                },
+            ];
+        }
+
+        if(route.query.from === "failure-dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Demande d'intervention #${route.query.failureID}`,
+                    to: {
+                        name: "FailureDetail",
+                        params: { id: route.query.failureID },
+                        query: { from: "dashboard" },
+                    },
+                },
+                {
+                    label: `Équipement #${route.params.id}`,
+                },
+            ];
+        }
+
+
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Équipement #${route.params.id}`,
+                },
+            ];
+        }
+
         return [{
             label: "Équipements",
             to: { name: "EquipmentList" },
@@ -116,6 +169,18 @@ export const BREADCRUMBS = {
             ];
         }
 
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Bon de travail #${route.params.id}`,
+                },
+            ];
+        }
+
         // fallback : liste interventions
         return [
             { label: "Bons de travail", to: { name: "InterventionList" } },
@@ -124,6 +189,18 @@ export const BREADCRUMBS = {
     },
 
     CreateIntervention: (route) => {
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: "Créer un bon de travail",
+                },
+            ];
+        }
+
         return [
             { label: "Bons de travail", to: { name: "InterventionList" } },
             { label: "Créer un bon de travail" },
@@ -131,6 +208,22 @@ export const BREADCRUMBS = {
     },
 
     EditIntervention: (route) => {
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Bon de travail #${route.params.id}`,
+                    to: { name: "InterventionDetail", params: { id: route.params.id }, query: { from: route.query.from } },
+                },
+                {
+                    label: "Modifier",
+                },
+            ];
+        }
+
         return [
             { label: "Bons de travail", to: { name: "InterventionList" } },
             {
@@ -142,6 +235,23 @@ export const BREADCRUMBS = {
     },
 
 	AddDocumentIntervention: (route) => {
+
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Bon de travail #${route.params.id}`,
+                    to: { name: "InterventionDetail", params: { id: route.params.id }, query: { from: route.query.from } },
+                },
+                {
+                    label: "Ajouter des documents",
+                },
+            ];
+        }
+
 		return [
 			{ label: "Bons de travail", to: { name: "InterventionList" } },
 			{
@@ -162,9 +272,9 @@ export const BREADCRUMBS = {
         },
     ],
 
-    FailureDetail: (route) => [
-        ...(route.query.from === "intervention" && route.query.interventionId
-            ? [
+    FailureDetail: (route) => {
+        if(route.query.from === "intervention" && route.query.interventionId) {
+            return [
                 { label: "Bons de travail", to: { name: "InterventionList" } },
                 {
                     label: `Bon de travail #${route.query.interventionId}`,
@@ -173,17 +283,31 @@ export const BREADCRUMBS = {
                         params: { id: route.query.interventionId },
                     },
                 },
-            ]
-            : [
+            ];
+        }
+
+        if(route.query.from === "dashboard") {
+            return [
                 {
-                    label: "Demandes d'intervention",
-                    to: { name: "FailureList" },
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
                 },
-            ]),
-        {
-            label: `Demande d'intervention #${route.params.id}`,
-        },
-    ],
+                {
+                    label: `Demande d'intervention #${route.params.id}`,
+                },
+            ];
+        }
+
+        return [
+            {
+                label: "Demandes d'intervention",
+                to: { name: "FailureList" },
+            },
+            {
+                label: `Demande d'intervention #${route.params.id}`,
+            },
+        ];
+    },
 
     CreateFailure: (route) => {
         if(route.query.from === "dashboard") {
@@ -193,7 +317,7 @@ export const BREADCRUMBS = {
                     to: { name: "Dashboard" },
                 },
                 {
-                    label: "Créer une DI",
+                    label: "Créer une demande d'intervention",
                 },
             ];
         }
@@ -203,7 +327,7 @@ export const BREADCRUMBS = {
                 to: { name: "FailureList" },
             },
             {
-                label: `Créer`,
+                label: `Créer une demande d'intervention`,
             }
         ];
     },
@@ -225,11 +349,30 @@ export const BREADCRUMBS = {
         },
     ],
 
-    AddDocumentFailure: (route) => [
-        { label: "Demandes d'intervention", to: { name: "FailureList" } },
-        { label: `Demande d'intervention #${route.params.id}`, to: { name: "FailureDetail", params: { id: route.params.id } } },
-        { label: "Ajouter des documents" },
-    ],
+    AddDocumentFailure: (route) =>{ 
+
+        if(route.query.from === "dashboard") {
+            return [
+                {
+                    label: "Tableau de bord",
+                    to: { name: "Dashboard" },
+                },
+                {
+                    label: `Demande d'intervention #${route.params.id}`,
+                    to: { name: "FailureDetail", params: { id: route.params.id }, query: { from: route.query.from } },
+                },
+                {
+                    label: "Ajouter des documents",
+                },
+            ];
+        }
+
+        return [
+            { label: "Demandes d'intervention", to: { name: "FailureList" } },
+            { label: `Demande d'intervention #${route.params.id}`, to: { name: "FailureDetail", params: { id: route.params.id } } },
+            { label: "Ajouter des documents" },
+        ]
+},
 
     /***************************************
      * Magasin

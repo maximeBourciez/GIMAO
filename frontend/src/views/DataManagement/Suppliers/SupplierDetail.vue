@@ -99,6 +99,7 @@
 
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants.js';
@@ -106,6 +107,7 @@ import { API_BASE_URL } from '@/utils/constants.js';
 // Données
 const route = useRoute();
 const router = useRouter();
+const store = useStore();
 const supplierId = route.params.id;
 const supplierData = ref(null);
 const isLoading = ref(true);
