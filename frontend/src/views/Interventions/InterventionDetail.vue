@@ -222,6 +222,7 @@
                 <v-card-text>
                   <h4 class="text-subtitle-1 mb-2">Documents du BT</h4>
                   <DocumentList
+                    v-if="(data.documentsBT || data.liste_documents_intervention || []).length > 0"
                     :documents="data.documentsBT || data.liste_documents_intervention || []"
                     :show-type="true"
                     @delete-success="handleDeleteSuccess"
@@ -229,9 +230,11 @@
                     @download-error="handleDownloadError"
                     @download-success="handleDownloadSuccess"
                   />
+                  <p v-else class="text-caption text-grey">Aucun document associé au Bon de Travail</p>
 
                   <h4 class="text-subtitle-1 mt-6 mb-2">Documents de la DI</h4>
                   <DocumentList
+                    v-if="(data.documentsDI || []).length > 0"
                     :documents="data.documentsDI || []"
                     :show-type="true"
                     @delete-success="handleDeleteSuccess"
@@ -239,6 +242,7 @@
                     @download-error="handleDownloadError"
                     @download-success="handleDownloadSuccess"
                   />
+                  <p v-else class="text-caption text-grey">Aucun document associé à la Demande d'Intervention</p>
                 </v-card-text>
               </div>
             </v-expand-transition>

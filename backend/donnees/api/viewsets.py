@@ -195,9 +195,13 @@ class DocumentViewSet(viewsets.ModelViewSet):
         """
         instance = self.get_object()
         
-        # Supprimer le fichier physique si il existe
+        # Tenter de supprimer le fichier physique si il existe
         if instance.cheminAcces:
-            instance.cheminAcces.delete(save=False)
+            try:
+                instance.cheminAcces.delete(save=False)
+            except Exception as e:
+                # En cas d'erreur (fichier manquant, permission, etc), on continue quand même
+                print(f"Erreur lors de la suppression du fichier: {e}")
         
         # Supprimer l'instance (les liaisons M2M seront supprimées en cascade)
         instance.delete()

@@ -103,6 +103,7 @@
             <v-expand-transition>
               <v-card-text v-show="showDocumentsDetails">
                 <DocumentList
+                  v-if="(data.documentsDI || []).length > 0"
                   :documents="data.documentsDI || []"
                   :show-type="true"
                   @delete-success="handleDeleteSuccess"
@@ -110,6 +111,7 @@
                   @download-error="handleDownloadError"
                   @download-success="handleDownloadSuccess"
                 />
+                <p v-else class="text-caption text-grey">Aucun document associé</p>
               </v-card-text>
             </v-expand-transition>
           </v-card>
