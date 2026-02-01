@@ -56,8 +56,8 @@
             <v-alert v-if="remainingStock < 0" type="error" density="compact" class="mt-4">
               Stock insuffisant (Manque: {{ Math.abs(remainingStock) }})
             </v-alert>
-             <v-alert v-else type="info" density="compact" class="mt-4">
-              Reste en stock après transfert : {{ remainingStock }}
+             <v-alert v-else-if="sourceStore?.magasin_nom" type="info" density="compact" class="mt-4">
+              Reste en stock dans {{ sourceStore.magasin_nom }} après transfert : {{ remainingStock }}
             </v-alert>
 
           </v-container>
