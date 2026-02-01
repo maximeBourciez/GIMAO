@@ -151,6 +151,63 @@ class DocumentViewSet(viewsets.ModelViewSet):
         out = DocumentSimpleSerializer(document, context={'request': request})
         return Response(out.data, status=status.HTTP_201_CREATED)
 
+    @transaction.atomic
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Met à jour partiellement un document (nom, type et/ou fichier).
+        
+        Payload (JSON ou Multipart):
+        - nomDocument (optionnel)
+        - typeDocument_id (optionnel)
+        - cheminAcces (fichier, optionnel) - remplace l'ancien fichier
+        """
+        instance = self.get_object()
+        
+        # Mise à jour du nom si fourni
+        if 'nomDocument' in request.data:
+            instance.nomDocument = request.data['nomDocument']
+        
+        # Mise à jour du type si fourni
+        if 'typeDocument_id' in request.data:
+            type_id = request.data['typeDocument_id']
+            instance.typeDocument_id = type_id
+        
+        # Mise à jour du fichier si fourni
+        if 'cheminAcces' in request.data and request.data['cheminAcces']:
+            # Supprimer l'ancien fichier physique
+            if instance.cheminAcces:
+                instance.cheminAcces.delete(save=False)
+            # Remplacer par le nouveau fichier
+            instance.cheminAcces = request.data['cheminAcces']
+        
+        instance.save()
+        
+        # Réponse avec le format simple
+        out = DocumentSimpleSerializer(instance, context={'request': request})
+        return Response(out.data, status=status.HTTP_200_OK)
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        """
+        Supprime un document et son fichier physique.
+        Les liaisons avec DI/BT/PM/Consommables sont supprimées en cascade grâce aux FK on_delete=CASCADE
+        dans les tables through (DemandeInterventionDocument, BonTravailDocument, etc).
+        """
+        instance = self.get_object()
+        
+        # Tenter de supprimer le fichier physique si il existe
+        if instance.cheminAcces:
+            try:
+                instance.cheminAcces.delete(save=False)
+            except Exception as e:
+                # En cas d'erreur (fichier manquant, permission, etc), on continue quand même
+                print(f"Erreur lors de la suppression du fichier: {e}")
+        
+        # Supprimer l'instance (les liaisons M2M seront supprimées en cascade)
+        instance.delete()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @action(detail=False, methods=['get'])
     def par_type(self, request):
         """

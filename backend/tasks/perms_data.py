@@ -38,14 +38,14 @@ perms = [
     'menu:view',
 
     # Dashboard
-    'dash:display.di', 'dash:display.bt', 'dash:display.eq', 'dash:display.mag',
+    'dash:display.di', 'dash:display.bt', 'dash:display.eq', 'dash:display.mag', 'dash:display.diCreated', 'dash:display.btAssigned',
     'dash:stats.full', 'dash:stats.bt', 'dash:stats.di',
     'dash:display.vertical',
 ]
 
 perms_map = {
     "Responsable GMAO": [
-        perm for perm in perms  # Tous les droits existants
+        perm for perm in perms if perm not in ['dash:display.vertical', 'dash:display.eq', 'dash:display.mag', 'dash:display.btAssigned', 'dash:display.diCreated' ]
     ],
 
     "Technicien": [
@@ -61,7 +61,9 @@ perms_map = {
 
         'stock:view',
 
-        'dash:display.di', 'dash:display.bt', 'dash:stats.bt',
+        'menu:view',
+
+        'dash:display.eq', 'dash:display.btAssigned', 'dash:stats.bt',
     ],
 
     "Opérateur": [
@@ -71,7 +73,7 @@ perms_map = {
 
         'eq:viewList', 'eq:viewDetail',
 
-        'dash:display.di', 'dash:display.eq', 'dash:stats.di','dash:display.vertical',
+        'dash:display.diCreated', 'dash:display.eq', 'dash:stats.di','dash:display.vertical',
     ],
 
     "Magasinier": [

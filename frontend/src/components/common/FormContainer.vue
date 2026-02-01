@@ -11,7 +11,7 @@
             {{ subtitle }}
           </v-card-subtitle>
 
-          <v-card-text :class="contentClass" style="max-height: 70vh; overflow-y: auto;">
+          <v-card-text :class="contentClass">
             <slot></slot>
           </v-card-text>
         </v-card>

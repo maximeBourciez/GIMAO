@@ -50,11 +50,13 @@
 <script setup>
 import { useApi } from '@/composables/useApi'
 import { ref, onMounted } from 'vue'
+import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/utils/constants'
 
 const router = useRouter()
 const route = useRoute()
+const store = useStore()
 const api = useApi(API_BASE_URL)
 
 const location = ref(null)

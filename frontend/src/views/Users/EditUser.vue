@@ -191,7 +191,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import BaseForm from '@/components/common/BaseForm.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, MEDIA_BASE_URL, BASE_URL } from '@/utils/constants';
 
 const route = useRoute();
 const router = useRouter();
@@ -249,7 +249,7 @@ const photoError = ref('');
 
 const existingPhotoUrl = computed(() => {
 	if (!existingPhotoPath.value) return '';
-	return `${MEDIA_BASE_URL}${existingPhotoPath.value}`;
+	return `${BASE_URL}${MEDIA_BASE_URL}${existingPhotoPath.value}`;
 });
 
 const displayPhotoUrl = computed(() => {

@@ -2,20 +2,29 @@
 	<v-app>
 		<v-main>
 			<v-container>
+				<v-alert v-if="loading" type="info" variant="tonal" class="mb-4">
+					<v-progress-circular indeterminate size="20" class="mr-2"></v-progress-circular>
+					Chargement des données...
+				</v-alert>
+
+				<v-alert v-if="errorLoading" type="error" variant="tonal" class="mb-4">
+					{{ errorLoading }}
+				</v-alert>
+
 				<InterventionForm
-					v-model="formData"
-					:base-form-props="baseFormProps"
+					v-if="!loading && bonTravailData"
+					:title="`Modifier le bon de travail #${bonId}`"
+					submit-button-text="Enregistrer"
+					submit-button-color="primary"
+					:is-edit="true"
+					:initial-data="bonTravailData"
 					:equipments="equipments"
 					:users="users"
 					:consommables="consommables"
 					:type-documents="typeDocuments"
-					:equipement-read-only="true"
-					:responsable-read-only="true"
-					:state="formState"
-					@submit="submit"
-					@cancel="goBack"
-					@clear-error="formState.errorMessage = ''"
-					@clear-success="formState.successMessage = ''"
+					:connected-user-id="connectedUser?.id"
+					@updated="handleUpdated"
+					@close="handleClose"
 				/>
 			</v-container>
 		</v-main>
@@ -23,7 +32,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { useApi } from '@/composables/useApi';
@@ -37,39 +46,15 @@ const api = useApi(API_BASE_URL);
 
 const bonId = route.params.id;
 
-const formState = reactive({
-	loading: false,
-	errorMessage: '',
-	successMessage: ''
-});
-
-const baseFormProps = {
-	title: 'Modifier un bon de travail',
-	submitButtonText: 'Enregistrer',
-	submitButtonColor: 'primary'
-};
-
-const users = ref([]);
+const loading = ref(false);
+const errorLoading = ref('');
+const bonTravailData = ref(null);
 const equipments = ref([]);
+const users = ref([]);
 const consommables = ref([]);
 const typeDocuments = ref([]);
 
 const connectedUser = computed(() => store.getters.currentUser);
-
-const formData = ref({
-	equipement_id: null,
-	nom: '',
-	type: 'CORRECTIF',
-	date_prevue: null,
-	commentaire: '',
-	diagnostic: '',
-	responsable_id: null,
-	utilisateur_assigne_ids: [],
-	consommables: [{ consommable_id: null, quantite_utilisee: null }],
-	documents: [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
-});
-
-const originalFormData = ref(null);
 
 const toDatetimeLocalValue = (value) => {
 	if (!value) return null;
@@ -83,299 +68,76 @@ const toDatetimeLocalValue = (value) => {
 	return `${match[1]}T${match[2]}`;
 };
 
-const loadUsers = async () => {
-	users.value = await api.get('utilisateurs/');
-};
+const fetchBonTravail = async () => {
+	loading.value = true;
+	errorLoading.value = '';
 
-const loadEquipments = async () => {
-	equipments.value = await api.get('equipements/');
-};
+	try {
+		const bon = await api.get(`bons-travail/${bonId}/`);
 
-const loadConsommables = async () => {
-	consommables.value = await api.get('consommables/');
-};
-
-const loadTypeDocuments = async () => {
-	typeDocuments.value = await api.get('types-documents/');
-};
-
-const loadBonTravail = async () => {
-	const bon = await api.get(`bons-travail/${bonId}/`);
-
-	const consommablesLines = Array.isArray(bon?.consommables)
-		? bon.consommables
-			.map((c) => ({
+		const consommablesLines = Array.isArray(bon?.consommables)
+			? bon.consommables.map((c) => ({
 				consommable_id: c?.consommable ?? null,
 				quantite_utilisee: Number.isFinite(Number(c?.quantite)) ? Number(c.quantite) : 0
 			}))
-		: [];
+			: [];
 
-	const documentsLines = Array.isArray(bon?.documentsBT)
-		? bon.documentsBT.map((d) => ({
+		const documentsLines = Array.isArray(bon?.documentsBT)
+			? bon.documentsBT.map((d) => ({
 				document_id: d?.id ?? null,
-				nomDocument: '',
-				typeDocument_id: null,
-				file: null
-		  }))
-		: [];
+				nomDocument: d?.titre || '',
+				typeDocument_id: d?.type ?? null,
+				file: null,
+				existingFileName: d?.path ? d.path.split('/').pop() : ''
+			}))
+			: [];
 
-	formData.value = {
-		equipement_id: bon?.demande_intervention?.equipement?.id ?? null,
-		nom: bon?.nom ?? '',
-		type: bon?.type ?? 'CORRECTIF',
-		date_prevue: toDatetimeLocalValue(bon?.date_prevue),
-		commentaire: bon?.commentaire ?? '',
-		diagnostic: bon?.diagnostic ?? '',
-		responsable_id: bon?.responsable?.id ?? null,
-		utilisateur_assigne_ids: Array.isArray(bon?.utilisateur_assigne)
-			? bon.utilisateur_assigne.map((u) => u.id)
-			: [],
-		consommables: consommablesLines.length ? consommablesLines : [{ consommable_id: null, quantite_utilisee: null }],
-		documents: documentsLines.length ? documentsLines : [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
-	};
-
-	originalFormData.value = JSON.parse(JSON.stringify(formData.value));
-};
-
-const buildPatchPayload = (payload) => {
-	const original = originalFormData.value;
-	if (!original) return {};
-
-	const patch = {};
-
-	if ((payload?.nom ?? '') !== (original?.nom ?? '')) patch.nom = payload.nom;
-	if ((payload?.type ?? null) !== (original?.type ?? null)) patch.type = payload.type;
-	if ((payload?.diagnostic ?? '') !== (original?.diagnostic ?? '')) patch.diagnostic = payload.diagnostic;
-	if ((payload?.commentaire ?? '') !== (original?.commentaire ?? '')) patch.commentaire = payload.commentaire;
-	if ((payload?.responsable_id ?? null) !== (original?.responsable_id ?? null)) patch.responsable_id = payload.responsable_id;
-
-	const currentDatePrevue = payload?.date_prevue || null;
-	const originalDatePrevue = original?.date_prevue || null;
-	if ((currentDatePrevue ?? null) !== (originalDatePrevue ?? null)) {
-		patch.date_prevue =
-			currentDatePrevue && String(currentDatePrevue).length === 16
-				? `${currentDatePrevue}:00`
-				: currentDatePrevue || null;
-	}
-
-	const newIds = (Array.isArray(payload?.utilisateur_assigne_ids) ? payload.utilisateur_assigne_ids : [])
-		.map((x) => Number(x))
-		.filter((x) => Number.isFinite(x));
-	const oldIds = (Array.isArray(original?.utilisateur_assigne_ids) ? original.utilisateur_assigne_ids : [])
-		.map((x) => Number(x))
-		.filter((x) => Number.isFinite(x));
-	const sameIds = newIds.length === oldIds.length && newIds.every((id, i) => id === oldIds[i]);
-	if (!sameIds) {
-		patch.utilisateur_assigne_ids = newIds;
-	}
-
-	const buildConsommablesPayload = (source) => {
-		const lines = Array.isArray(source?.consommables) ? source.consommables : [];
-		return lines
-			.filter((c) => c && c.consommable_id !== null && c.consommable_id !== undefined && c.consommable_id !== '')
-			.map((c) => {
-				const id = Number(c.consommable_id);
-				const qRaw = Number.isFinite(Number(c.quantite_utilisee)) ? Number(c.quantite_utilisee) : 0;
-				const q = Math.max(0, Math.trunc(qRaw));
-				return { consommable_id: id, quantite_utilisee: q };
-			})
-			.sort((a, b) => a.consommable_id - b.consommable_id);
-	};
-
-	const newConsommables = buildConsommablesPayload(payload);
-	const oldConsommables = buildConsommablesPayload(original);
-	const sameConsommables = JSON.stringify(newConsommables) === JSON.stringify(oldConsommables);
-	if (!sameConsommables) {
-		patch.consommables = newConsommables;
-	}
-
-	return patch;
-};
-
-const linkExistingDocumentsToBonTravail = async (bonTravailId, payload) => {
-	const docs = Array.isArray(payload?.documents) ? payload.documents : [];
-	const ids = docs
-		.map((d) => Number(d?.document_id))
-		.filter((x) => Number.isInteger(x) && x > 0);
-
-	const errors = [];
-	for (const id of ids) {
-		try {
-			await api.post(`bons-travail/${bonTravailId}/ajouter_document/`, {
-				document_id: id,
-				user: connectedUser.value?.id,
-			});
-		} catch (e) {
-			errors.push(`Document #${id}`);
-		}
-	}
-	return errors;
-};
-
-const createNewDocumentsThenLinkToBonTravail = async (bonTravailId, payload) => {
-	const docs = Array.isArray(payload?.documents) ? payload.documents : [];
-	const errors = [];
-
-	for (const doc of docs) {
-		if (!doc) continue;
-		const existingId = Number(doc.document_id);
-		if (Number.isInteger(existingId) && existingId > 0) continue;
-		if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim()) continue;
-		if (!doc.file || !doc.typeDocument_id) {
-			errors.push(doc.nomDocument || doc.file?.name || 'Document');
-			continue;
-		}
-
-		try {
-			const form = new FormData();
-			form.append('nomDocument', (doc.nomDocument || doc.file.name || '').toString());
-			form.append('typeDocument_id', String(doc.typeDocument_id));
-			form.append('cheminAcces', doc.file);
-
-			const created = await api.post('documents/', form);
-			const newId = Number(created?.id);
-			if (!Number.isInteger(newId) || newId <= 0) {
-				errors.push(doc.nomDocument || doc.file?.name || 'Document');
-				continue;
-			}
-
-			try {
-				await api.post(`bons-travail/${bonTravailId}/ajouter_document/`, {
-					document_id: newId,
-					user: connectedUser.value?.id,
-				});
-			} catch (e) {
-				try {
-					await api.delete(`documents/${newId}/`);
-				} catch (_) {}
-				errors.push(doc.nomDocument || doc.file?.name || 'Document');
-			}
-		} catch (e) {
-			errors.push(doc.nomDocument || doc.file?.name || 'Document');
-		}
-	}
-
-	return errors;
-};
-
-const removeUnlinkedDocuments = async (bonTravailId, payload) => {
-	const originalDocs = Array.isArray(originalFormData.value?.documents) ? originalFormData.value.documents : [];
-	const currentDocs = Array.isArray(payload?.documents) ? payload.documents : [];
-
-	const originalIds = originalDocs
-		.map((d) => Number(d?.document_id))
-		.filter((x) => Number.isInteger(x) && x > 0);
-
-	const currentIds = currentDocs
-		.map((d) => Number(d?.document_id))
-		.filter((x) => Number.isInteger(x) && x > 0);
-
-	const removedIds = originalIds.filter((id) => !currentIds.includes(id));
-
-	const errors = [];
-	for (const id of removedIds) {
-		try {
-			await api.patch(`bons-travail/${bonTravailId}/delink_document/`, {
-				document_id: id,
-				user: connectedUser.value?.id,
-			});
-		} catch (e) {
-			errors.push(`Document #${id}`);
-		}
-	}
-	return errors;
-};
-
-const haveDocumentsChanged = (payload) => {
-	const originalDocs = Array.isArray(originalFormData.value?.documents) ? originalFormData.value.documents : [];
-	const currentDocs = Array.isArray(payload?.documents) ? payload.documents : [];
-
-	const originalIds = originalDocs
-		.map((d) => Number(d?.document_id))
-		.filter((x) => Number.isInteger(x) && x > 0)
-		.sort((a, b) => a - b);
-
-	const currentIds = currentDocs
-		.map((d) => Number(d?.document_id))
-		.filter((x) => Number.isInteger(x) && x > 0)
-		.sort((a, b) => a - b);
-
-	// Vérifier si des documents ont été retirés ou ajoutés
-	if (originalIds.length !== currentIds.length) return true;
-	if (!originalIds.every((id, i) => id === currentIds[i])) return true;
-
-	// Vérifier si de nouveaux documents vont être créés
-	const hasNewDocuments = currentDocs.some((doc) => {
-		if (!doc) return false;
-		const existingId = Number(doc.document_id);
-		if (Number.isInteger(existingId) && existingId > 0) return false;
-		return doc.file || doc.typeDocument_id || (doc.nomDocument || '').trim();
-	});
-
-	return hasNewDocuments;
-};
-
-const submit = async (payload) => {
-	formState.loading = true;
-	formState.errorMessage = '';
-	formState.successMessage = '';
-
-	try {
-		if (!connectedUser.value?.id) {
-			formState.errorMessage = 'Utilisateur non identifié';
-			return;
-		}
-
-		const patch = buildPatchPayload(payload);
-		const documentsChanged = haveDocumentsChanged(payload);
-		
-		if (Object.keys(patch).length === 0 && !documentsChanged) {
-			formState.successMessage = 'Aucune modification à enregistrer';
-			return;
-		}
-
-		// Appliquer le patch seulement s'il y a des changements de champs
-		if (Object.keys(patch).length > 0) {
-			patch.user = connectedUser.value.id;
-			await api.patch(`bons-travail/${bonId}/`, patch);
-		}
-
-		// Gestion des documents
-		const removeErrors = await removeUnlinkedDocuments(bonId, payload);
-		const linkErrors = await linkExistingDocumentsToBonTravail(bonId, payload);
-		const createErrors = await createNewDocumentsThenLinkToBonTravail(bonId, payload);
-		const docErrors = [...removeErrors, ...linkErrors, ...createErrors];
-		if (docErrors.length) {
-			formState.errorMessage = `Certains documents n'ont pas pu être traités: ${docErrors.join(', ')}`;
-			return;
-		}
-
-		formState.successMessage = 'Bon de travail modifié avec succès';
-		setTimeout(() => {
-			router.push({ name: 'InterventionDetail', params: { id: bonId } });
-		}, 1000);
+		bonTravailData.value = {
+			id: bonId,
+			equipement_id: bon?.demande_intervention?.equipement?.id ?? null,
+			nom: bon?.nom ?? '',
+			type: bon?.type ?? 'CORRECTIF',
+			date_prevue: toDatetimeLocalValue(bon?.date_prevue),
+			commentaire: bon?.commentaire ?? '',
+			diagnostic: bon?.diagnostic ?? '',
+			responsable_id: bon?.responsable?.id ?? null,
+			utilisateur_assigne_ids: Array.isArray(bon?.utilisateur_assigne)
+				? bon.utilisateur_assigne.map((u) => u.id)
+				: [],
+			consommables: consommablesLines.length ? consommablesLines : [{ consommable_id: null, quantite_utilisee: null }],
+			documents: documentsLines.length ? documentsLines : [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
+		};
 	} catch (error) {
-		console.error('Erreur lors de la modification du bon de travail:', error);
-		formState.errorMessage = 'Erreur lors de la modification du bon de travail';
+		console.error('Erreur lors de la récupération des données:', error);
+		errorLoading.value = 'Erreur lors du chargement des données du bon de travail';
 	} finally {
-		formState.loading = false;
+		loading.value = false;
 	}
 };
 
-const goBack = () => {
-	router.back();
+const handleUpdated = () => {
+	router.push({ name: 'InterventionDetail', params: { id: bonId } });
+};
+
+const handleClose = () => {
+	router.push({ name: 'InterventionDetail', params: { id: bonId } });
 };
 
 onMounted(async () => {
-	formState.loading = true;
-	formState.errorMessage = '';
+	loading.value = true;
 	try {
-		await Promise.all([loadUsers(), loadEquipments(), loadConsommables(), loadTypeDocuments(), loadBonTravail()]);
+		await Promise.all([
+			api.get('utilisateurs/').then(data => users.value = data),
+			api.get('equipements/').then(data => equipments.value = data),
+			api.get('consommables/').then(data => consommables.value = data),
+			api.get('types-documents/').then(data => typeDocuments.value = data),
+			fetchBonTravail()
+		]);
 	} catch (error) {
 		console.error('Erreur lors du chargement:', error);
-		formState.errorMessage = 'Erreur lors du chargement des données';
+		errorLoading.value = 'Erreur lors du chargement des données';
 	} finally {
-		formState.loading = false;
+		loading.value = false;
 	}
 });
 </script>

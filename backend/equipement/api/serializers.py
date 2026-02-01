@@ -180,6 +180,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
     dernier_statut = serializers.SerializerMethodField()
     compteurs = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
+    documents_equipement = serializers.SerializerMethodField()
     consommables = serializers.SerializerMethodField()
     bons_travail = serializers.SerializerMethodField()
     fabricant = FabricantSimpleSerializer(read_only=True)
@@ -194,7 +195,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             'dateMiseEnService', 'prixAchat', 'lienImage',
             'createurEquipement', 'x', 'y', 'fabricant', 'fournisseur',
             'lieu', 'modele', 'famille', 'dernier_statut',
-            'compteurs', 'documents', 'consommables', 'bons_travail'
+            'compteurs', 'documents', 'documents_equipement', 'consommables', 'bons_travail'
         ]
 
     def get_modele(self, obj):
@@ -372,7 +373,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
     def get_documents(self, obj):
         docs_Pm = PlanMaintenance.objects.filter(
             equipement=obj
-        ).prefetch_related('documents')
+        ).prefetch_related('documents__typeDocument')
         documents_list = []
         for pm in docs_Pm:
             for doc in pm.documents.all():
@@ -381,12 +382,35 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
                 except Exception:
                     path = None
                 
+                type_nom = doc.typeDocument.nomTypeDocument if doc.typeDocument else None
+                
                 documents_list.append({
                     'id': doc.id,
                     'titre': doc.nomDocument,
                     'path': path,
-                    'type': doc.typeDocument_id
+                    'type': doc.typeDocument_id,
+                    'type_nom': type_nom
                 })
+        return documents_list
+
+    def get_documents_equipement(self, obj):
+        """Retourne les documents directement liés à l'équipement"""
+        documents_list = []
+        for doc in obj.documents.all():
+            try:
+                path = doc.cheminAcces.name if doc.cheminAcces else None
+            except Exception:
+                path = None
+            
+            type_nom = doc.typeDocument.nomTypeDocument if doc.typeDocument else None
+            
+            documents_list.append({
+                'id': doc.id,
+                'titre': doc.nomDocument,
+                'path': path,
+                'type': doc.typeDocument_id,
+                'type_nom': type_nom
+            })
         return documents_list
 
     def get_consommables(self, obj):

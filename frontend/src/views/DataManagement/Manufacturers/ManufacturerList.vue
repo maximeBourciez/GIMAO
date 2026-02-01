@@ -30,6 +30,7 @@
 <script setup>
 import BaseListView from '@/components/common/BaseListView.vue';
 import { ref, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import { useApi } from '@/composables/useApi.js';
 import { API_BASE_URL, TABLE_HEADERS } from '@/utils/constants';
 import { useRouter } from 'vue-router';
@@ -38,6 +39,7 @@ import { useRouter } from 'vue-router';
 const title = 'Liste des fabricants';
 const api = useApi(API_BASE_URL);
 const manufacturers = ref([]);
+const store = useStore();
 const loading = ref(true);
 const errorMessage = ref('');
 const router = useRouter();

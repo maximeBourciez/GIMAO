@@ -1,16 +1,16 @@
 ﻿<template>
   <v-container>
-    <v-alert v-if="loading" type="info" variant="tonal" class="mb-4">
+    <v-alert v-if="isLoading" type="info" variant="tonal" class="mb-4">
       <v-progress-circular indeterminate size="20" class="mr-2"></v-progress-circular>
       Chargement des données...
     </v-alert>
 
-    <v-alert v-else-if="errorLoading" type="error" variant="tonal" class="mb-4">
+    <v-alert v-else-if="errorLoading !== ''" type="error" variant="tonal" class="mb-4">
       {{ errorLoading }}
     </v-alert>
 
     <FabricantForm
-      v-if="!loading && manufacturerData"
+      v-if="!isLoading && manufacturerData"
       title="Modifier le fabricant"
       submit-button-text="Enregistrer les modifications"
       :is-edit="true"
@@ -37,38 +37,28 @@ const api = useApi(API_BASE_URL)
 
 const manufacturerId = route.params.id
 const manufacturerData = ref(null)
-const loading = ref(false)
+const originalData = ref(null)
+const isLoading = ref(false)
 const errorLoading = ref('')
 
 const connectedUserId = computed(() => store.getters.currentUser?.id)
 
 const loadManufacturerData = async () => {
   isLoading.value = true;
-  errorMessage.value = "";
+  errorLoading.value = "";
   try {
     manufacturerData.value = await api.get(`fabricants/${manufacturerId}`);
     originalData.value = JSON.parse(JSON.stringify(manufacturerData.value));
+    isLoading.value = false;
   } catch (error) {
     console.error("Error loading manufacturer data:", error);
-    errorMessage.value = "Erreur lors du chargement des données du fabricant";
-    loader.value = false;
+    errorLoading.value = "Erreur lors du chargement des données du fabricant";
+    isLoading.value = false;
   } finally {
     isLoading.value = false;
   }
 };
 
-// Fonctions de validation
-const isValidEmail = (email) => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
-};
-
-const isValidPhone = (phone) => {
-  return /^\+?[0-9\s\-()]{7,15}$/.test(phone);
-};
-
-const isValidPostalCode = (code) => {
-  return /^[0-9]{4,6}$/.test(code.replace(/\s/g, ""));
-};
 
 const handleSubmit = async () => {
   isSaving.value = true;
@@ -91,7 +81,7 @@ const handleSubmit = async () => {
     console.error('Error loading manufacturer data:', error)
     errorLoading.value = 'Erreur lors du chargement des données du fabricant'
   } finally {
-    loading.value = false
+    isLoading.value = false
   }
 }
 

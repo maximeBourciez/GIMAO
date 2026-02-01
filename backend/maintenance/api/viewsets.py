@@ -94,6 +94,23 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(demandes, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def par_utilisateur(self, request):
+        """
+        Filtre les demandes par utilisateur
+        Query param: utilisateur_id
+        """
+        utilisateur_id = request.query_params.get('utilisateur_id')
+        if not utilisateur_id:
+            return Response(
+                {'error': 'Le paramètre utilisateur_id est requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        demandes = self.queryset.filter(utilisateur_id=utilisateur_id)
+        serializer = self.get_serializer(demandes, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'])
     def traiter(self, request, pk=None):
         """Marque une demande comme traitée"""
@@ -114,6 +131,7 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['patch'])
     def delink_document(self, request, pk=None):
+        """  Délie un document d'une demande d'intervention."""
         demande = self.get_object()
         document_id = request.data.get('document_id')
         
@@ -214,6 +232,7 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def transform_to_bon_travail(self, request, *args, **kwargs):
+        """Transforme une demande d'intervention en bon de travail."""
         demande = self.get_object()
         print(demande, request.data.get('responsable'))
 
@@ -748,6 +767,23 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(bon_apres)
         return Response(serializer.data)
+
+
+    @action(detail=False, methods=['get'])
+    def assigne_a(self, request, pk=None):
+        """Retourne la liste des BT assignés à un utilisateur."""
+        user = request.query_params.get('utilisateur_id')
+        if not user:
+            return Response(
+                {'error': 'Le paramètre utilisateur_id est requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Récupérer les BT assignés à l'utilisateur ( user in utilisateur_assigne )
+        bons = self.queryset.filter(utilisateur_assigne__id=user)
+        serializer = self.get_serializer(bons, many=True)
+        return Response(serializer.data)
+        
 
     @action(detail=True, methods=['patch'])
     def delink_document(self, request, pk=None):
@@ -1316,53 +1352,54 @@ class PlanMaintenanceConsommableViewSet(viewsets.ModelViewSet):
 class DashboardStatsViewset(viewsets.ViewSet):
 
     def list(self, request):
-        role = request.query_params.get("role")
         user_id = request.query_params.get("userId")
+        user = Utilisateur.objects.filter(pk=user_id).first()
+        if not user:
+            return Response({"detail": "Utilisateur not found"},
+                            status=status.HTTP_404_NOT_FOUND)
 
-        if not role:
-            return Response({"detail": "role is required"},
-                            status=status.HTTP_400_BAD_REQUEST)
+        perms = self.get_dashboard_permissions(user)
 
         stats = []
 
-        if role == "Responsable GMAO":
+        if 'dash:stats.full' in perms:
             stats = [
                 {"label": "Nombre de DI", "value": DemandeIntervention.objects.filter(~Q(statut="TRANSFORMEE")).count()},
                 {"label": "DI en attente", "value": DemandeIntervention.objects.filter(statut="EN_ATTENTE").count()},
-                {"label": "DI acceptés", "value": DemandeIntervention.objects.filter(statut="ACCEPTEE").count()},
+                {"label": "DI acceptées", "value": DemandeIntervention.objects.filter(statut="ACCEPTEE").count()},
                 {"label": "Nombre de BT", "value": BonTravail.objects.filter(~Q(statut="CLOTURE")).count()},
                 {"label": "BT en retard", "value": BonTravail.objects.filter(statut="EN_RETARD").count()},
                 {"label": "BT en cours", "value": BonTravail.objects.filter(statut="EN_COURS").count()},
             ]
 
-        elif role in ["Technicien", "Opérateur"]:
-            if not user_id:
-                return Response({"detail": "userId is required"},
-                                status=status.HTTP_400_BAD_REQUEST)
+        elif 'dash:stats.bt' in perms:
+            bt = BonTravail.objects.filter(utilisateur_assigne=user)
+            stats = [
+                {"label": "Vos BT", "value": bt.filter(~Q(statut="CLOTURE")).count()},
+                {"label": "Vos BT en cours", "value": bt.filter(statut="EN_COURS").count()},
+                {"label": "Vos BT terminés", "value": bt.filter(statut="TERMINE").count()},
+            ]
 
-            user = Utilisateur.objects.filter(pk=user_id).first()
-            if not user:
-                return Response({"detail": "Utilisateur not found"},
-                                status=status.HTTP_404_NOT_FOUND)
-
-            if role == "Technicien":
-                bt = BonTravail.objects.filter(utilisateur_assigne=user)
-                stats = [
-                    {"label": "Vos BT", "value": bt.filter(~Q(statut="CLOTURE")).count()},
-                    {"label": "Vos BT en cours", "value": bt.filter(statut="EN_COURS").count()},
-                    {"label": "Vos BT terminés", "value": bt.filter(statut="TERMINE").count()},
-                ]
-
-            if role == "Opérateur":
-                di = DemandeIntervention.objects.filter(utilisateur=user)
-                stats = [
-                    {"label": "Vos DI", "value": DemandeIntervention.objects.filter(utilisateur=user).filter(~Q(statut="TRANSFORMEE")).count()},
-                    {"label": "Vos DI en attente", "value": di.filter(statut="EN_ATTENTE").count()},
-                    {"label": "Vos DI acceptées", "value": di.filter(statut="ACCEPTEE").count()},
-                ]
-
+        elif 'dash:stats.di' in perms:
+            di = DemandeIntervention.objects.filter(utilisateur=user)
+            stats = [
+                {"label": "Vos DI", "value": DemandeIntervention.objects.filter(utilisateur=user).filter(~Q(statut="TRANSFORMEE")).count()},
+                {"label": "Vos DI en attente", "value": di.filter(statut="EN_ATTENTE").count()},
+                {"label": "Vos DI acceptées", "value": di.filter(statut="ACCEPTEE").count()},
+            ]
         else:
             return Response({"detail": "Invalid role"},
                             status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"stats": stats}, status=status.HTTP_200_OK)
+
+
+    def get_dashboard_permissions(self, user):
+        """ Récupère les permissions de l'utilisateur pour les stats du dashboard """
+        perms = []
+
+        user_perms = user.role.permissions.filter(nomPermission__startswith='dash').values_list('nomPermission', flat=True)
+
+        perms = list(user_perms)
+
+        return perms
