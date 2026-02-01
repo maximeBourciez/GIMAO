@@ -52,20 +52,16 @@
                 </v-btn>
              </v-card-title>
              <v-card-text>
-               <v-table v-if="consumable?.stocks?.length">
-                 <thead>
-                   <tr>
-                     <th>Magasin</th>
-                     <th>Quantité</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   <tr v-for="stock in consumable.stocks" :key="stock.id">
-                     <td>{{ stock.magasin_nom }}</td>
-                     <td>{{ stock.quantite }}</td>
-                   </tr>
-                 </tbody>
-               </v-table>
+               <v-data-table
+                 v-if="consumable?.stocks?.length"
+                 :headers="stockHeaders"
+                 :items="consumable.stocks"
+                 class="elevation-1"
+                 hide-default-footer
+                 :items-per-page="-1"
+                 density="compact"
+               >
+               </v-data-table>
                <v-alert v-else type="info" variant="tonal" class="mt-2">
                  Aucun stock enregistré.
                </v-alert>
@@ -86,28 +82,24 @@
                 </v-btn>
              </v-card-title>
              <v-card-text>
-                <v-table v-if="consumable?.fournitures?.length">
-                 <thead>
-                   <tr>
-                     <th>Date</th>
-                     <th>Fournisseur</th>
-                     <th>Fabricant</th>
-                     <th>Qté</th>
-                     <th>Prix Unitaire</th>
-                     <th>Total</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   <tr v-for="achat in sortedPurchases" :key="achat.id">
-                     <td>{{ formatDate(achat.date_reference_prix) }}</td>
-                     <td>{{ achat.fournisseur_nom }}</td>
-                     <td>{{ achat.fabricant_nom }}</td>
-                     <td>{{ achat.quantite }}</td>
-                     <td>{{ formatPrice(achat.prix_unitaire) }}</td>
-                     <td>{{ formatPrice(achat.quantite * achat.prix_unitaire) }}</td>
-                   </tr>
-                 </tbody>
-               </v-table>
+               <v-data-table
+                 v-if="consumable?.fournitures?.length"
+                 :headers="purchaseHeaders"
+                 :items="formattedPurchases"
+                 class="elevation-1"
+                 :items-per-page="5"
+                 density="compact"
+               >
+                 <template #item.date_reference_prix="{ item }">
+                   {{ formatDate(item.date_reference_prix) }}
+                 </template>
+                 <template #item.prix_unitaire="{ item }">
+                   {{ formatPrice(item.prix_unitaire) }}
+                 </template>
+                 <template #item.total="{ item }">
+                   {{ formatPrice(item.total) }}
+                 </template>
+               </v-data-table>
                <v-alert v-else type="info" variant="tonal" class="mt-2">
                  Aucun historique d'achat.
                </v-alert>
@@ -149,6 +141,20 @@ const loading = ref(false);
 const showAddPurchaseDialog = ref(false);
 const showTransferDialog = ref(false);
 
+const stockHeaders = [
+  { title: 'Magasin', key: 'magasin_nom' },
+  { title: 'Quantité', key: 'quantite' },
+];
+
+const purchaseHeaders = [
+  { title: 'Date', key: 'date_reference_prix' },
+  { title: 'Fournisseur', key: 'fournisseur_nom' },
+  { title: 'Fabricant', key: 'fabricant_nom' },
+  { title: 'Qté', key: 'quantite' },
+  { title: 'Prix Unitaire', key: 'prix_unitaire' },
+  { title: 'Total', key: 'total' },
+];
+
 const breadcrumbs = [
   { title: 'Stocks', disabled: false, href: '/stocks' },
   { title: 'Consommables', disabled: false, href: '/stocks/consommables' },
@@ -168,11 +174,12 @@ const fetchConsumable = async () => {
 };
 // ... (rest of script)
 
-const sortedPurchases = computed(() => {
+const formattedPurchases = computed(() => {
     if (!consumable.value?.fournitures) return [];
-    return [...consumable.value.fournitures].sort((a, b) => 
-        new Date(b.date_reference_prix) - new Date(a.date_reference_prix)
-    );
+    return consumable.value.fournitures.map(achat => ({
+        ...achat,
+        total: achat.quantite * achat.prix_unitaire
+    }));
 });
 
 const formatDate = (dateString) => {
