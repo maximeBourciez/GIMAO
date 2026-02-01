@@ -42,6 +42,7 @@
              <v-card-title class="d-flex align-center justify-space-between">
                 Stocks en Magasin
                  <v-btn
+                  v-if="consumable?.stocks?.length"
                   color="secondary"
                   prepend-icon="mdi-transfer"
                   size="small"
