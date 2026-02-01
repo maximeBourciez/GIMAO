@@ -11,7 +11,7 @@
       <v-spacer />
 
       <!-- User avatar -->
-      <v-avatar size="36" color="primary" class="mr-2">
+      <v-avatar size="36" color="grey-lighten-3" class="mr-2">
         <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
         <span v-else class="text-white">{{ userInitials }}</span>
       </v-avatar>
@@ -51,7 +51,7 @@
         <v-list dense>
           <v-list-item class="py-2" style="cursor: pointer" @click="goToMyUserDetail">
             <template v-slot:prepend>
-              <v-avatar size="36" color="primary">
+              <v-avatar size="36" color="grey-lighten-3">
                 <v-img v-if="userPhotoUrl" :src="userPhotoUrl" cover />
                 <span v-else class="text-white">{{ userInitials }}</span>
               </v-avatar>
@@ -73,7 +73,7 @@
 </template>
 
 <script>
-import { MEDIA_BASE_URL } from "@/utils/constants";
+import { MEDIA_BASE_URL, BASE_URL } from "@/utils/constants";
 
 export default {
   name: "TopBar",
@@ -138,7 +138,7 @@ export default {
 
     userPhotoUrl() {
       if (!this.user?.photoProfil) return null;
-      return `${MEDIA_BASE_URL}${this.user.photoProfil}`;
+      return `${BASE_URL}${MEDIA_BASE_URL}${this.user.photoProfil}`;
     },
 
     userInitials() {

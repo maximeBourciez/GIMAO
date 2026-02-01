@@ -106,7 +106,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, MEDIA_BASE_URL } from '@/utils/constants.js';
+import { API_BASE_URL, MEDIA_BASE_URL, BASE_URL } from '@/utils/constants.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -133,7 +133,7 @@ const fullName = computed(() => {
 const profilePhotoUrl = computed(() => {
 	const path = userData.value?.photoProfil;
 	if (!path) return '';
-	return `${MEDIA_BASE_URL}${path}`;
+	return `${BASE_URL}${MEDIA_BASE_URL}${path}`;
 });
 
 const formatDateTime = (value) => {

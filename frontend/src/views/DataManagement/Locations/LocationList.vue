@@ -13,11 +13,13 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { API_BASE_URL } from '@/utils/constants.js';
+import { useStore } from 'vuex';
 import { useApi } from '@/composables/useApi.js';
 import { useRouter } from 'vue-router';
 import LocationTreeView from '@/components/LocationTreeView.vue';
 
 const api = useApi(API_BASE_URL);
+const store = useStore();
 const locations = ref([]);
 const router = useRouter();
 
