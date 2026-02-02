@@ -23,7 +23,7 @@ class UtilisateurSerializer(serializers.ModelSerializer):
         queryset=Role.objects.all(),
         source='role',
         write_only=True,
-        required=False
+        required=True
     )
     permissions_names = serializers.SerializerMethodField()
     
