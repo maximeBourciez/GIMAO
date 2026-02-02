@@ -44,7 +44,7 @@
           <template #item.quantite="{ item }">
             <v-chip 
               size="small"
-              :color="getQuantiteColor(item.quantite, item.seuilStockFaible)"
+              :color="getQuantiteColor(item.quantite_totale, item.seuilStockFaible)"
               variant="tonal"
             >
               {{ item.quantite }}
@@ -132,16 +132,13 @@ const showCreateButton = computed(() => store.getters.hasPermission('cons:create
 // Headers du tableau
 const tableHeaders = [
   { title: 'Nom', key: 'designation', sortable: true },
-  { title: 'Fournisseur', key: 'fournisseur_nom', sortable: true },
-  { title: 'Fabricant', key: 'fabricant_nom', sortable: true },
-  { title: 'Magasin', key: 'magasin_details.nom' },
-  { title: 'Quantité', key: 'quantite', sortable: true, align: 'center' },
-  { title: 'Prix unitaire', key: 'prix_unitaire', sortable: true, align: 'right' }
+  { title: 'Magasin', key: 'magasin_nom' },
+  { title: 'Quantité', key: 'quantite', sortable: true, align: 'center' }
 ];
 
 // Fonction utilitaire pour vérifier le statut du stock d'un consommable
 const getStockStatus = (consommable) => {
-  const quantite = consommable.quantite_totale ?? consommable.quantite ?? 0;
+  const quantite = consommable.quantite_totale ?? 0;
   if (quantite === 0) return 'hors-stock';
   if (consommable.seuilStockFaible !== null && quantite <= consommable.seuilStockFaible) return 'sous-seuil';
   return 'stock-suffisant';
@@ -153,7 +150,7 @@ const consommablesFiltered = computed(() => {
 
   // Filtre par magasin
   if (selectedMagasin.value !== null) {
-    filtered = filtered.filter(c => c.magasin === selectedMagasin.value);
+    filtered = filtered.filter(c => c.magasins.includes(selectedMagasin.value));
   }
 
   // Filtre par type de stock (utilise quantite_totale)
@@ -164,46 +161,36 @@ const consommablesFiltered = computed(() => {
   return filtered;
 });
 
-// Expansion des consommables filtrés en fournitures individuelles
+// Expansion des consommables filtrés (Logique Stock)
 const filteredConsommables = computed(() => {
-  const expanded = [];
-  
-  consommablesFiltered.value.forEach(consommable => {
-    if (consommable.fournitures && consommable.fournitures.length > 0) {
-      consommable.fournitures.forEach(fourniture => {
-        expanded.push({
-          ...consommable,
-          fournisseur_nom: fourniture.fournisseur_nom,
-          fabricant_nom: fourniture.fabricant_nom,
-          fournisseur: fourniture.fournisseur,
-          fabricant: fourniture.fabricant,
-          quantite: fourniture.quantite,
-          prix_unitaire: parseFloat(fourniture.prix_unitaire),
-          date_reference_prix: fourniture.date_reference_prix,
-          fourniture_id: fourniture.id
-        });
-      });
+  return consommablesFiltered.value.map(consommable => {
+    let quantityToDisplay = 0;
+
+    if (selectedMagasin.value !== null) {
+      // Cas filtré par magasin : Quantité dans ce magasin
+      const stock = consommable.stocks?.find(s => s.magasin === selectedMagasin.value);
+      quantityToDisplay = stock ? stock.quantite : 0;
     } else {
-      expanded.push({
-        ...consommable,
-        fournisseur_nom: null,
-        fabricant_nom: null,
-        quantite: 0,
-        prix_unitaire: null
-      });
+      // Cas global : Quantité totale
+      quantityToDisplay = consommable.quantite_totale || 0;
     }
+    const magasins_noms = [...new Set(consommable.stocks?.map(s => s.magasin_nom).filter(Boolean))].join(', ');
+
+    return {
+      ...consommable,
+      quantite: quantityToDisplay,
+      magasin_nom: magasins_noms || '-',
+    };
   });
-  
-  return expanded;
 });
 
 // Sous-titre dynamique
 const currentSubtitle = computed(() => {
   if (selectedMagasin.value === null) {
-    return `${filteredConsommables.value.length} fourniture(s) au total`;
+    return `${filteredConsommables.value.length} consommable(s) au total`;
   }
   const magasin = magasins.value.find(m => m.id === selectedMagasin.value);
-  return magasin ? `Magasin: ${magasin.nom} - ${filteredConsommables.value.length} fourniture(s)` : '';
+  return magasin ? `Magasin: ${magasin.nom} - ${filteredConsommables.value.length} consommable(s)` : '';
 });
 
 // Couleur de la quantité

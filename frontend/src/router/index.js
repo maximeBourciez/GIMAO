@@ -15,6 +15,7 @@ import ModifierUser from '@/views/Users/EditUser.vue'
 import CreerUser from '@/views/Users/CreateUser.vue'
 import Stocks from '@/views/Stocks/Stocks.vue'
 import CreateConsumable from '@/views/Stocks/CreateConsumable.vue'
+import ConsumableDetail from '@/views/Stocks/ConsumableDetail.vue'
 import FailureList from '@/views/Failures/FailureList.vue'
 
 
@@ -147,9 +148,9 @@ const routes = [
   },
 
   {
-    path: '/ConsumableDetail/:id',
+    path: '/Consumable/:id',
     name: 'ConsumableDetail',
-    component: CreateConsumable,
+    component: ConsumableDetail,
     props: true,
     meta: { title: 'Détails du consommable', requiresPermissions: ['cons:viewDetail'] }
   },

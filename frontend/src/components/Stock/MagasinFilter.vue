@@ -80,7 +80,7 @@ const emit = defineEmits(['update:selectedMagasin']);
 const totalCount = computed(() => props.consommables.length);
 
 const getConsommableCountByMagasin = (magasinId) => {
-  return props.consommables.filter(c => c.magasin === magasinId).length;
+  return props.consommables.filter(c => c.stocks.find(s => s.magasin === magasinId)).length;
 };
 
 const handleSelectMagasin = (magasinId) => {
