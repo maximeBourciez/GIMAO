@@ -111,6 +111,19 @@
           </v-card>
         </v-col>
       </v-row>
+
+      <!-- Bouton flottant : modifier le BT -->
+      <v-btn
+        v-if="consumable && store.getters.hasPermission('cons:edit')"
+        color="primary"
+        size="large"
+        icon
+        elevation="4"
+        class="floating-edit-button"
+        @click="goToEditConsumable"
+      >
+        <v-icon>mdi-pencil</v-icon>
+      </v-btn>
     </template>
     
     <template #additional-content>
@@ -137,6 +150,7 @@ import AddPurchaseForm from './AddPurchaseForm.vue';
 import TransferStockForm from './TransferStockForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
+import { useStore } from 'vuex';
 
 const route = useRoute();
 const router = useRouter();
@@ -145,6 +159,12 @@ const consumable = ref(null);
 const loading = ref(false);
 const showAddPurchaseDialog = ref(false);
 const showTransferDialog = ref(false);
+const store = useStore();
+
+
+const goToEditConsumable = () => {
+    router.push({ name: 'EditConsumable', params: { id: route.params.id } });
+};
 
 const { mobile } = useDisplay();
 
@@ -209,3 +229,13 @@ const formatPrice = (price) => {
 
 onMounted(fetchConsumable);
 </script>
+
+<style scoped>
+.floating-edit-button {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+}
+</style>
+

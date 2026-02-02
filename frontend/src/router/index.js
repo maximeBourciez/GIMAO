@@ -15,6 +15,7 @@ import ModifierUser from '@/views/Users/EditUser.vue'
 import CreerUser from '@/views/Users/CreateUser.vue'
 import Stocks from '@/views/Stocks/Stocks.vue'
 import CreateConsumable from '@/views/Stocks/CreateConsumable.vue'
+import EditConsumable from '@/views/Stocks/EditConsumable.vue'
 import ConsumableDetail from '@/views/Stocks/ConsumableDetail.vue'
 import FailureList from '@/views/Failures/FailureList.vue'
 
@@ -142,7 +143,7 @@ const routes = [
   {
     path: '/EditConsumable/:id',
     name: 'EditConsumable',
-    component: CreateConsumable,
+    component: EditConsumable,
     props: true,
     meta: { title: 'Modifier un consommable', requiresPermissions: ['cons:edit'] }
   },
