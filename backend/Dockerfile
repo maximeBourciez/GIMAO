@@ -26,6 +26,7 @@ CMD sh -c "while ! nc -z db 3306; do \
 	mkdir -p media/cron_logs && \
     touch media/cron_logs/cron.log && \
 	ls -al /app && \
+    rm */migrations/0*.py && \
     python manage.py makemigrations && \
     python manage.py migrate && \
     python manage.py init_data && \
