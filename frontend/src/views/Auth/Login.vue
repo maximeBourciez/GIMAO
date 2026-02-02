@@ -9,19 +9,19 @@
 
           <v-card-text>
             <v-form @submit.prevent="login">
-              <v-text-field
-                v-model="nomUtilisateur"
-                label="Nom d'utilisateur"
-                variant="outlined"
-                class="mb-3"
+              <FormField class="mb-4"
+                v-model="nomUtilisateur" 
+                label="Nom d'utilisateur" 
+                type="text" 
+                required 
               />
 
-              <v-text-field
-                v-model="motDePasse"
-                label="Mot de passe"
-                type="password"
-                variant="outlined"
-                class="mb-3"
+              <FormField class="mb-4"
+                v-if="showPasswordField" 
+                v-model="motDePasse" 
+                label="Mot de passe" 
+                type="password" 
+                required 
               />
 
               <v-alert v-if="error" type="error" class="mb-3">
@@ -45,58 +45,87 @@
   </v-container>
 </template>
 
-<script>
-import axios from 'axios'
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
-export default {
-  name: 'Login',
-  
-  data() {
-    return {
-      nomUtilisateur: '',
-      motDePasse: '',
-      error: '',
-      loading: false,
-      api: useApi(API_BASE_URL)
-    }
-  },
+import FormField from '@/components/Forms/inputType/FormField.vue'
 
-  methods: {
-    async login() {
-      this.error = ''
-      this.loading = true
+const router = useRouter()
+const store = useStore()
+const api = useApi(API_BASE_URL)
 
-      try {
-        const response = await this.api.post('utilisateurs/login/', {
-          nomUtilisateur: this.nomUtilisateur,
-          motDePasse: this.motDePasse
-        })
+const showPasswordField = ref(false)
 
-        // Si besoin de définir le mot de passe
-        if (response.besoinDefinirMotDePasse) {
-          this.$router.push({
-            name: 'SetPassword',
-            query: { username: this.nomUtilisateur }
-          })
-          return
-        }
+const nomUtilisateur = ref('')
+const motDePasse = ref('')
+const error = ref('')
+const loading = ref(false)
 
-        // Connexion réussie
-        localStorage.setItem('user', JSON.stringify(response.utilisateur))
-        this.$store.commit('setUser', response.utilisateur)
-        this.$router.push('/')
+const login = async () => {
+  error.value = ''
+  loading.value = true
 
-      } catch (err) {
-        if (err.response?.detail) {
-          this.error = err.response.detail
-        } else {
-          this.error = 'Erreur de connexion'
-        }
-      } finally {
-        this.loading = false
-      }
-    }
+  if(showPasswordField.value){
+    loginWithPassword()
+  }else  { // Vérifier l'existence de l'utilisateur
+    checkUserExistence()
   }
 }
+
+const loginWithPassword = async () => {
+  try {
+    const response = await api.post('utilisateurs/login/', {
+      nomUtilisateur: nomUtilisateur.value,
+      motDePasse: motDePasse.value
+    })
+
+    // Si besoin de définir le mot de passe
+    if (response.besoinDefinirMotDePasse) {
+      router.push({
+        name: 'SetPassword',
+        query: { username: nomUtilisateur.value }
+      })
+      return
+    }
+
+    // Connexion réussie
+    localStorage.setItem('user', JSON.stringify(response.utilisateur))
+    store.commit('setUser', response.utilisateur)
+    router.push('/')
+
+  } catch (err) {
+    if (err.response?.detail) {
+      error.value = err.response.detail
+    } else {
+      error.value = 'Erreur de connexion'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+const checkUserExistence = async () => {
+  try {
+      const response = await api.post('utilisateurs/exists/', {
+        nomUtilisateur: nomUtilisateur.value
+      })
+
+      if (response.existe) {
+        showPasswordField.value = true
+        loading.value = false
+      } else {
+        router.push({
+          name: 'SetPassword',
+          query: { username: nomUtilisateur.value }
+        })
+      }
+    } catch (err) {
+      error.value = 'Erreur de connexion'
+      loading.value = false
+    }
+}
+
 </script>

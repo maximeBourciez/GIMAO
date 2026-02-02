@@ -43,6 +43,21 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
         return UtilisateurSerializer
 
     # ---------- LOGIN ----------
+    # Vérifie l'existence de l'utilisateur
+    @action(detail=False, methods=['post'])
+    def exists(self, request):
+        """
+        Vérifie si un utilisateur avec le nom d'utilisateur donné existe et est actif.
+        """
+        nomUtilisateur = request.data.get('nomUtilisateur')
+        if not nomUtilisateur:
+            return Response({"detail": "nomUtilisateur est requis"}, status=status.HTTP_400_BAD_REQUEST)
+
+        exists = Utilisateur.objects.filter(nomUtilisateur=nomUtilisateur, actif=True).exists()
+
+        return Response({"existe": exists}, status=status.HTTP_200_OK)
+
+    # Connexion
     @action(detail=False, methods=['post'])
     def login(self, request):
         """
