@@ -1,82 +1,160 @@
 <template>
   <v-container fluid style="max-width: 90%">
     <div class="dashboard">
-
       <!-- STATS COMPONENT -->
       <StatsComponent v-if="hasStats" :perms="getPermsForStats" />
-
 
       <!-- Dashboard horizontal -->
       <v-row dense v-if="hasDIandBtHorizontal">
         <v-col cols="12" md="6">
           <v-card rounded="">
-            <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" :showCreateButton="false" />
+            <FailureListComponent
+              @row-click="handleRowClickDI"
+              title="Liste des DI"
+              :showSearch="true"
+              :showCreateButton="false"
+            />
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI" :showCreateButton="false">
+            <v-btn
+              color="primary"
+              class="mt-4 float-right mr-4 mb-4"
+              rounded=""
+              @click="handleCreateDI"
+              :showCreateButton="false"
+            >
               Créer une DI
             </v-btn>
-
-
           </v-card>
         </v-col>
 
         <v-col cols="12" md="6">
           <v-card rounded="">
-            <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false" show-statut-filter/>
+            <InterventionListComponent
+              @row-click="handleRowClickBT"
+              title="Liste des BT"
+              :showSearch="true"
+              :showCreateButton="false"
+              show-statut-filter
+            />
 
-            <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT" v-if="store.getters.hasPermission('bt:create')">
+            <v-btn
+              color="primary"
+              class="mt-4 float-right mr-4 mb-4"
+              @click="handleCreateBT"
+              v-if="store.getters.hasPermission('bt:create')"
+            >
               Créer un BT
             </v-btn>
           </v-card>
-        </v-col>   
+        </v-col>
       </v-row>
 
-      <!-- Dashboard vertical --> 
-      <div v-else-if="store.getters.hasPermission('dash:display.vertical')" class="column">
-        <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.diCreated')">
-          <FailureListComponent @row-click="handleRowClickDI" title="Vos DI" :showSearch="true" 
-          :showCreateButton="false" :api-endpoint="`demandes-intervention/par_utilisateur/?utilisateur_id=${store.getters.currentUser.id}`"/>
+      <!-- Dashboard vertical -->
+      <div
+        v-else-if="store.getters.hasPermission('dash:display.vertical')"
+        class="column"
+      >
+        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.diCreated')">
+          <FailureListComponent
+            @row-click="handleRowClickDI"
+            title="Vos DI"
+            :showSearch="true"
+            :showCreateButton="false"
+            :api-endpoint="`demandes-intervention/par_utilisateur/?utilisateur_id=${store.getters.currentUser.id}`"
+          />
 
-          <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI" :showCreateButton="false">
+          <v-btn
+            color="primary"
+            class="mt-4 float-right mr-4 mb-4"
+            rounded=""
+            @click="handleCreateDI"
+            :showCreateButton="false"
+          >
             Créer une DI
           </v-btn>
         </v-card>
 
-        <v-card rounded=""  v-else-if="store.getters.hasPermission('dash:display.di')">
-          <FailureListComponent @row-click="handleRowClickDI" title="Liste des DI" :showSearch="true" 
-          :showCreateButton="false"/>
+        <v-card rounded="" v-else-if="store.getters.hasPermission('dash:display.di')">
+          <FailureListComponent
+            @row-click="handleRowClickDI"
+            title="Liste des DI"
+            :showSearch="true"
+            :showCreateButton="false"
+          />
 
-          <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" rounded="" @click="handleCreateDI" :showCreateButton="false">
+          <v-btn
+            color="primary"
+            class="mt-4 float-right mr-4 mb-4"
+            rounded=""
+            @click="handleCreateDI"
+            :showCreateButton="false"
+          >
             Créer une DI
           </v-btn>
         </v-card>
 
-        <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.btAssigned')" >
-          <InterventionListComponent @row-click="handleRowClickBT" title="Vos BT Assignés" :showSearch="true" :showCreateButton="false"  show-statut-filter
-            :apiEndpoint="`bons-travail/assigne_a/?utilisateur_id=${store.getters.currentUser.id}`"/>
+        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.btAssigned')">
+          <InterventionListComponent
+            @row-click="handleRowClickBT"
+            title="Vos BT Assignés"
+            :showSearch="true"
+            :showCreateButton="false"
+            show-statut-filter
+            :apiEndpoint="`bons-travail/assigne_a/?utilisateur_id=${store.getters.currentUser.id}`"
+          />
 
-          <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
+          <v-btn
+            color="primary"
+            class="mt-4 float-right mr-4 mb-4"
+            @click="handleCreateBT"
+          >
             Créer un BT
           </v-btn>
         </v-card>
 
-        <v-card rounded=""  v-if="store.getters.hasPermission('dash:display.bt')" >
-          <InterventionListComponent @row-click="handleRowClickBT" title="Liste des BT" :showSearch="true" :showCreateButton="false"  show-statut-filter />
+        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.bt')">
+          <InterventionListComponent
+            @row-click="handleRowClickBT"
+            title="Liste des BT"
+            :showSearch="true"
+            :showCreateButton="false"
+            show-statut-filter
+          />
 
-          <v-btn color="primary" class="mt-4 float-right mr-4 mb-4" @click="handleCreateBT">
+          <v-btn
+            color="primary"
+            class="mt-4 float-right mr-4 mb-4"
+            @click="handleCreateBT"
+          >
             Créer un BT
           </v-btn>
         </v-card>
 
         <v-card rounded="" v-if="store.getters.hasPermission('dash:display.eq')">
-          <EquipmentListComponent title="Liste des Équipements" :showSearch="true" @row-click="handleRowClickEquipment" :getItemsBySelf="true" />
+          <EquipmentListComponent
+            title="Liste des Équipements"
+            :showSearch="true"
+            @row-click="handleRowClickEquipment"
+            :getItemsBySelf="true"
+          />
         </v-card>
       </div>
 
       <!-- Equipement standalone -->
-      <div v-if="store.getters.hasPermission('dash:display.eq') && !store.getters.hasPermission('dash:display.vertical') && !store.getters.hasPermission('dash:display.di')">
-      <v-card rounded="" v-if="store.getters.hasPermission('dash:display.eq')">
-        <EquipmentListComponent title="Liste des Équipements" :showSearch="true" @row-click="handleRowClickEquipment" :getItemsBySelf="true" />
+      <div
+        v-if="
+          store.getters.hasPermission('dash:display.eq') &&
+          !store.getters.hasPermission('dash:display.vertical') &&
+          !store.getters.hasPermission('dash:display.di')
+        "
+      >
+        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.eq')">
+          <EquipmentListComponent
+            title="Liste des Équipements"
+            :showSearch="true"
+            @row-click="handleRowClickEquipment"
+            :getItemsBySelf="true"
+          />
         </v-card>
       </div>
 
@@ -98,82 +176,100 @@
   </v-container>
 </template>
 
-
 <script setup>
-import { computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+import { computed, onMounted } from "vue";
+import { useStore } from "vuex";
+import { useRouter } from "vue-router";
 
-import FailureListComponent from '@/components/FailureListComponent.vue'
-import InterventionListComponent from '@/components/InterventionListComponent.vue'
-import EquipmentListComponent from '@/components/EquipmentListComponent.vue'
-import StatsComponent from '@/components/StatsComponent.vue'
-import Stocks from '@/views/Stocks/Stocks.vue'
+import FailureListComponent from "@/components/FailureListComponent.vue";
+import InterventionListComponent from "@/components/InterventionListComponent.vue";
+import EquipmentListComponent from "@/components/EquipmentListComponent.vue";
+import StatsComponent from "@/components/StatsComponent.vue";
+import Stocks from "@/views/Stocks/Stocks.vue";
 
-const store = useStore()
-const router = useRouter()
+const store = useStore();
+const router = useRouter();
 
-const role = computed(() => store.getters.userRole)
+const role = computed(() => store.getters.userRole);
 
 /**
  * Perms
  */
 const getPermsForStats = () => {
-  const perm = store.getters.hasPermission('dash:stats.full') || store.getters.hasPermission('dash:stats.bt') || store.getters.hasPermission('dash:stats.di')
-  return perm
-}
+  const perm =
+    store.getters.hasPermission("dash:stats.full") ||
+    store.getters.hasPermission("dash:stats.bt") ||
+    store.getters.hasPermission("dash:stats.di");
+  return perm;
+};
 
 const hasStats = computed(() => {
-  return store.getters.hasPermission('dash:stats.full') || store.getters.hasPermission('dash:stats.bt') || store.getters.hasPermission('dash:stats.di')
-})
+  return (
+    store.getters.hasPermission("dash:stats.full") ||
+    store.getters.hasPermission("dash:stats.bt") ||
+    store.getters.hasPermission("dash:stats.di")
+  );
+});
 const hasDIandBtHorizontal = computed(() => {
-  return store.getters.hasPermission('dash:display.di') && store.getters.hasPermission('dash:display.bt') && !store.getters.hasPermission('dash:display.vertical');
-})
-
-
+  return (
+    store.getters.hasPermission("dash:display.di") &&
+    store.getters.hasPermission("dash:display.bt") &&
+    !store.getters.hasPermission("dash:display.vertical")
+  );
+});
 
 const logout = () => {
   // Supprimer les données du store et du localStorage
-  store.dispatch('logout');
+  store.dispatch("logout");
 
   // Rediriger vers login avec un reload complet pour nettoyer tout le state
-  window.location.href = '/login';
-}
+  window.location.href = "/login";
+};
 
 // Gestion click DI
 const handleRowClickDI = (failure) => {
-  router.push({ name: 'FailureDetail', params: { id: failure.id }, query: { from: 'dashboard' } })
-}
+  router.push({
+    name: "FailureDetail",
+    params: { id: failure.id },
+    query: { from: "dashboard" },
+  });
+};
 
 const handleCreateDI = () => {
-  router.push({ name: 'CreateFailure', query: { from: 'dashboard' } })
-}
+  router.push({ name: "CreateFailure", query: { from: "dashboard" } });
+};
 
 // Gestion click BT
 const handleRowClickBT = (intervention) => {
-  router.push({ name: 'InterventionDetail', params: { id: intervention.id }, query: { from: 'dashboard' } })
-}
+  router.push({
+    name: "InterventionDetail",
+    params: { id: intervention.id },
+    query: { from: "dashboard" },
+  });
+};
 
 const handleCreateBT = () => {
   router.push({
-    name: 'CreateIntervention',
-    query: { from: 'dashboard' }
-  })
-}
+    name: "CreateIntervention",
+    query: { from: "dashboard" },
+  });
+};
 
 // Gestion click Equipment
 const handleRowClickEquipment = (equipment) => {
-  router.push({ name: 'EquipmentDetail', params: { id: equipment.id }, query: { from: 'dashboard' } })
-}
+  router.push({
+    name: "EquipmentDetail",
+    params: { id: equipment.id },
+    query: { from: "dashboard" },
+  });
+};
 
-const statsFull = computed(() => isResponsable.value)
+const statsFull = computed(() => isResponsable.value);
 
 onMounted(() => {
-  console.log('Perms: ', store.getters.userPermissions)
-})
+  console.log("Perms: ", store.getters.userPermissions);
+});
 </script>
-
-
 
 <style scoped>
 .dashboard {
