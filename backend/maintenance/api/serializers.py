@@ -36,10 +36,13 @@ class EquipementSimpleSerializer(serializers.ModelSerializer):
     def get_dernier_statut(self, obj):
         statut = obj.statuts.order_by('-dateChangement').first()
         if statut:
+            date_changement = statut.dateChangement
+            if hasattr(date_changement, 'isoformat'):
+                date_changement = date_changement.isoformat()
             return {
                 'id': statut.id,
                 'statut': statut.statut,
-                'dateChangement': statut.dateChangement
+                'dateChangement': date_changement
             }
         return None
 
