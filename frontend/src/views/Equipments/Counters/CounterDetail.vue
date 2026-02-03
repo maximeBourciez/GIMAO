@@ -19,9 +19,9 @@
 
           <v-col cols="12" md="4">
             <strong>Valeur actuelle :</strong>
-            <div class="text-h6">{{ counter.valeurCourante ?? "—" }}</div>
+            <div class="text-h6">{{ counter.type === "Calendaire" ? formatDate(counter.valeurCourante) : counter.valeurCourante }}</div>
           </v-col>
-          <v-col cols="12" md="4">
+          <v-col cols="12" md="4" v-if="counter.type !== 'Calendaire'">
             <strong>Unité :</strong>
             <div class="text-h6">{{ counter.unite }}</div>
           </v-col>
@@ -89,18 +89,18 @@
                 <v-row dense>
                   <v-col cols="12" md="3">
                     <strong>Dernière intervention :</strong>
-                    <div>{{ seuil.derniereIntervention }} {{ counter.unite }}</div>
+                    <div>{{  formatLastIntervention(seuil.derniereIntervention) }}</div>
                   </v-col>
                   <v-col cols="12" md="3">
                     <strong>Prochaine maintenance :</strong>
-                    <div>{{ seuil.prochaineMaintenance }} {{ counter.unite }}</div>
+                    <div>{{ formatNextMaintenance(seuil.prochaineMaintenance) }}</div>
                   </v-col>
                   <v-col cols="12" md="3">
                     <strong>Intervalle :</strong>
-                    <div>{{ seuil.ecartInterventions }} {{ counter.unite }}</div>
+                    <div>{{ formatIntervalle(seuil.ecartInterventions) }}</div>
                   </v-col>
                   <v-col cols="12" md="3">
-                    <strong>Type de seuil :</strong>
+                    <strong class="mr-2">Type de seuil :</strong>
                     <v-chip
                       :color="seuil.estGlissant ? 'green' : 'orange'"
                       size="small"
@@ -296,7 +296,7 @@
         <v-icon left>mdi-pencil</v-icon>
         Modifier le compteur
       </v-btn>
-      <v-btn color="success" @click="addNewSeuil" v-if="store.getters.hasPermission('mp:add')">
+      <v-btn color="success" @click="addNewSeuil" v-if="store.getters.hasPermission('mp:create')">
         <v-icon left>mdi-plus</v-icon>
         Ajouter un seuil
       </v-btn>
@@ -446,6 +446,61 @@ const getPMTypeLabel = (id) => {
 const getDocumentTypeLabel = (id) => {
   return typesDocuments.value.find((t) => t.id === id)?.nomTypeDocument || "—";
 };
+
+const formatDate = (days) => {
+  if (!days && days !== 0) return "—";
+
+  // 719163 = ordinal de 1970-01-01 en Python
+  const ms = (days - 719163) * 86400000;
+  const date = new Date(ms);
+
+  return date.toLocaleDateString("fr-FR");
+};
+const formatLastIntervention = (days) => {
+  if (days === null || days === undefined) return "—";
+
+  if (counter.value.type === "Calendaire") {
+    console.log("Formatage date calendaire pour", days);
+    return formatDate(days);
+  } else {
+    return `${days} ${counter.value.unite}`;
+  }
+};
+
+const formatNextMaintenance = (days) => {
+  if (days === null || days === undefined) return "—";
+
+  if (counter.value.type === "Calendaire") {
+    return formatDate(days);
+  } else {
+    return `${days} ${counter.value.unite}`;
+  }
+};
+
+const formatIntervalle = (intervalle) => {
+  if (intervalle === null || intervalle === undefined) return "—";
+
+  if (counter.value.type === "Calendaire") {
+    const days = Math.round(intervalle);
+    if (days === 0) return "0 jour";
+
+    const years = Math.floor(days / 365);
+    const remainingAfterYears = days % 365;
+
+    const months = Math.floor(remainingAfterYears / 30);
+    const remDays = remainingAfterYears % 30;
+
+    const parts = [];
+    if (years) parts.push(`${years} ${years > 1 ? "ans" : "an"}`);
+    if (months) parts.push(`${months} mois`);
+    if (remDays) parts.push(`${remDays} ${remDays > 1 ? "jours" : "jour"}`);
+
+    return parts.join(" ");
+  }
+
+  return `${intervalle} ${counter.value.unite}`;
+};
+
 
 // Méthodes de chargement
 const fetchCounter = async () => {
