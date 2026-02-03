@@ -1,82 +1,135 @@
 <template>
-    <v-form @submit.prevent="handleSave">
-        <v-row dense>
-            <v-col cols="12" md="6">
-                <FormField v-model="counter.nom" field-name="nom" label="Nom du compteur"
-                    placeholder="Saisir le nom du compteur" counter="100" />
-            </v-col>
+  <v-form @submit.prevent="handleSave">
+    <v-row dense>
+      <v-col cols="12" md="6">
+        <FormField
+          v-model="counterLocal.nom"
+          field-name="nom"
+          label="Nom du compteur"
+          placeholder="Saisir le nom du compteur"
+          counter="100"
+        />
+      </v-col>
 
-            <v-col cols="12" md="6">
-                <FormField v-model="counter.valeurCourante" field-name="valeurCourante" type="number"
-                    label="Valeur actuelle" placeholder="0" min="0" />
-            </v-col>
+      <v-col cols="12" md="6">
+        <FormField
+          v-model="counterLocal.valeurCourante"
+          field-name="valeurCourante"
+          :type="counterLocal.type === 'Calendaire' ? 'date' : 'number'"
+          label="Valeur actuelle"
+          placeholder="0"
+          min="0"
+        />
+      </v-col>
 
-            <v-col cols="12" md="6">
-                <FormSelect v-model="counter.unite" field-name="unite" label="Unité" 
-                    :items="COUNTER_UNITS" item-title="title" item-value="value" />
-            </v-col>
+      <v-col cols="12" md="6">
+        <FormSelect
+          v-model="counterLocal.unite"
+          field-name="unite"
+          label="Unité"
+          v-if="showUniteSelect"
+          :items="COUNTER_UNITS"
+          item-title="title"
+          item-value="value"
+        />
+      </v-col>
 
-            <v-col cols="12" md="6">
-                <FormCheckbox v-model="counter.estPrincipal" field-name="estPrincipal" label="Compteur principal" />
-            </v-col>
-        </v-row>
+      <v-col cols="12" md="6">
+        <FormSelect
+          v-model="counterLocal.type"
+          field-name="type"
+          label="Type de compteur"
+          :items="['Numérique', 'Calendaire']"
+        />
+      </v-col>
 
-        <v-alert v-if="localError" type="error" class="mt-4">{{ localError }}</v-alert>
+      <v-col cols="12" md="6">
+        <FormCheckbox
+          v-model="counterLocal.estPrincipal"
+          field-name="estPrincipal"
+          label="Compteur principal"
+        />
+      </v-col>
+    </v-row>
 
-        <v-card-actions class="px-0 pt-4">
-            <v-spacer />
-            <v-btn variant="text" @click="handleCancel">Annuler</v-btn>
-            <v-btn type="submit" color="primary" :disabled="!isValid">
-                {{ isEditMode ? 'Modifier le compteur' : 'Ajouter le compteur' }}
-            </v-btn>
-        </v-card-actions>
-    </v-form>
+    <v-alert v-if="localError" type="error" class="mt-4">{{ localError }}</v-alert>
+
+    <v-card-actions class="px-0 pt-4">
+      <v-spacer />
+      <v-btn variant="text" @click="handleCancel">Annuler</v-btn>
+      <v-btn type="submit" color="primary" :disabled="!isValid">
+        {{ isEditMode ? 'Modifier le compteur' : 'Ajouter le compteur' }}
+      </v-btn>
+    </v-card-actions>
+  </v-form>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { FormField, FormCheckbox, FormSelect } from '@/components/common'
 import { COUNTER_UNITS } from '@/utils/constants'
 
 const props = defineProps({
-    modelValue: {
-        type: Object,
-        required: true
-    },
-    isEditMode: {
-        type: Boolean,
-        default: false
-    },
-    isFirstCounter: {
-        type: Boolean,
-        default: false
-    }
+  modelValue: {
+    type: Object,
+    required: true
+  },
+  isEditMode: {
+    type: Boolean,
+    default: false
+  },
+  isFirstCounter: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
 
 const localError = ref('')
 
-const counter = computed({
-    get: () => props.modelValue,
-    set: v => emit('update:modelValue', v)
+// Copie locale pour pouvoir modifier les champs sans problème de props
+const counterLocal = ref({ ...props.modelValue })
+
+// Met à jour le parent à chaque changement
+watch(counterLocal, (newVal) => {
+  emit('update:modelValue', newVal)
+}, { deep: true })
+
+// Affiche le select d'unité uniquement si ce n'est pas calendaire
+const showUniteSelect = computed(() => counterLocal.value.type !== 'Calendaire')
+
+// Validation
+const isValid = computed(() => {
+  return counterLocal.value.nom?.trim() && (counterLocal.value.type === 'Calendaire' || counterLocal.value.unite)
 })
 
-const isValid = computed(() => {
-    return counter.value.nom && counter.value.nom.trim() !== '' && counter.value.unite
-})
+// Gestion du type calendaire : met la date du jour automatiquement
+watch(() => counterLocal.value.type, (newType) => {
+  if (newType === 'Calendaire') {
+    const d = new Date()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    counterLocal.value.valeurCourante = `${yyyy}-${mm}-${dd}`
+    counterLocal.value.unite = 'date'
+  } else {
+    const n = Number(counterLocal.value.valeurCourante)
+    counterLocal.value.valeurCourante = Number.isFinite(n) ? n : 0
+  }
+}, { immediate: true })
 
 const handleSave = () => {
-    if (!isValid.value) {
-        localError.value = 'Veuillez remplir tous les champs obligatoires'
-        return
-    }
-    localError.value = ''
-    emit('save')
+  if (!isValid.value) {
+    localError.value = 'Veuillez remplir tous les champs obligatoires'
+    return
+  }
+  localError.value = ''
+  emit('save')
 }
 
 const handleCancel = () => {
-    localError.value = ''
-    emit('cancel')
+  localError.value = ''
+  emit('cancel')
 }
 </script>

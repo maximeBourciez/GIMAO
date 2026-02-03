@@ -118,7 +118,7 @@ class Compteur(models.Model):
     
 
     def __str__(self):
-        return f"Compteur {self.id} - {self.equipement.designation}"
+        return f"Compteur {self.id} - {self.equipement.designation} - Nom : {self.nomCompteur}"
     
     class Meta:
         db_table = 'gimao_compteur'

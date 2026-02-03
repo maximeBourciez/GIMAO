@@ -1,3 +1,4 @@
+import datetime
 from rest_framework import serializers
 from django.db.models import Prefetch
 from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEquipement, Compteur, FamilleEquipement, Declencher
@@ -360,7 +361,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             compteur_dict = {
                 'id': c.id,
                 'nom': c.nomCompteur,
-                'valeurCourante': c.valeurCourante,
+                'valeurCourante': self.get_valeur_courante(c),
                 'unite': c.unite,
                 'estPrincipal': c.estPrincipal,
                 'type': c.type
@@ -369,6 +370,20 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             compteurs_data.append(compteur_dict)
         
         return compteurs_data
+    
+    def get_valeur_courante(self, compteur):
+        """Retourne la valeur courante formatée selon le type de compteur"""
+        if compteur.type == 'Calendaire':
+            # Convertir la valeur en date (en supposant que la valeur est en jours depuis une date de référence)
+            try:
+                base_date = datetime.datetime(1, 1, 1)  # Date de référence
+                delta = datetime.timedelta(days=int(compteur.valeurCourante - 1))
+                date_value = base_date + delta
+                return date_value.strftime('%Y-%m-%d')
+            except Exception:
+                return compteur.valeurCourante
+        else:
+            return compteur.valeurCourante
 
     def get_documents(self, obj):
         docs_Pm = PlanMaintenance.objects.filter(

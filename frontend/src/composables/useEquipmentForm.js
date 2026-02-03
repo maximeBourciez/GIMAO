@@ -120,7 +120,8 @@ export function useEquipmentForm(isEditMode = false) {
     nom: '',
     valeurCourante: null,
     unite: 'heures',
-    estPrincipal: false
+    estPrincipal: false,
+    type: 'Numérique'
   });
   const currentCounter = ref(getEmptyCounter());
 
