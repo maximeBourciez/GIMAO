@@ -58,6 +58,18 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         'utilisateur', 'equipement'
     ).prefetch_related('bons_travail')
     serializer_class = DemandeInterventionSerializer
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def _parse_json_field(self, data, key, default):
+        raw = data.get(key, default)
+        if raw is None:
+            return default
+        if isinstance(raw, str):
+            try:
+                return json.loads(raw)
+            except ValueError:
+                return default
+        return raw
 
     def get_serializer_class(self):
         """Utilise le serializer détaillé pour retrieve"""
@@ -307,48 +319,217 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             equipement=equipement
         )
 
-        # Gestion des documents
-        documents_data = data.get("documents", [])
-        if isinstance(documents_data, str):
-            try:
-                documents_data = json.loads(documents_data)
-            except ValueError:
-                documents_data = []
+        # Gestion des documents (transactionnelle et stricte)
+        documents_data = self._parse_json_field(data, 'documents', [])
+        if documents_data is None:
+            documents_data = []
+        if not isinstance(documents_data, list):
+            raise ValidationError({'documents': 'Format invalide (liste attendue)'})
 
-        if documents_data:
+        created_files = []
+        try:
             for index, doc_data in enumerate(documents_data):
+                if not doc_data:
+                    continue
                 if not isinstance(doc_data, dict):
-                    continue
-                
-                type_doc_id = doc_data.get("typeDocument_id")
-                if not type_doc_id:
-                    continue
+                    raise ValidationError({'documents': f'Document #{index}: format invalide'})
 
-                # Récupération du fichier
-                # On check 'document_{index}' (convention possible) ou directement dans data si parsé
-                uploaded_file = request.FILES.get(f"document_{index}")
+                type_doc_id = doc_data.get('typeDocument_id')
+                nom_doc = doc_data.get('nomDocument')
+
+                uploaded_file = request.FILES.get(f'document_{index}')
                 if not uploaded_file:
-                    # Fallback: check si 'cheminAcces' contient le fichier (si parsé par DRF)
-                    file_obj = doc_data.get("cheminAcces")
+                    file_obj = doc_data.get('cheminAcces')
                     if hasattr(file_obj, 'read'):
                         uploaded_file = file_obj
 
-                if uploaded_file:
-                    document = Document.objects.create(
-                        nomDocument=doc_data.get("nomDocument", uploaded_file.name),
-                        cheminAcces=uploaded_file,
-                        typeDocument_id=type_doc_id
-                    )
-                    
-                    DemandeInterventionDocument.objects.create(
-                        demande_intervention=demande,
-                        document=document
-                    )
+                is_empty = not type_doc_id and not (nom_doc or '').strip() and not uploaded_file
+                if is_empty:
+                    continue
+
+                # Nouveau document => type + fichier requis
+                if not type_doc_id:
+                    raise ValidationError({'documents': f'Document #{index}: typeDocument_id requis'})
+                if not uploaded_file:
+                    raise ValidationError({'documents': f'Document #{index}: fichier manquant (document_{index})'})
+
+                document = Document.objects.create(
+                    nomDocument=(nom_doc or uploaded_file.name),
+                    cheminAcces=uploaded_file,
+                    typeDocument_id=type_doc_id,
+                )
+                created_files.append(document.cheminAcces.name)
+
+                DemandeInterventionDocument.objects.create(
+                    demande_intervention=demande,
+                    document=document,
+                )
+
+        except Exception:
+            # Best-effort: si des fichiers ont été sauvegardés avant l'erreur, tenter de les supprimer
+            for name in reversed(created_files):
+                try:
+                    if name:
+                        Document._meta.get_field('cheminAcces').storage.delete(name)
+                except Exception:
+                    pass
+            raise
 
         return Response(
             DemandeInterventionSerializer(demande).data,
             status=status.HTTP_201_CREATED
         )
+
+
+    @transaction.atomic
+    def partial_update(self, request, *args, **kwargs):
+        """PATCH /demandes-intervention/{id}/ avec gestion transactionnelle des documents."""
+        instance = self.get_object()
+
+        data = dict(request.data)
+        for key, value in list(data.items()):
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+
+        documents_in_payload = ('documents' in request.data) or any(k.startswith('document_') for k in request.FILES.keys())
+        documents_data = []
+        if documents_in_payload:
+            documents_data = self._parse_json_field(data, 'documents', [])
+            if documents_data is None:
+                documents_data = []
+            if not isinstance(documents_data, list):
+                raise ValidationError({'documents': 'Format invalide (liste attendue)'})
+
+        new_file_names_to_delete_on_error = []
+        old_file_names_to_delete_on_commit = []
+
+        # 1) Mise à jour DI via serializer
+        di_payload = {}
+        allowed_fields = [
+            'nom',
+            'commentaire',
+            'statut',
+            'equipement_id',
+            'utilisateur_id',
+        ]
+        for f in allowed_fields:
+            if f in data:
+                di_payload[f] = data.get(f)
+
+        if di_payload:
+            serializer = self.get_serializer(instance, data=di_payload, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        # Reload after DI save
+        demande_apres = DemandeIntervention.objects.get(pk=instance.pk)
+
+        try:
+            # 2) Documents: update / create + link
+            if documents_in_payload:
+                for index, doc_data in enumerate(documents_data):
+                    if not doc_data:
+                        continue
+                    if not isinstance(doc_data, dict):
+                        raise ValidationError({'documents': f'Document #{index}: format invalide'})
+
+                    doc_id_raw = doc_data.get('document_id')
+                    type_doc_id = doc_data.get('typeDocument_id')
+                    nom_doc = doc_data.get('nomDocument')
+
+                    uploaded_file = request.FILES.get(f'document_{index}')
+                    if not uploaded_file:
+                        file_obj = doc_data.get('cheminAcces')
+                        if hasattr(file_obj, 'read'):
+                            uploaded_file = file_obj
+
+                    is_empty = not doc_id_raw and not type_doc_id and not (nom_doc or '').strip() and not uploaded_file
+                    if is_empty:
+                        continue
+
+                    # Update d'un document existant
+                    if doc_id_raw:
+                        try:
+                            doc_id = int(doc_id_raw)
+                        except Exception:
+                            raise ValidationError({'documents': f'Document #{index}: document_id invalide'})
+
+                        try:
+                            document = Document.objects.get(id=doc_id)
+                        except Document.DoesNotExist:
+                            raise ValidationError({'documents': f'Document #{index}: document introuvable'})
+
+                        has_changes = False
+                        if nom_doc is not None and str(nom_doc) != (document.nomDocument or ''):
+                            document.nomDocument = str(nom_doc)
+                            has_changes = True
+                        if type_doc_id is not None and str(type_doc_id) != str(document.typeDocument_id or ''):
+                            document.typeDocument_id = type_doc_id
+                            has_changes = True
+
+                        if uploaded_file is not None:
+                            old_name = getattr(document.cheminAcces, 'name', None)
+                            document.cheminAcces = uploaded_file
+                            has_changes = True
+                            if old_name:
+                                old_file_names_to_delete_on_commit.append(old_name)
+
+                        if has_changes:
+                            document.save()
+                            new_name = getattr(document.cheminAcces, 'name', None)
+                            if uploaded_file is not None and new_name:
+                                new_file_names_to_delete_on_error.append(new_name)
+
+                        # S'assurer que le lien existe
+                        DemandeInterventionDocument.objects.get_or_create(
+                            demande_intervention=demande_apres,
+                            document=document,
+                        )
+                        continue
+
+                    # Nouveau document
+                    if not type_doc_id:
+                        raise ValidationError({'documents': f'Document #{index}: typeDocument_id requis'})
+                    if not uploaded_file:
+                        raise ValidationError({'documents': f'Document #{index}: fichier manquant (document_{index})'})
+
+                    document = Document.objects.create(
+                        nomDocument=(nom_doc or uploaded_file.name),
+                        cheminAcces=uploaded_file,
+                        typeDocument_id=type_doc_id,
+                    )
+                    new_name = getattr(document.cheminAcces, 'name', None)
+                    if new_name:
+                        new_file_names_to_delete_on_error.append(new_name)
+
+                    DemandeInterventionDocument.objects.create(
+                        demande_intervention=demande_apres,
+                        document=document,
+                    )
+
+            # Supprimer les anciens fichiers uniquement après commit
+            if old_file_names_to_delete_on_commit:
+                storage = Document._meta.get_field('cheminAcces').storage
+                for name in old_file_names_to_delete_on_commit:
+                    def _delete_old(n=name):
+                        try:
+                            storage.delete(n)
+                        except Exception:
+                            pass
+                    transaction.on_commit(_delete_old)
+
+            serializer = self.get_serializer(demande_apres)
+            return Response(serializer.data)
+
+        except Exception:
+            storage = Document._meta.get_field('cheminAcces').storage
+            for name in reversed(new_file_names_to_delete_on_error):
+                try:
+                    if name:
+                        storage.delete(name)
+                except Exception:
+                    pass
+            raise
 
 
 class BonTravailViewSet(viewsets.ModelViewSet):

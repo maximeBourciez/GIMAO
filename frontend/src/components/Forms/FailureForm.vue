@@ -102,7 +102,7 @@ const formData = ref({
     nom: '',
     equipement_id: null,
     commentaire: '',
-    documents: []
+    documents: [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
 })
 
 const validationSchema = computed(() => {
@@ -125,102 +125,106 @@ const originalFormData = ref(null)
 // Initialiser les données
 watch(() => props.initialData, (newData) => {
     if (newData && Object.keys(newData).length > 0) {
+        const initialDocuments = Array.isArray(newData.documents)
+            ? newData.documents.map((d) => ({ ...d }))
+            : []
         formData.value = {
             nom: newData.nom || '',
             equipement_id: newData.equipement_id || null,
             commentaire: newData.commentaire || '',
-            documents: newData.documents || []
+            documents: initialDocuments.length
+                ? initialDocuments
+                : [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
         }
         // Sauvegarder l'état original pour comparaison
         if (props.isEdit) {
             originalFormData.value = JSON.parse(JSON.stringify(formData.value))
         }
     }
-}, { immediate: true, deep: true })
+}, { immediate: true })
 
 const close = () => {
     emit('close')
 }
 
-// Fonction pour créer de nouveaux documents et les lier à la DI
-const createAndLinkDocuments = async (demandeId, documents, originalDocuments = []) => {
+const validateDocumentsBeforeSubmit = (documents, originalDocuments = []) => {
     const docs = Array.isArray(documents) ? documents : []
     const errors = []
-    const api = useApi(API_BASE_URL)
 
     for (const doc of docs) {
         if (!doc) continue
-        
-        // Ignorer les lignes vides
-        if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim()) continue
-        
-        // Gérer les documents existants (mise à jour seulement si modifié)
+
+        const isEmpty = !doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim()
+        if (isEmpty) continue
+
+        const label = (doc.nomDocument || doc.file?.name || 'Document').toString()
+
+        // Document existant: si on tente une modif, il faut au minimum un type
         if (doc.document_id) {
-            // Trouver le document original
-            const original = originalDocuments.find(o => o.document_id === doc.document_id)
-            
-            // Vérifier si au moins un champ a changé
-            const hasChanges = 
+            const original = Array.isArray(originalDocuments)
+                ? originalDocuments.find(o => o.document_id === doc.document_id)
+                : null
+            const hasChanges =
                 (original && doc.nomDocument !== original.nomDocument) ||
                 (original && doc.typeDocument_id !== original.typeDocument_id) ||
-                doc.file // Nouveau fichier = toujours un changement
-            
-            if (!hasChanges) {
-                // Aucun changement, on passe au suivant
-                continue
-            }
-            
-            try {
-                // Toujours utiliser FormData pour la compatibilité avec le backend
-                const form = new FormData()
-                form.append('nomDocument', doc.nomDocument || '')
-                form.append('typeDocument_id', String(doc.typeDocument_id))
-                if (doc.file) {
-                    form.append('cheminAcces', doc.file)
-                }
-                await api.patch(`documents/${doc.document_id}/`, form)
-            } catch (e) {
-                console.error('Erreur lors de la mise à jour du document:', e)
-                errors.push(doc.nomDocument || 'Document existant')
+                doc.file
+
+            if (hasChanges && !doc.typeDocument_id) {
+                errors.push(label)
             }
             continue
         }
-        
-        // Vérifier les champs requis pour les nouveaux documents
+
+        // Nouveau document: fichier + type obligatoires si la ligne n'est pas vide
         if (!doc.file || !doc.typeDocument_id) {
-            errors.push(doc.nomDocument || 'Document')
-            continue
-        }
-
-        try {
-            const form = new FormData()
-            form.append('nomDocument', (doc.nomDocument || doc.file.name || '').toString())
-            form.append('typeDocument_id', String(doc.typeDocument_id))
-            form.append('cheminAcces', doc.file)
-
-            const created = await api.post('documents/', form)
-            const newId = Number(created?.id)
-            if (!Number.isInteger(newId) || newId <= 0) {
-                errors.push(doc.nomDocument || doc.file?.name || 'Document')
-                continue
-            }
-
-            try {
-                await api.post(`demandes-intervention/${demandeId}/ajouter_document/`, {
-                    document_id: newId
-                })
-            } catch (e) {
-                try {
-                    await api.remove(`documents/${newId}/`)
-                } catch (_) {}
-                errors.push(doc.nomDocument || doc.file?.name || 'Document')
-            }
-        } catch (e) {
-            errors.push(doc.nomDocument || doc.file?.name || 'Document')
+            errors.push(label)
         }
     }
 
     return errors
+}
+
+const buildDocumentsMetaAndFiles = (documents) => {
+    const docs = Array.isArray(documents) ? documents : []
+    const documentsMeta = []
+    const files = []
+
+    for (const doc of docs) {
+        if (!doc) continue
+        if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim() && !doc.document_id) continue
+        documentsMeta.push({
+            document_id: doc.document_id || null,
+            nomDocument: (doc.nomDocument || doc.file?.name || '').toString(),
+            typeDocument_id: doc.typeDocument_id || null,
+        })
+        files.push(doc.file || null)
+    }
+    return { documentsMeta, files }
+}
+
+const haveDocumentsChanged = (payload) => {
+    const originalDocs = Array.isArray(originalFormData.value?.documents) ? originalFormData.value.documents : []
+    const currentDocs = Array.isArray(payload?.documents) ? payload.documents : []
+
+    const hasNewDocuments = currentDocs.some((doc) => {
+        if (!doc) return false
+        const existingId = Number(doc.document_id)
+        if (Number.isInteger(existingId) && existingId > 0) return false
+        return doc.file || doc.typeDocument_id || (doc.nomDocument || '').trim()
+    })
+    if (hasNewDocuments) return true
+
+    for (const doc of currentDocs) {
+        if (!doc?.document_id) continue
+        const original = originalDocs.find(o => o.document_id === doc.document_id)
+        if (!original) continue
+        const hasChanges =
+            doc.nomDocument !== original.nomDocument ||
+            doc.typeDocument_id !== original.typeDocument_id ||
+            doc.file
+        if (hasChanges) return true
+    }
+    return false
 }
 
 const save = async () => {
@@ -233,28 +237,37 @@ const save = async () => {
     try {
         if (props.isEdit) {
             // Mode édition
-            const payload = {
-                nom: formData.value.nom,
-                commentaire: formData.value.commentaire || ''
-            }
+            const original = originalFormData.value
+            const patch = {}
+            if (!original || (formData.value.nom ?? '') !== (original.nom ?? '')) patch.nom = formData.value.nom
+            if (!original || (formData.value.commentaire ?? '') !== (original.commentaire ?? '')) patch.commentaire = formData.value.commentaire || ''
 
-            const response = await api.patch(`demandes-intervention/${props.initialData.id}/`, payload)
-            console.log('Demande d\'intervention modifiée avec succès:', response)
-            console.log('Documents à traiter:', formData.value.documents)
-
-            // Gestion des documents (création + liaison + mise à jour)
-            const createErrors = await createAndLinkDocuments(
-                props.initialData.id, 
-                formData.value.documents,
-                props.initialData.documents || [] // Documents originaux pour comparaison
-            )
-            console.log('Erreurs création documents:', createErrors)
-            
-            if (createErrors.length) {
-                errorMessage.value = `Certains documents n'ont pas pu être traités: ${createErrors.join(', ')}`
+            const documentsChanged = haveDocumentsChanged(formData.value)
+            if (Object.keys(patch).length === 0 && !documentsChanged) {
+                successMessage.value = 'Aucune modification à enregistrer'
                 loading.value = false
                 return
             }
+
+            const docValidationErrors = validateDocumentsBeforeSubmit(formData.value.documents, originalFormData.value?.documents)
+            if (docValidationErrors.length) {
+                errorMessage.value = `Documents invalides: ${docValidationErrors.join(', ')}`
+                loading.value = false
+                return
+            }
+
+            const form = new FormData()
+            if (patch.nom !== undefined) form.append('nom', (patch.nom || '').toString())
+            if (patch.commentaire !== undefined) form.append('commentaire', (patch.commentaire || '').toString())
+            if (documentsChanged) {
+                const { documentsMeta, files } = buildDocumentsMetaAndFiles(formData.value.documents)
+                form.append('documents', JSON.stringify(documentsMeta))
+                files.forEach((file, i) => {
+                    if (file) form.append(`document_${i}`, file)
+                })
+            }
+
+            const response = await api.patch(`demandes-intervention/${props.initialData.id}/`, form)
 
             successMessage.value = 'Demande d\'intervention modifiée avec succès'
             emit('updated', response)
@@ -266,25 +279,26 @@ const save = async () => {
                 return
             }
 
-            // Création de la DI
-            const payload = {
-                nom: formData.value.nom,
-                commentaire: formData.value.commentaire || '',
-                equipement_id: formData.value.equipement_id,
-                utilisateur_id: props.connectedUserId
-            }
-
-            const response = await api.post('demandes-intervention/', payload)
-            console.log('Demande d\'intervention créée avec succès:', response)
-
-            // Gestion des documents (création + liaison)
-            const createErrors = await createAndLinkDocuments(response.id, formData.value.documents)
-            
-            if (createErrors.length) {
-                errorMessage.value = `DI créée mais certains documents n'ont pas pu être ajoutés: ${createErrors.join(', ')}`
+            const docValidationErrors = validateDocumentsBeforeSubmit(formData.value.documents)
+            if (docValidationErrors.length) {
+                errorMessage.value = `Documents invalides: ${docValidationErrors.join(', ')}`
                 loading.value = false
                 return
             }
+
+            const form = new FormData()
+            form.append('utilisateur_id', String(props.connectedUserId))
+            form.append('equipement_id', String(formData.value.equipement_id))
+            form.append('nom', (formData.value.nom || '').toString())
+            form.append('commentaire', (formData.value.commentaire || '').toString())
+
+            const { documentsMeta, files } = buildDocumentsMetaAndFiles(formData.value.documents)
+            form.append('documents', JSON.stringify(documentsMeta.map(({ document_id, ...rest }) => rest)))
+            files.forEach((file, i) => {
+                if (file) form.append(`document_${i}`, file)
+            })
+
+            const response = await api.post('demandes-intervention/', form)
 
             successMessage.value = 'Demande d\'intervention créée avec succès'
             emit('created', response)
