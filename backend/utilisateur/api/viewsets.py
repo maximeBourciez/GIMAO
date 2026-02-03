@@ -50,12 +50,18 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
         Vérifie si un utilisateur avec le nom d'utilisateur donné existe et est actif.
         """
         nomUtilisateur = request.data.get('nomUtilisateur')
+        message = ""
         if not nomUtilisateur:
             return Response({"detail": "nomUtilisateur est requis"}, status=status.HTTP_400_BAD_REQUEST)
 
-        exists = Utilisateur.objects.filter(nomUtilisateur=nomUtilisateur, actif=True).exists()
+        try:
+            user = Utilisateur.objects.get(nomUtilisateur=nomUtilisateur, actif=True)
+            exists = user.has_usable_password()
+        except Utilisateur.DoesNotExist:
+            exists = False
+            message = "Utilisateur inconnu ou inactif"
 
-        return Response({"existe": exists}, status=status.HTTP_200_OK)
+        return Response({"existe": exists, "message": message}, status=status.HTTP_200_OK)
 
     # Connexion
     @action(detail=False, methods=['post'])
