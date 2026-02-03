@@ -21,8 +21,6 @@ const handleCreate = () => {
 };
 
 const handleRowClick = (item) => {
-  // TODO: Navigation vers le détail d'un consommable
-  console.log("Clic sur consommable:", item);
-  // router.push({ name: 'ConsommableDetail', params: { id: item.id } });
+  router.push({ name: 'ConsumableDetail', params: { id: item.id } });
 };
 </script>

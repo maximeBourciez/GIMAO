@@ -37,8 +37,8 @@ const api = useApi(API_BASE_URL)
 
 const supplierId = route.params.id
 const supplierData = ref(null)
-const loading = ref(false)
-const errorLoading = ref('')
+const isLoading = ref(false)
+const errorMessage = ref('')
 
 const connectedUserId = computed(() => store.getters.currentUser?.id)
 
@@ -51,7 +51,7 @@ const loadSupplierData = async () => {
 } catch (error) {
     console.error("Error loading supplier data:", error);
     errorMessage.value = "Erreur lors du chargement des données du fournisseur";
-    loader.value = false;
+    isLoading.value = false;
   } finally {
     isLoading.value = false;
   }

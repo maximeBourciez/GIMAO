@@ -359,7 +359,7 @@
 
     <!-- Bouton flottant : modifier le BT -->
     <v-btn
-      v-if="intervention && isResponsableGMAO"
+      v-if="canUserEditBT"
       color="primary"
       size="large"
       icon
