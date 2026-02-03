@@ -107,7 +107,7 @@
                               <div class="d-flex align-center justify-space-between mb-2">
                                 <div class="d-flex align-center gap-2">
                                   <v-icon color="primary">mdi-counter</v-icon>
-                                  <h3 class="text-h6">{{ compteur.nom || 'Compteur sans nom' }}</h3>
+                                  <h3 class="text-h6 mr-2">{{ compteur.nom || 'Compteur sans nom' }}</h3>
                                   <v-chip v-if="compteur.estPrincipal" color="primary" size="small" label>
                                     Principal
                                   </v-chip>
@@ -125,7 +125,7 @@
                               <v-row dense>
                                 <v-col cols="6" md="3">
                                   <div class="text-caption text-grey">Valeur courante</div>
-                                  <div class="text-body-1">{{ compteur.valeurCourante }} {{ compteur.unite }}</div>
+                                  <div class="text-body-1">{{ compteur.valeurCourante }} {{ compteur.type !== 'Calendaire' ? compteur.unite : '' }}</div>
                                 </v-col>
                                 <v-col cols="6" md="3">
                                   <div class="text-caption text-grey">Unité</div>
@@ -506,7 +506,8 @@ const handleSubmit = async () => {
           nom: c.nom,
           valeurCourante: c.valeurCourante ?? 0,
           unite: c.unite,
-          estPrincipal: c.estPrincipal
+          estPrincipal: c.estPrincipal,
+          type: c.type
         }));
         fd.append(key, JSON.stringify(compteursData));
       } else if (key === 'plansMaintenance') {

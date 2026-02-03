@@ -1,6 +1,5 @@
 import json
 import datetime
-from datetime import datetime
 from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -31,14 +30,6 @@ from equipement.api.serializers import (
 from maintenance.models import PlanMaintenance, PlanMaintenanceConsommable, PlanMaintenanceDocument
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
 
-
-import json
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from django.db import transaction
-from django.utils import timezone
-
-# Models et Serializers...
 
 class EquipementViewSet(viewsets.ModelViewSet):
     queryset = Equipement.objects.all()
@@ -83,6 +74,8 @@ class EquipementViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Création d'un nouvel équipement"""
         data = dict(request.data)
+        print('Données de la requête de création d\'équipement:')
+        print(data)
         
         # Extraire les valeurs uniques des listes
         for key, value in data.items():
@@ -169,7 +162,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
             compteur = Compteur.objects.create(
                 equipement=equipement,
                 nomCompteur=cp["nom"],
-                valeurCourante=cp.get("valeurCourante", 0),
+                valeurCourante=self.getFormattedCounterValue(cp),
                 unite=cp.get("unite", "heures"),
                 estPrincipal=cp.get("estPrincipal", False),
                 type=cp.get("type", "Général")
@@ -196,14 +189,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
 
             # Créer le lien Declencher entre le compteur et le plan
             seuil = pm_data.get("seuil", {})
-            Declencher.objects.create(
-                compteur=compteur,
-                planMaintenance=plan,
-                derniereIntervention=seuil.get("derniereIntervention", 0),
-                ecartInterventions=seuil.get("ecartInterventions", 0),
-                prochaineMaintenance=seuil.get("prochaineMaintenance", 0),
-                estGlissant=seuil.get("estGlissant", False)
-            )
+            self.create_declencher(compteur, plan, seuil)
 
             # Consommables du plan
             for consommable_data in pm_data.get("consommables", []):
@@ -238,7 +224,59 @@ class EquipementViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
+
+    def getFormattedCounterValue(self, counter):
+        if counter["type"] == "Calendaire":
+            return self.formatFromDateToDays(counter["valeurCourante"])
+        else:
+            try:
+                return float(counter["valeurCourante"])
+            except ValueError:
+                return 0
+
     
+    def create_declencher(self, compteur, plan, seuil_data):
+
+        est_glissant = seuil_data.get("estGlissant", False)
+
+        if compteur.type == 'Calendaire':
+            print("Création d'un seuil calendaire")
+            # Dates en jours
+            derniere = self.formatFromDateToDays(
+                seuil_data.get("derniereIntervention")
+            )
+
+            prochaine = self.formatFromDateToDays(
+                seuil_data.get("prochaineMaintenance")
+            )
+
+            ecart = prochaine - derniere if prochaine >= derniere else 0
+
+        else:
+            derniere = float(seuil_data.get("derniereIntervention", 0))
+            ecart = float(seuil_data.get("ecartInterventions", 0))
+            prochaine = derniere + ecart
+
+        Declencher.objects.create(
+            compteur=compteur,
+            planMaintenance=plan,
+            derniereIntervention=derniere,
+            prochaineMaintenance=prochaine,
+            ecartInterventions=ecart,
+            estGlissant=est_glissant
+        )
+
+
+    def formatFromDateToDays(self, date_str):
+        try:
+            date_value = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+            base_date = datetime.datetime(1, 1, 1)  # Date de référence
+            delta = date_value - base_date
+            print(f"Conversion de la date {date_str} en jours: {delta.days}")
+            return delta.days
+        except Exception:
+            print(f"Erreur de conversion de la date {date_str}, retour 0")
+            return 0
     
     @transaction.atomic
     def update(self, request, *args, **kwargs):
