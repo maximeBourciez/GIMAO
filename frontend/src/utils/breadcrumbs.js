@@ -1,676 +1,91 @@
 export const BREADCRUMBS = {
-    /***************************************
-     * Équipements
-     **************************************/
-    EquipmentList: (route) => [
-        {
-            label: "Équipements",
-            to: { name: "EquipmentList" },
-        },
-    ],
+    // Auth
+    Login: "Connexion",
+    SetPassword: "Définir le mot de passe",
 
-    CreateEquipment: (route) => [
-        {
-            label: "Équipements",
-            to: { name: "EquipmentList" },
-        },
-        {
-            label: "Créer un équipement",
-        },
-    ],
+    // Dashboard
+    Dashboard: "Tableau de bord",
 
-    EquipmentDetail: (route) => {
-        if (route.query.from === "failure") {
-            return [
-                { label: "Demandes d'intervention", to: { name: "FailureList" } },
-                {
-                    label: `Demande d'intervention #${route.query.failureID}`,
-                    to: {
-                        name: "FailureDetail",
-                        params: { id: route.query.failureID },
-                    },
-                },
-                { label: `Équipement #${route.params.id}` },
-            ];
-        }
+    // Gestion des comptes
+    UserList: "Gestion des comptes",
+    UserDetail: "Utilisateur",
+    EditUser: "Modifier un utilisateur",
+    CreateUser: "Créer un utilisateur",
 
-        if (route.query.from === "intervention") {
-            return [
-                { label: "Bons de travail", to: { name: "InterventionList" } },
-                {
-                    label: `Bon de travail #${route.query.interventionId}`,
-                    to: {
-                        name: "InterventionDetail",
-                        params: { id: route.query.interventionId },
-                    },
-                },
-                { label: `Équipement #${route.params.id}` },
-            ];
-        }
+    // Stocks & Consommables
+    Stocks: "Magasin",
+    CreateConsumable: "Créer un consommable",
+    EditConsumable: "Modifier un consommable",
+    ConsumableDetail: "Consommable",
+    DeleteConsumable: "Supprimer un consommable",
 
-        if(route.query.from === "intervention-dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: `Bon de travail #${route.query.interventionId}`,
-                    to: {
-                        name: "InterventionDetail",
-                        params: { id: route.query.interventionId },
-                        query: { from: "dashboard" },
-                    },
-                },
-                {
-                    label: `Équipement #${route.params.id}`,
-                },
-            ];
-        }
-
-        if(route.query.from === "failure-dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: `Demande d'intervention #${route.query.failureID}`,
-                    to: {
-                        name: "FailureDetail",
-                        params: { id: route.query.failureID },
-                        query: { from: "dashboard" },
-                    },
-                },
-                {
-                    label: `Équipement #${route.params.id}`,
-                },
-            ];
-        }
-
-
-        if(route.query.from === "dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: `Équipement #${route.params.id}`,
-                },
-            ];
-        }
-
-        return [{
-            label: "Équipements",
-            to: { name: "EquipmentList" },
-        },
-        {
-            label: `Équipement #${route.params.id}`,
-        }];
-    },
-
-    EditEquipment: (route) => [
-        {
-            label: "Equipements",
-            to: { name: "EquipmentList" },
-        },
-        {
-            label: `Equipement #${route.query.equipmentId}`,
-            to: {
-                name: "EquipmentDetail",
-                params: { id: route.query.equipmentId },
-            },
-        },
-        {
-            label: "Modifier",
-        },
-    ],
-
-    CounterDetail: (route) => [
-        {
-            label: "Equipements",
-            to: { name: "EquipmentList" },
-        },
-        {
-            label: `Equipement #${route.query.equipmentId}`,
-            to: {
-                name: "EquipmentDetail",
-                params: { id: route.query.equipmentId },
-            },
-        },
-        {
-            label: `Compteur #${route.params.id}`,
-        },
-    ],
-
-    /***************************************
-     * Bons de travail
-     **************************************/
-    InterventionList: (route) => [
-        {
-            label: "Bons de travail",
-            to: { name: "InterventionList" },
-        },
-    ],
-
-    InterventionDetail: (route) => {
-        if (route.query.from === "equipment") {
-            return [
-                { label: "Équipements", to: { name: "EquipmentList" } },
-                {
-                    label: `Équipement #${route.query.equipmentId}`,
-                    to: {
-                        name: "EquipmentDetail",
-                        params: { id: route.query.equipmentId },
-                    },
-                },
-                { label: `Intervention #${route.params.id}` },
-            ];
-        }
-
-        if(route.query.from === "dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: `Bon de travail #${route.params.id}`,
-                },
-            ];
-        }
-
-        // fallback : liste interventions
-        return [
-            { label: "Bons de travail", to: { name: "InterventionList" } },
-            { label: `Bon de travail #${route.params.id}` },
-        ];
-    },
-
-    CreateIntervention: (route) => {
-        if(route.query.from === "dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: "Créer un bon de travail",
-                },
-            ];
-        }
-
-        return [
-            { label: "Bons de travail", to: { name: "InterventionList" } },
-            { label: "Créer un bon de travail" },
-        ];
-    },
-
-    EditIntervention: (route) => {
-        if(route.query.from === "dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: `Bon de travail #${route.params.id}`,
-                    to: { name: "InterventionDetail", params: { id: route.params.id }, query: { from: route.query.from } },
-                },
-                {
-                    label: "Modifier",
-                },
-            ];
-        }
-
-        return [
-            { label: "Bons de travail", to: { name: "InterventionList" } },
-            {
-                label: `Bon de travail #${route.params.id}`,
-                to: { name: "InterventionDetail", params: { id: route.params.id } },
-            },
-            { label: "Modifier" },
-        ];
-    },
-
-	AddDocumentIntervention: (route) => {
-
-        if(route.query.from === "dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: `Bon de travail #${route.params.id}`,
-                    to: { name: "InterventionDetail", params: { id: route.params.id }, query: { from: route.query.from } },
-                },
-                {
-                    label: "Ajouter des documents",
-                },
-            ];
-        }
-
-		return [
-			{ label: "Bons de travail", to: { name: "InterventionList" } },
-			{
-				label: `Bon de travail #${route.params.id}`,
-				to: { name: "InterventionDetail", params: { id: route.params.id } },
-			},
-			{ label: "Ajouter des documents" },
-		];
-	},
-
-    /***************************************
-     * Demandes d'intervention
-     **************************************/
-    FailureList: (route) => [
-        {
-            label: "Demandes d'intervention",
-            to: { name: "FailureList" },
-        },
-    ],
-
-    FailureDetail: (route) => {
-        if(route.query.from === "intervention" && route.query.interventionId) {
-            return [
-                { label: "Bons de travail", to: { name: "InterventionList" } },
-                {
-                    label: `Bon de travail #${route.query.interventionId}`,
-                    to: {
-                        name: "InterventionDetail",
-                        params: { id: route.query.interventionId },
-                    },
-                },
-            ];
-        }
-
-        if(route.query.from === "dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: `Demande d'intervention #${route.params.id}`,
-                },
-            ];
-        }
-
-        return [
-            {
-                label: "Demandes d'intervention",
-                to: { name: "FailureList" },
-            },
-            {
-                label: `Demande d'intervention #${route.params.id}`,
-            },
-        ];
-    },
-
-    CreateFailure: (route) => {
-        if (route.query.from === "dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: "Créer une demande d'intervention",
-                },
-            ];
-        }
-        return [
-            {
-                label: "Demandes d'intervention",
-                to: { name: "FailureList" },
-            },
-            {
-                label: `Créer une demande d'intervention`,
-            }
-        ];
-    },
-
-    EditFailure: (route) => [
-        {
-            label: "Demandes d'intervention",
-            to: { name: "FailureList" },
-        },
-        {
-            label: `Demande d'intervention #${route.params.id}`,
-            to: {
-                name: "FailureDetail",
-                params: { id: route.params.id },
-            },
-        },
-        {
-            label: `Modifier`,
-        },
-    ],
-
-    AddDocumentFailure: (route) =>{ 
-
-        if(route.query.from === "dashboard") {
-            return [
-                {
-                    label: "Tableau de bord",
-                    to: { name: "Dashboard" },
-                },
-                {
-                    label: `Demande d'intervention #${route.params.id}`,
-                    to: { name: "FailureDetail", params: { id: route.params.id }, query: { from: route.query.from } },
-                },
-                {
-                    label: "Ajouter des documents",
-                },
-            ];
-        }
-
-        return [
-            { label: "Demandes d'intervention", to: { name: "FailureList" } },
-            { label: `Demande d'intervention #${route.params.id}`, to: { name: "FailureDetail", params: { id: route.params.id } } },
-            { label: "Ajouter des documents" },
-        ]
-},
-
-    /***************************************
-     * Stock
-     **************************************/
-    Stocks: (route) => [
-        {
-            label: "Magasin",
-            to: { name: "Stocks" },
-        },
-    ],
-    ConsumableDetail: (route) => [
-        {
-            label: "Magasin",
-            to: { name: "Stocks" },
-        },
-        {
-            label: `Consommable #${route.params.id}`,
-            to: { name: "ConsumableDetail", params: { id: route.params.id } },
-        },
-    ],
-
-    /***************************************
-     * Gestion des comptes
-     **************************************/
-    UserList: (route) => [
-        {
-            label: "Gestion des comptes",
-            to: { name: "UserList" },
-        },
-    ],
-
-    CreateUser: (route) => [
-        {
-            label: "Gestion des comptes",
-            to: { name: "UserList" },
-        },
-        {
-            label: "Créer un utilisateur",
-        },
-    ],
-
-    UserDetail: (route) => [
-        {
-            label: "Gestion des comptes",
-            to: { name: "UserList" },
-        },
-        {
-            label: `Utilisateur #${route.params.id}`,
-        },
-    ],
-
-    EditUser: (route) => [
-        {
-            label: "Gestion des comptes",
-            to: { name: "UserList" },
-        },
-        {
-            label: `Utilisateur #${route.params.id}`,
-            to: { name: "UserDetail", params: { id: route.params.id } },
-        },
-        {
-            label: "Modifier",
-        },
-    ],
-
-    /***************************************
-     * Gestion des données
-     **************************************/
-    DataManagement: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-    ],
-
-    /***************************************
-     * Dashboard
-     **************************************/
-    Dashboard: (route) => [
-        {
-            label: "Tableau de bord",
-            to: { name: "Dashboard" },
-        },
-    ],
-
-    /**************************************
-     * Données secondaires
-     **************************************/
-    DataManagement: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-    ],
-
-    // Lieux
-    LocationList: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Lieux",
-            to: { name: "LocationList" },
-        },
-    ],
-
-    CreateLocation: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Lieux",
-            to: { name: "LocationList" },
-        },
-        {
-            label: "Créer un lieu",
-        },
-    ],
-
-    // Fournisseurs
-    SupplierList: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Fournisseurs",
-            to: { name: "SupplierList" },
-        },
-    ],
-
-    CreateSupplier: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Fournisseurs",
-            to: { name: "SupplierList" },
-        },
-        {
-            label: "Créer un fournisseur",
-        },
-    ],
-
-    EditSupplier: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Fournisseurs",
-            to: { name: "SupplierList" },
-        },
-        {
-            label: `Fournisseur #${route.params.id}`,
-            to: {
-                name: "SupplierDetail",
-                params: { id: route.params.id },
-            },
-        },
-        {
-            label: "Modifier le fournisseur",
-        },
-    ],
-
-    SupplierDetail: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Fournisseurs",
-            to: { name: "SupplierList" },
-        },
-        {
-            label: `Fournisseur #${route.params.id}`,
-        },
-    ],
+    // Magasins
+    MagasinList: "Magasins",
+    MagasinDetail: "Magasin",
+    CreateMagasin: "Créer un magasin",
+    EditMagasin: "Modifier un magasin",
+    DeleteMagasin: "Supprimer un magasin",
 
     // Fabricants
-    ManufacturerList: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Fabricants",
-            to: { name: "ManufacturerList" },
-        },
-    ],
+    ManufacturerList: "Fabricants",
+    CreateManufacturer: "Créer un fabricant",
+    ManufacturerDetail: "Fabricant",
+    EditManufacturer: "Modifier le fabricant",
 
-    CreateManufacturer: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Fabricants",
-            to: { name: "ManufacturerList" },
-        },
-        {
-            label: "Créer un fabricant",
-        },
-    ],
+    // Fournisseurs
+    SupplierList: "Fournisseurs",
+    CreateSupplier: "Créer un fournisseur",
+    SupplierDetail: "Fournisseur",
+    EditSupplier: "Modifier le fournisseur",
 
-    ManufacturerDetail: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Fabricants",
-            to: { name: "ManufacturerList" },
-        },
-        {
-            label: `Fabricant #${route.params.id}`,
-        },
-    ],
+    // Gestion des données
+    DataManagement: "Gestion des données",
 
-    EditManufacturer: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Fabricants",
-            to: { name: "ManufacturerList" },
-        },
-        {
-            label: `Fabricant #${route.params.id}`,
-            to: {
-                name: "ManufacturerDetail",
-                params: { id: route.params.id },
-            },
-        },
-        {
-            label: "Modifier le fabricant",
-        },
-    ],
+    // Lieux
+    LocationList: "Lieux",
+    CreateLocation: "Créer un lieu",
+    LocationDetail: "Lieu",
+
+    // Bons de travail
+    InterventionList: "Bons de travail",
+    InterventionDetail: "Bon de travail",
+    CreateIntervention: "Créer un bon de travail",
+    EditIntervention: "Modifier le bon de travail",
+    AddDocumentIntervention: "Ajouter des documents",
+
+    // Équipements
+    EquipmentList: "Équipements",
+    EquipmentDetail: "Équipement",
+    CreateEquipment: "Créer un équipement",
+    EditEquipment: "Modifier un équipement",
+    CounterDetail: "Compteur",
+
+    // Demandes d'intervention
+    FailureList: "Demandes d'intervention",
+    CreateFailure: "Créer une demande d'intervention",
+    FailureDetail: "Demande d'intervention",
+    EditFailure: "Modifier la demande d'intervention",
+    AddDocumentFailure: "Ajouter des documents",
 
     // Modèles d'équipements
-    ModelEquipmentList: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Modèles d'équipements",
-            to: { name: "ModelEquipmentList" },
-        },
-    ],
-    ModelEquipmentDetail: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Modèles d'équipements",
-            to: { name: "ModelEquipmentList" },
-        },
-        {
-            label: `Modèle d'équipement #${route.params.id}`,
-        },
-    ],
-    CreateModelEquipment: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Modèles d'équipements",
-            to: { name: "ModelEquipmentList" },
-        },
-        {
-            label: "Créer un modèle d'équipement",
-        },
-    ],
-    EditModelEquipment: (route) => [
-        {
-            label: "Gestion des données",
-            to: { name: "DataManagement" },
-        },
-        {
-            label: "Modèles d'équipements",
-            to: { name: "ModelEquipmentList" },
-        },
-        {
-            label: `Modèle d'équipement #${route.params.id}`,
-            to: {
-                name: "ModelEquipmentDetail",
-                params: { id: route.params.id },
-            },
-        },
-        {
-            label: "Modifier le modèle d'équipement",
-        },
-    ],
+    ModelEquipmentList: "Modèles d'équipements",
+    CreateModelEquipment: "Créer un modèle d'équipement",
+    ModelEquipmentDetail: "Modèle d'équipement",
+    EditModelEquipment: "Modifier le modèle d'équipement"
 };
+
+export const HEADERS = [
+    "Dashboard",
+    "UserList",
+    "Stocks",
+    "MagasinList",
+    "ManufacturerList",
+    "SupplierList",
+    "DataManagement",
+    "LocationList",
+    "InterventionList",
+    "EquipmentList",
+    "FailureList",
+    "ModelEquipmentList"
+]
+

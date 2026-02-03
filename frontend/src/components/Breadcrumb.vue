@@ -1,29 +1,42 @@
 <template>
     <v-breadcrumbs class="breadcrumb" divider="›">
         <v-breadcrumbs-item v-for="(crumb, index) in breadcrumbs" :key="index"
-            :disabled="index === breadcrumbs.length - 1" @click="crumb.to && $router.push(crumb.to)">
-            {{ crumb.label }} {{ index === breadcrumbs.length - 1 ? '' : '>' }}
+            @click="crumb.route && $router.push(crumb.route)">
+            {{ makeBreadcrumb(crumb, index) }}
         </v-breadcrumbs-item>
     </v-breadcrumbs>
 </template>
 
 
-<script>
-import { BREADCRUMBS } from '@/utils/breadcrumbs';
+<script setup>
+import { BREADCRUMBS, HEADERS } from '@/utils/breadcrumbs';
+import { ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 
-export default {
-    name: "Breadcrumb",
-    computed: {
-        breadcrumbs() {
-            const routeName = this.$route.name;
+const route = useRoute();
 
-            if (!routeName || !BREADCRUMBS[routeName]) {
-                return [];
-            }
+const breadcrumbs = ref([]);
 
-            return BREADCRUMBS[routeName](this.$route);
-        }
+watch(route, () => {
+    if (breadcrumbs.value.find(crumb => crumb.name === route.name)) {
+        breadcrumbs.value = breadcrumbs.value.slice(0, breadcrumbs.value.findIndex(crumb => crumb.name === route.name));
+    };
+    if (HEADERS.includes(route.name)) {
+        breadcrumbs.value.length = 0;
     }
+    console.log(route);
+    const lastMatch = route.matched[route.matched.length - 1];
+    const showId = lastMatch?.path.endsWith('/:id');
+
+    breadcrumbs.value.push({
+        name:route.name,
+        route: route.path,
+        id: showId ? (route.params.id ?? null) : null,
+    })
+})
+
+function makeBreadcrumb(crumb, index) {
+    return `${BREADCRUMBS[crumb.name]} ${crumb.id ? `#${crumb.id}` : ''} ${index === breadcrumbs.length - 1 ? '' : '>' }`
 }
 </script>
 
