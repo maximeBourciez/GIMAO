@@ -204,11 +204,19 @@
                                 </v-col>
                                 <v-col cols="12" md="3">
                                   <div class="text-caption text-grey">Intervalle</div>
-                                  <div class="text-body-1">{{ plan.seuil.ecartInterventions }} {{ getCounterUnit(plan.compteurIndex) }}</div>
+                                  <div class="text-body-1">{{ 
+                                    getCounterType(plan.compteurIndex) === 'Calendaire' 
+                                      ? getSeuilInterval(plan.seuil.ecartInterventions) 
+                                      : `${plan.seuil.ecartInterventions} ${getCounterUnit(plan.compteurIndex)}`
+                                   }}</div>
                                 </v-col>
                                 <v-col cols="12" md="3">
                                   <div class="text-caption text-grey">Prochaine maintenance</div>
-                                  <div class="text-body-1">{{ plan.seuil.prochaineMaintenance }} {{ getCounterUnit(plan.compteurIndex) }}</div>
+                                  <div class="text-body-1">{{ 
+                                    getCounterType(plan.compteurIndex) === 'Calendaire' 
+                                      ? getSeuilNextMaintenance(plan.seuil.prochaineMaintenance) 
+                                      : `${plan.seuil.prochaineMaintenance} ${getCounterUnit(plan.compteurIndex)}`
+                                  }}</div>
                                 </v-col>
                               </v-row>
 
@@ -430,6 +438,48 @@ const showFormActions = computed(() =>
   step.value === EQUIPMENT_CREATE_STEPS.length || (step.value === 6 && !hasCounters.value)
 );
 
+// Helpers de navigation entre étapes
+const getSeuilInterval = (intervalle) => {
+  if (intervalle === null || intervalle === undefined) return "—";
+
+    const days = Math.round(intervalle / 1000 / 60 / 60 / 24);
+    if (days === 0) return "0 jour";
+
+    const years = Math.floor(days / 365);
+    const remainingAfterYears = days % 365;
+
+    const months = Math.floor(remainingAfterYears / 30);
+    const remDays = remainingAfterYears % 30;
+
+    const parts = [];
+    if (years) parts.push(`${years} ${years > 1 ? "ans" : "an"}`);
+    if (months) parts.push(`${months} mois`);
+    if (remDays) parts.push(`${remDays} ${remDays > 1 ? "jours" : "jour"}`);
+
+    return parts.join(" ");
+};
+
+const getSeuilNextMaintenance = (nextMaintenance) => {
+  if (nextMaintenance === null || nextMaintenance === undefined) return "—";
+
+  // Cas : nombre de jours (calendaire backend)
+  if (typeof nextMaintenance === "number") {
+    const baseDate = new Date(1, 0, 1);
+    baseDate.setDate(baseDate.getDate() + nextMaintenance);
+    return baseDate.toLocaleDateString("fr-FR");
+  }
+
+  // Cas : string YYYY-MM-DD
+  if (typeof nextMaintenance === "string") {
+    const date = new Date(nextMaintenance);
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString("fr-FR");
+  }
+
+  return "—";
+};
+
+
 //Règles de validation par étape
 const validationSchema = {
   step1: {
@@ -570,6 +620,12 @@ const getCounterName = (compteurIndex) => {
   if (compteurIndex === null || compteurIndex === undefined) return 'Non défini';
   const counter = formData.value.compteurs[compteurIndex];
   return counter ? counter.nom : 'Non défini';
+};
+
+const getCounterType = (compteurIndex) => {
+  if (compteurIndex === null || compteurIndex === undefined) return '';
+  const counter = formData.value.compteurs[compteurIndex];
+  return counter ? counter.type : '';
 };
 
 const getCounterUnit = (compteurIndex) => {

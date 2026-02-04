@@ -139,7 +139,9 @@ export function useEquipmentForm(isEditMode = false) {
       estGlissant: false,
       derniereIntervention: null,
       ecartInterventions: null,
-      prochaineMaintenance: null
+      prochaineMaintenance: null,
+      uniteCalendaire: 'Jours',
+      ecartCalendaire: 1
     }
   });
   const currentPlan = ref(getEmptyPlan());
@@ -343,6 +345,7 @@ export function useEquipmentForm(isEditMode = false) {
       seuil: { ...plan.seuil },
       consommables: [...plan.consommables]
     };
+
     showPlanDialog.value = true;
   };
 

@@ -518,6 +518,9 @@ const selectedCounterType = computed(() => {
   if (plan.value.compteurIndex === null || plan.value.compteurIndex === undefined)
     return "";
   const counter = props.counters[plan.value.compteurIndex];
+  console.log("Selected counter index:", plan.value.compteurIndex);
+  console.log("Counter found:", counter);
+  console.log("Selected counter type:", counter?.type);
   return counter?.type ?? "";
 });
 
@@ -637,45 +640,6 @@ const updateProchaineMaintenance = () => {
     }
     plan.value.seuil.prochaineMaintenance = derniere + ecart;
   }
-};
-
-
-const updateIntervalle = () => {
-  if (selectedCounterType.value === "Calendaire") {
-    const derniere = plan.value.seuil.derniereIntervention;
-    const prochaine = plan.value.seuil.prochaineMaintenance;
-    if (!derniere || !prochaine) {
-      plan.value.seuil.ecartInterventions = 0;
-      return;
-    }
-
-    const dateDerniere = new Date(derniere);
-    const dateProchaine = new Date(prochaine);
-    const diffTime = dateProchaine.getTime() - dateDerniere.getTime();
-    let ecart = 0;
-
-    switch (plan.value.seuil.uniteIntervalle) {
-      case "days":
-        ecart = diffTime / (1000 * 60 * 60 * 24);
-        break;
-      case "weeks":
-        ecart = diffTime / (1000 * 60 * 60 * 24 * 7);
-        break;
-      case "months":
-        ecart =
-          (dateProchaine.getFullYear() - dateDerniere.getFullYear()) * 12 +
-          (dateProchaine.getMonth() - dateDerniere.getMonth());
-        break;
-      case "years":
-        ecart = dateProchaine.getFullYear() - dateDerniere.getFullYear();
-        break;
-      default:
-        ecart = diffTime;
-        break;
-    }
-
-    plan.value.seuil.ecartInterventions = ecart;
-  } 
 };
 
 

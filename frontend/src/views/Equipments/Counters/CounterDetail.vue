@@ -92,9 +92,13 @@
                     <div>{{  formatLastIntervention(seuil.derniereIntervention) }}</div>
                   </v-col>
                   <v-col cols="12" md="3">
-                    <strong>Prochaine maintenance :</strong>
-                    <div>{{ formatNextMaintenance(seuil.prochaineMaintenance) }}</div>
-                  </v-col>
+  <strong>Prochaine maintenance :</strong>
+  <!-- DEBUG -->
+  <div class="text-caption text-red">
+    Debug: {{ seuil.prochaineMaintenance }} ({{ typeof seuil.prochaineMaintenance }})
+  </div>
+  <div>{{ formatNextMaintenance(seuil.prochaineMaintenance) }}</div>
+</v-col>
                   <v-col cols="12" md="3">
                     <strong>Intervalle :</strong>
                     <div>{{ formatIntervalle(seuil.ecartInterventions) }}</div>
@@ -398,6 +402,7 @@ const countersForSelect = computed(() => {
       unite: counter.value.unite || "heures",
       valeurCourante: counter.value.valeurCourante || 0,
       estPrincipal: counter.value.estPrincipal || false,
+      type: counter.value.type || "Numérique",
     },
   ];
 });
@@ -447,15 +452,32 @@ const getDocumentTypeLabel = (id) => {
   return typesDocuments.value.find((t) => t.id === id)?.nomTypeDocument || "—";
 };
 
-const formatDate = (days) => {
-  if (!days && days !== 0) return "—";
-
-  // 719163 = ordinal de 1970-01-01 en Python
-  const ms = (days - 719163) * 86400000;
-  const date = new Date(ms);
-
-  return date.toLocaleDateString("fr-FR");
+const formatDate = (value) => {
+  if (!value && value !== 0) return "—";
+  
+  let date;
+  
+  if (typeof value === 'string') {
+    date = new Date(value + 'T00:00:00');
+  } 
+  else if (typeof value === 'number' && value > 10000000000) {
+    date = new Date(value);
+  }
+  else if (typeof value === 'number') {
+    const ORDINAL_EPOCH = 719162;  // ⬅️ 719162 au lieu de 719163 !
+    const daysFromEpoch = value - ORDINAL_EPOCH;
+    date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
+  }
+  else {
+    return "—";
+  }
+  
+  if (isNaN(date.getTime())) return "—";
+  
+  return date.toLocaleDateString("fr-FR", { timeZone: 'UTC' });
 };
+
+
 const formatLastIntervention = (days) => {
   if (days === null || days === undefined) return "—";
 
@@ -481,7 +503,7 @@ const formatIntervalle = (intervalle) => {
   if (intervalle === null || intervalle === undefined) return "—";
 
   if (counter.value.type === "Calendaire") {
-    const days = Math.round(intervalle);
+    const days = Math.round(intervalle / 1000 / 24 / 60 / 60); // convertir ms en jours
     if (days === 0) return "0 jour";
 
     const years = Math.floor(days / 365);
@@ -496,6 +518,8 @@ const formatIntervalle = (intervalle) => {
     if (remDays) parts.push(`${remDays} ${remDays > 1 ? "jours" : "jour"}`);
 
     return parts.join(" ");
+  }else {
+    console.log("Compteur non calendaire - formatIntervalle")
   }
 
   return `${intervalle} ${counter.value.unite}`;
@@ -718,6 +742,14 @@ const saveSeuil = async () => {
           estGlissant: !!currentPlan.value.seuil.estGlissant,
         })
       );
+
+      console.log("Saving new seuil for counter", counterId);
+      console.log("Seuil data:", {
+        derniereIntervention: currentPlan.value.seuil.derniereIntervention ?? 0,
+        ecartInterventions: currentPlan.value.seuil.ecartInterventions ?? 0,
+        prochaineMaintenance: currentPlan.value.seuil.prochaineMaintenance ?? null,
+        estGlissant: !!currentPlan.value.seuil.estGlissant,
+      });
 
       /* ===== COMPTEUR ===== */
       formData.append("compteur", counterId);

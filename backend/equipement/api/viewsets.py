@@ -895,7 +895,7 @@ class CompteurViewSet(viewsets.ModelViewSet):
             if compteur_data.get('type') == 'Calendaire' and 'valeurCourante' in compteur_data:
                 try:
                     # Convertir en date
-                    d = datetime.strptime(compteur_data['valeurCourante'], '%Y-%m-%d').date()
+                    d = datetime.datetime.strptime(compteur_data['valeurCourante'], '%Y-%m-%d').date()
                     # stocker comme entier (ordinal)
                     valeurCourante = d.toordinal()
                 except ValueError:
@@ -1051,6 +1051,8 @@ class DeclenchementViewSet(viewsets.ModelViewSet):
         # Récupération et normalisation des données
         data = dict(request.data)
 
+        print(f"Données reçues pour création déclenchement : {data}")
+
         # Extraire les valeurs uniques des listes (compatibilité FormData)
         for key, value in list(data.items()):
             if isinstance(value, list) and len(value) == 1:
@@ -1114,24 +1116,27 @@ class DeclenchementViewSet(viewsets.ModelViewSet):
         ecart = seuil.get('ecartInterventions') or seuil.get('intervalle') or 0
         est_glissant = seuil.get('estGlissant', False)
 
-        try:
-            derniere = int(float(derniere))
-        except Exception:
-            derniere = 0
-
-        try:
-            ecart = float(ecart)
-        except Exception:
-            ecart = 0
-
-        prochaine = seuil.get('prochaineMaintenance')
-        if prochaine is None:
-            prochaine = int(derniere + ecart)
+        if compteur.type == 'Calendaire':
+            # Convertir derniereIntervention en ordinal
+            derniere = DeclenchementViewSet.date_to_days(derniere) if isinstance(derniere, str) else 0
+            
+            # Garder ecart tel quel (timestamp MS)
+            ecart = int(ecart) if isinstance(ecart, str) else ecart
+            
+            # ✅ UTILISER prochaineMaintenance du frontend
+            prochaine_str = seuil.get('prochaineMaintenance')
+            if prochaine_str and isinstance(prochaine_str, str):
+                prochaine = DeclenchementViewSet.date_to_days(prochaine_str)
+                print(f"Utilisation de prochaineMaintenance fournie : {prochaine_str} → {prochaine}")
+                print(f"derniere: {derniere}, ecart: {ecart}")
+                print(f"Calcul vérification: {derniere} + {int(ecart / (1000 * 60 * 60 * 24))} = {derniere + int(ecart / (1000 * 60 * 60 * 24))}")
+            else:
+                # Fallback : convertir MS en jours
+                prochaine = derniere + int(ecart / (1000 * 60 * 60 * 24))
         else:
-            try:
-                prochaine = int(float(prochaine))
-            except Exception:
-                prochaine = int(derniere + ecart)
+            prochaine = derniere + ecart
+
+        prochaine = derniere + ecart
 
         declencher = Declencher.objects.create(
             compteur=compteur,
@@ -1179,12 +1184,24 @@ class DeclenchementViewSet(viewsets.ModelViewSet):
                     document=document
                 )
 
-
-
-
         serializer = DeclenchementSerializer(declencher)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    def date_to_days(date_str: str) -> int:
+        """
+        Convertit 'YYYY-MM-DD' → nombre de jours depuis 0001-01-01
+        """
+        try:
+            date_value = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+            base_date = datetime.datetime(1, 1, 1)  # Date de référence
+            delta = date_value - base_date
+            print(f"Conversion de la date {date_str} en jours: {delta.days}")
+            return delta.days
+        except Exception:
+            print(f"Erreur de conversion de la date {date_str}, retour 0")
+            return 0
+        
+        
 
     @transaction.atomic
     def partial_update(self, request, pk=None):
