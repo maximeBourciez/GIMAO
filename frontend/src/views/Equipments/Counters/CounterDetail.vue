@@ -19,7 +19,8 @@
 
           <v-col cols="12" md="4">
             <strong>Valeur actuelle :</strong>
-            <div class="text-h6">{{ counter.type === "Calendaire" ? formatDate(counter.valeurCourante) : counter.valeurCourante }}</div>
+            <div class="text-h6">{{ counter.type === "Calendaire" ? formatDate(counter.valeurCourante) :
+              counter.valeurCourante }}</div>
           </v-col>
           <v-col cols="12" md="4" v-if="counter.type !== 'Calendaire'">
             <strong>Unité :</strong>
@@ -30,12 +31,7 @@
         <v-row dense class="mt-2">
           <v-col cols="12" md="4">
             <strong>Statut :</strong>
-            <v-chip
-              :color="counter.estPrincipal ? 'primary' : 'grey'"
-              label
-              class="ml-2"
-              size="small"
-            >
+            <v-chip :color="counter.estPrincipal ? 'primary' : 'grey'" label class="ml-2" size="small">
               {{ counter.estPrincipal ? "Principal" : "Secondaire" }}
             </v-chip>
           </v-col>
@@ -89,27 +85,19 @@
                 <v-row dense>
                   <v-col cols="12" md="3">
                     <strong>Dernière intervention :</strong>
-                    <div>{{  formatLastIntervention(seuil.derniereIntervention) }}</div>
+                    <div>{{ formatLastIntervention(seuil.derniereIntervention) }}</div>
                   </v-col>
                   <v-col cols="12" md="3">
-  <strong>Prochaine maintenance :</strong>
-  <!-- DEBUG -->
-  <div class="text-caption text-red">
-    Debug: {{ seuil.prochaineMaintenance }} ({{ typeof seuil.prochaineMaintenance }})
-  </div>
-  <div>{{ formatNextMaintenance(seuil.prochaineMaintenance) }}</div>
-</v-col>
+                    <strong>Prochaine maintenance :</strong>
+                    <div>{{ formatNextMaintenance(seuil.prochaineMaintenance) }}</div>
+                  </v-col>
                   <v-col cols="12" md="3">
                     <strong>Intervalle :</strong>
                     <div>{{ formatIntervalle(seuil.ecartInterventions) }}</div>
                   </v-col>
                   <v-col cols="12" md="3">
                     <strong class="mr-2">Type de seuil :</strong>
-                    <v-chip
-                      :color="seuil.estGlissant ? 'green' : 'orange'"
-                      size="small"
-                      label
-                    >
+                    <v-chip :color="seuil.estGlissant ? 'green' : 'orange'" size="small" label>
                       {{ seuil.estGlissant ? "Glissant" : "Fixe" }}
                     </v-chip>
                   </v-col>
@@ -146,15 +134,10 @@
                     <v-col cols="12">
                       <strong>Requis :</strong>
                       <div class="d-flex gap-3">
-                        <v-chip
-                          :color="
-                            seuil.planMaintenance.necessiteHabilitationElectrique
-                              ? 'orange'
-                              : 'grey'
-                          "
-                          size="small"
-                          label
-                        >
+                        <v-chip :color="seuil.planMaintenance.necessiteHabilitationElectrique
+                            ? 'orange'
+                            : 'grey'
+                          " size="small" label>
                           <v-icon left small>{{
                             seuil.planMaintenance.necessiteHabilitationElectrique
                               ? "mdi-check"
@@ -162,13 +145,8 @@
                           }}</v-icon>
                           Habilitation électrique
                         </v-chip>
-                        <v-chip
-                          :color="
-                            seuil.planMaintenance.necessitePermisFeu ? 'red' : 'grey'
-                          "
-                          size="small"
-                          label
-                        >
+                        <v-chip :color="seuil.planMaintenance.necessitePermisFeu ? 'red' : 'grey'
+                          " size="small" label>
                           <v-icon left small>{{
                             seuil.planMaintenance.necessitePermisFeu
                               ? "mdi-check"
@@ -184,20 +162,12 @@
                   <v-sheet class="pa-3 mb-3" elevation="0" rounded color="white">
                     <h5 class="mb-2">Consommables nécessaires</h5>
 
-                    <div
-                      v-if="!seuil.planMaintenance.consommables?.length"
-                      class="text-grey"
-                    >
+                    <div v-if="!seuil.planMaintenance.consommables?.length" class="text-grey">
                       Aucun consommable requis
                     </div>
 
-                    <v-row
-                      v-for="(consommable, consIndex) in seuil.planMaintenance
-                        .consommables"
-                      :key="consommable.id"
-                      dense
-                      class="mb-1"
-                    >
+                    <v-row v-for="(consommable, consIndex) in seuil.planMaintenance
+                      .consommables" :key="consommable.id" dense class="mb-1">
                       <v-col cols="8">
                         <v-icon left small>mdi-package-variant</v-icon>
                         {{ consommable.designation }}
@@ -213,19 +183,12 @@
                   <v-sheet class="pa-3" elevation="0" rounded color="white">
                     <h5 class="mb-2">Documents associés</h5>
 
-                    <div
-                      v-if="!seuil.planMaintenance.documents?.length"
-                      class="text-grey"
-                    >
+                    <div v-if="!seuil.planMaintenance.documents?.length" class="text-grey">
                       Aucun document
                     </div>
 
-                    <v-row
-                      v-for="(doc, docIndex) in seuil.planMaintenance.documents"
-                      :key="doc.id"
-                      dense
-                      class="mb-2 align-center"
-                    >
+                    <v-row v-for="(doc, docIndex) in seuil.planMaintenance.documents" :key="doc.id" dense
+                      class="mb-2 align-center">
                       <v-col cols="3">
                         <strong>{{ doc.nom || doc.titre || "Sans titre" }}</strong>
                       </v-col>
@@ -239,12 +202,7 @@
                         </v-chip>
                       </v-col>
                       <v-col cols="1" class="text-right">
-                        <v-btn
-                          :href="BASE_URL + MEDIA_BASE_URL + doc.chemin"
-                          target="_blank"
-                          icon
-                          small
-                        >
+                        <v-btn :href="BASE_URL + MEDIA_BASE_URL + doc.chemin" target="_blank" icon small>
                           <v-icon>mdi-open-in-new</v-icon>
                         </v-btn>
                       </v-col>
@@ -260,7 +218,8 @@
 
               <!-- Boutons d'action pour ce seuil -->
               <div class="d-flex justify-end mt-3">
-                <v-btn color="primary" size="small" @click="editSeuil(seuil)" v-if="store.getters.hasPermission('mp:edit')">
+                <v-btn color="primary" size="small" @click="editSeuil(seuil)"
+                  v-if="store.getters.hasPermission('mp:edit')">
                   <v-icon left small>mdi-pencil</v-icon>
                   Modifier ce seuil
                 </v-btn>
@@ -308,11 +267,7 @@
   </v-card>
 
   <v-dialog v-model="showCounterDialog" max-width="1000px">
-    <CounterForm
-      :counter="counter"
-      :isCounterEdit="isCounterEdit"
-      @close="closeCounterDialog"
-    />
+    <CounterForm :counter="counter" :isCounterEdit="isCounterEdit" @close="closeCounterDialog" />
   </v-dialog>
 
   <v-dialog v-model="showSeuilDialog" max-width="1200px" scrollable>
@@ -322,28 +277,15 @@
       </v-card-title>
       <v-divider></v-divider>
       <v-card-text class="pa-4">
-        <MaintenancePlanInlineForm
-          v-model="currentPlan"
-          :counters="countersForSelect"
-          :types-p-m="typesPM"
-          :consumables="consumables"
-          :existing-p-ms="existingPMs"
-          :types-documents="typesDocuments"
-          :show-pm-selection="true"
-          :is-edit-mode="!!currentSeuil.id"
-          :show-actions="false"
-          @save="handleFormSave"
-        />
+        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :types-p-m="typesPM"
+          :consumables="consumables" :existing-p-ms="existingPMs" :types-documents="typesDocuments"
+          :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="false" @save="handleFormSave" />
       </v-card-text>
       <v-divider></v-divider>
       <v-card-actions class="pa-4">
         <v-spacer></v-spacer>
         <v-btn variant="text" @click="closeSeuilDialog">Annuler</v-btn>
-        <v-btn
-          color="primary"
-          :loading="saving"
-          @click="handleFormSave({ pmMode: 'new', selectedExistingPMId: null })"
-        >
+        <v-btn color="primary" :loading="saving" @click="handleFormSave({ pmMode: 'new', selectedExistingPMId: null })">
           {{ currentSeuil.id ? "Enregistrer les modifications" : "Créer le seuil" }}
         </v-btn>
       </v-card-actions>
@@ -454,12 +396,12 @@ const getDocumentTypeLabel = (id) => {
 
 const formatDate = (value) => {
   if (!value && value !== 0) return "—";
-  
+
   let date;
-  
+
   if (typeof value === 'string') {
     date = new Date(value + 'T00:00:00');
-  } 
+  }
   else if (typeof value === 'number' && value > 10000000000) {
     date = new Date(value);
   }
@@ -471,9 +413,9 @@ const formatDate = (value) => {
   else {
     return "—";
   }
-  
+
   if (isNaN(date.getTime())) return "—";
-  
+
   return date.toLocaleDateString("fr-FR", { timeZone: 'UTC' });
 };
 
@@ -518,7 +460,7 @@ const formatIntervalle = (intervalle) => {
     if (remDays) parts.push(`${remDays} ${remDays > 1 ? "jours" : "jour"}`);
 
     return parts.join(" ");
-  }else {
+  } else {
     console.log("Compteur non calendaire - formatIntervalle")
   }
 

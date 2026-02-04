@@ -239,6 +239,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
 
         est_glissant = seuil_data.get("estGlissant", False)
 
+        ecart = float(seuil_data.get("ecartInterventions", 0))
         if compteur.type == 'Calendaire':
             print("Création d'un seuil calendaire")
             # Dates en jours
@@ -250,11 +251,9 @@ class EquipementViewSet(viewsets.ModelViewSet):
                 seuil_data.get("prochaineMaintenance")
             )
 
-            ecart = prochaine - derniere if prochaine >= derniere else 0
 
         else:
             derniere = float(seuil_data.get("derniereIntervention", 0))
-            ecart = float(seuil_data.get("ecartInterventions", 0))
             prochaine = derniere + ecart
 
         Declencher.objects.create(
@@ -1113,30 +1112,20 @@ class DeclenchementViewSet(viewsets.ModelViewSet):
 
         # Créer le déclencheur (seuil)
         derniere = seuil.get('derniereIntervention') or seuil.get('derniereintervention') or 0
+        prochaine = seuil.get('prochaineMaintenance') or seuil.get('prochainemaintenance') or 0
         ecart = seuil.get('ecartInterventions') or seuil.get('intervalle') or 0
         est_glissant = seuil.get('estGlissant', False)
 
         if compteur.type == 'Calendaire':
-            # Convertir derniereIntervention en ordinal
-            derniere = DeclenchementViewSet.date_to_days(derniere) if isinstance(derniere, str) else 0
+            # Convertir en ordinal
+            derniere = self.date_to_days(derniere) if isinstance(derniere, str) else 0
+            prochaine = self.date_to_days(prochaine) if isinstance(prochaine, str) else 0
             
             # Garder ecart tel quel (timestamp MS)
             ecart = int(ecart) if isinstance(ecart, str) else ecart
             
-            # ✅ UTILISER prochaineMaintenance du frontend
-            prochaine_str = seuil.get('prochaineMaintenance')
-            if prochaine_str and isinstance(prochaine_str, str):
-                prochaine = DeclenchementViewSet.date_to_days(prochaine_str)
-                print(f"Utilisation de prochaineMaintenance fournie : {prochaine_str} → {prochaine}")
-                print(f"derniere: {derniere}, ecart: {ecart}")
-                print(f"Calcul vérification: {derniere} + {int(ecart / (1000 * 60 * 60 * 24))} = {derniere + int(ecart / (1000 * 60 * 60 * 24))}")
-            else:
-                # Fallback : convertir MS en jours
-                prochaine = derniere + int(ecart / (1000 * 60 * 60 * 24))
         else:
             prochaine = derniere + ecart
-
-        prochaine = derniere + ecart
 
         declencher = Declencher.objects.create(
             compteur=compteur,
@@ -1187,7 +1176,7 @@ class DeclenchementViewSet(viewsets.ModelViewSet):
         serializer = DeclenchementSerializer(declencher)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def date_to_days(date_str: str) -> int:
+    def date_to_days(self, date_str: str) -> int:
         """
         Convertit 'YYYY-MM-DD' → nombre de jours depuis 0001-01-01
         """
