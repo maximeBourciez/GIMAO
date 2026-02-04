@@ -91,6 +91,15 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="showMagasinFormDialog" max-width="500px">
+      <v-card class="rounded-lg">
+        <MagasinForm 
+          @created="handleMagasinCreated"
+          @close="showMagasinFormDialog = false"
+        />
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -100,6 +109,7 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import BaseListView from '@/components/common/BaseListView.vue';
 import MagasinFilter from '@/components/Stock/MagasinFilter.vue';
+import MagasinForm from '@/components/Forms/MagasinForm.vue';
 import StockStatistics from '@/components/Stock/StockStatistics.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
@@ -130,6 +140,7 @@ const errorMessage = ref('');
 const selectedMagasin = ref(null);
 const selectedStockFilter = ref(null);
 const showMagasinFilterDialog = ref(false);
+const showMagasinFormDialog = ref(false);
 
 const consommables = computed(() => consommablesApi.data.value || []);
 const magasins = computed(() => magasinsApi.data.value || []);
@@ -226,17 +237,22 @@ const handleApplyFilter = () => {
 };
 
 const handleCreateMagasin = () => {
-  showMagasinFilterDialog.value = false;
-  router.push({ name: 'CreateMagasin' });
+  showMagasinFormDialog.value = true;
 };
-onMounted(() => {
-  fetchData();
-});
+
+const handleMagasinCreated = async () => {
+  await magasinsApi.get('magasins/');
+  showMagasinFormDialog.value = false;
+};
 
 const handleCancelFilter = () => {
   selectedMagasin.value = null;
   showMagasinFilterDialog.value = false;
 };
+
+onMounted(() => {
+  fetchData();
+});
 </script>
 
 <style scoped>
