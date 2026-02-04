@@ -72,6 +72,7 @@ import { useStore } from 'vuex';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 import { useRouter } from 'vue-router';
+import { useDisplay } from 'vuetify';
 
 // Données
 const title = 'Gestion des comptes';
@@ -79,13 +80,23 @@ const router = useRouter();
 const createButtonText = "Créer un nouvel utilisateur";
 const store = useStore();
 
+const { smAndDown } = useDisplay();
+
 // Headers Vuetify 3 (même format que dans TABLE_HEADERS)
-const headers = [
+const baseHeaders = [
   { title: "Nom d'utilisateur", value: 'nomUtilisateur', sortable: true, align: 'start' },
   { title: 'Nom', value: 'nom', sortable: true, align: 'start' },
   { title: 'Rôle', value: 'role', sortable: true, align: 'center' },
   { title: 'Actif', value: 'actif', sortable: true, align: 'end' },
 ];
+
+// Responsive: on masque la colonne "Actif" sur petits écrans.
+const headers = computed(() => {
+  if (smAndDown.value) {
+    return baseHeaders.filter((h) => h.value !== 'actif');
+  }
+  return baseHeaders;
+});
 
 // États
 const users = ref([]);
