@@ -445,7 +445,7 @@ const formatIntervalle = (intervalle) => {
   if (intervalle === null || intervalle === undefined) return "—";
 
   if (counter.value.type === "Calendaire") {
-    const days = Math.round(intervalle / 1000 / 24 / 60 / 60); // convertir ms en jours
+    const days = Math.round(intervalle / 1000 / 24 / 60 / 60) - 1; // convertir ms en jours
     if (days === 0) return "0 jour";
 
     const years = Math.floor(days / 365);
