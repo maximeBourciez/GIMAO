@@ -34,28 +34,43 @@
         <div 
           class="magasin-item"
           :class="{ 'magasin-item--selected': selectedMagasin === magasin.id }"
-          @click="handleSelectMagasin(magasin.id)"
         >
-          <v-icon 
-            size="20" 
-            :color="magasin.estMobile ? 'orange' : 'blue'" 
-            class="mr-3"
+          <div 
+            class="magasin-item-select"
+            @click="handleSelectMagasin(magasin.id)"
           >
-            {{ magasin.estMobile ? 'mdi-truck' : 'mdi-warehouse' }}
-          </v-icon>
-          <div class="magasin-item__content">
-            <span class="magasin-item__name">{{ magasin.nom }}</span>
-            <span class="magasin-item__count">
-              {{ getConsommableCountByMagasin(magasin.id) }} consommables
-            </span>
+            <v-icon 
+              size="20" 
+              :color="magasin.estMobile ? 'orange' : 'blue'" 
+              class="mr-3"
+            >
+              {{ magasin.estMobile ? 'mdi-truck' : 'mdi-warehouse' }}
+            </v-icon>
+            <div class="magasin-item__content">
+              <span class="magasin-item__name">{{ magasin.nom }}</span>
+              <span class="magasin-item__count">
+                {{ getConsommableCountByMagasin(magasin.id) }} consommables
+              </span>
+            </div>
+            <v-icon 
+              v-if="selectedMagasin === magasin.id" 
+              color="primary"
+              size="18"
+            >
+              mdi-check
+            </v-icon>
           </div>
-          <v-icon 
-            v-if="selectedMagasin === magasin.id" 
+          <v-btn
+            icon
+            size="x-small"
+            variant="text"
             color="primary"
-            size="18"
+            class="magasin-item-edit"
+            @click.stop="handleEditMagasin(magasin)"
           >
-            mdi-check
-          </v-icon>
+            <v-icon size="16">mdi-pencil</v-icon>
+            <v-tooltip activator="parent" location="top">Modifier</v-tooltip>
+          </v-btn>
         </div>
       </v-col>
     </v-row>
@@ -80,7 +95,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:selectedMagasin']);
+const emit = defineEmits(['update:selectedMagasin', 'edit:magasin']);
 
 const totalCount = computed(() => props.consommables.length);
 
@@ -93,6 +108,10 @@ const getConsommableCountByMagasin = (magasinId) => {
 const handleSelectMagasin = (magasinId) => {
   emit('update:selectedMagasin', magasinId);
 };
+
+const handleEditMagasin = (magasin) => {
+  emit('edit:magasin', magasin);
+};
 </script>
 
 <style scoped>
@@ -103,8 +122,8 @@ const handleSelectMagasin = (magasinId) => {
   border-radius: 8px;
   border: 1px solid #E5E7EB;
   background: #FFFFFF;
-  cursor: pointer;
   transition: all 0.15s ease;
+  gap: 8px;
 }
 
 .magasin-item:hover {
@@ -115,6 +134,14 @@ const handleSelectMagasin = (magasinId) => {
 .magasin-item--selected {
   border-color: #05004E;
   background: #F1F5FF;
+}
+
+.magasin-item-select {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
 }
 
 .magasin-item__content {
@@ -134,5 +161,9 @@ const handleSelectMagasin = (magasinId) => {
   font-size: 0.75rem;
   color: #6B7280;
   margin-top: 2px;
+}
+
+.magasin-item-edit {
+  flex-shrink: 0;
 }
 </style>

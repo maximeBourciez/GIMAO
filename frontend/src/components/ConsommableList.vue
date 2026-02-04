@@ -71,7 +71,12 @@
 
         <!-- Contenu -->
         <v-card-text class="pa-4">
-          <MagasinFilter :magasins="magasins" :consommables="consommables" v-model:selectedMagasin="selectedMagasin" />
+          <MagasinFilter 
+            :magasins="magasins" 
+            :consommables="consommables" 
+            v-model:selectedMagasin="selectedMagasin"
+            @edit:magasin="handleOpenEditMagasin"
+          />
         </v-card-text>
 
         <v-divider />
@@ -83,7 +88,7 @@
           </v-btn>
           <v-spacer />
           <v-btn variant="outlined" @click="handleCancelFilter">
-            Annuler
+            Renitialiser
           </v-btn>
           <v-btn color="primary" variant="flat" @click="handleApplyFilter">
             Appliquer
@@ -95,7 +100,9 @@
     <v-dialog v-model="showMagasinFormDialog" max-width="500px">
       <v-card class="rounded-lg">
         <MagasinForm 
+          :magasin="magasinToEdit"
           @created="handleMagasinCreated"
+          @updated="handleMagasinUpdated"
           @close="showMagasinFormDialog = false"
         />
       </v-card>
@@ -141,6 +148,7 @@ const selectedMagasin = ref(null);
 const selectedStockFilter = ref(null);
 const showMagasinFilterDialog = ref(false);
 const showMagasinFormDialog = ref(false);
+const magasinToEdit = ref(null);
 
 const consommables = computed(() => consommablesApi.data.value || []);
 const magasins = computed(() => magasinsApi.data.value || []);
@@ -237,10 +245,21 @@ const handleApplyFilter = () => {
 };
 
 const handleCreateMagasin = () => {
+  magasinToEdit.value = null;
+  showMagasinFormDialog.value = true;
+};
+
+const handleOpenEditMagasin = (magasin) => {
+  magasinToEdit.value = magasin;
   showMagasinFormDialog.value = true;
 };
 
 const handleMagasinCreated = async () => {
+  await magasinsApi.get('magasins/');
+  showMagasinFormDialog.value = false;
+};
+
+const handleMagasinUpdated = async () => {
   await magasinsApi.get('magasins/');
   showMagasinFormDialog.value = false;
 };

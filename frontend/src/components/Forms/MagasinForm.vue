@@ -1,7 +1,7 @@
 <template>
     <BaseForm
         v-model="formData"
-        title="Ajouter un magasin"
+        :title="isEditMode ? 'Modifier le magasin' : 'Ajouter un magasin'"
         :validation-schema="validationSchema"
         :loading="loading"
         :error-message="errorMessage"
@@ -92,12 +92,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { BaseForm, FormField, FormCheckbox } from '@/components/common'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
 
-const emit = defineEmits(['created', 'close'])
+const emit = defineEmits(['created', 'updated', 'close'])
+
+const props = defineProps({
+    magasin: {
+        type: Object,
+        default: null
+    }
+})
+
+const isEditMode = computed(() => !!props.magasin)
 
 const formData = ref({
     nom: '',
@@ -130,6 +139,24 @@ const close = () => {
     emit('close')
 }
 
+// Initialiser le formulaire avec les données du magasin en mode édition
+watch(() => props.magasin, (newMagasin) => {
+    if (newMagasin) {
+        formData.value = {
+            nom: newMagasin.nom || '',
+            estMobile: newMagasin.estMobile || false,
+            adresse: {
+                numero: newMagasin.adresse?.numero || '',
+                rue: newMagasin.adresse?.rue || '',
+                ville: newMagasin.adresse?.ville || '',
+                code_postal: newMagasin.adresse?.code_postal || '',
+                pays: newMagasin.adresse?.pays || '',
+                complement: newMagasin.adresse?.complement || null
+            }
+        }
+    }
+}, { immediate: true, deep: true })
+
 const save = async () => {
     loading.value = true
     errorMessage.value = ''
@@ -138,23 +165,34 @@ const save = async () => {
     const api = useApi(API_BASE_URL)
 
     try {
-        const response = await api.post('magasins/', formData.value)
-        console.log('Magasin créé avec succès:', response)
-        
-        const newMagasin = {
-            id: response.id,
-            nom: response.nom,
-            estMobile: response.estMobile
+        let response
+        if (isEditMode.value) {
+            // Mode édition : PATCH
+            response = await api.patch(`magasins/${props.magasin.id}/`, formData.value)
+            console.log('Magasin modifié avec succès:', response)
+            successMessage.value = 'Magasin modifié avec succès'
+            emit('updated', response)
+        } else {
+            // Mode création : POST
+            response = await api.post('magasins/', formData.value)
+            console.log('Magasin créé avec succès:', response)
+            
+            const newMagasin = {
+                id: response.id,
+                nom: response.nom,
+                estMobile: response.estMobile
+            }
+            
+            successMessage.value = 'Magasin créé avec succès'
+            emit('created', newMagasin)
         }
         
-        successMessage.value = 'Magasin créé avec succès'
-        emit('created', newMagasin)
         setTimeout(() => {
             emit('close')
         }, 500)
     } catch (error) {
-        console.error('Erreur lors de la création du magasin:', error)
-        errorMessage.value = error.message || 'Une erreur est survenue lors de la création du magasin'
+        console.error('Erreur lors de l\'opération:', error)
+        errorMessage.value = error.message || 'Une erreur est survenue'
     } finally {
         loading.value = false
     }
