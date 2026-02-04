@@ -24,6 +24,16 @@
       <router-view />
     </v-main>
 
+    <!-- Bouton flottant d'accès aux notices -->
+    <v-btn
+      :style="{ position: 'fixed', top: '72px', right: '16px', zIndex: 2500 }"
+      color="primary"
+      icon="mdi-help"
+      elevation="6"
+      aria-label="Ouvrir les notices d'utilisation"
+      @click="goToNotices"
+    />
+
   </v-app>
 </template>
 
@@ -31,7 +41,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import Sidebar from '@/components/SideBar.vue'
 import TopBar from '@/components/TopBar.vue'
@@ -39,6 +49,7 @@ import Breadcrumb from '@/components/Breadcrumb.vue'
 
 const store = useStore()
 const route = useRoute()
+const router = useRouter()
 
 /**
  * Mobile
@@ -67,6 +78,10 @@ const isPublicPage = computed(() => route.meta?.public === true)
  * Titre page
  */
 const pageTitle = computed(() => route.meta?.title || 'GIMAO')
+
+const goToNotices = () => {
+  router.push('/Notice')
+}
 
 /**
  * Lifecycle
