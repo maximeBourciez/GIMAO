@@ -1,6 +1,8 @@
 import os
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from django.db.models import Prefetch, Q
 from django.utils import timezone
@@ -56,6 +58,18 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         'utilisateur', 'equipement'
     ).prefetch_related('bons_travail')
     serializer_class = DemandeInterventionSerializer
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def _parse_json_field(self, data, key, default):
+        raw = data.get(key, default)
+        if raw is None:
+            return default
+        if isinstance(raw, str):
+            try:
+                return json.loads(raw)
+            except ValueError:
+                return default
+        return raw
 
     def get_serializer_class(self):
         """Utilise le serializer détaillé pour retrieve"""
@@ -305,48 +319,217 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             equipement=equipement
         )
 
-        # Gestion des documents
-        documents_data = data.get("documents", [])
-        if isinstance(documents_data, str):
-            try:
-                documents_data = json.loads(documents_data)
-            except ValueError:
-                documents_data = []
+        # Gestion des documents (transactionnelle et stricte)
+        documents_data = self._parse_json_field(data, 'documents', [])
+        if documents_data is None:
+            documents_data = []
+        if not isinstance(documents_data, list):
+            raise ValidationError({'documents': 'Format invalide (liste attendue)'})
 
-        if documents_data:
+        created_files = []
+        try:
             for index, doc_data in enumerate(documents_data):
+                if not doc_data:
+                    continue
                 if not isinstance(doc_data, dict):
-                    continue
-                
-                type_doc_id = doc_data.get("typeDocument_id")
-                if not type_doc_id:
-                    continue
+                    raise ValidationError({'documents': f'Document #{index}: format invalide'})
 
-                # Récupération du fichier
-                # On check 'document_{index}' (convention possible) ou directement dans data si parsé
-                uploaded_file = request.FILES.get(f"document_{index}")
+                type_doc_id = doc_data.get('typeDocument_id')
+                nom_doc = doc_data.get('nomDocument')
+
+                uploaded_file = request.FILES.get(f'document_{index}')
                 if not uploaded_file:
-                    # Fallback: check si 'cheminAcces' contient le fichier (si parsé par DRF)
-                    file_obj = doc_data.get("cheminAcces")
+                    file_obj = doc_data.get('cheminAcces')
                     if hasattr(file_obj, 'read'):
                         uploaded_file = file_obj
 
-                if uploaded_file:
-                    document = Document.objects.create(
-                        nomDocument=doc_data.get("nomDocument", uploaded_file.name),
-                        cheminAcces=uploaded_file,
-                        typeDocument_id=type_doc_id
-                    )
-                    
-                    DemandeInterventionDocument.objects.create(
-                        demande_intervention=demande,
-                        document=document
-                    )
+                is_empty = not type_doc_id and not (nom_doc or '').strip() and not uploaded_file
+                if is_empty:
+                    continue
+
+                # Nouveau document => type + fichier requis
+                if not type_doc_id:
+                    raise ValidationError({'documents': f'Document #{index}: typeDocument_id requis'})
+                if not uploaded_file:
+                    raise ValidationError({'documents': f'Document #{index}: fichier manquant (document_{index})'})
+
+                document = Document.objects.create(
+                    nomDocument=(nom_doc or uploaded_file.name),
+                    cheminAcces=uploaded_file,
+                    typeDocument_id=type_doc_id,
+                )
+                created_files.append(document.cheminAcces.name)
+
+                DemandeInterventionDocument.objects.create(
+                    demande_intervention=demande,
+                    document=document,
+                )
+
+        except Exception:
+            # Best-effort: si des fichiers ont été sauvegardés avant l'erreur, tenter de les supprimer
+            for name in reversed(created_files):
+                try:
+                    if name:
+                        Document._meta.get_field('cheminAcces').storage.delete(name)
+                except Exception:
+                    pass
+            raise
 
         return Response(
             DemandeInterventionSerializer(demande).data,
             status=status.HTTP_201_CREATED
         )
+
+
+    @transaction.atomic
+    def partial_update(self, request, *args, **kwargs):
+        """PATCH /demandes-intervention/{id}/ avec gestion transactionnelle des documents."""
+        instance = self.get_object()
+
+        data = dict(request.data)
+        for key, value in list(data.items()):
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+
+        documents_in_payload = ('documents' in request.data) or any(k.startswith('document_') for k in request.FILES.keys())
+        documents_data = []
+        if documents_in_payload:
+            documents_data = self._parse_json_field(data, 'documents', [])
+            if documents_data is None:
+                documents_data = []
+            if not isinstance(documents_data, list):
+                raise ValidationError({'documents': 'Format invalide (liste attendue)'})
+
+        new_file_names_to_delete_on_error = []
+        old_file_names_to_delete_on_commit = []
+
+        # 1) Mise à jour DI via serializer
+        di_payload = {}
+        allowed_fields = [
+            'nom',
+            'commentaire',
+            'statut',
+            'equipement_id',
+            'utilisateur_id',
+        ]
+        for f in allowed_fields:
+            if f in data:
+                di_payload[f] = data.get(f)
+
+        if di_payload:
+            serializer = self.get_serializer(instance, data=di_payload, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        # Reload after DI save
+        demande_apres = DemandeIntervention.objects.get(pk=instance.pk)
+
+        try:
+            # 2) Documents: update / create + link
+            if documents_in_payload:
+                for index, doc_data in enumerate(documents_data):
+                    if not doc_data:
+                        continue
+                    if not isinstance(doc_data, dict):
+                        raise ValidationError({'documents': f'Document #{index}: format invalide'})
+
+                    doc_id_raw = doc_data.get('document_id')
+                    type_doc_id = doc_data.get('typeDocument_id')
+                    nom_doc = doc_data.get('nomDocument')
+
+                    uploaded_file = request.FILES.get(f'document_{index}')
+                    if not uploaded_file:
+                        file_obj = doc_data.get('cheminAcces')
+                        if hasattr(file_obj, 'read'):
+                            uploaded_file = file_obj
+
+                    is_empty = not doc_id_raw and not type_doc_id and not (nom_doc or '').strip() and not uploaded_file
+                    if is_empty:
+                        continue
+
+                    # Update d'un document existant
+                    if doc_id_raw:
+                        try:
+                            doc_id = int(doc_id_raw)
+                        except Exception:
+                            raise ValidationError({'documents': f'Document #{index}: document_id invalide'})
+
+                        try:
+                            document = Document.objects.get(id=doc_id)
+                        except Document.DoesNotExist:
+                            raise ValidationError({'documents': f'Document #{index}: document introuvable'})
+
+                        has_changes = False
+                        if nom_doc is not None and str(nom_doc) != (document.nomDocument or ''):
+                            document.nomDocument = str(nom_doc)
+                            has_changes = True
+                        if type_doc_id is not None and str(type_doc_id) != str(document.typeDocument_id or ''):
+                            document.typeDocument_id = type_doc_id
+                            has_changes = True
+
+                        if uploaded_file is not None:
+                            old_name = getattr(document.cheminAcces, 'name', None)
+                            document.cheminAcces = uploaded_file
+                            has_changes = True
+                            if old_name:
+                                old_file_names_to_delete_on_commit.append(old_name)
+
+                        if has_changes:
+                            document.save()
+                            new_name = getattr(document.cheminAcces, 'name', None)
+                            if uploaded_file is not None and new_name:
+                                new_file_names_to_delete_on_error.append(new_name)
+
+                        # S'assurer que le lien existe
+                        DemandeInterventionDocument.objects.get_or_create(
+                            demande_intervention=demande_apres,
+                            document=document,
+                        )
+                        continue
+
+                    # Nouveau document
+                    if not type_doc_id:
+                        raise ValidationError({'documents': f'Document #{index}: typeDocument_id requis'})
+                    if not uploaded_file:
+                        raise ValidationError({'documents': f'Document #{index}: fichier manquant (document_{index})'})
+
+                    document = Document.objects.create(
+                        nomDocument=(nom_doc or uploaded_file.name),
+                        cheminAcces=uploaded_file,
+                        typeDocument_id=type_doc_id,
+                    )
+                    new_name = getattr(document.cheminAcces, 'name', None)
+                    if new_name:
+                        new_file_names_to_delete_on_error.append(new_name)
+
+                    DemandeInterventionDocument.objects.create(
+                        demande_intervention=demande_apres,
+                        document=document,
+                    )
+
+            # Supprimer les anciens fichiers uniquement après commit
+            if old_file_names_to_delete_on_commit:
+                storage = Document._meta.get_field('cheminAcces').storage
+                for name in old_file_names_to_delete_on_commit:
+                    def _delete_old(n=name):
+                        try:
+                            storage.delete(n)
+                        except Exception:
+                            pass
+                    transaction.on_commit(_delete_old)
+
+            serializer = self.get_serializer(demande_apres)
+            return Response(serializer.data)
+
+        except Exception:
+            storage = Document._meta.get_field('cheminAcces').storage
+            for name in reversed(new_file_names_to_delete_on_error):
+                try:
+                    if name:
+                        storage.delete(name)
+                except Exception:
+                    pass
+            raise
 
 
 class BonTravailViewSet(viewsets.ModelViewSet):
@@ -368,6 +551,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         'responsable'
     ).prefetch_related('utilisateur_assigne', 'documents', 'demande_intervention__documents')
     serializer_class = BonTravailSerializer
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
         """Crée une entrée de log"""
@@ -519,6 +703,227 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             return queryset
 
         return queryset.exclude(statut='CLOTURE')
+
+    def _parse_json_field(self, data, key, default):
+        raw = data.get(key, default)
+        if raw is None:
+            return default
+        if isinstance(raw, str):
+            try:
+                return json.loads(raw)
+            except ValueError:
+                return default
+        return raw
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='create_with_di',
+        parser_classes=[MultiPartParser, FormParser, JSONParser],
+    )
+    @transaction.atomic
+    def create_with_di(self, request, *args, **kwargs):
+        """Crée une DemandeIntervention + BonTravail + Documents dans une transaction.
+
+        Objectif: si un document échoue, rien n'est créé/modifié.
+
+        Payload (multipart recommandé):
+        - Champs DI: nom, commentaire, equipement_id, utilisateur_id
+        - Champs BT: type, date_prevue, diagnostic, responsable_id, utilisateur_assigne_ids, consommables
+        - Documents: documents = JSON list[{nomDocument,typeDocument_id}] + fichiers document_0, document_1, ...
+        """
+        data = dict(request.data)
+
+        # Extraire les valeurs uniques des listes (ne pas casser les champs "list" attendus)
+        list_fields = {
+            'utilisateur_assigne_ids',
+            'consommables_ids',
+        }
+        for key, value in list(data.items()):
+            if key in list_fields:
+                continue
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+
+        # Utilisateur
+        utilisateur_id = data.get('utilisateur_id') or data.get('user')
+        utilisateur = None
+        if utilisateur_id:
+            try:
+                utilisateur = Utilisateur.objects.get(id=utilisateur_id)
+            except (Utilisateur.DoesNotExist, ValueError):
+                utilisateur = None
+        if not utilisateur and request.user.is_authenticated:
+            utilisateur = request.user
+        if not utilisateur:
+            raise ValidationError({'utilisateur_id': 'Utilisateur non identifié'})
+
+        # Équipement
+        equipement_id = data.get('equipement_id')
+        try:
+            equipement = Equipement.objects.get(id=equipement_id)
+        except (Equipement.DoesNotExist, ValueError, TypeError):
+            raise ValidationError({'equipement_id': 'Équipement invalide'})
+
+        # Documents (metadata)
+        documents_data = self._parse_json_field(data, 'documents', [])
+        if documents_data is None:
+            documents_data = []
+        if not isinstance(documents_data, list):
+            raise ValidationError({'documents': 'Format invalide (liste attendue)'})
+
+        created_files = []  # best-effort cleanup si exception (FieldFile names)
+
+        try:
+            # Créer DI (directement au statut TRANSFORMEE car on crée le BT dans la même action)
+            demande = DemandeIntervention.objects.create(
+                nom=data.get('nom') or '',
+                commentaire=data.get('commentaire', ''),
+                statut='TRANSFORMEE',
+                date_creation=timezone.now(),
+                date_changementStatut=timezone.now(),
+                utilisateur=utilisateur,
+                equipement=equipement,
+            )
+            if not demande.nom:
+                raise ValidationError({'nom': 'Le nom est requis'})
+
+            Log.objects.create(
+                type='creation',
+                nomTable='demande_intervention',
+                idCible={'demande_intervention_id': demande.id},
+                champsModifies={
+                    'nom': {'valCreation': demande.nom},
+                    'commentaire': {'valCreation': demande.commentaire},
+                    'statut': {'valCreation': demande.statut},
+                    'equipement_id': {'valCreation': demande.equipement_id},
+                    'utilisateur_id': {'valCreation': utilisateur.id},
+                },
+                utilisateur_id=utilisateur.id,
+            )
+
+            # Créer BT via serializer (validation + sync consommables)
+            bt_payload = {
+                'demande_intervention': demande.id,
+                'nom': data.get('nom') or demande.nom,
+                'type': data.get('type') or 'CORRECTIF',
+                'date_prevue': data.get('date_prevue') or None,
+                'commentaire': data.get('commentaire', ''),
+                'diagnostic': data.get('diagnostic', ''),
+                # Responsable obligatoire: l'utilisateur qui crée le BT
+                'responsable_id': utilisateur.id,
+            }
+
+            # Champs optionnels (responsable non modifiable ici)
+            if 'utilisateur_assigne_ids' in data:
+                bt_payload['utilisateur_assigne_ids'] = data.get('utilisateur_assigne_ids')
+
+            consommables = self._parse_json_field(data, 'consommables', None)
+            if consommables is not None:
+                bt_payload['consommables'] = consommables
+
+            bt_serializer = BonTravailSerializer(data=bt_payload)
+            bt_serializer.is_valid(raise_exception=True)
+            bon = bt_serializer.save()
+
+            # Assigner date_assignation si des techniciens sont présents
+            if bon.date_assignation is None and bon.utilisateur_assigne.exists():
+                bon.date_assignation = timezone.now()
+                bon.save(update_fields=['date_assignation'])
+
+            # Lier documents au BT (et créer les documents)
+            for index, doc_data in enumerate(documents_data):
+                if not doc_data:
+                    continue
+                if not isinstance(doc_data, dict):
+                    raise ValidationError({'documents': f'Document #{index}: format invalide'})
+
+                type_doc_id = doc_data.get('typeDocument_id')
+                if not type_doc_id:
+                    raise ValidationError({'documents': f'Document #{index}: typeDocument_id requis'})
+
+                uploaded_file = request.FILES.get(f'document_{index}')
+                if not uploaded_file:
+                    file_obj = doc_data.get('cheminAcces')
+                    if hasattr(file_obj, 'read'):
+                        uploaded_file = file_obj
+
+                if not uploaded_file:
+                    raise ValidationError({'documents': f'Document #{index}: fichier manquant (document_{index})'})
+
+                document = Document.objects.create(
+                    nomDocument=doc_data.get('nomDocument') or uploaded_file.name,
+                    cheminAcces=uploaded_file,
+                    typeDocument_id=type_doc_id,
+                )
+                created_files.append(document.cheminAcces.name)
+
+                Log.objects.create(
+                    type='creation',
+                    nomTable='document',
+                    idCible={'document_id': document.id},
+                    champsModifies={
+                        'nomDocument': {'valCreation': document.nomDocument},
+                        'typeDocument_id': {'valCreation': document.typeDocument_id},
+                        'cheminAcces': {'valCreation': getattr(document.cheminAcces, 'name', None)},
+                    },
+                    utilisateur_id=utilisateur.id,
+                )
+
+                BonTravailDocument.objects.create(
+                    bon_travail=bon,
+                    document=document,
+                )
+
+                Log.objects.create(
+                    type='creation',
+                    nomTable='bon_travail_document',
+                    idCible={'bon_travail_id': bon.id, 'document_id': document.id},
+                    champsModifies={
+                        'bon_travail_id': {'valCreation': bon.id},
+                        'document_id': {'valCreation': document.id},
+                    },
+                    utilisateur_id=utilisateur.id,
+                )
+
+            # Refresh pour cohérence réponse
+            bon.refresh_from_db()
+            response_data = BonTravailDetailSerializer(bon, context={'request': request}).data
+
+            # Log création (même format que create())
+            champs_modifies = {
+                'nom': {'valCreation': response_data.get('nom')},
+                'type': {'valCreation': response_data.get('type')},
+                'diagnostic': {'valCreation': response_data.get('diagnostic')},
+                'commentaire': {'valCreation': response_data.get('commentaire')},
+                'statut': {'valCreation': response_data.get('statut')},
+                'date_prevue': {'valCreation': response_data.get('date_prevue')},
+                'date_assignation': {'valCreation': response_data.get('date_assignation')},
+                'demande_intervention_id': {'valCreation': response_data.get('demande_intervention')},
+                'responsable_id': {'valCreation': bon.responsable_id},
+                'utilisateur_assigne_ids': {'valCreation': self._get_utilisateur_assigne_ids(bon)},
+                'consommables': {'valCreation': self._get_consommables_state(bon.id)},
+                'documents': {'valCreation': self._get_documents_state(bon.id)},
+            }
+
+            self._create_log_entry(
+                type_action='creation',
+                nom_table='bon_travail',
+                id_cible={'bon_travail_id': bon.id},
+                champs_modifies=champs_modifies,
+                utilisateur_id=utilisateur.id,
+            )
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        except Exception:
+            # Best-effort: si des fichiers ont été sauvegardés avant l'erreur, tenter de les supprimer
+            for name in reversed(created_files):
+                try:
+                    if name:
+                        Document._meta.get_field('cheminAcces').storage.delete(name)
+                except Exception:
+                    pass
+            raise
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -682,24 +1087,44 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         bon_avant = BonTravail.objects.get(pk=instance.pk)
 
-        # Snapshot avant la mise à jour (sinon on relit l'état "après" et on ne détecte rien)
-        avant_assigne_ids = list(bon_avant.utilisateur_assigne.values_list('id', flat=True))
-        avant_consommables = self._get_consommables_state(bon_avant.id)
+        data = dict(request.data)
+        list_fields = {
+            'utilisateur_assigne_ids',
+            'consommables_ids',
+        }
+        for key, value in list(data.items()):
+            if key in list_fields:
+                continue
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
 
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        bon_apres = BonTravail.objects.get(pk=instance.pk)
         utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
+            data.get('user')
+            or data.get('utilisateur_id')
             or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
         )
 
-        champs_modifies = {}
+        # Snapshot avant la mise à jour (sinon on relit l'état "après" et on ne détecte rien)
+        avant_assigne_ids = list(bon_avant.utilisateur_assigne.values_list('id', flat=True))
+        avant_consommables = self._get_consommables_state(bon_avant.id)
+        avant_documents = self._get_documents_state(bon_avant.id)
 
-        direct_fields = [
+        documents_in_payload = ('documents' in request.data) or any(k.startswith('document_') for k in request.FILES.keys())
+        documents_data = []
+        if documents_in_payload:
+            documents_data = self._parse_json_field(data, 'documents', [])
+            if documents_data is None:
+                documents_data = []
+            if not isinstance(documents_data, list):
+                raise ValidationError({'documents': 'Format invalide (liste attendue)'})
+
+        # Best-effort cleanup fichiers uploadés pendant cette requête (si erreur)
+        new_file_names_to_delete_on_error = []
+        old_file_names_to_delete_on_commit = []
+
+        # 1) Mise à jour BT via serializer (validation + sync consommables)
+        bt_payload = {}
+        allowed_fields = [
             'nom',
             'diagnostic',
             'type',
@@ -711,62 +1136,280 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             'statut',
             'commentaire',
             'commentaire_refus_cloture',
+            'responsable_id',
+            'utilisateur_assigne_ids',
+            'consommables',
+            'consommables_ids',
         ]
-        fields_to_check = [field for field in direct_fields if field in request.data]
-        if fields_to_check:
-            champs_modifies.update(self._build_champs_modifies(bon_avant, bon_apres, fields=fields_to_check))
+        for f in allowed_fields:
+            if f not in data:
+                continue
+            v = data.get(f)
+            if f == 'date_prevue' and (v is None or str(v) == ''):
+                bt_payload[f] = None
+            else:
+                bt_payload[f] = v
 
-        if 'responsable_id' in request.data and bon_avant.responsable_id != bon_apres.responsable_id:
-            champs_modifies['responsable_id'] = {
-                'ancien': bon_avant.responsable_id,
-                'nouveau': bon_apres.responsable_id,
-            }
+        consommables = self._parse_json_field(data, 'consommables', None)
+        if consommables is not None:
+            bt_payload['consommables'] = consommables
 
-        if 'utilisateur_assigne_ids' in request.data:
-            avant_ids = avant_assigne_ids
-            apres_ids = list(bon_apres.utilisateur_assigne.values_list('id', flat=True))
-            if sorted(avant_ids) != sorted(apres_ids):
-                old_date_assignation = bon_avant.date_assignation
+        if bt_payload:
+            # Normaliser le cas multipart (FormData) :
+            # - valeurs reçues en str
+            # - suppression => utilisateur_assigne_ids='' ou ['']
+            if 'utilisateur_assigne_ids' in bt_payload:
+                raw = bt_payload.get('utilisateur_assigne_ids')
+                if raw is None or raw == '':
+                    bt_payload['utilisateur_assigne_ids'] = []
+                else:
+                    if isinstance(raw, str):
+                        raw_values = [raw]
+                    elif isinstance(raw, (list, tuple)):
+                        raw_values = list(raw)
+                    else:
+                        raw_values = [raw]
 
-                # Si on change les assignés, on (re)met la date d'assignation à maintenant
-                # (uniquement si au moins un assigné est présent après la modif)
-                if bon_apres.utilisateur_assigne.exists():
-                    bon_apres.date_assignation = timezone.now()
-                    bon_apres.save(update_fields=['date_assignation'])
-                    # Recharge pour garantir l'état DB (et avoir la valeur exacte renvoyée)
-                    bon_apres = BonTravail.objects.get(pk=instance.pk)
+                    ids = []
+                    for v in raw_values:
+                        if v is None or v == '':
+                            continue
+                        try:
+                            ids.append(int(v))
+                        except Exception:
+                            continue
+                    bt_payload['utilisateur_assigne_ids'] = ids
 
-                champs_modifies['utilisateur_assigne_ids'] = {
-                    'ancien': sorted(avant_ids),
-                    'nouveau': sorted(apres_ids),
+            serializer = self.get_serializer(instance, data=bt_payload, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        # Recharger l'instance après sauvegarde
+        bon_apres = BonTravail.objects.get(pk=instance.pk)
+
+        try:
+            # 2) Documents (création / mise à jour + lien)
+            if documents_in_payload:
+                for index, doc_data in enumerate(documents_data):
+                    if not doc_data:
+                        continue
+                    if not isinstance(doc_data, dict):
+                        raise ValidationError({'documents': f'Document #{index}: format invalide'})
+
+                    doc_id_raw = doc_data.get('document_id')
+                    type_doc_id = doc_data.get('typeDocument_id')
+                    nom_doc = doc_data.get('nomDocument')
+
+                    uploaded_file = request.FILES.get(f'document_{index}')
+                    if not uploaded_file:
+                        file_obj = doc_data.get('cheminAcces')
+                        if hasattr(file_obj, 'read'):
+                            uploaded_file = file_obj
+
+                    # Ligne vide ?
+                    is_empty = not doc_id_raw and not type_doc_id and not (nom_doc or '').strip() and not uploaded_file
+                    if is_empty:
+                        continue
+
+                    if doc_id_raw:
+                        try:
+                            doc_id = int(doc_id_raw)
+                        except Exception:
+                            raise ValidationError({'documents': f'Document #{index}: document_id invalide'})
+
+                        try:
+                            document = Document.objects.get(id=doc_id)
+                        except Document.DoesNotExist:
+                            raise ValidationError({'documents': f'Document #{index}: document introuvable'})
+
+                        before = {
+                            'nomDocument': document.nomDocument,
+                            'typeDocument_id': document.typeDocument_id,
+                            'cheminAcces': getattr(document.cheminAcces, 'name', None),
+                        }
+
+                        has_changes = False
+                        if nom_doc is not None and str(nom_doc) != (document.nomDocument or ''):
+                            document.nomDocument = str(nom_doc)
+                            has_changes = True
+                        if type_doc_id is not None and str(type_doc_id) != str(document.typeDocument_id or ''):
+                            document.typeDocument_id = type_doc_id
+                            has_changes = True
+
+                        if uploaded_file is not None:
+                            old_name = getattr(document.cheminAcces, 'name', None)
+                            document.cheminAcces = uploaded_file
+                            has_changes = True
+                            if old_name:
+                                old_file_names_to_delete_on_commit.append(old_name)
+
+                        if has_changes:
+                            document.save()
+                            new_name = getattr(document.cheminAcces, 'name', None)
+                            if uploaded_file is not None and new_name:
+                                new_file_names_to_delete_on_error.append(new_name)
+
+                            after = {
+                                'nomDocument': document.nomDocument,
+                                'typeDocument_id': document.typeDocument_id,
+                                'cheminAcces': getattr(document.cheminAcces, 'name', None),
+                            }
+
+                            if before != after:
+                                Log.objects.create(
+                                    type='modification',
+                                    nomTable='document',
+                                    idCible={'document_id': document.id},
+                                    champsModifies={
+                                        'nomDocument': {'ancien': before['nomDocument'], 'nouveau': after['nomDocument']},
+                                        'typeDocument_id': {'ancien': before['typeDocument_id'], 'nouveau': after['typeDocument_id']},
+                                        'cheminAcces': {'ancien': before['cheminAcces'], 'nouveau': after['cheminAcces']},
+                                    },
+                                    utilisateur_id=utilisateur_id,
+                                )
+                        continue
+
+                    # Nouveau document
+                    if not type_doc_id:
+                        raise ValidationError({'documents': f'Document #{index}: typeDocument_id requis'})
+                    if not uploaded_file:
+                        raise ValidationError({'documents': f'Document #{index}: fichier manquant (document_{index})'})
+
+                    document = Document.objects.create(
+                        nomDocument=(nom_doc or uploaded_file.name),
+                        cheminAcces=uploaded_file,
+                        typeDocument_id=type_doc_id,
+                    )
+                    new_name = getattr(document.cheminAcces, 'name', None)
+                    if new_name:
+                        new_file_names_to_delete_on_error.append(new_name)
+
+                    Log.objects.create(
+                        type='creation',
+                        nomTable='document',
+                        idCible={'document_id': document.id},
+                        champsModifies={
+                            'nomDocument': {'valCreation': document.nomDocument},
+                            'typeDocument_id': {'valCreation': document.typeDocument_id},
+                            'cheminAcces': {'valCreation': getattr(document.cheminAcces, 'name', None)},
+                        },
+                        utilisateur_id=utilisateur_id,
+                    )
+
+                    BonTravailDocument.objects.create(bon_travail=bon_apres, document=document)
+                    Log.objects.create(
+                        type='creation',
+                        nomTable='bon_travail_document',
+                        idCible={'bon_travail_id': bon_apres.id, 'document_id': document.id},
+                        champsModifies={
+                            'bon_travail_id': {'valCreation': bon_apres.id},
+                            'document_id': {'valCreation': document.id},
+                        },
+                        utilisateur_id=utilisateur_id,
+                    )
+
+            # Supprimer les anciens fichiers uniquement après commit
+            if old_file_names_to_delete_on_commit:
+                storage = Document._meta.get_field('cheminAcces').storage
+                for name in old_file_names_to_delete_on_commit:
+                    def _delete_old(n=name):
+                        try:
+                            storage.delete(n)
+                        except Exception:
+                            pass
+                    transaction.on_commit(_delete_old)
+
+            # Recharger après documents
+            bon_apres = BonTravail.objects.get(pk=instance.pk)
+
+            champs_modifies = {}
+
+            direct_fields = [
+                'nom',
+                'diagnostic',
+                'type',
+                'date_assignation',
+                'date_prevue',
+                'date_cloture',
+                'date_debut',
+                'date_fin',
+                'statut',
+                'commentaire',
+                'commentaire_refus_cloture',
+            ]
+            fields_to_check = [field for field in direct_fields if field in data]
+            if fields_to_check:
+                champs_modifies.update(self._build_champs_modifies(bon_avant, bon_apres, fields=fields_to_check))
+
+            if 'responsable_id' in data and bon_avant.responsable_id != bon_apres.responsable_id:
+                champs_modifies['responsable_id'] = {
+                    'ancien': bon_avant.responsable_id,
+                    'nouveau': bon_apres.responsable_id,
                 }
 
-                # Ajouter la date d'assignation aux champs modifiés uniquement si on l'a modifiée
-                if bon_apres.utilisateur_assigne.exists() and bon_apres.date_assignation != old_date_assignation:
-                    champs_modifies['date_assignation'] = {
-                        'ancien': old_date_assignation.isoformat() if old_date_assignation else None,
-                        'nouveau': bon_apres.date_assignation.isoformat() if bon_apres.date_assignation else None,
+            if 'utilisateur_assigne_ids' in data:
+                avant_ids = avant_assigne_ids
+                apres_ids = list(bon_apres.utilisateur_assigne.values_list('id', flat=True))
+                if sorted(avant_ids) != sorted(apres_ids):
+                    old_date_assignation = bon_avant.date_assignation
+
+                    # Si on change les assignés, on (re)met la date d'assignation à maintenant
+                    # (uniquement si au moins un assigné est présent après la modif)
+                    if bon_apres.utilisateur_assigne.exists():
+                        bon_apres.date_assignation = timezone.now()
+                        bon_apres.save(update_fields=['date_assignation'])
+                        # Recharge pour garantir l'état DB (et avoir la valeur exacte renvoyée)
+                        bon_apres = BonTravail.objects.get(pk=instance.pk)
+
+                    champs_modifies['utilisateur_assigne_ids'] = {
+                        'ancien': sorted(avant_ids),
+                        'nouveau': sorted(apres_ids),
                     }
 
-        if 'consommables' in request.data or 'consommables_ids' in request.data:
-            apres_consommables = self._get_consommables_state(bon_apres.id)
-            if avant_consommables != apres_consommables:
-                champs_modifies['consommables'] = {
-                    'ancien': avant_consommables,
-                    'nouveau': apres_consommables,
-                }
+                    # Ajouter la date d'assignation aux champs modifiés uniquement si on l'a modifiée
+                    if bon_apres.utilisateur_assigne.exists() and bon_apres.date_assignation != old_date_assignation:
+                        champs_modifies['date_assignation'] = {
+                            'ancien': old_date_assignation.isoformat() if old_date_assignation else None,
+                            'nouveau': bon_apres.date_assignation.isoformat() if bon_apres.date_assignation else None,
+                        }
 
-        if champs_modifies:
-            self._create_log_entry(
-                type_action='modification',
-                nom_table='bon_travail',
-                id_cible={'bon_travail_id': bon_apres.id},
-                champs_modifies=champs_modifies,
-                utilisateur_id=utilisateur_id,
-            )
+            if 'consommables' in data or 'consommables_ids' in data:
+                apres_consommables = self._get_consommables_state(bon_apres.id)
+                if avant_consommables != apres_consommables:
+                    champs_modifies['consommables'] = {
+                        'ancien': avant_consommables,
+                        'nouveau': apres_consommables,
+                    }
 
-        serializer = self.get_serializer(bon_apres)
-        return Response(serializer.data)
+            if documents_in_payload:
+                apres_documents = self._get_documents_state(bon_apres.id)
+                if avant_documents != apres_documents:
+                    champs_modifies['documents'] = {
+                        'ancien': avant_documents,
+                        'nouveau': apres_documents,
+                    }
+
+            if champs_modifies:
+                self._create_log_entry(
+                    type_action='modification',
+                    nom_table='bon_travail',
+                    id_cible={'bon_travail_id': bon_apres.id},
+                    champs_modifies=champs_modifies,
+                    utilisateur_id=utilisateur_id,
+                )
+
+            serializer = self.get_serializer(bon_apres)
+            return Response(serializer.data)
+
+        except Exception:
+            storage = Document._meta.get_field('cheminAcces').storage
+            for name in reversed(new_file_names_to_delete_on_error):
+                try:
+                    if name:
+                        storage.delete(name)
+                except Exception:
+                    pass
+            raise
 
 
     @action(detail=False, methods=['get'])
