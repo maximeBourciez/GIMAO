@@ -18,7 +18,7 @@
       </v-col>
 
       <v-col cols="12" md="6">
-        <FormSelect v-model="counterLocal.type" field-name="type" label="Type de compteur"
+        <FormSelect v-model="counterLocal.type" field-name="type" label="Type de compteur" :disabled="isEditMode"
           :items="['Numérique', 'Calendaire']" />
       </v-col>
 
