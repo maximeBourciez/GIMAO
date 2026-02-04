@@ -20,6 +20,7 @@
 					:user-id="userId"
 					:initial-data="userData"
 					:roles="roles"
+					:current-user-id="currentUserId"
 					@updated="handleUpdated"
 					@close="handleClose"
 					@user-sync="syncCurrentUserIfNeeded"
@@ -30,7 +31,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { useApi } from '@/composables/useApi';
@@ -48,6 +49,12 @@ const loading = ref(false);
 const errorLoading = ref('');
 const userData = ref(null);
 const roles = ref([]);
+
+// ID de l'utilisateur connecté
+const currentUserId = computed(() => {
+	const user = store.getters.currentUser || JSON.parse(localStorage.getItem('user') || 'null');
+	return user?.id ?? null;
+});
 
 // Synchronisation avec l'utilisateur courant si c'est le même
 const syncCurrentUserIfNeeded = (updatedUser) => {

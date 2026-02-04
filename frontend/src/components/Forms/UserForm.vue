@@ -76,6 +76,9 @@
 							item-title="label"
 							item-value="value"
 							placeholder="Sélectionner un rôle"
+							:disabled="isEditingSelf"
+							:hint="isEditingSelf ? 'Vous ne pouvez pas modifier votre propre rôle' : ''"
+							:persistent-hint="isEditingSelf"
 						/>
 					</v-col>
 
@@ -84,6 +87,9 @@
 							v-model="formData.actif"
 							field-name="actif"
 							label="Compte actif"
+							:disabled="isEditingSelf"
+							:hint="isEditingSelf ? 'Vous ne pouvez pas désactiver votre propre compte' : ''"
+							:persistent-hint="isEditingSelf"
 						/>
 					</v-col>
 				</v-row>
@@ -185,6 +191,10 @@ const props = defineProps({
 	roles: {
 		type: Array,
 		default: () => []
+	},
+	currentUserId: {
+		type: [String, Number],
+		default: null
 	}
 });
 
@@ -226,6 +236,12 @@ const roleOptions = computed(() =>
 		value: r.id,
 	}))
 );
+
+// Détecte si l'utilisateur modifie son propre compte
+const isEditingSelf = computed(() => {
+	if (!props.isEdit || !props.userId || !props.currentUserId) return false;
+	return String(props.userId) === String(props.currentUserId);
+});
 
 // Schéma de validation
 const validationSchema = {
