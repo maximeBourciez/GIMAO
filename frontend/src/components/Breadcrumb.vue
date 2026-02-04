@@ -28,21 +28,17 @@ watch(route, () => {
             const matchIndex = inBreadcrumbs.findIndex(crumb => crumb.route === route.path);
             
             if (matchIndex !== -1) {
-                // Found in history: restore up to parents
                 breadcrumbs.value = inBreadcrumbs.slice(0, matchIndex);
             } else {
-                // Not found in history: redirect to dashboard
-                // Only redirect if we are not already at the dashboard to avoid loops
-                if (route.name !== 'Dashboard') {
+                if (route.name !== 'Dashboard' && !HEADERS.includes(route.name)) {
                     router.push({ name: 'Dashboard' });
-                    return; // Stop execution, let the redirect trigger the next update
+                    return;
                 }
             }
         }
         isInitialized.value = true;
     }
 
-    // Standard breadcrumb update logic
     if (breadcrumbs.value.find(crumb => crumb.name === route.name)) {
         breadcrumbs.value = breadcrumbs.value.slice(0, breadcrumbs.value.findIndex(crumb => crumb.name === route.name));
     };
