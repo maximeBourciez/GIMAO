@@ -135,8 +135,8 @@
                       <strong>Requis :</strong>
                       <div class="d-flex gap-3">
                         <v-chip :color="seuil.planMaintenance.necessiteHabilitationElectrique
-                            ? 'orange'
-                            : 'grey'
+                          ? 'orange'
+                          : 'grey'
                           " size="small" label>
                           <v-icon left small>{{
                             seuil.planMaintenance.necessiteHabilitationElectrique
@@ -219,7 +219,7 @@
               <!-- Boutons d'action pour ce seuil -->
               <div class="d-flex justify-end mt-3">
                 <v-btn color="primary" size="small" @click="editSeuil(seuil)"
-                  v-if="store.getters.hasPermission('mp:edit')">
+                  v-if="store.getters.hasPermission('mp:edit') && false">
                   <v-icon left small>mdi-pencil</v-icon>
                   Modifier ce seuil
                 </v-btn>
@@ -267,7 +267,14 @@
   </v-card>
 
   <v-dialog v-model="showCounterDialog" max-width="1000px">
-    <CounterForm :counter="counter" :isCounterEdit="isCounterEdit" @close="closeCounterDialog" />
+    <v-card>
+      <v-card-title>Modifier le compteur</v-card-title>
+      <v-divider></v-divider>
+      <v-card-text>
+        <CounterInlineForm v-if="counter" :modelValue="counter" :is-edit-mode="true" @save="saveCounter"
+          @cancel="closeCounterDialog" />
+      </v-card-text>
+    </v-card>
   </v-dialog>
 
   <v-dialog v-model="showSeuilDialog" max-width="1200px" scrollable>
@@ -299,7 +306,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { useApi } from "@/composables/useApi";
 import { API_BASE_URL, MEDIA_BASE_URL, BASE_URL } from "@/utils/constants";
-import CounterForm from "./CounterForm.vue";
+import CounterInlineForm from "@/components/Forms/CounterInlineForm.vue";
 import MaintenancePlanInlineForm from "@/components/Forms/MaintenancePlanInlineForm.vue";
 
 const route = useRoute();
@@ -308,6 +315,7 @@ const store = useStore();
 const counterId = Number(route.params.id);
 
 const counter = ref(null);
+const originalCounter = ref(null);
 const openedPanels = ref([]); // Premier panel ouvert par défaut
 const currentSeuil = ref(null);
 const currentPlan = ref(null);
@@ -406,7 +414,7 @@ const formatDate = (value) => {
     date = new Date(value);
   }
   else if (typeof value === 'number') {
-    const ORDINAL_EPOCH = 719162;  // ⬅️ 719162 au lieu de 719163 !
+    const ORDINAL_EPOCH = 719162; 
     const daysFromEpoch = value - ORDINAL_EPOCH;
     date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
   }
@@ -471,6 +479,7 @@ const formatIntervalle = (intervalle) => {
 // Méthodes de chargement
 const fetchCounter = async () => {
   counter.value = await api.get(`compteurs/${counterId}`);
+  originalCounter.value = JSON.parse(JSON.stringify(counter.value));
 };
 
 const fetchReferentials = async () => {
@@ -478,7 +487,7 @@ const fetchReferentials = async () => {
     api.get("consommables/"),
     api.get("types-plan-maintenance/"),
     api.get("types-documents/"),
-    api.get("plans-maintenance/"),
+    api.get("plans-maintenance/par_equipement/?equipement_id=" + counter.value.equipement_info?.id),
   ]);
 
   consumables.value = cons;
@@ -496,7 +505,8 @@ const loadPage = async () => {
       throw new Error("Identifiant compteur invalide");
     }
 
-    await Promise.all([fetchCounter(), fetchReferentials()]);
+    await fetchCounter();
+    await fetchReferentials();
   } catch (e) {
     console.error(e);
     errorMessage.value = e.message || "Erreur lors du chargement";
@@ -602,16 +612,58 @@ const closeSeuilDialog = () => {
   isEditSeuil.value = false;
 };
 
-const saveCounter = async (updatedCounter) => {
-  try {
-    await api.put(`compteurs/${counterId}/`, updatedCounter);
-    await fetchCounter(); // Rafraîchir les données
-    successMessage.value = "Compteur modifié avec succès";
-    showCounterDialog.value = false;
-  } catch (e) {
-    errorMessage.value = "Erreur lors de la modification du compteur";
-    console.error(e);
+const saveCounter = async () => {
+  // Mode édition
+  const changes = detectCounterChanges();
+
+  console.log("Modifications détectées du compteur :", changes);
+
+  // Ajouter l'ID utilisateur 
+  if (Object.keys(changes).length > 0) {
+    changes.user = store.getters.currentUser?.id;
+
+    await api.put(`compteurs/${counterId}/`, changes);
+    successMessage.value = "Compteur mis à jour avec succès.";
+  } else {
+    successMessage.value = "Aucune modification détectée.";
   }
+};
+
+const detectCounterChanges = () => {
+  const changes = {};
+
+  if (originalCounter.value.nomCompteur !== counter.value.nomCompteur) {
+    changes.nomCompteur = {
+      'ancien': originalCounter.value.nomCompteur,
+      'nouveau': counter.value.nomCompteur,
+    };
+  }
+  if (originalCounter.value.valeurCourante !== counter.value.valeurCourante) {
+    changes.valeurCourante = {
+      'ancienne': originalCounter.value.valeurCourante,
+      'nouvelle': counter.value.valeurCourante,
+    };
+  }
+  if (originalCounter.value.unite !== counter.value.unite && counter.value.type !== 'Calendaire') {
+    changes.unite = {
+      'ancienne': originalCounter.value.unite,
+      'nouvelle': counter.value.unite,
+    };
+  }
+  if (originalCounter.value.estPrincipal !== counter.value.estPrincipal) {
+    changes.estPrincipal = {
+      'ancien': originalCounter.value.estPrincipal,
+      'nouveau': counter.value.estPrincipal,
+    };
+  }
+  if (originalCounter.value.type !== counter.value.type) {
+    changes.type = {
+      'ancien': originalCounter.value.type,
+      'nouveau': counter.value.type,
+    };
+  }
+
+  return changes;
 };
 
 const handleFormSave = (data) => {

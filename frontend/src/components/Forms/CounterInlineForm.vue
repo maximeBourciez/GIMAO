@@ -2,53 +2,28 @@
   <v-form @submit.prevent="handleSave">
     <v-row dense>
       <v-col cols="12" md="6">
-        <FormField
-          v-model="counterLocal.nom"
-          field-name="nom"
-          label="Nom du compteur"
-          placeholder="Saisir le nom du compteur"
-          counter="100"
-        />
+        <FormField v-model="counterLocal.nom" field-name="nom" label="Nom du compteur"
+          placeholder="Saisir le nom du compteur" counter="100" />
       </v-col>
 
       <v-col cols="12" md="6">
-        <FormField
-          v-model="counterLocal.valeurCourante"
-          field-name="valeurCourante"
-          :type="counterLocal.type === 'Calendaire' ? 'date' : 'number'"
-          label="Valeur actuelle"
-          placeholder="0"
-          min="0"
-        />
+        <FormField v-model="counterLocal.valeurCourante" field-name="valeurCourante"
+          :type="counterLocal.type === 'Calendaire' ? 'date' : 'number'" label="Valeur actuelle" placeholder="0"
+          min="0" />
       </v-col>
 
       <v-col cols="12" md="6">
-        <FormSelect
-          v-model="counterLocal.unite"
-          field-name="unite"
-          label="Unité"
-          v-if="showUniteSelect"
-          :items="COUNTER_UNITS"
-          item-title="title"
-          item-value="value"
-        />
+        <FormSelect v-model="counterLocal.unite" field-name="unite" label="Unité" v-if="showUniteSelect"
+          :items="COUNTER_UNITS" item-title="title" item-value="value" />
       </v-col>
 
       <v-col cols="12" md="6">
-        <FormSelect
-          v-model="counterLocal.type"
-          field-name="type"
-          label="Type de compteur"
-          :items="['Numérique', 'Calendaire']"
-        />
+        <FormSelect v-model="counterLocal.type" field-name="type" label="Type de compteur"
+          :items="['Numérique', 'Calendaire']" />
       </v-col>
 
       <v-col cols="12" md="6">
-        <FormCheckbox
-          v-model="counterLocal.estPrincipal"
-          field-name="estPrincipal"
-          label="Compteur principal"
-        />
+        <FormCheckbox v-model="counterLocal.estPrincipal" field-name="estPrincipal" label="Compteur principal" />
       </v-col>
     </v-row>
 
@@ -89,7 +64,13 @@ const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
 const localError = ref('')
 
 // Copie locale pour pouvoir modifier les champs sans problème de props
-const counterLocal = ref({ ...props.modelValue })
+const counterLocal = computed({
+  get: () => props.modelValue,
+  set: (value) => {
+    emit('update:modelValue', value);
+  }
+});
+
 
 // Met à jour le parent à chaque changement
 watch(counterLocal, (newVal) => {
@@ -101,7 +82,13 @@ const showUniteSelect = computed(() => counterLocal.value.type !== 'Calendaire')
 
 // Validation
 const isValid = computed(() => {
-  return counterLocal.value.nom?.trim() && (counterLocal.value.type === 'Calendaire' || counterLocal.value.unite)
+  if(counterLocal.value.type === 'Calendaire'){
+    return counterLocal.value.nom?.trim()
+  }
+
+  else {
+    return counterLocal.value.nom?.trim() && counterLocal.value.unite && Number.isFinite(Number(counterLocal.value.valeurCourante))
+  }
 })
 
 // Gestion du type calendaire : met la date du jour automatiquement
@@ -113,6 +100,7 @@ watch(() => counterLocal.value.type, (newType) => {
     const dd = String(d.getDate()).padStart(2, '0')
     counterLocal.value.valeurCourante = `${yyyy}-${mm}-${dd}`
     counterLocal.value.unite = 'date'
+    counterLocal.value.nom = 'Calendrier'
   } else {
     const n = Number(counterLocal.value.valeurCourante)
     counterLocal.value.valeurCourante = Number.isFinite(n) ? n : 0

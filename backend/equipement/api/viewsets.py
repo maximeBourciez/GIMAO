@@ -892,16 +892,7 @@ class CompteurViewSet(viewsets.ModelViewSet):
             
             # Traiter le cas ou on a une date
             if compteur_data.get('type') == 'Calendaire' and 'valeurCourante' in compteur_data:
-                try:
-                    # Convertir en date
-                    d = datetime.datetime.strptime(compteur_data['valeurCourante'], '%Y-%m-%d').date()
-                    # stocker comme entier (ordinal)
-                    valeurCourante = d.toordinal()
-                except ValueError:
-                    return Response(
-                        {"error": "Format de date invalide pour valeurCourante"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+                valeurCourante = self.formatFromDateToDays(compteur_data.get('valeurCourante'))
             else:
                 # sinon convertir en nombre
                 try:
@@ -936,6 +927,17 @@ class CompteurViewSet(viewsets.ModelViewSet):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def formatFromDateToDays(self, date_str):
+        try:
+            date_value = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+            base_date = datetime.datetime(1, 1, 1)  # Date de référence
+            delta = date_value - base_date
+            print(f"Conversion de la date {date_str} en jours: {delta.days}")
+            return delta.days
+        except Exception:
+            print(f"Erreur de conversion de la date {date_str}, retour 0")
+            return 0
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
@@ -985,8 +987,12 @@ class CompteurViewSet(viewsets.ModelViewSet):
                 
                 if nouvelle_valeur is not None:
                     old_value = getattr(compteur, model_field)
+                    if field == 'valeurCourante' and compteur.type == 'Calendaire':
+                            # Convertir la date en jours
+                            nouvelle_valeur = self.formatFromDateToDays(nouvelle_valeur)
                     
-                    if str(old_value) != str(nouvelle_valeur):
+                    if str(old_value) != str(nouvelle_valeur):                       
+
                         setattr(compteur, model_field, nouvelle_valeur)
                         
                         # Créer une entrée de log pour chaque champ modifié
