@@ -94,7 +94,17 @@ const isValid = computed(() => {
 // Gestion du type calendaire : met la date du jour automatiquement
 watch(() => counterLocal.value.type, (newType) => {
   if (newType === 'Calendaire') {
-    const d = new Date()
+    let d;
+    
+    if(!props.isEditMode){
+      console.log('Setting date to today')
+      d = new Date()
+    }else {
+      const ORDINAL_EPOCH = 719162; 
+      const daysFromEpoch = counterLocal.value.valeurCourante - ORDINAL_EPOCH;
+      d = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
+    }
+    
     const yyyy = d.getFullYear()
     const mm = String(d.getMonth() + 1).padStart(2, '0')
     const dd = String(d.getDate()).padStart(2, '0')
@@ -113,7 +123,8 @@ const handleSave = () => {
     return
   }
   localError.value = ''
-  emit('save')
+  emit('save');
+  emit('cancel')
 }
 
 const handleCancel = () => {

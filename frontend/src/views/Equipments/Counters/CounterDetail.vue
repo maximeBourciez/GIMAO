@@ -301,7 +301,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { useApi } from "@/composables/useApi";
@@ -383,6 +383,8 @@ const getProgressionColor = (seuil) => {
   return "green";
 };
 
+
+
 const getProgressionText = (seuil) => {
   const progression = progressionData.value[seuil.id];
   if (!progression) return "N/A";
@@ -414,6 +416,7 @@ const formatDate = (value) => {
     date = new Date(value);
   }
   else if (typeof value === 'number') {
+    console.log("Formatage date calendaire pour", value);
     const ORDINAL_EPOCH = 719162; 
     const daysFromEpoch = value - ORDINAL_EPOCH;
     date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
@@ -474,6 +477,7 @@ const formatIntervalle = (intervalle) => {
 
   return `${intervalle} ${counter.value.unite}`;
 };
+
 
 
 // Méthodes de chargement
