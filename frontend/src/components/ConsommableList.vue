@@ -82,7 +82,7 @@
             Ajouter un magasin
           </v-btn>
           <v-spacer />
-          <v-btn variant="outlined" @click="showMagasinFilterDialog = false">
+          <v-btn variant="outlined" @click="handleCancelFilter">
             Annuler
           </v-btn>
           <v-btn color="primary" variant="flat" @click="handleApplyFilter">
@@ -232,6 +232,11 @@ const handleCreateMagasin = () => {
 onMounted(() => {
   fetchData();
 });
+
+const handleCancelFilter = () => {
+  selectedMagasin.value = null;
+  showMagasinFilterDialog.value = false;
+};
 </script>
 
 <style scoped>
