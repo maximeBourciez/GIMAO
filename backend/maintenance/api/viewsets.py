@@ -37,9 +37,10 @@ from maintenance.api.serializers import (
     PlanMaintenanceDetailSerializer,
     PlanMaintenanceConsommableSerializer
 )
+from gimao.viewsets import GimaoModelViewSet
 
 
-class DemandeInterventionViewSet(viewsets.ModelViewSet):
+class DemandeInterventionViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les demandes d'intervention.
     
@@ -532,7 +533,7 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             raise
 
 
-class BonTravailViewSet(viewsets.ModelViewSet):
+class BonTravailViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les bons de travail.
     

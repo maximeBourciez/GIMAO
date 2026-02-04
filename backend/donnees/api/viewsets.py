@@ -19,9 +19,10 @@ from donnees.api.serializers import (
 )
 
 from utilisateur.models import Log
+from gimao.viewsets import GimaoModelViewSet
 
 
-class AdresseViewSet(viewsets.ModelViewSet):
+class AdresseViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les adresses.
     """
@@ -29,7 +30,7 @@ class AdresseViewSet(viewsets.ModelViewSet):
     serializer_class = AdresseSerializer
 
 
-class LieuViewSet(viewsets.ModelViewSet):
+class LieuViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les lieux.
     """
@@ -109,7 +110,7 @@ class LieuViewSet(viewsets.ModelViewSet):
 
         return Response(self.get_serializer(lieu).data, status=status.HTTP_201_CREATED)
 
-class TypeDocumentViewSet(viewsets.ModelViewSet):
+class TypeDocumentViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les types de documents.
     """
@@ -117,7 +118,7 @@ class TypeDocumentViewSet(viewsets.ModelViewSet):
     serializer_class = TypeDocumentSerializer
 
 
-class DocumentViewSet(viewsets.ModelViewSet):
+class DocumentViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les documents.
     """
@@ -226,7 +227,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class FabricantViewSet(viewsets.ModelViewSet):
+class FabricantViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les fabricants.
     """
@@ -278,7 +279,9 @@ class FabricantViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         fabricant = self.get_object()
         data = request.data.copy()
-        utilisateur_id = data.pop('user', None)  # id de l'utilisateur pour les logs
+        
+        # Remove user from data if present to avoid issues, though strictly not needed if not used
+        data.pop('user', None)
 
         # Séparer l'adresse si présente
         adresse_data = data.pop('adresse', None)
@@ -286,28 +289,12 @@ class FabricantViewSet(viewsets.ModelViewSet):
             for key, val in adresse_data.items():
                 if isinstance(val, dict) and 'nouvelle' in val:
                     setattr(fabricant.adresse, key, val['nouvelle'])
-                    # Créer le log pour chaque champ adresse
-                    Log.objects.create(
-                        type="modification",
-                        nomTable="adresse",
-                        idCible=fabricant.adresse.id,
-                        champsModifies={key: {'ancien': val.get('ancienne'), 'nouveau': val['nouvelle']}},
-                        utilisateur_id=utilisateur_id
-                    )
             fabricant.adresse.save()
 
         # Mettre à jour les champs simples du fabricant
         for key, val in data.items():
             if isinstance(val, dict) and 'nouvelle' in val:
                 setattr(fabricant, key, val['nouvelle'])
-                # Créer le log pour chaque champ
-                Log.objects.create(
-                    type="modification",
-                    nomTable="fabricant",
-                    idCible=fabricant.id,
-                    champsModifies={key: {'ancien': val.get('ancienne'), 'nouveau': val['nouvelle']}},
-                    utilisateur_id=utilisateur_id
-                )
 
         fabricant.save()
 
@@ -315,7 +302,7 @@ class FabricantViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class FournisseurViewSet(viewsets.ModelViewSet):
+class FournisseurViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les fournisseurs.
     """
@@ -371,7 +358,7 @@ class FournisseurViewSet(viewsets.ModelViewSet):
         """
         fournisseur = self.get_object()
         data = request.data.copy()
-        utilisateur_id = data.pop('user', None)  # id de l'utilisateur pour les logs
+        data.pop('user', None)
 
         # Mise à jour de l'adresse si présente
         adresse_data = data.pop('adresse', None)
@@ -379,26 +366,12 @@ class FournisseurViewSet(viewsets.ModelViewSet):
             for key, val in adresse_data.items():
                 if isinstance(val, dict) and 'nouvelle' in val:
                     setattr(fournisseur.adresse, key, val['nouvelle'])
-                    Log.objects.create(
-                        type="modification",
-                        nomTable="adresse",
-                        idCible=fournisseur.adresse.id,
-                        champsModifies={key: {'ancien': val.get('ancienne'), 'nouveau': val['nouvelle']}},
-                        utilisateur_id=utilisateur_id
-                    )
             fournisseur.adresse.save()
 
         # Mise à jour des champs simples du fournisseur
         for key, val in data.items():
             if isinstance(val, dict) and 'nouvelle' in val:
                 setattr(fournisseur, key, val['nouvelle'])
-                Log.objects.create(
-                    type="modification",
-                    nomTable="fournisseur",
-                    idCible=fournisseur.id,
-                    champsModifies={key: {'ancien': val.get('ancienne'), 'nouveau': val['nouvelle']}},
-                    utilisateur_id=utilisateur_id
-                )
 
         fournisseur.save()
 

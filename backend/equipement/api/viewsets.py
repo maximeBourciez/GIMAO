@@ -29,6 +29,7 @@ from equipement.api.serializers import (
 
 from maintenance.models import PlanMaintenance, PlanMaintenanceConsommable, PlanMaintenanceDocument
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
+from gimao.viewsets import GimaoModelViewSet
 
 
 import json
@@ -39,7 +40,7 @@ from django.utils import timezone
 
 # Models et Serializers...
 
-class EquipementViewSet(viewsets.ModelViewSet):
+class EquipementViewSet(GimaoModelViewSet):
     queryset = Equipement.objects.all()
 
     def get_serializer_class(self):
@@ -689,17 +690,17 @@ class EquipementViewSet(viewsets.ModelViewSet):
 
 
 
-class StatutEquipementViewSet(viewsets.ModelViewSet):
+class StatutEquipementViewSet(GimaoModelViewSet):
     queryset = StatutEquipement.objects.all()
     serializer_class = StatutEquipementSerializer
 
 
-class ConstituerViewSet(viewsets.ModelViewSet):
+class ConstituerViewSet(GimaoModelViewSet):
     queryset = Constituer.objects.all()
     serializer_class = ConstituerSerializer
 
 
-class ModeleEquipementViewSet(viewsets.ModelViewSet):
+class ModeleEquipementViewSet(GimaoModelViewSet):
     queryset = ModeleEquipement.objects.all()
     serializer_class = ModeleEquipementSerializer
 
