@@ -297,6 +297,15 @@ class BonTravailConsommable(models.Model):
         default=0,
         help_text="Quantité utilisée pour ce bon"
     )
+    estConfirme = models.BooleanField(
+        default=False,
+        help_text="Indique si le consommable a été donné"
+    )
+    date_confirme = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Date à laquelle le consommable a été distribué"
+    )
     
     class Meta:
         db_table = 'gimao_bon_travail_consommable'

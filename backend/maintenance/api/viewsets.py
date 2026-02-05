@@ -32,6 +32,7 @@ from maintenance.api.serializers import (
     DemandeInterventionDetailSerializer,
     BonTravailSerializer,
     BonTravailDetailSerializer,
+    BonTravailListStockSerializer,
     TypePlanMaintenanceSerializer,
     PlanMaintenanceSerializer,
     PlanMaintenanceDetailSerializer,
@@ -1523,6 +1524,28 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         serializer = BonTravailDetailSerializer(bon, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'])
+    def list_stock(self, request):
+        """Liste tous les BonTravail non CLOTURE et non TERMINE avec leurs consommables.
+        
+        Endpoint idéal pour le magasinier pour voir les BT en cours et les consommables à distribuer.
+        """
+        queryset = self.get_queryset().exclude(
+            statut__in=['CLOTURE', 'TERMINE']
+        ).select_related(
+            'demande_intervention',
+            'demande_intervention__equipement',
+            'responsable'
+        ).prefetch_related(
+            'utilisateur_assigne',
+            'documents',
+            'demande_intervention__documents',
+            'bontravailconsommable_set__consommable'
+        )
+        
+        serializer = BonTravailListStockSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
 
 
 class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):

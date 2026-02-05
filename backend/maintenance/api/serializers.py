@@ -257,6 +257,55 @@ class BonTravailSerializer(serializers.ModelSerializer):
         bon = super().update(instance, validated_data)
         self._sync_consommables(bon, consommables_dict)
         return bon
+    
+class BonTravailListStockSerializer(serializers.ModelSerializer):
+    """Serializer pour la liste de BonTravail avec les consommables"""
+    demande_intervention = DemandeInterventionDetailSerializer(read_only=True)
+    responsable = UtilisateurSimpleSerializer(read_only=True)
+    utilisateur_assigne = UtilisateurSimpleSerializer(many=True, read_only=True)
+    documentsBT = DocumentSerializer(source='documents', many=True, read_only=True)
+    documentsDI = DocumentSerializer(source='demande_intervention.documents', many=True, read_only=True)
+    consommables = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = BonTravail
+        fields = [
+            'id',
+            'nom',
+            'diagnostic',
+            'type',
+            'date_assignation',
+            'date_cloture',
+            'date_debut',
+            'date_fin',
+            'date_prevue',
+            'statut',
+            'commentaire',
+            'commentaire_refus_cloture',
+            'documentsBT',
+            'documentsDI',
+            'consommables',
+            'demande_intervention',
+            'responsable',
+            'utilisateur_assigne'
+        ]
+    
+    def get_consommables(self, obj):
+        """Retourne les consommables avec leur statut de distribution"""
+        associations = BonTravailConsommable.objects.filter(
+            bon_travail=obj
+        ).select_related('consommable')
+        return [
+            {
+                'consommable': assoc.consommable.id,
+                'designation': assoc.consommable.designation,
+                'image': assoc.consommable.lienImageConsommable.name.lstrip('/') if assoc.consommable.lienImageConsommable else None,
+                'quantite': assoc.quantite_utilisee,
+                'distribue': assoc.estConfirme,
+                'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
+            }
+            for assoc in associations
+        ]
 
 
 class BonTravailDetailSerializer(serializers.ModelSerializer):

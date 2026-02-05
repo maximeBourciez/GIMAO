@@ -91,7 +91,7 @@
             Renitialiser
           </v-btn>
           <v-btn color="primary" variant="flat" @click="handleApplyFilter">
-            Appliquer
+            Fermer
           </v-btn>
         </v-card-actions>
       </v-card>
