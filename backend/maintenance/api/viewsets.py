@@ -1547,6 +1547,59 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         serializer = BonTravailListStockSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
+    @action(detail=True, methods=['patch'])
+    def update_consommable_distribution(self, request, pk=None):
+        bon = self.get_object()
+        consommable_id = request.data.get('consommable_id')
+        distribue = request.data.get('distribue', False)
+        
+        if not consommable_id:
+            return Response(
+                {'error': 'consommable_id requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            assoc = BonTravailConsommable.objects.get(
+                bon_travail=bon,
+                consommable_id=consommable_id
+            )
+        except BonTravailConsommable.DoesNotExist:
+            return Response(
+                {'error': 'Consommable non trouvé pour ce BT'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        assoc.estConfirme = distribue
+        if distribue:
+            assoc.date_confirme = timezone.now()
+        else:
+            assoc.date_confirme = None
+        assoc.save()
+        
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+        
+        self._create_log_entry(
+            type_action='modification',
+            nom_table='bon_travail_consommable',
+            id_cible={'bon_travail_id': bon.id, 'consommable_id': consommable_id},
+            champs_modifies={
+                'estConfirme': {'ancien': not distribue, 'nouveau': distribue},
+                'date_confirme': {'nouveau': assoc.date_confirme.isoformat() if assoc.date_confirme else None},
+            },
+            utilisateur_id=utilisateur_id,
+        )
+        
+        return Response({
+            'consommable_id': assoc.consommable_id,
+            'distribue': assoc.estConfirme,
+            'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None
+        })
+
 
 class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
     """
