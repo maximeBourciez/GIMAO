@@ -343,7 +343,8 @@ export function useEquipmentForm(isEditMode = false) {
     currentPlan.value = {
       ...plan,
       seuil: { ...plan.seuil },
-      consommables: [...plan.consommables]
+      consommables: [...plan.consommables],
+      documents: [...plan.documents]
     };
 
     showPlanDialog.value = true;

@@ -170,7 +170,7 @@ class EquipementViewSet(viewsets.ModelViewSet):
             compteurs_crees.append(compteur)
 
         # Créer les plans de maintenance (qui référencent les compteurs par index)
-        for pm_data in data.get("plansMaintenance", []):
+        for pm_index, pm_data in enumerate(data.get("plansMaintenance", [])):
             compteur_index = pm_data.get("compteurIndex")
             if compteur_index is None or compteur_index >= len(compteurs_crees):
                 continue
@@ -208,6 +208,44 @@ class EquipementViewSet(viewsets.ModelViewSet):
                         consommable_id=consommable_id,
                         quantite_necessaire=quantite
                     )
+
+            # Documents du plan (upload via FormData)
+            documents_data = pm_data.get("documents", []) or []
+            for doc_index, doc_data in enumerate(documents_data):
+                file_key = f"pm_{pm_index}_document_{doc_index}"
+                uploaded_file = request.FILES.get(file_key)
+                if not uploaded_file:
+                    return Response(
+                        {"error": f"Fichier manquant pour le document #{doc_index + 1} (clé attendue: {file_key})"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                doc_data = doc_data or {}
+
+                nom_document = doc_data.get("titre")
+                if not nom_document:
+                    # fallback minimal : nom réel du fichier uploadé
+                    nom_document = uploaded_file.name
+
+                type_document_id = doc_data.get("type")
+                try:
+                    type_document_id = int(type_document_id)
+                except (TypeError, ValueError):
+                    return Response(
+                        {"error": f"Type de document invalide pour le document '{nom_document}'"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                document = Document.objects.create(
+                    nomDocument=nom_document,
+                    typeDocument_id=type_document_id,
+                    cheminAcces=uploaded_file
+                )
+
+                PlanMaintenanceDocument.objects.create(
+                    plan_maintenance=plan,
+                    document=document
+                )
 
         # Log de création
         utilisateur = self._get_utilisateur(request)

@@ -562,7 +562,14 @@ const handleSubmit = async () => {
         fd.append(key, JSON.stringify(compteursData));
       } else if (key === 'plansMaintenance') {
         // Envoyer les plans de maintenance séparément
-        const plansData = formData.value.plansMaintenance.map(p => ({
+        const plansData = formData.value.plansMaintenance.map((p, planIndex) => {
+          const docsAvecFichier = (p.documents || []).filter((d) => d?.file instanceof File);
+
+          docsAvecFichier.forEach((doc, docIndex) => {
+            fd.append(`pm_${planIndex}_document_${docIndex}`, doc.file);
+          });
+
+          return {
           id: p.id,
           nom: p.nom,
           type_id: p.type_id,
@@ -571,13 +578,18 @@ const handleSubmit = async () => {
           consommables: p.consommables,
           necessiteHabilitationElectrique: p.necessiteHabilitationElectrique,
           necessitePermisFeu: p.necessitePermisFeu,
+          documents: docsAvecFichier.map((doc) => ({
+            titre: doc.titre || '',
+            type: doc.type ?? null
+          })),
           seuil: {
             estGlissant: p.seuil.estGlissant,
             derniereIntervention: p.seuil.derniereIntervention ?? 0,
             ecartInterventions: p.seuil.ecartInterventions ?? 0,
             prochaineMaintenance: p.seuil.prochaineMaintenance ?? 0
           }
-        }));
+          };
+        });
         fd.append(key, JSON.stringify(plansData));
       } else if (key === 'lienImageEquipement') {
         if (formData.value[key] instanceof File) {

@@ -295,12 +295,11 @@
             min="1"
           ></v-text-field>
         </v-col>
-        <v-col cols="12" md="1" class="text-right">
+        <v-col cols="12" md="1" class="text-center">
           <v-btn
             icon
             size="small"
             color="error"
-            variant="text"
             @click="removeConsommable(index)"
           >
             <v-icon>mdi-delete</v-icon>
@@ -325,66 +324,7 @@
         Documents associés
       </h4>
 
-      <v-row
-        v-for="(doc, index) in plan.documents"
-        :key="index"
-        dense
-        class="mb-2 align-center"
-      >
-        <v-col cols="12" md="5">
-          <v-text-field
-            v-model="doc.nom"
-            label="Nom du document"
-            variant="outlined"
-            density="comfortable"
-            hide-details
-          ></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="doc.type_id"
-            :items="typesDocuments"
-            item-title="nomTypeDocument"
-            item-value="id"
-            label="Type de document"
-            variant="outlined"
-            density="comfortable"
-            hide-details
-          ></v-select>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-file-input
-            v-model="doc.file"
-            label="Fichier"
-            variant="outlined"
-            density="comfortable"
-            hide-details
-            prepend-icon=""
-            prepend-inner-icon="mdi-paperclip"
-            :show-size="true"
-          ></v-file-input>
-        </v-col>
-        <v-col cols="12" md="1" class="text-right">
-          <v-btn
-            icon
-            size="small"
-            color="error"
-            variant="text"
-            @click="removeDocument(index)"
-          >
-            <v-icon>mdi-delete</v-icon>
-          </v-btn>
-        </v-col>
-      </v-row>
-
-      <v-row dense>
-        <v-col cols="12">
-          <v-btn variant="outlined" color="primary" size="small" @click="addDocument">
-            <v-icon left>mdi-plus</v-icon>
-            Ajouter un document
-          </v-btn>
-        </v-col>
-      </v-row>
+      <DocumentForm v-model="documentFormModel" :type-documents="typesDocuments" />
 
       <v-divider class="my-4"></v-divider>
 
@@ -429,6 +369,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { FormField, FormCheckbox, FormSelect } from "@/components/common";
+import DocumentForm from "@/components/Forms/DocumentForm.vue";
 
 const props = defineProps({
   modelValue: {
@@ -486,6 +427,36 @@ const uniteCalendaire = ref("days");
 const plan = computed({
   get: () => props.modelValue,
   set: (v) => emit("update:modelValue", v),
+});
+
+// Adapter vers le schéma attendu par DocumentForm.
+const documentFormModel = computed({
+  get: () => {
+    const base = Array.isArray(plan.value.documents) ? plan.value.documents : [];
+    return base.map((d) => ({
+      document_id: d.document_id ?? null,
+      nomDocument: d.nomDocument ?? d.nom ?? d.titre ?? "",
+      typeDocument_id:
+        d.typeDocument_id ?? d.type_id ?? d.type ?? d.typeDocument?.id ?? null,
+      file: d.file ?? null,
+      existingFileName: d.existingFileName ?? null,
+    }));
+  },
+  set: (rows) => {
+    const base = Array.isArray(rows) ? rows : [];
+    const normalized = base.map((d) => ({
+      titre: d?.nomDocument ?? "",
+      type: d?.typeDocument_id ?? null,
+      file: d?.file ?? null,
+      document_id: d?.document_id ?? null,
+      existingFileName: d?.existingFileName ?? null,
+    }));
+
+    plan.value = {
+      ...plan.value,
+      documents: normalized,
+    };
+  },
 });
 
 // Transformer les compteurs pour le select
@@ -656,22 +627,6 @@ const addConsommable = () => {
 
 const removeConsommable = (index) => {
   plan.value.consommables.splice(index, 1);
-};
-
-// Gestion des documents
-const addDocument = () => {
-  if (!plan.value.documents) {
-    plan.value.documents = [];
-  }
-  plan.value.documents.push({
-    nom: "",
-    type_id: null,
-    file: null,
-  });
-};
-
-const removeDocument = (index) => {
-  plan.value.documents.splice(index, 1);
 };
 
 const handleSave = () => {
