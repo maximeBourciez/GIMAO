@@ -82,8 +82,9 @@ def log_save(sender, instance, created, **kwargs):
         return
 
     # Get User from Thread Local (set by ViewSet)
-    from .middleware import get_thread_user
+    from .middleware import get_thread_user, get_thread_log_group
     app_user = get_thread_user()
+    log_group_id = get_thread_log_group()
 
     # Fallback to request user if thread user not set (e.g. Admin panel)
     if not app_user:
@@ -117,7 +118,8 @@ def log_save(sender, instance, created, **kwargs):
             nomTable=sender._meta.db_table or sender._meta.model_name,
             idCible=id_cible,
             champsModifies=champs_modifies,
-            utilisateur=app_user
+            utilisateur=app_user,
+            group=log_group_id
         )
     except Exception as e:
         print(f"Error creating log: {e}")
@@ -126,6 +128,9 @@ def log_save(sender, instance, created, **kwargs):
 def log_delete(sender, instance, **kwargs):
     if sender._meta.model_name in ['log', 'session', 'contenttype', 'migration', 'adminlog']:
         return
+
+    from .middleware import get_thread_log_group
+    log_group_id = get_thread_log_group()
 
     django_user = get_current_user()
     app_user = None
@@ -152,7 +157,8 @@ def log_delete(sender, instance, **kwargs):
             nomTable=sender._meta.db_table or sender._meta.model_name,
             idCible=id_cible,
             champsModifies={'deleted': True},
-            utilisateur=app_user
+            utilisateur=app_user,
+            group=log_group_id
         )
     except Exception as e:
         print(f"Error creating log: {e}")

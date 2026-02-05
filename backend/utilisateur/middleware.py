@@ -1,4 +1,5 @@
 import threading
+import uuid
 
 
 _thread_locals = threading.local()
@@ -19,6 +20,9 @@ def set_thread_user(user):
 def get_thread_user():
     return getattr(_thread_locals, 'app_user', None)
 
+def get_thread_log_group():
+    return getattr(_thread_locals, 'log_group_id', None)
+
 class CurrentUserMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -27,9 +31,13 @@ class CurrentUserMiddleware:
         # We process request but we might rely on ViewSet to set the user
         # However, for non-ViewSet requests (admin?), we might still want to capture request
         _thread_locals.request = request
+        _thread_locals.log_group_id = uuid.uuid4()
+
         response = self.get_response(request)
         if hasattr(_thread_locals, 'request'):
             del _thread_locals.request
         if hasattr(_thread_locals, 'app_user'):
             del _thread_locals.app_user
+        if hasattr(_thread_locals, 'log_group_id'):
+            del _thread_locals.log_group_id
         return response
