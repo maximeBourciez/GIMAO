@@ -219,7 +219,7 @@
               <!-- Boutons d'action pour ce seuil -->
               <div class="d-flex justify-end mt-3">
                 <v-btn color="primary" size="small" @click="editSeuil(seuil)"
-                  v-if="store.getters.hasPermission('mp:edit') && false">
+                  v-if="store.getters.hasPermission('mp:edit')">
                   <v-icon left small>mdi-pencil</v-icon>
                   Modifier ce seuil
                 </v-btn>

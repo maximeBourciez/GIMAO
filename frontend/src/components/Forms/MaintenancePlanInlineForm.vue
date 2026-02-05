@@ -427,7 +427,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { FormField, FormCheckbox, FormSelect } from "@/components/common";
 
 const props = defineProps({
@@ -691,4 +691,57 @@ const handleCancel = () => {
   localError.value = "";
   emit("cancel");
 };
+
+// Fonction utilitaire
+const ordinalToISOString = (ordinal) => {
+  if (!ordinal && ordinal !== 0) return null;
+  
+  const ORDINAL_EPOCH = 719162; // 1970-01-01
+  const daysFromEpoch = ordinal - ORDINAL_EPOCH;
+  const date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
+  
+  return date.toISOString().split('T')[0]; // "YYYY-MM-DD"
+};
+
+onMounted(() => {
+  if (props.isEditMode && plan.value.seuil) {
+    if (selectedCounterType.value === "Calendaire") {
+      
+      // Convertir derniereIntervention (ordinal → ISO string)
+      if (plan.value.seuil.derniereIntervention) {
+        plan.value.seuil.derniereIntervention = ordinalToISOString(
+          plan.value.seuil.derniereIntervention
+        );
+      }
+      
+      // Convertir prochaineMaintenance aussi
+      if (plan.value.seuil.prochaineMaintenance) {
+        plan.value.seuil.prochaineMaintenance = ordinalToISOString(
+          plan.value.seuil.prochaineMaintenance
+        );
+      }
+      
+      // Calculer ecartCalendaire depuis ecartInterventions (MS)
+      const intervalle = Number(plan.value.seuil.ecartInterventions);
+      if (!isNaN(intervalle) && intervalle > 0) {
+        const days = Math.round(intervalle / (1000 * 60 * 60 * 24));
+        
+        // Choisir l'unité appropriée
+        if (days < 7) {
+          ecartCalendaire.value = days;
+          uniteCalendaire.value = "days";
+        } else if (days < 60) {
+          ecartCalendaire.value = Math.round(days / 7);
+          uniteCalendaire.value = "weeks";
+        } else if (days < 365) {
+          ecartCalendaire.value = Math.round(days / 30);
+          uniteCalendaire.value = "months";
+        } else {
+          ecartCalendaire.value = Math.round(days / 365);
+          uniteCalendaire.value = "years";
+        }
+      }
+    }
+  }
+});
 </script>
