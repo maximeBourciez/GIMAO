@@ -940,7 +940,7 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
             )
         
         plans = self.queryset.filter(equipement_id=equipement_id)
-        serializer = self.get_serializer(plans, many=True)
+        serializer = self.get_serializer_class()(plans, many=True)
         return Response(serializer.data)
 
     @transaction.atomic

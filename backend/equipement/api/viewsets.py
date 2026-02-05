@@ -1257,7 +1257,16 @@ class DeclenchementViewSet(viewsets.ModelViewSet):
         # ============================
         if seuil_diff:
             for champ, valeurs in seuil_diff.items():
-                if hasattr(declenchement, champ):
+                if champ in ['derniereIntervention', 'prochaineMaintenance', 'ecartInterventions']:
+                    # Si c'est un champ de date, convertir en jours
+                    if champ in ['derniereIntervention', 'prochaineMaintenance'] and declenchement.compteur.type == 'Calendaire':
+                        nouvelle_valeur = self.date_to_days(valeurs.get('nouveau'))
+                        setattr(declenchement, champ, nouvelle_valeur)
+                    else:
+                        nouvelle_valeur = valeurs.get('nouveau')
+                        setattr(declenchement, champ, nouvelle_valeur)
+
+                elif hasattr(declenchement, champ):
                     setattr(declenchement, champ, valeurs.get('nouveau'))
 
             declenchement.save()
