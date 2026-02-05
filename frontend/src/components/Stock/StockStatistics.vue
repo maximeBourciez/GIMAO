@@ -1,6 +1,6 @@
 <template>
   <v-row>
-    <v-col cols="12" md="4">
+    <v-col cols="6" md="3">
       <v-card 
         elevation="1" 
         class="rounded-lg pa-2 cursor-pointer stat-card" 
@@ -17,7 +17,7 @@
         </div>
       </v-card>
     </v-col>
-    <v-col cols="12" md="4">
+    <v-col cols="6" md="3">
       <v-card 
         elevation="1" 
         class="rounded-lg pa-2 cursor-pointer stat-card" 
@@ -34,7 +34,7 @@
         </div>
       </v-card>
     </v-col>
-    <v-col cols="12" md="4">
+    <v-col cols="6" md="3">
       <v-card 
         elevation="1" 
         class="rounded-lg pa-2 cursor-pointer stat-card" 
@@ -48,6 +48,21 @@
             <p class="text-h5 font-weight-bold text-success mb-0">{{ stockSuffisantCount }}</p>
           </div>
           <v-icon size="32" color="success" class="opacity-50">mdi-check-circle</v-icon>
+        </div>
+      </v-card>
+    </v-col>
+    <v-col cols="6" md="3">
+      <v-card 
+        elevation="1" 
+        class="rounded-lg pa-2 stat-card" 
+        color="primary-lighten-5"
+      >
+        <div class="d-flex align-center justify-space-between">
+          <div>
+            <p class="text-caption text-grey-darken-1 mb-0" style="font-size: 0.7rem;">BT en attente</p>
+            <p class="text-h5 font-weight-bold text-primary mb-0">{{ btCount }}</p>
+          </div>
+          <v-icon size="32" color="primary" class="opacity-50">mdi-clipboard-list</v-icon>
         </div>
       </v-card>
     </v-col>
@@ -65,6 +80,10 @@ const props = defineProps({
   selectedFilter: {
     type: String,
     default: null
+  },
+  btCount: {
+    type: Number,
+    default: 0
   }
 });
 
@@ -90,7 +109,6 @@ const stockSuffisantCount = computed(() => {
 });
 
 const handleFilterClick = (filterType) => {
-  // Si on clique sur le même filtre, on le désactive
   if (props.selectedFilter === filterType) {
     emit('filter-change', null);
   } else {
