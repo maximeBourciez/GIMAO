@@ -132,7 +132,8 @@ class CompteurSerializer(serializers.ModelSerializer):
                             'id': rel.document.id,
                             'nom': rel.document.nomDocument,
                             'chemin': rel.document.cheminAcces.name if rel.document.cheminAcces else None,
-                            'type': rel.document.typeDocument.nomTypeDocument if rel.document.typeDocument else None
+                            'type': rel.document.typeDocument.nomTypeDocument if rel.document.typeDocument else None,
+                            'type_id': rel.document.typeDocument_id,
                         }
                         for rel in pm.planmaintenancedocument_set.all()
                     ]

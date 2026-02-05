@@ -579,8 +579,8 @@ const handleSubmit = async () => {
           necessiteHabilitationElectrique: p.necessiteHabilitationElectrique,
           necessitePermisFeu: p.necessitePermisFeu,
           documents: docsAvecFichier.map((doc) => ({
-            titre: doc.titre || '',
-            type: doc.type ?? null
+            titre: doc.nom || doc.nomDocument || doc.titre || '',
+            type: doc.type_id ?? doc.typeDocument_id ?? doc.type ?? null
           })),
           seuil: {
             estGlissant: p.seuil.estGlissant,

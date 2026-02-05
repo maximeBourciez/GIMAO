@@ -434,22 +434,23 @@ const documentFormModel = computed({
   get: () => {
     const base = Array.isArray(plan.value.documents) ? plan.value.documents : [];
     return base.map((d) => ({
-      document_id: d.document_id ?? null,
+      document_id: d.document_id ?? d.id ?? null,
       nomDocument: d.nomDocument ?? d.nom ?? d.titre ?? "",
-      typeDocument_id:
-        d.typeDocument_id ?? d.type_id ?? d.type ?? d.typeDocument?.id ?? null,
+      typeDocument_id: (() => {
+        const raw = d.typeDocument_id ?? d.type_id ?? d.type ?? null;
+        if (raw === null || raw === undefined || raw === "") return null;
+        return raw;
+      })(),
       file: d.file ?? null,
-      existingFileName: d.existingFileName ?? null,
+      existingFileName: d.existingFileName ?? d.path ?? null,
     }));
   },
   set: (rows) => {
     const base = Array.isArray(rows) ? rows : [];
     const normalized = base.map((d) => ({
-      titre: d?.nomDocument ?? "",
-      type: d?.typeDocument_id ?? null,
+      nom: d?.nomDocument ?? "",
+      type_id: d?.typeDocument_id ?? null,
       file: d?.file ?? null,
-      document_id: d?.document_id ?? null,
-      existingFileName: d?.existingFileName ?? null,
     }));
 
     plan.value = {

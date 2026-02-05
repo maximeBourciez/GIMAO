@@ -577,9 +577,11 @@ const editSeuil = (seuil) => {
       })) || [],
     documents:
       pm?.documents?.map((d) => ({
-        nom: d.nomDocument || d.nom,
-        type_id: d.typeDocument?.id || d.type_id,
+        document_id: d.id,
+        nom: d.nom || d.nomDocument || d.titre,
+        type_id: d.type_id ?? d.typeDocument_id ?? d.type,
         file: null,
+        existingFileName: d.chemin || d.path || null,
       })) || [],
     seuil: {
       derniereIntervention: seuil.derniereIntervention || 0,
@@ -720,12 +722,10 @@ const saveSeuil = async () => {
       formData.append("seuil_id", currentSeuil.value.id);
 
       /* fichiers uniquement si modifiés */
-      const docsAvecFichier = currentPlan.value.documents.filter(
-        (d) => d.file instanceof File
-      );
-
-      docsAvecFichier.forEach((doc, index) => {
-        formData.append(`document_${index}`, doc.file);
+      (currentPlan.value.documents || []).forEach((doc, index) => {
+        if (doc?.file instanceof File) {
+          formData.append(`document_${index}`, doc.file);
+        }
       });
 
       await api.patch(`declenchements/${currentSeuil.value.id}/`, formData);
@@ -771,8 +771,8 @@ const saveSeuil = async () => {
         })),
 
         documents: docsAvecFichier.map((doc) => ({
-          titre: doc.titre,
-          type: doc.type,
+          titre: doc.nom,
+          type: doc.type_id,
         })),
       };
 

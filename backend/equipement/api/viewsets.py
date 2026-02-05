@@ -27,7 +27,13 @@ from equipement.api.serializers import (
     DeclenchementSerializer
 )
 
-from maintenance.models import PlanMaintenance, PlanMaintenanceConsommable, PlanMaintenanceDocument
+from maintenance.models import (
+    PlanMaintenance,
+    PlanMaintenanceConsommable,
+    PlanMaintenanceDocument,
+    DemandeInterventionDocument,
+    BonTravailDocument,
+)
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
 
 
@@ -1300,23 +1306,114 @@ class DeclenchementViewSet(viewsets.ModelViewSet):
 
                 # Documents
                 elif champ == "documents":
-                    PlanMaintenanceDocument.objects.filter(
-                        plan_maintenance=plan
-                    ).delete()
+                    old_doc_ids = list(
+                        plan.planmaintenancedocument_set.values_list(
+                            "document_id", flat=True
+                        )
+                    )
 
+                    PlanMaintenanceDocument.objects.filter(plan_maintenance=plan).delete()
+
+                    kept_doc_ids = set()
                     for index, doc in enumerate(valeurs.get("nouveau", [])):
-                        fichier = request.FILES.get(f'document_{index}')
+                        file_key = f"document_{index}"
+                        uploaded_file = request.FILES.get(file_key)
+
+                        # Front attendu: {nom, type_id, document_id}. Fallback minimal: {titre, type} / {id}
+                        titre_value = (doc.get("nom") or doc.get("titre") or "")
+                        type_document_id = (doc.get("type_id") or doc.get("type") or None)
+                        existing_document_id = (doc.get("document_id") or doc.get("id"))
+
+                        if isinstance(type_document_id, str) and type_document_id.isdigit():
+                            type_document_id = int(type_document_id)
+
+                        # 1) Réutiliser / mettre à jour un document existant
+                        if existing_document_id:
+                            try:
+                                document = Document.objects.get(id=existing_document_id)
+                            except Document.DoesNotExist:
+                                return Response(
+                                    {"error": f"Document introuvable (id={existing_document_id})"},
+                                    status=status.HTTP_400_BAD_REQUEST,
+                                )
+
+                            if uploaded_file is not None:
+                                if type_document_id in (None, ""):
+                                    return Response(
+                                        {
+                                            "error": f"Type manquant pour le document #{index + 1}"
+                                        },
+                                        status=status.HTTP_400_BAD_REQUEST,
+                                    )
+
+                                # Remplacement du fichier: supprimer l'ancien fichier physique
+                                try:
+                                    if document.cheminAcces:
+                                        document.cheminAcces.delete(save=False)
+                                except Exception:
+                                    # Ne pas casser une mise à jour si le fichier est déjà manquant
+                                    pass
+
+                                document.nomDocument = titre_value or uploaded_file.name
+                                document.typeDocument_id = type_document_id
+                                document.cheminAcces = uploaded_file
+                                document.save()
+
+                            kept_doc_ids.add(document.id)
+                            PlanMaintenanceDocument.objects.create(
+                                plan_maintenance=plan,
+                                document=document,
+                            )
+                            continue
+
+                        # 2) Création d'un nouveau document (nécessite un fichier)
+                        if uploaded_file is None:
+                            # Pas d'id + pas de fichier => rien à créer / lier
+                            continue
+
+                        if type_document_id in (None, ""):
+                            return Response(
+                                {"error": f"Type manquant pour le document #{index + 1}"},
+                                status=status.HTTP_400_BAD_REQUEST,
+                            )
 
                         document = Document.objects.create(
-                            titre=doc.get("titre"),
-                            type_id=doc.get("type"),
-                            fichier=fichier
+                            nomDocument=titre_value or uploaded_file.name,
+                            typeDocument_id=type_document_id,
+                            cheminAcces=uploaded_file,
                         )
-
+                        kept_doc_ids.add(document.id)
                         PlanMaintenanceDocument.objects.create(
                             plan_maintenance=plan,
-                            document=document
+                            document=document,
                         )
+
+                    # Nettoyage: supprimer les documents retirés si non référencés ailleurs
+                    removed_doc_ids = set(old_doc_ids) - kept_doc_ids
+                    for removed_id in removed_doc_ids:
+                        # Si le doc est encore lié ailleurs, ne pas le supprimer
+                        still_used = (
+                            PlanMaintenanceDocument.objects.filter(document_id=removed_id).exists()
+                            or DemandeInterventionDocument.objects.filter(
+                                document_id=removed_id
+                            ).exists()
+                            or BonTravailDocument.objects.filter(document_id=removed_id).exists()
+                            or DocumentEquipement.objects.filter(document_id=removed_id).exists()
+                        )
+                        if still_used:
+                            continue
+
+                        try:
+                            doc_obj = Document.objects.get(id=removed_id)
+                        except Document.DoesNotExist:
+                            continue
+
+                        try:
+                            if doc_obj.cheminAcces:
+                                doc_obj.cheminAcces.delete(save=False)
+                        except Exception:
+                            pass
+                        doc_obj.delete()
 
             plan.save()
 
