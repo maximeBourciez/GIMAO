@@ -106,7 +106,7 @@
 							:items="responsableItems"
 							item-title="label"
 							item-value="id"
-							:disabled="isEdit"
+							:disabled="true"
 						/>
 					</v-col>
 
@@ -268,6 +268,12 @@ const successMessage = ref('');
 // Initialiser les données
 watch(() => props.initialData, (newData) => {
 	if (newData && Object.keys(newData).length > 0) {
+		const initialConsommables = Array.isArray(newData.consommables)
+			? newData.consommables.map((c) => ({ ...c }))
+			: [];
+		const initialDocuments = Array.isArray(newData.documents)
+			? newData.documents.map((d) => ({ ...d }))
+			: [];
 		formData.value = {
 			equipement_id: newData.equipement_id || null,
 			nom: newData.nom || '',
@@ -285,7 +291,21 @@ watch(() => props.initialData, (newData) => {
 			originalFormData.value = JSON.parse(JSON.stringify(formData.value));
 		}
 	}
-}, { immediate: true, deep: true });
+}, { immediate: true });
+
+// Responsable = utilisateur créateur (obligatoire)
+watch(
+	() => [props.isEdit, props.connectedUserId],
+	([isEdit, connectedUserId]) => {
+		if (isEdit) return;
+		const id = Number(connectedUserId);
+		if (!Number.isFinite(id) || id <= 0) return;
+		if (!formData.value?.responsable_id) {
+			formData.value.responsable_id = id;
+		}
+	},
+	{ immediate: true }
+);
 
 const close = () => {
 	emit('close');
@@ -304,85 +324,58 @@ const buildConsommablesPayload = (source) => {
 		.sort((a, b) => a.consommable_id - b.consommable_id);
 };
 
-const createAndLinkDocuments = async (bonTravailId, documents, originalDocuments = []) => {
+const validateDocumentsBeforeSubmit = (documents, originalDocuments = []) => {
 	const docs = Array.isArray(documents) ? documents : [];
 	const errors = [];
-	const api = useApi(API_BASE_URL);
 
 	for (const doc of docs) {
 		if (!doc) continue;
-		
-		// Ignorer les lignes vides
-		if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim()) continue;
-		
-		// Gérer les documents existants (mise à jour seulement si modifié)
+
+		const isEmpty = !doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim();
+		if (isEmpty) continue;
+
+		const label = (doc.nomDocument || doc.file?.name || 'Document').toString();
+
+		// Document existant : si on tente une modif, il faut au minimum un type
 		if (doc.document_id) {
-			// Trouver le document original
-			const original = originalDocuments.find(o => o.document_id === doc.document_id);
-			
-			// Vérifier si au moins un champ a changé
-			const hasChanges = 
+			const original = Array.isArray(originalDocuments) ? originalDocuments.find(o => o.document_id === doc.document_id) : null;
+			const hasChanges =
 				(original && doc.nomDocument !== original.nomDocument) ||
 				(original && doc.typeDocument_id !== original.typeDocument_id) ||
-				doc.file; // Nouveau fichier = toujours un changement
-			
-			if (!hasChanges) {
-				// Aucun changement, on passe au suivant
-				continue;
-			}
-			
-			try {
-				// Toujours utiliser FormData pour la compatibilité avec le backend
-				const form = new FormData();
-				form.append('nomDocument', doc.nomDocument || '');
-				form.append('typeDocument_id', String(doc.typeDocument_id));
-				if (doc.file) {
-					form.append('cheminAcces', doc.file);
-				}
-				await api.patch(`documents/${doc.document_id}/`, form);
-			} catch (e) {
-				console.error('Erreur lors de la mise à jour du document:', e);
-				errors.push(doc.nomDocument || 'Document existant');
+				doc.file;
+
+			if (hasChanges && !doc.typeDocument_id) {
+				errors.push(label);
 			}
 			continue;
 		}
-		
-		// Vérifier les champs requis pour les nouveaux documents
+
+		// Nouveau document : fichier + type obligatoires si la ligne n'est pas vide
 		if (!doc.file || !doc.typeDocument_id) {
-			errors.push(doc.nomDocument || 'Document');
-			continue;
-		}
-
-		try {
-			const form = new FormData();
-			form.append('nomDocument', (doc.nomDocument || doc.file.name || '').toString());
-			form.append('typeDocument_id', String(doc.typeDocument_id));
-			form.append('cheminAcces', doc.file);
-
-			const created = await api.post('documents/', form);
-			const newId = Number(created?.id);
-			if (!Number.isInteger(newId) || newId <= 0) {
-				errors.push(doc.nomDocument || doc.file?.name || 'Document');
-				continue;
-			}
-
-			try {
-				await api.post(`bons-travail/${bonTravailId}/ajouter_document/`, {
-					document_id: newId,
-					user: props.connectedUserId,
-				});
-			} catch (e) {
-				try {
-					await api.remove(`documents/${newId}/`);
-				} catch (_) {}
-				errors.push(doc.nomDocument || doc.file?.name || 'Document');
-			}
-		} catch (e) {
-			errors.push(doc.nomDocument || doc.file?.name || 'Document');
+			errors.push(label);
 		}
 	}
 
 	return errors;
+};
+
+const buildDocumentsMetaAndFiles = (documents) => {
+	const docs = Array.isArray(documents) ? documents : [];
+	const documentsMeta = [];
+	const files = [];
+
+	for (const doc of docs) {
+		if (!doc) continue;
+		if (!doc.file && !doc.typeDocument_id && !(doc.nomDocument || '').trim() && !doc.document_id) continue;
+		documentsMeta.push({
+			document_id: doc.document_id || null,
+			nomDocument: (doc.nomDocument || doc.file?.name || '').toString(),
+			typeDocument_id: doc.typeDocument_id || null,
+		});
+		files.push(doc.file || null);
+	}
+
+	return { documentsMeta, files };
 };
 
 const buildPatchPayload = (payload) => {
@@ -482,64 +475,88 @@ const save = async () => {
 				return;
 			}
 
-			// Appliquer le patch seulement s'il y a des changements de champs
-			if (Object.keys(patch).length > 0) {
-				patch.user = props.connectedUserId;
-				await api.patch(`bons-travail/${props.initialData.id}/`, patch);
-			}
-
-			// Gestion des documents avec détection de changements
-			const docErrors = await createAndLinkDocuments(
-				props.initialData.id,
-				formData.value.documents,
-				originalFormData.value.documents
-			);
-			if (docErrors.length) {
-				errorMessage.value = `Certains documents n'ont pas pu être traités: ${docErrors.join(', ')}`;
+			// Valider les documents avant toute modification
+			const docValidationErrors = validateDocumentsBeforeSubmit(formData.value.documents, originalFormData.value?.documents);
+			if (docValidationErrors.length) {
+				errorMessage.value = `Documents invalides: ${docValidationErrors.join(', ')}`;
 				loading.value = false;
 				return;
 			}
+
+			// Appel unique transactionnel côté backend
+			const form = new FormData();
+			form.append('utilisateur_id', String(props.connectedUserId));
+			if (Object.keys(patch).length > 0) {
+				for (const [key, value] of Object.entries(patch)) {
+					if (value === undefined) continue;
+					if (value === null) {
+						form.append(key, '');
+						continue;
+					}
+					if (key === 'consommables') {
+						form.append(key, JSON.stringify(value));
+						continue;
+					}
+					if (Array.isArray(value)) {
+						// faut quand meme traiter quand on vide la liste des assignes
+						if (value.length === 0) {
+							form.append(key, '');
+						} else {
+							for (const v of value) form.append(key, String(v));
+						}
+						continue;
+					}
+					form.append(key, String(value));
+				}
+			}
+
+			if (documentsChanged) {
+				const { documentsMeta, files } = buildDocumentsMetaAndFiles(formData.value.documents);
+				form.append('documents', JSON.stringify(documentsMeta));
+				files.forEach((file, i) => {
+					if (file) form.append(`document_${i}`, file);
+				});
+			}
+
+			await api.patch(`bons-travail/${props.initialData.id}/`, form);
 
 			successMessage.value = 'Bon de travail modifié avec succès';
 			emit('updated');
 		} else {
-			// Mode création
-			const createdDemande = await api.post('demandes-intervention/', {
-				nom: formData.value.nom,
-				commentaire: formData.value.commentaire,
-				equipement_id: formData.value.equipement_id,
-				utilisateur_id: props.connectedUserId
-			});
-
-			await api.patch(`demandes-intervention/${createdDemande.id}/updateStatus/`, {
-				statut: 'TRANSFORMEE'
-			});
-
-			const createdBonTravail = await api.post('bons-travail/', {
-				demande_intervention: createdDemande.id,
-				utilisateur_id: props.connectedUserId,
-				nom: formData.value.nom,
-				type: formData.value.type,
-				date_prevue:
-					formData.value.date_prevue && String(formData.value.date_prevue).length === 16
-						? `${formData.value.date_prevue}:00`
-						: formData.value.date_prevue || null,
-				commentaire: formData.value.commentaire,
-				diagnostic: formData.value.diagnostic,
-				responsable_id: formData.value.responsable_id,
-				utilisateur_assigne_ids: (Array.isArray(formData.value?.utilisateur_assigne_ids) ? formData.value.utilisateur_assigne_ids : [])
-					.map((x) => Number(x))
-					.filter((x) => Number.isFinite(x) && x > 0),
-				consommables: buildConsommablesPayload(formData.value)
-			});
-
-			// Gestion des documents
-			const docErrors = await createAndLinkDocuments(createdBonTravail.id, formData.value.documents);
-			if (docErrors.length) {
-				errorMessage.value = `BT créé mais certains documents n'ont pas pu être ajoutés: ${docErrors.join(', ')}`;
+			// Mode création (transaction côté backend)
+			const docValidationErrors = validateDocumentsBeforeSubmit(formData.value.documents);
+			if (docValidationErrors.length) {
+				errorMessage.value = `Documents invalides: ${docValidationErrors.join(', ')}`;
 				loading.value = false;
 				return;
 			}
+
+			const form = new FormData();
+			form.append('utilisateur_id', String(props.connectedUserId));
+			form.append('equipement_id', String(formData.value.equipement_id));
+			form.append('nom', (formData.value.nom || '').toString());
+			form.append('commentaire', (formData.value.commentaire || '').toString());
+			form.append('diagnostic', (formData.value.diagnostic || '').toString());
+			form.append('type', (formData.value.type || 'CORRECTIF').toString());
+			form.append(
+				'date_prevue',
+				formData.value.date_prevue && String(formData.value.date_prevue).length === 16
+					? `${formData.value.date_prevue}:00`
+					: (formData.value.date_prevue || '')
+			);
+			for (const id of (Array.isArray(formData.value?.utilisateur_assigne_ids) ? formData.value.utilisateur_assigne_ids : [])) {
+				const n = Number(id);
+				if (Number.isFinite(n) && n > 0) form.append('utilisateur_assigne_ids', String(n));
+			}
+			form.append('consommables', JSON.stringify(buildConsommablesPayload(formData.value)));
+
+			const { documentsMeta, files } = buildDocumentsMetaAndFiles(formData.value.documents);
+			form.append('documents', JSON.stringify(documentsMeta.map(({ document_id, ...rest }) => rest)));
+			files.forEach((file, i) => {
+				if (file) form.append(`document_${i}`, file);
+			});
+
+			const createdBonTravail = await api.post('bons-travail/create_with_di/', form);
 
 			successMessage.value = 'Bon de travail créé avec succès';
 			emit('created', createdBonTravail);
@@ -550,7 +567,32 @@ const save = async () => {
 		}, 1500);
 	} catch (error) {
 		console.error('Erreur lors de l\'enregistrement:', error);
-		errorMessage.value = error.message || 'Une erreur est survenue lors de l\'enregistrement du bon de travail';
+		const serverData = error?.response?.data;
+		if (serverData) {
+			if (typeof serverData === 'string') {
+				errorMessage.value = serverData;
+			} else if (serverData?.error) {
+				errorMessage.value = serverData.error;
+			} else {
+				try {
+					const parts = [];
+					for (const [key, value] of Object.entries(serverData)) {
+						if (Array.isArray(value)) {
+							parts.push(`${key}: ${value.join(', ')}`);
+						} else if (value && typeof value === 'object') {
+							parts.push(`${key}: ${JSON.stringify(value)}`);
+						} else {
+							parts.push(`${key}: ${String(value)}`);
+						}
+					}
+					errorMessage.value = parts.join(' | ') || 'Erreur de validation';
+				} catch (_) {
+					errorMessage.value = 'Erreur de validation';
+				}
+			}
+		} else {
+			errorMessage.value = error.message || 'Une erreur est survenue lors de l\'enregistrement du bon de travail';
+		}
 	} finally {
 		loading.value = false;
 	}

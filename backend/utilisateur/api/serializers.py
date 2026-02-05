@@ -22,8 +22,9 @@ class UtilisateurSerializer(serializers.ModelSerializer):
     role_id = serializers.PrimaryKeyRelatedField(
         queryset=Role.objects.all(),
         source='role',
-        write_only=True
-    ),
+        write_only=True,
+        required=True
+    )
     permissions_names = serializers.SerializerMethodField()
     
     class Meta:

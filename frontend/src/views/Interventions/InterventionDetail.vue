@@ -257,6 +257,7 @@
               Documents
               <v-spacer></v-spacer>
               <v-btn color="primary" size="small" class="mr-2" @click.stop="addDocument" v-if="canUserEditBT">
+                <v-icon left>mdi-plus</v-icon>
                 Ajouter
               </v-btn>
               <v-icon>
