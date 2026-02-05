@@ -284,7 +284,7 @@
       </v-card-title>
       <v-divider></v-divider>
       <v-card-text class="pa-4">
-        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :types-p-m="typesPM"
+        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :typesPM="typesPM"
           :consumables="consumables" :existing-p-ms="existingPMs" :types-documents="typesDocuments"
           :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="false" @save="handleFormSave" />
       </v-card-text>
@@ -573,7 +573,7 @@ const editSeuil = (seuil) => {
     consommables:
       pm?.consommables?.map((c) => ({
         consommable_id: c.consommable_id || c.id,
-        quantite_necessaire: c.quantite_necessaire || 1,
+        quantite_necessaire: c.quantite || 1,
       })) || [],
     documents:
       pm?.documents?.map((d) => ({

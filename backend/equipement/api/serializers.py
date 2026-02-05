@@ -117,6 +117,7 @@ class CompteurSerializer(serializers.ModelSerializer):
                     'nom': pm.nom,
                     'commentaire': pm.commentaire,
                     'type': pm.type_plan_maintenance.libelle if pm.type_plan_maintenance else None,
+                    'type_id': pm.type_plan_maintenance_id,
                     'necessiteHabilitationElectrique': pm.necessiteHabilitationElectrique,
                     'necessitePermisFeu': pm.necessitePermisFeu,
                     'consommables': [

@@ -705,6 +705,8 @@ const ordinalToISOString = (ordinal) => {
 
 onMounted(() => {
   if (props.isEditMode && plan.value.seuil) {
+    console.log("Type PM : ", getPMTypeLabel( plan.value.type_id || plan.value.type));
+
     if (selectedCounterType.value === "Calendaire") {
       
       // Convertir derniereIntervention (ordinal → ISO string)
@@ -742,6 +744,10 @@ onMounted(() => {
         }
       }
     }
+
+    
   }
+
+  
 });
 </script>
