@@ -54,13 +54,12 @@ watch(route, () => {
         route: route.path,
         id: showId ? (route.params.id ?? null) : null,
     })
-    console.log("saving breadcrumb", route.path)
 
     localStorage.setItem('breadcrumb', JSON.stringify(breadcrumbs.value));
 }, { immediate: true })
 
 function makeBreadcrumbLabel(crumb, index) {
-    return `${BREADCRUMBS[crumb.name]} ${crumb.id ? `#${crumb.id}` : ''} ${index === breadcrumbs.length - 1 ? '' : '>' }`
+    return `${BREADCRUMBS[crumb.name]} ${crumb.id ? `#${crumb.id}` : ''} ${index === breadcrumbs.value.length - 1 ? '' : '>' }`
 }
 </script>
 
