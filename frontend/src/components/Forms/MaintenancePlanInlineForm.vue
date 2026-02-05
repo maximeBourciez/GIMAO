@@ -44,6 +44,7 @@
             label="Valeur du compteur"
             :readonly="true"
             :suffix="selectedCounterType === 'Calendaire' ? '': selectedCounterUnit"
+            :type="selectedCounterType === 'Calendaire' ? 'date' : 'text'"
           />
         </v-col>
 
@@ -476,6 +477,10 @@ const selectedCounterValue = computed(() => {
   if (plan.value.compteurIndex === null || plan.value.compteurIndex === undefined)
     return "—";
   const counter = props.counters[plan.value.compteurIndex];
+
+  if(counter?.type === "Calendaire"){
+    return ordinalToISOString(counter.valeurCourante);
+  }
   return counter?.valeurCourante ?? "—";
 });
 
@@ -698,6 +703,15 @@ onMounted(() => {
         plan.value.seuil.derniereIntervention = ordinalToISOString(
           plan.value.seuil.derniereIntervention
         );
+      }
+
+      
+      const currentVal = props.counters[plan.value.compteurIndex]?.valeurCourante;
+      if (!plan.value.seuil.derniereIntervention && currentVal !== undefined && currentVal !== null) {
+        const n = Number(currentVal);
+        if (!isNaN(n)) {
+          plan.value.seuil.derniereIntervention = ordinalToISOString(n);
+        }
       }
       
       // Convertir prochaineMaintenance aussi
