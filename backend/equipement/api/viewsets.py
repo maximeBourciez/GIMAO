@@ -823,7 +823,7 @@ class ModeleEquipementViewSet(GimaoModelViewSet):
         )
 
 
-class CompteurViewSet(viewsets.ModelViewSet):
+class CompteurViewSet(GimaoModelViewSet):
     queryset = Compteur.objects.all()
     serializer_class = CompteurSerializer
 
@@ -1006,7 +1006,7 @@ class CompteurViewSet(viewsets.ModelViewSet):
         )
 
 
-class FamilleEquipementViewSet(viewsets.ModelViewSet):
+class FamilleEquipementViewSet(GimaoModelViewSet):
     queryset = FamilleEquipement.objects.all()
     serializer_class = FamilleEquipementSerializer
 
@@ -1028,7 +1028,7 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 
-class DeclenchementViewSet(viewsets.ModelViewSet):
+class DeclenchementViewSet(GimaoModelViewSet):
     """ ViewSet pour les seuils (declenchement): création/modification """
 
     queryset = Declencher.objects.all()

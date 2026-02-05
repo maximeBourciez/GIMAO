@@ -15,18 +15,19 @@ from .serializers import (
     ChangePasswordSerializer,
     DefinirMotDePasseSerializer
 )
+from gimao.viewsets import GimaoModelViewSet
 
 
 # ==================== ROLE VIEWSET ====================
 
-class RoleViewSet(viewsets.ModelViewSet):
+class RoleViewSet(GimaoModelViewSet):
     queryset = Role.objects.all().order_by('rang')
     serializer_class = RoleSerializer
 
 
 # ==================== UTILISATEUR VIEWSET ====================
 
-class UtilisateurViewSet(viewsets.ModelViewSet):
+class UtilisateurViewSet(GimaoModelViewSet):
     queryset = Utilisateur.objects.all().order_by('id')
 
     def get_serializer_class(self):

@@ -13,6 +13,7 @@ from equipement.models import Equipement
 from utilisateur.models import Utilisateur, Log
 from stock.models import Consommable
 from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
+from gimao.viewsets import GimaoModelViewSet
 
 
 
@@ -1526,7 +1527,7 @@ class BonTravailViewSet(GimaoModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
+class TypePlanMaintenanceViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les types de plans de maintenance.
     
@@ -1541,7 +1542,7 @@ class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
     serializer_class = TypePlanMaintenanceSerializer
 
 
-class PlanMaintenanceViewSet(viewsets.ModelViewSet):
+class PlanMaintenanceViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les plans de maintenance.
     
@@ -1974,7 +1975,7 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class PlanMaintenanceConsommableViewSet(viewsets.ModelViewSet):
+class PlanMaintenanceConsommableViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les associations consommables/plans de maintenance.
     
