@@ -5,7 +5,7 @@
       <v-col cols="12">
         <!-- Statistiques en haut -->
         <StockStatistics 
-          :consommables="filteredConsommables" 
+          :consommables="consommablesForStats" 
           :selectedFilter="selectedStockFilter"
           @filter-change="selectedStockFilter = $event"
           class="mb-4" 
@@ -136,50 +136,54 @@ const tableHeaders = [
   { title: 'Quantité', key: 'quantite', sortable: true, align: 'center' }
 ];
 
+// Fonction utilitaire pour calculer la quantité selon le magasin sélectionné
+const getQuantityForConsommable = (consommable) => {
+  if (selectedMagasin.value !== null) {
+    const stock = consommable.stocks?.find(s => s.magasin === selectedMagasin.value);
+    return stock ? stock.quantite : 0;
+  }
+  return consommable.quantite_totale || 0;
+};
+
 // Fonction utilitaire pour vérifier le statut du stock d'un consommable
 const getStockStatus = (consommable) => {
-  const quantite = consommable.quantite_totale ?? 0;
+  const quantite = getQuantityForConsommable(consommable);
   if (quantite === 0) return 'hors-stock';
   if (consommable.seuilStockFaible !== null && quantite <= consommable.seuilStockFaible) return 'sous-seuil';
   return 'stock-suffisant';
 };
 
-// Filtrage par magasin et stock sur les consommables originaux
-const consommablesFiltered = computed(() => {
+// Consommables filtrés par magasin avec quantité calculée (pour les stats)
+const consommablesForStats = computed(() => {
   let filtered = consommables.value;
 
-  // Filtre par magasin
+  // Filtre par magasin uniquement
   if (selectedMagasin.value !== null) {
     filtered = filtered.filter(c => c.magasins.includes(selectedMagasin.value));
   }
 
-  // Filtre par type de stock (utilise quantite_totale)
+  // Ajoute la quantité calculée selon le magasin
+  return filtered.map(consommable => ({
+    ...consommable,
+    quantite: getQuantityForConsommable(consommable)
+  }));
+});
+
+// Consommables filtrés par magasin ET par statut de stock (pour le tableau)
+const filteredConsommables = computed(() => {
+  let filtered = consommablesForStats.value;
+
+  // Filtre par type de stock
   if (selectedStockFilter.value) {
     filtered = filtered.filter(c => getStockStatus(c) === selectedStockFilter.value);
   }
 
-  return filtered;
-});
-
-// Expansion des consommables filtrés (Logique Stock)
-const filteredConsommables = computed(() => {
-  return consommablesFiltered.value.map(consommable => {
-    let quantityToDisplay = 0;
-
-    if (selectedMagasin.value !== null) {
-      // Cas filtré par magasin : Quantité dans ce magasin
-      const stock = consommable.stocks?.find(s => s.magasin === selectedMagasin.value);
-      quantityToDisplay = stock ? stock.quantite : 0;
-    } else {
-      // Cas global : Quantité totale
-      quantityToDisplay = consommable.quantite_totale || 0;
-    }
+  // Ajoute les noms des magasins
+  return filtered.map(consommable => {
     const magasins_noms = [...new Set(consommable.stocks?.map(s => s.magasin_nom).filter(Boolean))].join(', ');
-
     return {
       ...consommable,
-      quantite: quantityToDisplay,
-      magasin_nom: magasins_noms || '-',
+      magasin_nom: magasins_noms || '-'
     };
   });
 });
