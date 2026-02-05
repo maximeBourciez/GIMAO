@@ -286,7 +286,7 @@
       <v-divider></v-divider>
       <v-card-text class="pa-4">
         <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :typesPM="typesPM"
-          :consumables="consumables" :existing-p-ms="availablesPMs" :types-documents="typesDocuments"
+          :consumables="consumables" :existing-p-ms="availablesPMs" :types-documents="typesDocuments" @cancel="closeSeuilDialog"
           :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="true" @save="handleFormSave" />
       </v-card-text>
       <v-divider></v-divider>
