@@ -277,6 +277,7 @@
     </v-card>
   </v-dialog>
 
+
   <v-dialog v-model="showSeuilDialog" max-width="1200px" scrollable>
     <v-card v-if="currentSeuil">
       <v-card-title class="text-h5 pa-4">
@@ -286,16 +287,9 @@
       <v-card-text class="pa-4">
         <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :typesPM="typesPM"
           :consumables="consumables" :existing-p-ms="existingPMs" :types-documents="typesDocuments"
-          :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="false" @save="handleFormSave" />
+          :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="true" @save="handleFormSave" />
       </v-card-text>
       <v-divider></v-divider>
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="closeSeuilDialog">Annuler</v-btn>
-        <v-btn color="primary" :loading="saving" @click="handleFormSave({ pmMode: 'new', selectedExistingPMId: null })">
-          {{ currentSeuil.id ? "Enregistrer les modifications" : "Créer le seuil" }}
-        </v-btn>
-      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
@@ -577,11 +571,9 @@ const editSeuil = (seuil) => {
       })) || [],
     documents:
       pm?.documents?.map((d) => ({
-        document_id: d.id,
-        nom: d.nom || d.nomDocument || d.titre,
-        type_id: d.type_id ?? d.typeDocument_id ?? d.type,
+        nom: d.nomDocument || d.nom,
+        type_id: d.typeDocument?.id || d.type_id,
         file: null,
-        existingFileName: d.chemin || d.path || null,
       })) || [],
     seuil: {
       derniereIntervention: seuil.derniereIntervention || 0,
@@ -673,9 +665,15 @@ const detectCounterChanges = () => {
 };
 
 const handleFormSave = (data) => {
-  // Stocker les données du formulaire pour saveSeuil
+  
   currentPlan.value.pmMode = data.pmMode;
-  currentPlan.value.selectedExistingPMId = data.selectedExistingPMId;
+  
+  // Si un PM existant est sélectionné
+  if (data.pmMode === 'existing' && data.selectedExistingPMId) {
+    currentPlan.value.id = data.selectedExistingPMId;
+    console.log("PM existant sélectionné, ID:", data.selectedExistingPMId);
+  }
+  
   saveSeuil();
 };
 
@@ -708,6 +706,7 @@ const saveSeuil = async () => {
       const seuilDiff = diffObjects(initialSeuilSnapshot.value, currentPlan.value.seuil);
 
       const planDiff = diffObjects(initialPlanSnapshot.value, {
+        id: currentPlan.value.id,
         nom: currentPlan.value.nom,
         type_id: currentPlan.value.type_id,
         description: currentPlan.value.description,
@@ -723,10 +722,13 @@ const saveSeuil = async () => {
       formData.append("seuil_id", currentSeuil.value.id);
 
       /* fichiers uniquement si modifiés */
-      (currentPlan.value.documents || []).forEach((doc, index) => {
-        if (doc?.file instanceof File) {
-          formData.append(`document_${index}`, doc.file);
-        }
+      const docsAvecFichier = currentPlan.value.documents.filter(
+        (d) => d.file instanceof File
+      );
+      console.log("Changements détectés pour le seuil :", seuilDiff);
+
+      docsAvecFichier.forEach((doc, index) => {
+        formData.append(`document_${index}`, doc.file);
       });
 
       await api.patch(`declenchements/${currentSeuil.value.id}/`, formData);
@@ -759,6 +761,7 @@ const saveSeuil = async () => {
       );
 
       const planMaintenance = {
+        id: currentPlan.value.id,
         nom: currentPlan.value.nom,
         type_id: currentPlan.value.type_id,
         commentaire: currentPlan.value.description,

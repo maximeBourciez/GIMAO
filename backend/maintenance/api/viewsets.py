@@ -922,8 +922,6 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Utilise le serializer détaillé pour retrieve"""
-        if self.action == 'retrieve':
-            return PlanMaintenanceDetailSerializer
         return PlanMaintenanceSerializer
 
     @action(detail=False, methods=['get'])

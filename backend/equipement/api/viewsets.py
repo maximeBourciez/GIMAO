@@ -1150,15 +1150,24 @@ class DeclenchementViewSet(viewsets.ModelViewSet):
                 type=plan_data.get('type', 'Général')
             )
 
-        # Créer le plan de maintenance
-        plan = PlanMaintenance.objects.create(
-            equipement=compteur.equipement,
-            nom=plan_data.get('nom') or f"Plan {compteur.nomCompteur}",
-            type_plan_maintenance_id=plan_data.get('type_id') or plan_data.get('type'),
-            commentaire=plan_data.get('description') or plan_data.get('commentaire', ''),
-            necessiteHabilitationElectrique=bool(plan_data.get('necessiteHabilitationElectrique', False)),
-            necessitePermisFeu=bool(plan_data.get('necessitePermisFeu', False))
-        )
+        pm_id = plan_data.get('id') or plan_data.get('planMaintenanceId')
+        plan = None
+        if pm_id:
+            try:
+                plan = PlanMaintenance.objects.get(id=pm_id)
+            except PlanMaintenance.DoesNotExist:
+                return Response({'error': 'Plan de maintenance introuvable'}, status=status.HTTP_404_NOT_FOUND)
+        
+        else :
+            # Créer le plan de maintenance
+            plan = PlanMaintenance.objects.create(
+                equipement=compteur.equipement,
+                nom=plan_data.get('nom') or f"Plan {compteur.nomCompteur}",
+                type_plan_maintenance_id=plan_data.get('type_id') or plan_data.get('type'),
+                commentaire=plan_data.get('description') or plan_data.get('commentaire', ''),
+                necessiteHabilitationElectrique=bool(plan_data.get('necessiteHabilitationElectrique', False)),
+                necessitePermisFeu=bool(plan_data.get('necessitePermisFeu', False))
+            )
 
         # Créer le déclencheur (seuil)
         derniere = seuil.get('derniereIntervention') or seuil.get('derniereintervention') or 0

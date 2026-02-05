@@ -490,15 +490,12 @@ const selectedCounterType = computed(() => {
   if (plan.value.compteurIndex === null || plan.value.compteurIndex === undefined)
     return "";
   const counter = props.counters[plan.value.compteurIndex];
-  console.log("Selected counter index:", plan.value.compteurIndex);
-  console.log("Counter found:", counter);
-  console.log("Selected counter type:", counter?.type);
   return counter?.type ?? "";
 });
 
-const selectedExistingPM = computed(() =>
-  props.existingPMs.find((pm) => pm.id === selectedExistingPMId.value)
-);
+const selectedExistingPM = computed(() =>{
+  return props.existingPMs.find((pm) => pm.id === selectedExistingPMId.value);
+});
 
 const getPMTypeLabel = (typeId) => {
   const type = props.typesPM.find((t) => t.id === typeId);
@@ -529,20 +526,43 @@ const isValid = computed(() => {
 });
 
 const applyExistingPMToPlan = (pm) => {
+  console.log("Applying existing PM to plan. PM data:", pm);
   if (!pm) return;
-
-  plan.value = {
-    ...plan.value,
-    nom: pm.nom ?? plan.value.nom,
-    type_id: pm.type_id ?? pm.type ?? plan.value.type_id,
-    description: pm.description ?? pm.commentaire ?? plan.value.description,
-    necessiteHabilitationElectrique: !!pm.necessiteHabilitationElectrique,
-    necessitePermisFeu: !!pm.necessitePermisFeu,
-    consommables: Array.isArray(pm.consommables)
-      ? pm.consommables.map((c) => ({ ...c }))
-      : [],
-    documents: Array.isArray(pm.documents) ? pm.documents.map((d) => ({ ...d })) : [],
-  };
+  
+  console.log("Plan avant application:", plan.value);
+  console.log("PM sélectionné:", pm);
+  
+  // ✅ NE PAS réassigner plan.value directement
+  // Modifier les propriétés une par une pour garder la réactivité
+  
+  plan.value.id = pm.id;
+  plan.value.nom = pm.nom ?? plan.value.nom;
+  plan.value.type_id = pm.type_id ?? pm.type ?? plan.value.type_id;
+  plan.value.description = pm.description ?? pm.commentaire ?? plan.value.description;
+  plan.value.necessiteHabilitationElectrique = !!pm.necessiteHabilitationElectrique;
+  plan.value.necessitePermisFeu = !!pm.necessitePermisFeu;
+  
+  // Consommables
+  plan.value.consommables = Array.isArray(pm.consommables)
+    ? pm.consommables.map((c) => ({
+        consommable_id: c.consommable_id || c.id,
+        quantite_necessaire: c.quantite_necessaire || c.quantite || 1
+      }))
+    : [];
+  
+  // Documents
+  plan.value.documents = Array.isArray(pm.documents)
+    ? pm.documents.map((d) => ({
+        nom: d.nomDocument || d.nom || d.titre,
+        type_id: d.typeDocument_id || d.type_id || d.type,
+        file: null
+      }))
+    : [];
+  
+  // ⚠️ IMPORTANT : Conserver seuil et compteurIndex
+  // Ne pas écraser ces valeurs !
+  
+  console.log("Plan après application:", plan.value);
 };
 
 watch(pmMode, (mode) => {
@@ -550,17 +570,16 @@ watch(pmMode, (mode) => {
   if (mode !== "existing") {
     selectedExistingPMId.value = null;
     return;
-  }
-  if (selectedExistingPM.value) {
-    applyExistingPMToPlan(selectedExistingPM.value);
-  }
+  } 
 });
 
 watch(selectedExistingPMId, () => {
   localError.value = "";
   if (!props.showPmSelection) return;
   if (pmMode.value !== "existing") return;
-  if (!selectedExistingPM.value) return;
+  if (!selectedExistingPM.value) {
+    return
+  };
   applyExistingPMToPlan(selectedExistingPM.value);
 });
 
@@ -631,15 +650,24 @@ const removeConsommable = (index) => {
 };
 
 const handleSave = () => {
+  console.log("Attempting to save plan:", plan.value);
   if (!isValid.value) {
     localError.value =
       "Veuillez remplir tous les champs obligatoires (nom, type et compteur)";
     return;
   }
   localError.value = "";
-  emit("save", {
+
+  console.log("Saving plan with data:", {
     pmMode: pmMode.value,
     selectedExistingPMId: selectedExistingPMId.value,
+    planData: plan.value,
+  });
+  
+  emit("save", {
+    pmMode: pmMode.value,
+    selectedExistingPMId: selectedExistingPMId.value,  // Utilisez directement l'ID
+    planData: plan.value,
   });
 };
 
