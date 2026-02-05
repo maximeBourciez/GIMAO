@@ -128,9 +128,13 @@ const save = async () => {
             successMessage.value = 'Consommable modifié avec succès'
             emit('updated', response)
         } else {
-            response = await api.post('consommables/', formDataToSend, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            })
+            // Pour déboguer FormData, il faut itérer dessus
+            for (let [key, value] of formDataToSend.entries()) {
+                console.log(`${key}:`, value);
+            }
+            
+            // Ne PAS définir manuellement 'multipart/form-data', axios le fait automatiquement avec le bon boundary
+            response = await api.post('consommables/', formDataToSend)
             successMessage.value = 'Consommable créé avec succès'
             emit('created', response)
         }

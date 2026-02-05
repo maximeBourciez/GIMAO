@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 from django.contrib.auth.hashers import make_password, check_password
 
 class Role(models.Model):
@@ -169,6 +170,12 @@ class Log(models.Model):
         blank=True,
         related_name="logs",
         help_text="Utilisateur qui a effectué l'action"
+    )
+    group = models.UUIDField(
+        null=True,
+        blank=True,
+        editable=False,
+        help_text="Identifiant unique du groupe de logs (lié à une requête)"
     )
 
     def __str__(self):

@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import axios from "axios";
+import store from '../store';
 
 const API_BASE_URL = "/api/";
 
@@ -67,6 +68,19 @@ export function useApi(config = null) {
    * @param {Object} options - Options supplémentaires (ex: headers)
    */
   const post = async (endpoint, payload, options = {}) => {
+    // Gestion spécifique pour FormData
+    if (payload instanceof FormData) {
+      if (!payload.has('user') && !payload.has('user_id') && !payload.has('utilisateur')) {
+        const userId = store.getters.currentUser?.id;
+        if (userId) payload.append('user', userId);
+      }
+    } else {
+      // Gestion pour JSON standard
+      if (!(payload.user || payload.user_id || payload.utilisateur || payload.utilisateur_id)) {
+        const userId = store.getters.currentUser?.id;
+        if (userId) payload.user = userId;
+      }
+    }
     return await fetch(endpoint, { method: "POST", data: payload, ...options });
   };
 
@@ -77,6 +91,17 @@ export function useApi(config = null) {
    * @param {Object} options - Options supplémentaires (ex: headers)
    */
   const put = async (endpoint, payload, options = {}) => {
+    if (payload instanceof FormData) {
+      if (!payload.has('user') && !payload.has('user_id') && !payload.has('utilisateur')) {
+        const userId = store.getters.currentUser?.id;
+        if (userId) payload.append('user', userId);
+      }
+    } else {
+      if (!(payload.user || payload.user_id || payload.utilisateur || payload.utilisateur_id)) {
+        const userId = store.getters.currentUser?.id;
+        if (userId) payload.user = userId;
+      }
+    }
     return await fetch(endpoint, { method: "PUT", data: payload, ...options });
   };
 
@@ -86,6 +111,17 @@ export function useApi(config = null) {
    * @param {Object} payload - Données à mettre à jour
    */
   const patch = async (endpoint, payload) => {
+    if (payload instanceof FormData) {
+      if (!payload.has('user') && !payload.has('user_id') && !payload.has('utilisateur')) {
+        const userId = store.getters.currentUser?.id;
+        if (userId) payload.append('user', userId);
+      }
+    } else {
+      if (!(payload.user || payload.user_id || payload.utilisateur || payload.utilisateur_id)) {
+        const userId = store.getters.currentUser?.id;
+        if (userId) payload.user = userId;
+      }
+    }
     return await fetch(endpoint, { method: "PATCH", data: payload });
   };
 

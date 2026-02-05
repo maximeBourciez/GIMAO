@@ -35,46 +35,16 @@ from maintenance.models import (
     BonTravailDocument,
 )
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
+from gimao.viewsets import GimaoModelViewSet
 
 
-class EquipementViewSet(viewsets.ModelViewSet):
+class EquipementViewSet(GimaoModelViewSet):
     queryset = Equipement.objects.all()
 
     def get_serializer_class(self):
         if self.action == 'create':
             return EquipementCreateSerializer
         return EquipementSerializer
-
-    def _get_utilisateur(self, request):
-        """Récupère l'utilisateur à partir de la requête"""
-        if hasattr(request, 'user') and request.user.is_authenticated:
-            try:
-                return Utilisateur.objects.get(user=request.user)
-            except Utilisateur.DoesNotExist:
-                return None
-        return None
-
-    def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur):
-        """Crée une entrée de log"""
-        
-        def make_serializable(obj):
-            if isinstance(obj, Decimal):
-                return str(obj)
-            if isinstance(obj, (datetime.datetime, datetime.date)):
-                return obj.isoformat()
-            if isinstance(obj, dict):
-                return {k: make_serializable(v) for k, v in obj.items()}
-            if isinstance(obj, list):
-                return [make_serializable(v) for v in obj]
-            return obj
-
-        Log.objects.create(
-            type=type_action,
-            nomTable=nom_table,
-            idCible=make_serializable(id_cible),
-            champsModifies=make_serializable(champs_modifies),
-            utilisateur=utilisateur
-        )
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -109,8 +79,15 @@ class EquipementViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         # Récupération de l'utilisateur créateur
-        # Priorité: utilisateur authentifié > createurEquipement fourni dans data
-        utilisateur = self._get_utilisateur(request)
+        utilisateur = None
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            try:
+                utilisateur = Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
+                if not utilisateur and hasattr(request.user, 'utilisateur'):
+                     utilisateur = request.user.utilisateur
+            except:
+                pass
+        
         if not utilisateur and "createurEquipement" in data and data["createurEquipement"]:
             try:
                 utilisateur = Utilisateur.objects.get(id=data["createurEquipement"])
@@ -253,16 +230,6 @@ class EquipementViewSet(viewsets.ModelViewSet):
                     document=document
                 )
 
-        # Log de création
-        utilisateur = self._get_utilisateur(request)
-        self._create_log_entry(
-            type_action='création',
-            nom_table='equipement',
-            id_cible={'equipement_id': equipement.id},
-            champs_modifies={'equipement_created': True},
-            utilisateur=utilisateur
-        )
-
         return Response(
             EquipementSerializer(equipement).data,
             status=status.HTTP_201_CREATED
@@ -327,7 +294,6 @@ class EquipementViewSet(viewsets.ModelViewSet):
         Mise à jour d'un équipement - seulement les changements sont envoyés
         """
         equipement = self.get_object()
-        utilisateur = self._get_utilisateur(request)
         
         # -------------------------
         # Récupération des données
@@ -362,36 +328,27 @@ class EquipementViewSet(viewsets.ModelViewSet):
         # -------------------------
         # Traitement des modifications
         # -------------------------
-        modifications_appliquees = {}
 
         # 1. Mise à jour des champs simples de l'équipement
         simple_fields = ['numSerie', 'reference', 'designation', 'dateMiseEnService', 
                         'prixAchat', 'modeleEquipement', 'fournisseur', 'fabricant', 
                         'famille', 'lieu', 'statut']
         
+        has_updates = False
+
         for field in simple_fields:
             if field in changes:
                 modification = changes[field]
-                ancien = modification.get('ancienne')
                 nouveau = modification.get('nouvelle')
                 
                 if field == 'lieu' and isinstance(nouveau, dict):
-                    print(nouveau)
                     nouveau = nouveau.get('id')
                 
                 # Appliquer la modification
                 if field == 'lieu' and nouveau:
                     try:
-                        lieu = Lieu.objects.get(id=nouveau)
-                        equipement.lieu = lieu
-                        self._create_log_entry(
-                            type_action='modification',
-                            nom_table='equipement',
-                            id_cible={'equipement_id': equipement.id},
-                            champs_modifies={field: {'ancien': ancien, 'nouveau': nouveau}},
-                            utilisateur=utilisateur
-                        )
-                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                        equipement.lieu = Lieu.objects.get(id=nouveau)
+                        has_updates = True
                     except Lieu.DoesNotExist:
                         pass
                 
@@ -405,43 +362,32 @@ class EquipementViewSet(viewsets.ModelViewSet):
                             statut=nouveau,
                             dateChangement=timezone.now()
                         )
-                        self._create_log_entry(
-                            type_action='modification',
-                            nom_table='statut_equipement',
-                            id_cible={'equipement_id': equipement.id},
-                            champs_modifies={field: {'ancien': ancien, 'nouveau': nouveau}},
-                            utilisateur=utilisateur
-                        )
                 
                 elif field == 'modeleEquipement' and nouveau:
                     try:
-                        modele = ModeleEquipement.objects.get(id=nouveau)
-                        equipement.modele = modele
-                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                        equipement.modele = ModeleEquipement.objects.get(id=nouveau)
+                        has_updates = True
                     except ModeleEquipement.DoesNotExist:
                         pass
                 
                 elif field == 'fabricant' and nouveau:
                     try:
-                        fabricant = Fabricant.objects.get(id=nouveau)
-                        equipement.fabricant = fabricant
-                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                        equipement.fabricant = Fabricant.objects.get(id=nouveau)
+                        has_updates = True
                     except Fabricant.DoesNotExist:
                         pass
                 
                 elif field == 'fournisseur' and nouveau:
                     try:
-                        fournisseur = Fournisseur.objects.get(id=nouveau)
-                        equipement.fournisseur = fournisseur
-                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                        equipement.fournisseur = Fournisseur.objects.get(id=nouveau)
+                        has_updates = True
                     except Fournisseur.DoesNotExist:
                         pass
                 
                 elif field == 'famille' and nouveau:
                     try:
-                        famille = FamilleEquipement.objects.get(id=nouveau)
-                        equipement.famille = famille
-                        modifications_appliquees[field] = {'ancien': ancien, 'nouveau': nouveau}
+                        equipement.famille = FamilleEquipement.objects.get(id=nouveau)
+                        has_updates = True
                     except FamilleEquipement.DoesNotExist:
                         pass
                 
@@ -449,86 +395,39 @@ class EquipementViewSet(viewsets.ModelViewSet):
                     ancien_val = getattr(equipement, field, None)
                     if str(ancien_val) != str(nouveau):
                         setattr(equipement, field, nouveau)
-                        modifications_appliquees[field] = {'ancien': ancien_val, 'nouveau': nouveau}
+                        has_updates = True
 
         # 2. Consommables
         if 'consommables' in changes:
             modification = changes['consommables']
-            old_consommables = set(equipement.constituer_set.values_list('consommable_id', flat=True))
-            new_consommables = set(modification.get('nouvelle', []))
             
             # Détecter les ajouts et suppressions
             ajoutes = modification.get('ajoutes', [])
             retires = modification.get('retires', [])
             
             if ajoutes or retires:
-                # Supprimer
                 if retires:
                     equipement.constituer_set.filter(consommable_id__in=retires).delete()
-
-                    self._create_log_entry(
-                        type_action='suppression',
-                        nom_table='constituer',
-                        id_cible={'equipement_id': equipement.id},
-                        champs_modifies={'consommables_retires': retires},
-                        utilisateur=utilisateur
-                    )
                 
-                # Ajouter
                 for consommable_id in ajoutes:
                     Constituer.objects.create(
                         equipement=equipement,
                         consommable_id=consommable_id
                     )
-                
-                if(len(ajoutes) > 0):
-                    self._create_log_entry(
-                        type_action='ajout',
-                        nom_table='constituer',
-                        id_cible={'equipement_id': equipement.id},
-                        champs_modifies={'consommables_ajoutes': ajoutes},
-                        utilisateur=utilisateur
-                    )
 
-        # 3. Gestion des fichiers d'image de l'équipement
+        # 3. Image
         if 'lienImageEquipement' in request.FILES:
             uploaded_file = request.FILES['lienImageEquipement']
-            # Supprimer l'ancienne image si elle existe
-            print(f"Ancienne image: {equipement.lienImage}")
-            print(f"Nouvelle image: {uploaded_file}")
             if equipement.lienImage:
                 try:
                     equipement.lienImage.delete(save=False)
                 except:
                     pass
-            
-            # Sauvegarder la nouvelle image
             equipement.lienImage = uploaded_file
-            modifications_appliquees['lienImageEquipement'] = 'updated'
-            self._create_log_entry(
-                type_action='modification',
-                nom_table='equipement',
-                id_cible={'equipement_id': equipement.id},
-                champs_modifies={'lienImageEquipement': 'updated'},
-                utilisateur=utilisateur
-            )
+            has_updates = True
 
-        # Sauvegarder l'équipement si des modifications ont été faites
-        if modifications_appliquees:
+        if has_updates:
             equipement.save()
-            print(f"Équipement {equipement.id} sauvegardé avec modifications: {modifications_appliquees}")
-
-        # -------------------------
-        # Log des modifications
-        # -------------------------
-        if modifications_appliquees:
-            self._create_log_entry(
-                type_action='modification',
-                nom_table='equipement',
-                id_cible={'equipement_id': equipement.id},
-                champs_modifies=modifications_appliquees,
-                utilisateur=utilisateur
-            )
 
         return Response(
             EquipementSerializer(equipement).data,
@@ -771,17 +670,17 @@ class EquipementViewSet(viewsets.ModelViewSet):
 
 
 
-class StatutEquipementViewSet(viewsets.ModelViewSet):
+class StatutEquipementViewSet(GimaoModelViewSet):
     queryset = StatutEquipement.objects.all()
     serializer_class = StatutEquipementSerializer
 
 
-class ConstituerViewSet(viewsets.ModelViewSet):
+class ConstituerViewSet(GimaoModelViewSet):
     queryset = Constituer.objects.all()
     serializer_class = ConstituerSerializer
 
 
-class ModeleEquipementViewSet(viewsets.ModelViewSet):
+class ModeleEquipementViewSet(GimaoModelViewSet):
     queryset = ModeleEquipement.objects.all()
     serializer_class = ModeleEquipementSerializer
 
@@ -837,22 +736,6 @@ class ModeleEquipementViewSet(viewsets.ModelViewSet):
         changes = data
         print(f"Changes : {changes}")
         
-        # Récupérer l'utilisateur
-        user_id = changes.get('user')
-        if not user_id:
-            return Response(
-                {"error": "User ID is required"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            utilisateur = Utilisateur.objects.get(id=user_id)
-            print(f"Utilisateur trouvé : {utilisateur.id}")
-        except Utilisateur.DoesNotExist:
-            return Response(
-                {"error": "User not found"}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
         
         # Mise à jour des champs du modèle
         if 'nom' in changes:
@@ -865,13 +748,6 @@ class ModeleEquipementViewSet(viewsets.ModelViewSet):
                 
                 if str(old_value) != str(nouvelle_valeur):
                     modele.nom = nouvelle_valeur
-                    Log.objects.create(
-                        type='modification',
-                        nomTable='modele_equipement',
-                        idCible={'modele_equipement_id': modele.id},
-                        champsModifies={'nom': {'ancien': ancienne_valeur, 'nouveau': nouvelle_valeur}},
-                        utilisateur=utilisateur
-                    )
 
         
         if 'fabricant' in changes:
@@ -884,13 +760,6 @@ class ModeleEquipementViewSet(viewsets.ModelViewSet):
                 
                 if old_value != nouvelle_valeur:
                     modele.fabricant_id = nouvelle_valeur
-                    Log.objects.create(
-                        type='modification',
-                        nomTable='modele_equipement',
-                        idCible={'modele_equipement_id': modele.id},
-                        champsModifies={'fabricant': {'ancien': ancienne_valeur, 'nouveau': nouvelle_valeur}},
-                        utilisateur=utilisateur
-                    )
         
         # Vérifier s'il y a eu des changements (excluant 'user')
         has_changes = any(key in changes for key in ['nom', 'fabricant'])
@@ -904,7 +773,7 @@ class ModeleEquipementViewSet(viewsets.ModelViewSet):
         )
 
 
-class CompteurViewSet(viewsets.ModelViewSet):
+class CompteurViewSet(GimaoModelViewSet):
     queryset = Compteur.objects.all()
     serializer_class = CompteurSerializer
 
@@ -990,24 +859,6 @@ class CompteurViewSet(viewsets.ModelViewSet):
         compteur = self.get_object()
         print(f"Data reçue pour mise à jour du compteur {compteur.id} : {changes}")    
 
-        # Récupérer l'utilisateur
-        user_id = changes.get('user')
-        utilisateur = None
-        if not user_id:
-            return Response(
-                {"error": "User ID is required"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-            try:
-                utilisateur = Utilisateur.objects.get(id=user_id)
-                print(f"Utilisateur trouvé : {utilisateur.id}")
-            except Utilisateur.DoesNotExist:
-                return Response(
-                    {"error": "User not found"}, 
-                    status=status.HTTP_404_NOT_FOUND
-                )    
-
         if len(changes.keys()) == 0:
             return Response(
                 {"message": "Aucune modification détectée."},
@@ -1039,14 +890,6 @@ class CompteurViewSet(viewsets.ModelViewSet):
 
                         setattr(compteur, model_field, nouvelle_valeur)
                         
-                        # Créer une entrée de log pour chaque champ modifié
-                        self._create_log_entry(
-                            type_action='modification',
-                            nom_table='compteur',
-                            id_cible={'id': compteur.id},
-                            champs_modifies={field: {'ancien': ancienne_valeur, 'nouveau': nouvelle_valeur}},
-                            utilisateur=utilisateur
-                        )
 
         compteur.save()
         return Response(
@@ -1054,18 +897,9 @@ class CompteurViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
     
-    def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur):
-        """Crée une entrée de log"""
-        Log.objects.create(
-            type=type_action,
-            nomTable=nom_table,
-            idCible=id_cible,
-            champsModifies=champs_modifies,
-            utilisateur=utilisateur
-        )
 
 
-class FamilleEquipementViewSet(viewsets.ModelViewSet):
+class FamilleEquipementViewSet(GimaoModelViewSet):
     queryset = FamilleEquipement.objects.all()
     serializer_class = FamilleEquipementSerializer
 
@@ -1087,7 +921,7 @@ class EquipementAffichageViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 
-class DeclenchementViewSet(viewsets.ModelViewSet):
+class DeclenchementViewSet(GimaoModelViewSet):
     """ ViewSet pour les seuils (declenchement): création/modification """
 
     queryset = Declencher.objects.all()
