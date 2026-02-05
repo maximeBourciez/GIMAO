@@ -13,6 +13,7 @@ from equipement.models import Equipement
 from utilisateur.models import Utilisateur, Log
 from stock.models import Consommable
 from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
+from gimao.viewsets import GimaoModelViewSet
 
 
 
@@ -37,9 +38,10 @@ from maintenance.api.serializers import (
     PlanMaintenanceDetailSerializer,
     PlanMaintenanceConsommableSerializer
 )
+from gimao.viewsets import GimaoModelViewSet
 
 
-class DemandeInterventionViewSet(viewsets.ModelViewSet):
+class DemandeInterventionViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les demandes d'intervention.
     
@@ -166,26 +168,6 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             )
             
         demande.documents.remove(document_id)
-
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        Log.objects.create(
-            type='archivage',
-            nomTable='demande_intervention',
-            idCible={'demande_intervention_id': demande.id},
-            champsModifies={
-                'documents': {
-                    'valArchivage': {
-                        'document_id': int(document_id),
-                    }
-                }
-            },
-            utilisateur_id=utilisateur_id,
-        )
         
         # On utilise le serializer détaillé pour renvoyer la liste des documents mise à jour
         serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
@@ -220,25 +202,6 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         before_documents = list(demande.documents.order_by('id').values_list('id', flat=True))
         demande.documents.add(document_id)
         after_documents = list(demande.documents.order_by('id').values_list('id', flat=True))
-
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        Log.objects.create(
-            type='modification',
-            nomTable='demande_intervention',
-            idCible={'demande_intervention_id': demande.id},
-            champsModifies={
-                'documents': {
-                    'ancien': before_documents,
-                    'nouveau': after_documents,
-                }
-            },
-            utilisateur_id=utilisateur_id,
-        )
 
         serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -532,7 +495,7 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             raise
 
 
-class BonTravailViewSet(viewsets.ModelViewSet):
+class BonTravailViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les bons de travail.
     
@@ -552,35 +515,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     ).prefetch_related('utilisateur_assigne', 'documents', 'demande_intervention__documents')
     serializer_class = BonTravailSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
-
-    def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
-        """Crée une entrée de log"""
-        Log.objects.create(
-            type=type_action,
-            nomTable=nom_table,
-            idCible=id_cible,
-            champsModifies=champs_modifies,
-            utilisateur_id=utilisateur_id
-        )
-
-    def _build_champs_modifies(self, bon_avant, bon_apres, fields):
-        def _to_json_value(value):
-            if value is None:
-                return None
-            if hasattr(value, 'isoformat'):
-                return value.isoformat()
-            return value
-
-        champs = {}
-        for field in fields:
-            avant = getattr(bon_avant, field, None)
-            apres = getattr(bon_apres, field, None)
-            if avant != apres:
-                champs[field] = {
-                    'ancien': _to_json_value(avant),
-                    'nouveau': _to_json_value(apres)
-                }
-        return champs
 
     def _get_consommables_state(self, bon_travail_id):
         return list(
@@ -788,19 +722,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             if not demande.nom:
                 raise ValidationError({'nom': 'Le nom est requis'})
 
-            Log.objects.create(
-                type='creation',
-                nomTable='demande_intervention',
-                idCible={'demande_intervention_id': demande.id},
-                champsModifies={
-                    'nom': {'valCreation': demande.nom},
-                    'commentaire': {'valCreation': demande.commentaire},
-                    'statut': {'valCreation': demande.statut},
-                    'equipement_id': {'valCreation': demande.equipement_id},
-                    'utilisateur_id': {'valCreation': utilisateur.id},
-                },
-                utilisateur_id=utilisateur.id,
-            )
 
             # Créer BT via serializer (validation + sync consommables)
             bt_payload = {
@@ -858,61 +779,17 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                 )
                 created_files.append(document.cheminAcces.name)
 
-                Log.objects.create(
-                    type='creation',
-                    nomTable='document',
-                    idCible={'document_id': document.id},
-                    champsModifies={
-                        'nomDocument': {'valCreation': document.nomDocument},
-                        'typeDocument_id': {'valCreation': document.typeDocument_id},
-                        'cheminAcces': {'valCreation': getattr(document.cheminAcces, 'name', None)},
-                    },
-                    utilisateur_id=utilisateur.id,
-                )
 
                 BonTravailDocument.objects.create(
                     bon_travail=bon,
                     document=document,
                 )
 
-                Log.objects.create(
-                    type='creation',
-                    nomTable='bon_travail_document',
-                    idCible={'bon_travail_id': bon.id, 'document_id': document.id},
-                    champsModifies={
-                        'bon_travail_id': {'valCreation': bon.id},
-                        'document_id': {'valCreation': document.id},
-                    },
-                    utilisateur_id=utilisateur.id,
-                )
 
             # Refresh pour cohérence réponse
             bon.refresh_from_db()
             response_data = BonTravailDetailSerializer(bon, context={'request': request}).data
 
-            # Log création (même format que create())
-            champs_modifies = {
-                'nom': {'valCreation': response_data.get('nom')},
-                'type': {'valCreation': response_data.get('type')},
-                'diagnostic': {'valCreation': response_data.get('diagnostic')},
-                'commentaire': {'valCreation': response_data.get('commentaire')},
-                'statut': {'valCreation': response_data.get('statut')},
-                'date_prevue': {'valCreation': response_data.get('date_prevue')},
-                'date_assignation': {'valCreation': response_data.get('date_assignation')},
-                'demande_intervention_id': {'valCreation': response_data.get('demande_intervention')},
-                'responsable_id': {'valCreation': bon.responsable_id},
-                'utilisateur_assigne_ids': {'valCreation': self._get_utilisateur_assigne_ids(bon)},
-                'consommables': {'valCreation': self._get_consommables_state(bon.id)},
-                'documents': {'valCreation': self._get_documents_state(bon.id)},
-            }
-
-            self._create_log_entry(
-                type_action='creation',
-                nom_table='bon_travail',
-                id_cible={'bon_travail_id': bon.id},
-                champs_modifies=champs_modifies,
-                utilisateur_id=utilisateur.id,
-            )
 
             return Response(response_data, status=status.HTTP_201_CREATED)
         except Exception:
@@ -948,35 +825,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         response_serializer = self.get_serializer(bon)
         bon_data = response_serializer.data
-        champs_modifies = {
-            'nom': {'valCreation': bon_data.get('nom')},
-            'type': {'valCreation': bon_data.get('type')},
-            'diagnostic': {'valCreation': bon_data.get('diagnostic')},
-            'commentaire': {'valCreation': bon_data.get('commentaire')},
-            'statut': {'valCreation': bon_data.get('statut')},
-            'date_prevue': {'valCreation': bon_data.get('date_prevue')},
-            'date_assignation': {'valCreation': bon_data.get('date_assignation')},
-            'demande_intervention_id': {'valCreation': bon_data.get('demande_intervention')},
-            'responsable_id': {'valCreation': bon.responsable_id},
-            'utilisateur_assigne_ids': {'valCreation': self._get_utilisateur_assigne_ids(bon)},
-            'consommables': {'valCreation': self._get_consommables_state(bon.id)},
-            'documents': {'valCreation': self._get_documents_state(bon.id)},
-        }
 
-        # Qui a effectué l'action ? (fallbacks)
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        self._create_log_entry(
-            type_action='creation',
-            nom_table='bon_travail',
-            id_cible={'bon_travail_id': bon.id},
-            champs_modifies=champs_modifies,
-            utilisateur_id=utilisateur_id
-        )
 
         return Response(bon_data, status=status.HTTP_201_CREATED)
 
@@ -1046,20 +895,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             bon.statut = new_statut
 
         bon.save()
-
-        champs_modifies = self._build_champs_modifies(
-            bon_avant,
-            bon,
-            fields=['statut', 'date_debut', 'date_fin', 'date_cloture', 'commentaire_refus_cloture']
-        )
-        if champs_modifies:
-            self._create_log_entry(
-                type_action='modification',
-                nom_table='bon_travail',
-                id_cible=bon.id,
-                champs_modifies=champs_modifies,
-                utilisateur_id=utilisateur_id
-            )
 
         serializer = self.get_serializer(bon)
         return Response(serializer.data)
@@ -1249,24 +1084,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                             if uploaded_file is not None and new_name:
                                 new_file_names_to_delete_on_error.append(new_name)
 
-                            after = {
-                                'nomDocument': document.nomDocument,
-                                'typeDocument_id': document.typeDocument_id,
-                                'cheminAcces': getattr(document.cheminAcces, 'name', None),
-                            }
-
-                            if before != after:
-                                Log.objects.create(
-                                    type='modification',
-                                    nomTable='document',
-                                    idCible={'document_id': document.id},
-                                    champsModifies={
-                                        'nomDocument': {'ancien': before['nomDocument'], 'nouveau': after['nomDocument']},
-                                        'typeDocument_id': {'ancien': before['typeDocument_id'], 'nouveau': after['typeDocument_id']},
-                                        'cheminAcces': {'ancien': before['cheminAcces'], 'nouveau': after['cheminAcces']},
-                                    },
-                                    utilisateur_id=utilisateur_id,
-                                )
                         continue
 
                     # Nouveau document
@@ -1284,29 +1101,8 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                     if new_name:
                         new_file_names_to_delete_on_error.append(new_name)
 
-                    Log.objects.create(
-                        type='creation',
-                        nomTable='document',
-                        idCible={'document_id': document.id},
-                        champsModifies={
-                            'nomDocument': {'valCreation': document.nomDocument},
-                            'typeDocument_id': {'valCreation': document.typeDocument_id},
-                            'cheminAcces': {'valCreation': getattr(document.cheminAcces, 'name', None)},
-                        },
-                        utilisateur_id=utilisateur_id,
-                    )
 
                     BonTravailDocument.objects.create(bon_travail=bon_apres, document=document)
-                    Log.objects.create(
-                        type='creation',
-                        nomTable='bon_travail_document',
-                        idCible={'bon_travail_id': bon_apres.id, 'document_id': document.id},
-                        champsModifies={
-                            'bon_travail_id': {'valCreation': bon_apres.id},
-                            'document_id': {'valCreation': document.id},
-                        },
-                        utilisateur_id=utilisateur_id,
-                    )
 
             # Supprimer les anciens fichiers uniquement après commit
             if old_file_names_to_delete_on_commit:
@@ -1322,37 +1118,11 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             # Recharger après documents
             bon_apres = BonTravail.objects.get(pk=instance.pk)
 
-            champs_modifies = {}
-
-            direct_fields = [
-                'nom',
-                'diagnostic',
-                'type',
-                'date_assignation',
-                'date_prevue',
-                'date_cloture',
-                'date_debut',
-                'date_fin',
-                'statut',
-                'commentaire',
-                'commentaire_refus_cloture',
-            ]
-            fields_to_check = [field for field in direct_fields if field in data]
-            if fields_to_check:
-                champs_modifies.update(self._build_champs_modifies(bon_avant, bon_apres, fields=fields_to_check))
-
-            if 'responsable_id' in data and bon_avant.responsable_id != bon_apres.responsable_id:
-                champs_modifies['responsable_id'] = {
-                    'ancien': bon_avant.responsable_id,
-                    'nouveau': bon_apres.responsable_id,
-                }
 
             if 'utilisateur_assigne_ids' in data:
                 avant_ids = avant_assigne_ids
                 apres_ids = list(bon_apres.utilisateur_assigne.values_list('id', flat=True))
                 if sorted(avant_ids) != sorted(apres_ids):
-                    old_date_assignation = bon_avant.date_assignation
-
                     # Si on change les assignés, on (re)met la date d'assignation à maintenant
                     # (uniquement si au moins un assigné est présent après la modif)
                     if bon_apres.utilisateur_assigne.exists():
@@ -1361,42 +1131,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                         # Recharge pour garantir l'état DB (et avoir la valeur exacte renvoyée)
                         bon_apres = BonTravail.objects.get(pk=instance.pk)
 
-                    champs_modifies['utilisateur_assigne_ids'] = {
-                        'ancien': sorted(avant_ids),
-                        'nouveau': sorted(apres_ids),
-                    }
-
-                    # Ajouter la date d'assignation aux champs modifiés uniquement si on l'a modifiée
-                    if bon_apres.utilisateur_assigne.exists() and bon_apres.date_assignation != old_date_assignation:
-                        champs_modifies['date_assignation'] = {
-                            'ancien': old_date_assignation.isoformat() if old_date_assignation else None,
-                            'nouveau': bon_apres.date_assignation.isoformat() if bon_apres.date_assignation else None,
-                        }
-
-            if 'consommables' in data or 'consommables_ids' in data:
-                apres_consommables = self._get_consommables_state(bon_apres.id)
-                if avant_consommables != apres_consommables:
-                    champs_modifies['consommables'] = {
-                        'ancien': avant_consommables,
-                        'nouveau': apres_consommables,
-                    }
-
-            if documents_in_payload:
-                apres_documents = self._get_documents_state(bon_apres.id)
-                if avant_documents != apres_documents:
-                    champs_modifies['documents'] = {
-                        'ancien': avant_documents,
-                        'nouveau': apres_documents,
-                    }
-
-            if champs_modifies:
-                self._create_log_entry(
-                    type_action='modification',
-                    nom_table='bon_travail',
-                    id_cible={'bon_travail_id': bon_apres.id},
-                    champs_modifies=champs_modifies,
-                    utilisateur_id=utilisateur_id,
-                )
 
             serializer = self.get_serializer(bon_apres)
             return Response(serializer.data)
@@ -1450,24 +1184,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         bon.documents.remove(document_id)
 
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-        self._create_log_entry(
-            type_action='archivage',
-            nom_table='bon_travail',
-            id_cible={'bon_travail_id': bon.id},
-            champs_modifies={
-                'documents': {
-                    'valArchivage': {
-                        'document_id': int(document_id),
-                    }
-                }
-            },
-            utilisateur_id=utilisateur_id,
-        )
 
         serializer = BonTravailDetailSerializer(bon, context={'request': request})
         return Response(serializer.data)
@@ -1502,30 +1218,12 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         bon.documents.add(document_id)
         after_documents = self._get_documents_state(bon.id)
 
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        self._create_log_entry(
-            type_action='modification',
-            nom_table='bon_travail',
-            id_cible={'bon_travail_id': bon.id},
-            champs_modifies={
-                'documents': {
-                    'ancien': before_documents,
-                    'nouveau': after_documents,
-                },
-            },
-            utilisateur_id=utilisateur_id,
-        )
 
         serializer = BonTravailDetailSerializer(bon, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
+class TypePlanMaintenanceViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les types de plans de maintenance.
     
@@ -1540,7 +1238,7 @@ class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
     serializer_class = TypePlanMaintenanceSerializer
 
 
-class PlanMaintenanceViewSet(viewsets.ModelViewSet):
+class PlanMaintenanceViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les plans de maintenance.
     
@@ -1760,7 +1458,8 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
             seuil_data = {}
         
         plan = self.get_object()
-        modifications_log = {}  # Pour regrouper toutes les modifications
+        plan = self.get_object()
+        has_changes = False  # Pour regrouper toutes les modifications
         
         # 1. Mettre à jour les champs simples du plan de maintenance
         simple_fields = ['nom', 'commentaire', 'necessiteHabilitationElectrique', 
@@ -1772,10 +1471,9 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                 new_value = data[field]
                 if old_value != new_value:
                     setattr(plan, field, new_value)
-                    modifications_log[field] = {
-                        'old': old_value,
-                        'new': new_value
-                    }
+                if old_value != new_value:
+                    setattr(plan, field, new_value)
+                    has_changes = True
         
         # 2. Gérer les modifications détectées depuis le frontend
         if changes:
@@ -1804,24 +1502,14 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                         
                         if old_value != new_value:
                             setattr(plan, field_name, new_value)
-                            modifications_log[field_name] = {
-                                'old': old_value,
-                                'new': new_value
-                            }
+                        if old_value != new_value:
+                            setattr(plan, field_name, new_value)
+                            has_changes = True
         
         # Sauvegarder les modifications du plan
-        if modifications_log:
+        # Sauvegarder les modifications du plan
+        if has_changes:
             plan.save()
-            
-            # Créer un seul log pour toutes les modifications du plan
-            Log.objects.create(
-                utilisateur=request.user,
-                type_action='MODIFICATION',
-                idCible=plan.id,
-                champs_modifies=modifications_log,
-                date_action=timezone.now(),
-                modele_cible='PlanMaintenance'
-            )
         
         # 3. Mettre à jour les consommables si nécessaire
         if changes and 'planMaintenance.consommables' in changes:
@@ -1842,19 +1530,6 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                     consommable_id=cons.get('consommable_id'),
                     quantite_necessaire=cons.get('quantite', 1)
                 )
-            
-            # Log pour les consommables
-            Log.objects.create(
-                utilisateur=request.user,
-                type_action='MODIFICATION',
-                idCible=plan.id,
-                champs_modifies={'consommables': {
-                    'old': old_consommables,
-                    'new': new_consommables
-                }},
-                date_action=timezone.now(),
-                modele_cible='PlanMaintenance'
-            )
         
         # 4. Mettre à jour le déclenchement associé
         try:
@@ -1865,7 +1540,7 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                 declencher = Declencher.objects.filter(planMaintenance=plan).first()
                 
                 if declencher:
-                    declencher_modifications = {}
+                    declencher_has_changes = False
                     
                     # Mettre à jour les champs du déclenchement
                     fields_to_update = ['derniereIntervention', 'prochaineMaintenance', 
@@ -1877,43 +1552,19 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                             new_value = seuil_data[field]
                             if old_value != new_value:
                                 setattr(declencher, field, new_value)
-                                declencher_modifications[field] = {
-                                    'old': old_value,
-                                    'new': new_value
-                                }
+                            if old_value != new_value:
+                                setattr(declencher, field, new_value)
+                                declencher_has_changes = True
                     
                     # Sauvegarder les modifications du déclenchement
-                    if declencher_modifications:
+                    if declencher_has_changes:
                         declencher.save()
-                        
-                        # Log pour le déclenchement
-                        Log.objects.create(
-                            utilisateur=request.user,
-                            type_action='MODIFICATION',
-                            idCible=declencher.id,
-                            champs_modifies=declencher_modifications,
-                            date_action=timezone.now(),
-                            modele_cible='Declencher'
-                        )
                     
                     # Mettre à jour le compteur si changement
                     compteur_id = seuil_data.get('compteurId')
                     if compteur_id and declencher.compteur_id != compteur_id:
-                        old_compteur = declencher.compteur_id
                         declencher.compteur_id = compteur_id
                         declencher.save()
-                        
-                        Log.objects.create(
-                            utilisateur=request.user,
-                            type_action='MODIFICATION',
-                            idCible=declencher.id,
-                            champs_modifies={'compteur_id': {
-                                'old': old_compteur,
-                                'new': compteur_id
-                            }},
-                            date_action=timezone.now(),
-                            modele_cible='Declencher'
-                        )
         
         except Exception as e:
             print(f"Erreur lors de la mise à jour du déclenchement: {e}")
@@ -1952,19 +1603,6 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                         plan_maintenance=plan,
                         document=document
                     )
-                
-                # Log pour l'ajout de documents
-                if uploaded_files:
-                    Log.objects.create(
-                        utilisateur=request.user,
-                        type_action='AJOUT_DOCUMENTS',
-                        idCible=plan.id,
-                        champs_modifies={
-                            'documents_ajoutes': len(uploaded_files)
-                        },
-                        date_action=timezone.now(),
-                        modele_cible='PlanMaintenance'
-                    )
         
         except Exception as e:
             print(f"Erreur lors de la création des documents: {e}")
@@ -1973,7 +1611,7 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class PlanMaintenanceConsommableViewSet(viewsets.ModelViewSet):
+class PlanMaintenanceConsommableViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les associations consommables/plans de maintenance.
     
