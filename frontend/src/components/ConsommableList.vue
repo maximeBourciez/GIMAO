@@ -5,7 +5,7 @@
       <v-col cols="12">
         <!-- Statistiques en haut -->
         <StockStatistics 
-          :consommables="consommables" 
+          :consommables="filteredConsommables" 
           :selectedFilter="selectedStockFilter"
           @filter-change="selectedStockFilter = $event"
           class="mb-4" 
