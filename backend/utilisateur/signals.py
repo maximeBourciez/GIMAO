@@ -1,6 +1,7 @@
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.forms.models import model_to_dict
+from django.db.models.fields.files import FieldFile
 from decimal import Decimal
 import datetime
 import json
@@ -12,6 +13,8 @@ def make_serializable(obj):
         return str(obj)
     if isinstance(obj, (datetime.datetime, datetime.date)):
         return obj.isoformat()
+    if isinstance(obj, FieldFile):
+        return obj.name
     if isinstance(obj, dict):
         return {k: make_serializable(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -95,11 +98,24 @@ def log_save(sender, instance, created, **kwargs):
         except:
              pass
 
+    # Enrich idCible with FKs for association tables
+    id_cible = {'id': instance.pk}
+    for field in sender._meta.fields:
+        if field.is_relation and field.many_to_one and field.concrete:
+            try:
+                val = getattr(instance, field.attname)
+                if val is not None:
+                    id_cible[field.name] = make_serializable(val) # field.name is cleaner than attname (usually field_id)
+            except:
+                pass
+
     try:
+        if id_cible is None:
+            print("WARNING: id_cible is None; user id not send or not found")
         Log.objects.create(
             type=action,
             nomTable=sender._meta.db_table or sender._meta.model_name,
-            idCible={'id': instance.pk},
+            idCible=id_cible,
             champsModifies=champs_modifies,
             utilisateur=app_user
         )
@@ -119,11 +135,22 @@ def log_delete(sender, instance, **kwargs):
         elif hasattr(django_user, 'username'):
              app_user = Utilisateur.objects.filter(nomUtilisateur=django_user.username).first()
 
+    # Enrich idCible with FKs
+    id_cible = {'id': instance.pk}
+    for field in sender._meta.fields:
+        if field.is_relation and field.many_to_one and field.concrete:
+             try:
+                 val = getattr(instance, field.attname)
+                 if val is not None:
+                     id_cible[field.name] = make_serializable(val)
+             except:
+                 pass
+
     try:
         Log.objects.create(
             type='suppression',
             nomTable=sender._meta.db_table or sender._meta.model_name,
-            idCible={'id': instance.pk},
+            idCible=id_cible,
             champsModifies={'deleted': True},
             utilisateur=app_user
         )
