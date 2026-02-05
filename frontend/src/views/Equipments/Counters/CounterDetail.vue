@@ -702,6 +702,7 @@ const saveSeuil = async () => {
     const formData = new FormData();
 
     if (isEditSeuil.value) {
+
       const seuilDiff = diffObjects(initialSeuilSnapshot.value, currentPlan.value.seuil);
 
       const planDiff = diffObjects(initialPlanSnapshot.value, {
@@ -723,6 +724,7 @@ const saveSeuil = async () => {
       const docsAvecFichier = currentPlan.value.documents.filter(
         (d) => d.file instanceof File
       );
+      console.log("Changements détectés pour le seuil :", seuilDiff);
 
       docsAvecFichier.forEach((doc, index) => {
         formData.append(`document_${index}`, doc.file);
