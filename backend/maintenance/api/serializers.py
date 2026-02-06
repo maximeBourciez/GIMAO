@@ -282,6 +282,8 @@ class BonTravailListStockSerializer(serializers.ModelSerializer):
             'statut',
             'commentaire',
             'commentaire_refus_cloture',
+            'pieces_recuperees',
+            'date_recuperation',
             'documentsBT',
             'documentsDI',
             'consommables',

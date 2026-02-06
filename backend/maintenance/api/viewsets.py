@@ -1600,6 +1600,66 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None
         })
 
+    @action(detail=True, methods=['patch'])
+    def cancel_mise_de_cote(self, request, pk=None):
+        bon = self.get_object()
+
+        BonTravailConsommable.objects.filter(bon_travail=bon).update(
+            estConfirme=False,
+            date_confirme=None
+        )
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        self._create_log_entry(
+            type_action='modification',
+            nom_table='bon_travail',
+            id_cible={'bon_travail_id': bon.id},
+            champs_modifies={
+                'consommables': {
+                    'valModification': 'annulation_mise_de_cote',
+                }
+            },
+            utilisateur_id=utilisateur_id,
+        )
+
+        return Response({'ok': True})
+
+    @action(detail=True, methods=['patch'])
+    def set_recupere(self, request, pk=None):
+        bon = self.get_object()
+        recupere = request.data.get('recupere', True)
+
+        bon.pieces_recuperees = bool(recupere)
+        bon.date_recuperation = timezone.now() if bon.pieces_recuperees else None
+        bon.save(update_fields=['pieces_recuperees', 'date_recuperation'])
+
+        utilisateur_id = (
+            request.data.get('user')
+            or request.data.get('utilisateur_id')
+            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
+        )
+
+        self._create_log_entry(
+            type_action='modification',
+            nom_table='bon_travail',
+            id_cible={'bon_travail_id': bon.id},
+            champs_modifies={
+                'pieces_recuperees': {'nouveau': bon.pieces_recuperees},
+                'date_recuperation': {'nouveau': bon.date_recuperation.isoformat() if bon.date_recuperation else None},
+            },
+            utilisateur_id=utilisateur_id,
+        )
+
+        return Response({
+            'pieces_recuperees': bon.pieces_recuperees,
+            'date_recuperation': bon.date_recuperation.isoformat() if bon.date_recuperation else None,
+        })
+
 
 class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
     """

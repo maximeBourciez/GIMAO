@@ -37,6 +37,16 @@ urlpatterns = [
         BonTravailViewSet.as_view({'patch': 'update_consommable_distribution'}),
         name='bon-travail-update-consommable-distribution-direct',
     ),
+    path(
+        'api/bons-travail/<int:pk>/cancel_mise_de_cote/',
+        BonTravailViewSet.as_view({'patch': 'cancel_mise_de_cote'}),
+        name='bon-travail-cancel-mise-de-cote-direct',
+    ),
+    path(
+        'api/bons-travail/<int:pk>/set_recupere/',
+        BonTravailViewSet.as_view({'patch': 'set_recupere'}),
+        name='bon-travail-set-recupere-direct',
+    ),
     path('api/', include('equipement.api.urls')),
     path('api/', include('maintenance.api.urls')),
     path('api/', include('utilisateur.api.urls')),

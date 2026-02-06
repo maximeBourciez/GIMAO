@@ -83,6 +83,16 @@ class BonTravail(models.Model):
     )
     commentaire = models.TextField(blank=True, null=True)
     commentaire_refus_cloture = models.TextField(blank=True, null=True)
+
+    pieces_recuperees = models.BooleanField(
+        default=False,
+        help_text="Indique si toutes les pieces ont ete recuperees pour ce BT"
+    )
+    date_recuperation = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Date a laquelle les pieces ont ete recuperees"
+    )
     
     # Relations
     demande_intervention = models.ForeignKey(

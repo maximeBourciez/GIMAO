@@ -56,7 +56,7 @@
           @counts-updated="handleBtCountsUpdated"
         />
         <div class="text-caption text-grey mt-2">
-          BT complets: {{ btCompletedCount }}
+          BT mis de cote: {{ btCompletedCount }}
         </div>
       </v-col>
     </v-row>
@@ -283,9 +283,9 @@ const handleCancelFilter = () => {
   showMagasinFilterDialog.value = false;
 };
 
-const handleBtCountsUpdated = ({ pending, completed }) => {
+const handleBtCountsUpdated = ({ pending, completed, reserved }) => {
   btPendingCount.value = pending ?? 0;
-  btCompletedCount.value = completed ?? 0;
+  btCompletedCount.value = (reserved ?? completed) ?? 0;
 };
 
 onMounted(() => {
