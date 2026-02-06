@@ -699,7 +699,7 @@ onMounted(() => {
     if (selectedCounterType.value === "Calendaire") {
       
       // Convertir derniereIntervention (ordinal → ISO string)
-      if (plan.value.seuil.derniereIntervention) {
+      if (plan.value.seuil.derniereIntervention && typeof plan.value.seuil.derniereIntervention === "number") {
         plan.value.seuil.derniereIntervention = ordinalToISOString(
           plan.value.seuil.derniereIntervention
         );
@@ -707,7 +707,7 @@ onMounted(() => {
 
       
       const currentVal = props.counters[plan.value.compteurIndex]?.valeurCourante;
-      if (!plan.value.seuil.derniereIntervention && currentVal !== undefined && currentVal !== null) {
+      if (!plan.value.seuil.derniereIntervention && currentVal !== undefined && currentVal !== null && typeof currentVal === "number") {
         const n = Number(currentVal);
         if (!isNaN(n)) {
           plan.value.seuil.derniereIntervention = ordinalToISOString(n);
@@ -715,7 +715,7 @@ onMounted(() => {
       }
       
       // Convertir prochaineMaintenance aussi
-      if (plan.value.seuil.prochaineMaintenance) {
+      if (plan.value.seuil.prochaineMaintenance && typeof plan.value.seuil.prochaineMaintenance === "number") {
         plan.value.seuil.prochaineMaintenance = ordinalToISOString(
           plan.value.seuil.prochaineMaintenance
         );

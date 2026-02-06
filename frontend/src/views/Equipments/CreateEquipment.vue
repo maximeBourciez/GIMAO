@@ -125,7 +125,7 @@
                               <v-row dense>
                                 <v-col cols="6" md="3">
                                   <div class="text-caption text-grey">Valeur courante</div>
-                                  <div class="text-body-1">{{ compteur.valeurCourante }} {{ compteur.type !== 'Calendaire' ? compteur.unite : '' }}</div>
+                                  <div class="text-body-1">{{ compteur.type === 'Calendaire' ? ordinalToDate(compteur.valeurCourante) : compteur.valeurCourante }} {{ compteur.type !== 'Calendaire' ? compteur.unite : '' }}</div>
                                 </v-col>
                                 <v-col cols="6" md="3">
                                   <div class="text-caption text-grey">Unité</div>
@@ -419,7 +419,8 @@ const {
   handleLocationCreated,
   getEmptyCounter,
   api,
-  router
+  router,
+  ordinalToDate,
 } = useEquipmentForm();
 
 const step = ref(1);
