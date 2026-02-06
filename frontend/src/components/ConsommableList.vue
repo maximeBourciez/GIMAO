@@ -50,7 +50,14 @@
 
       <!-- Colonne BT en attente (50%) -->
       <v-col cols="12" lg="6">
-        <BTStockValidation ref="btStockValidationRef" @count-updated="btPendingCount = $event" />
+        <BTStockValidation
+          ref="btStockValidationRef"
+          @count-updated="btPendingCount = $event"
+          @counts-updated="handleBtCountsUpdated"
+        />
+        <div class="text-caption text-grey mt-2">
+          BT complets: {{ btCompletedCount }}
+        </div>
       </v-col>
     </v-row>
 
@@ -146,6 +153,7 @@ const showMagasinFilterDialog = ref(false);
 const showMagasinFormDialog = ref(false);
 const magasinToEdit = ref(null);
 const btPendingCount = ref(0);
+const btCompletedCount = ref(0);
 const btStockValidationRef = ref(null);
 
 const consommables = computed(() => consommablesApi.data.value || []);
@@ -273,6 +281,11 @@ const handleMagasinUpdated = async () => {
 const handleCancelFilter = () => {
   selectedMagasin.value = null;
   showMagasinFilterDialog.value = false;
+};
+
+const handleBtCountsUpdated = ({ pending, completed }) => {
+  btPendingCount.value = pending ?? 0;
+  btCompletedCount.value = completed ?? 0;
 };
 
 onMounted(() => {

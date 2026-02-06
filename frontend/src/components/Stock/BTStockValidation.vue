@@ -4,7 +4,7 @@
       BT en attente de validation
     </v-card-title>
     <v-card-subtitle class="pb-3">
-      {{ bonsWithPendingConsommables.length }} bon(s) de travail en attente de validation
+      {{ pendingBons.length }} en attente, {{ completedBons.length }} complets
     </v-card-subtitle>
 
     <v-card-text class="pt-0">
@@ -15,7 +15,7 @@
 
       <!-- Liste vide -->
       <v-alert 
-        v-else-if="bonsWithPendingConsommables.length === 0" 
+        v-else-if="pendingBons.length === 0 && completedBons.length === 0" 
         type="success" 
         variant="tonal"
         icon="mdi-check-circle"
@@ -25,29 +25,34 @@
 
       <!-- Liste des BT -->
       <div v-else class="bt-list">
-        <v-expansion-panels variant="accordion">
+        <div v-if="pendingBons.length > 0">
+          <div class="section-title">En attente</div>
+          <v-expansion-panels variant="accordion">
           <v-expansion-panel
-            v-for="bt in bonsWithPendingConsommables"
+            v-for="bt in pendingBons"
             :key="bt.id"
             class="bt-item mb-2"
             elevation="0"
           >
             <v-expansion-panel-title class="py-3">
-              <div class="d-flex align-center flex-grow-1">
-                <v-icon color="primary" size="20" class="mr-3">mdi-wrench</v-icon>
-                <div class="bt-info">
-                  <span class="bt-name">{{ bt.nom }}</span>
-                  <span class="bt-date">Date: {{ formatDate(bt.date_assignation) }}</span>
-                </div>
-                <v-chip 
-                  size="small" 
-                  color="primary" 
-                  variant="tonal"
-                  class="ml-auto mr-2"
-                >
-                  {{ getPendingCount(bt) }} consomable(s)
-                </v-chip>
-              </div>
+              <v-row no-gutters align="center" class="w-100">
+                <v-col cols="8" class="d-flex align-center">
+                  <v-icon color="primary" size="20" class="mr-3">mdi-wrench</v-icon>
+                  <div class="bt-info">
+                    <span class="bt-name">{{ bt.nom }}</span>
+                    <span class="bt-date">Date: {{ formatDate(bt.date_assignation) }}</span>
+                  </div>
+                </v-col>
+                <v-col cols="4" class="text-right">
+                  <v-chip 
+                    size="small" 
+                    color="primary" 
+                    variant="tonal"
+                  >
+                    {{ getPendingCount(bt) }} consomable(s)
+                  </v-chip>
+                </v-col>
+              </v-row>
             </v-expansion-panel-title>
 
             <v-expansion-panel-text>
@@ -57,35 +62,41 @@
                   :key="cons.consommable"
                   class="consommable-item px-0"
                 >
-                  <template #prepend>
-                    <v-avatar size="36" rounded="lg" class="mr-3">
-                      <v-img 
-                        v-if="cons.image" 
-                        :src="cons.image" 
-                        cover
-                      />
-                      <v-icon v-else color="grey">mdi-package-variant</v-icon>
-                    </v-avatar>
-                  </template>
-
                   <v-list-item-title class="text-body-2">
                     {{ cons.designation }}
                   </v-list-item-title>
                   <v-list-item-subtitle class="text-caption">
-                    Quantité demandée : {{ cons.quantite }}
+                    Quantite demandee : {{ cons.quantite }}
                   </v-list-item-subtitle>
 
+                  <template #prepend>
+                    <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
+                  </template>
+
                   <template #append>
-                    <v-btn
-                      color="success"
-                      size="small"
-                      variant="tonal"
-                      :loading="distributingId === `${bt.id}-${cons.consommable}`"
-                      @click="handleDistribute(bt, cons)"
-                    >
-                      <v-icon size="18" class="mr-1">mdi-check</v-icon>
-                      Distribuer
-                    </v-btn>
+                    <div class="d-flex align-center ga-2">
+                      <v-btn
+                        v-if="!isDistributed(cons)"
+                        color="warning"
+                        size="small"
+                        variant="tonal"
+                        :loading="distributingId === `${bt.id}-${cons.consommable}`"
+                        @click="requestDistribute(bt, cons)"
+                      >
+                        <v-icon size="18" class="mr-1">mdi-truck-delivery</v-icon>
+                        Distribuer
+                      </v-btn>
+                      <v-btn
+                        v-else
+                        color="success"
+                        size="small"
+                        variant="outlined"
+                        disabled
+                      >
+                        <v-icon size="18" class="mr-1">mdi-check</v-icon>
+                        Distribue
+                      </v-btn>
+                    </div>
                   </template>
                 </v-list-item>
               </v-list>
@@ -105,40 +116,147 @@
               </div>
             </v-expansion-panel-text>
           </v-expansion-panel>
-        </v-expansion-panels>
+          </v-expansion-panels>
+        </div>
+
+        <div v-if="completedBons.length > 0" class="mt-4">
+          <div class="section-title">Tout distribue</div>
+          <v-expansion-panels variant="accordion">
+            <v-expansion-panel
+              v-for="bt in completedBons"
+              :key="bt.id"
+              class="bt-item mb-2"
+              elevation="0"
+            >
+            <v-expansion-panel-title class="py-3">
+              <v-row no-gutters align="center" class="w-100">
+                <v-col cols="8" class="d-flex align-center">
+                  <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
+                  <div class="bt-info">
+                    <span class="bt-name">{{ bt.nom }}</span>
+                    <span class="bt-date">Date: {{ formatDate(bt.date_assignation) }}</span>
+                  </div>
+                </v-col>
+                <v-col cols="4" class="text-right">
+                  <v-chip 
+                    size="small" 
+                    color="success" 
+                    variant="tonal"
+                  >
+                    Toutes pieces distribuees
+                  </v-chip>
+                </v-col>
+              </v-row>
+            </v-expansion-panel-title>
+
+              <v-expansion-panel-text>
+                <v-list density="compact" class="py-0">
+                  <v-list-item
+                    v-for="cons in getAllConsommables(bt)"
+                    :key="cons.consommable"
+                    class="consommable-item px-0"
+                  >
+                  <v-list-item-title class="text-body-2">
+                    {{ cons.designation }}
+                  </v-list-item-title>
+                    <v-list-item-subtitle class="text-caption">
+                      Quantite demandee : {{ cons.quantite }}
+                    </v-list-item-subtitle>
+                  <template #prepend>
+                    <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
+                  </template>
+                  </v-list-item>
+                </v-list>
+              </v-expansion-panel-text>
+            </v-expansion-panel>
+          </v-expansion-panels>
+        </div>
       </div>
     </v-card-text>
   </v-card>
+
+  <ConfirmationModal
+    v-model="confirmDialog"
+    type="warning"
+    title="Confirmer la distribution"
+    message="Etes-vous sur de vouloir marquer ce consommable comme distribue ?"
+    confirm-text="Distribuer"
+    confirm-icon="mdi-check"
+    :loading="confirmLoading"
+    @confirm="confirmDistribute"
+    @cancel="confirmDialog = false"
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 
 const api = useApi(API_BASE_URL);
-const emit = defineEmits(['count-updated']);
+const emit = defineEmits(['count-updated', 'counts-updated']);
 
 const bonsTravail = ref([]);
 const loading = ref(false);
 const distributingId = ref(null);
 const distributingAll = ref(null);
+const confirmDialog = ref(false);
+const confirmLoading = ref(false);
+const pendingAction = ref({ bt: null, cons: null });
 
 // Filtrer les BT qui ont des consommables non distribués
-const bonsWithPendingConsommables = computed(() => {
-  return bonsTravail.value.filter(bt => 
-    bt.consommables?.some(c => !c.distribue)
-  );
+const pendingBons = computed(() => {
+  return bonsTravail.value.filter(bt => {
+    const hasConsommables = (bt.consommables || []).length > 0;
+    return hasConsommables && bt.consommables.some(c => !isDistributed(c));
+  });
+});
+
+const completedBons = computed(() => {
+  return bonsTravail.value.filter(bt => {
+    const hasConsommables = (bt.consommables || []).length > 0;
+    return hasConsommables && bt.consommables.every(c => isDistributed(c));
+  });
 });
 
 // Émettre le count quand il change
-watch(bonsWithPendingConsommables, (newVal) => {
-  emit('count-updated', newVal.length);
+watch([pendingBons, completedBons], ([pending, completed]) => {
+  emit('count-updated', pending.length);
+  emit('counts-updated', { pending: pending.length, completed: completed.length });
 }, { immediate: true });
 
 // Récupérer les consommables non distribués d'un BT
 const getPendingConsommables = (bt) => {
-  return bt.consommables?.filter(c => !c.distribue) || [];
+  return bt.consommables?.filter(c => !isDistributed(c)) || [];
+};
+
+const getAllConsommables = (bt) => {
+  return bt.consommables || [];
+};
+
+const isDistributed = (cons) => {
+  return cons?.distribue === true || cons?.distribue === 1 || cons?.distribue === 'true';
+};
+
+const requestDistribute = (bt, cons) => {
+  pendingAction.value = { bt, cons };
+  confirmDialog.value = true;
+};
+
+const confirmDistribute = async () => {
+  if (!pendingAction.value.bt || !pendingAction.value.cons) {
+    confirmDialog.value = false;
+    return;
+  }
+  confirmLoading.value = true;
+  try {
+    await handleDistribute(pendingAction.value.bt, pendingAction.value.cons);
+  } finally {
+    confirmLoading.value = false;
+    confirmDialog.value = false;
+    pendingAction.value = { bt: null, cons: null };
+  }
 };
 
 // Compter les pièces en attente
@@ -230,6 +348,15 @@ onMounted(() => {
   overflow-y: auto;
 }
 
+.section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
 .bt-item {
   border: 1px solid #E5E7EB;
   border-radius: 8px !important;
@@ -271,3 +398,5 @@ onMounted(() => {
   border-top: 1px solid #E5E7EB;
 }
 </style>
+
+
