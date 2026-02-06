@@ -1263,8 +1263,6 @@ class PlanMaintenanceViewSet(GimaoModelViewSet):
 
     def get_serializer_class(self):
         """Utilise le serializer détaillé pour retrieve"""
-        if self.action == 'retrieve':
-            return PlanMaintenanceDetailSerializer
         return PlanMaintenanceSerializer
 
     @action(detail=False, methods=['get'])
@@ -1281,7 +1279,7 @@ class PlanMaintenanceViewSet(GimaoModelViewSet):
             )
         
         plans = self.queryset.filter(equipement_id=equipement_id)
-        serializer = self.get_serializer(plans, many=True)
+        serializer = self.get_serializer_class()(plans, many=True)
         return Response(serializer.data)
 
     @transaction.atomic

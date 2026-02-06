@@ -4,7 +4,7 @@
 			v-for="(doc, index) in documents"
 			:key="index"
 			dense
-			class="mb-3"
+			class="mb-2"
 		>
 			<v-col cols="12" md="3">
 				<FormField
@@ -55,12 +55,8 @@
 
 		<v-row dense>
 			<v-col cols="12">
-				<v-btn
-					color="primary"
-					variant="text"
-					prepend-icon="mdi-plus"
-					@click="addDocument"
-				>
+				<v-btn variant="outlined" color="primary" size="small" @click="addDocument">
+					<v-icon left>mdi-plus</v-icon>
 					Ajouter un document
 				</v-btn>
 			</v-col>
@@ -83,7 +79,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, provide, ref } from 'vue';
+import { computed, provide, ref } from 'vue';
 import { FormField, FormSelect, FormFileInput } from '@/components/common';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
@@ -110,12 +106,7 @@ const EMPTY_ROW = {
 	existingFileName: null
 };
 
-const normalize = (value) => {
-	const base = Array.isArray(value) ? value : [];
-	return base.length ? base : [EMPTY_ROW];
-};
-
-const documents = computed(() => normalize(props.modelValue));
+const documents = computed(() => (Array.isArray(props.modelValue) ? props.modelValue : []));
 
 // Fonction isFieldRequired personnalisée pour gérer les fichiers existants
 const isFieldRequired = (fieldName) => {
@@ -140,20 +131,15 @@ const isFieldRequired = (fieldName) => {
 // Fournir isFieldRequired aux composants enfants
 provide('isFieldRequired', isFieldRequired);
 
-onMounted(() => {
-	if (!Array.isArray(props.modelValue) || props.modelValue.length === 0) {
-		emit('update:modelValue', [EMPTY_ROW]);
-	}
-});
-
 const updateDocument = (index, patch) => {
-	const current = normalize(props.modelValue);
+	const current = Array.isArray(props.modelValue) ? props.modelValue : [];
+	if (index < 0 || index >= current.length) return;
 	const next = current.map((doc, i) => (i === index ? { ...doc, ...patch } : doc));
 	emit('update:modelValue', next);
 };
 
 const addDocument = () => {
-	const current = normalize(props.modelValue);
+	const current = Array.isArray(props.modelValue) ? props.modelValue : [];
 	emit('update:modelValue', [...current, { ...EMPTY_ROW }]);
 };
 
@@ -162,7 +148,8 @@ const deletingDoc = ref(false);
 const indexToDelete = ref(null);
 
 const openDeleteModal = (index) => {
-	const current = normalize(props.modelValue);
+	const current = Array.isArray(props.modelValue) ? props.modelValue : [];
+	if (index < 0 || index >= current.length) return;
 	const doc = current[index];
 	
 	// Si c'est un document existant (avec ID), on ouvre la modale
@@ -172,7 +159,7 @@ const openDeleteModal = (index) => {
 	} else {
 		// Sinon, on supprime directement la ligne vide
 		const next = current.filter((_, i) => i !== index);
-		emit('update:modelValue', next.length ? next : [{ ...EMPTY_ROW }]);
+		emit('update:modelValue', next);
 	}
 };
 
@@ -184,7 +171,12 @@ const cancelDelete = () => {
 const confirmDelete = async () => {
 	if (indexToDelete.value === null) return;
 	
-	const current = normalize(props.modelValue);
+	const current = Array.isArray(props.modelValue) ? props.modelValue : [];
+	if (indexToDelete.value < 0 || indexToDelete.value >= current.length) {
+		showDeleteModal.value = false;
+		indexToDelete.value = null;
+		return;
+	}
 	const doc = current[indexToDelete.value];
 	
 	// Si le document a un ID (document existant), on le supprime du backend
@@ -201,7 +193,7 @@ const confirmDelete = async () => {
 	}
 	
 	const next = current.filter((_, i) => i !== indexToDelete.value);
-	emit('update:modelValue', next.length ? next : [{ ...EMPTY_ROW }]);
+	emit('update:modelValue', next);
 	
 	showDeleteModal.value = false;
 	indexToDelete.value = null;

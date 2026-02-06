@@ -27,18 +27,16 @@ from equipement.api.serializers import (
     DeclenchementSerializer
 )
 
-from maintenance.models import PlanMaintenance, PlanMaintenanceConsommable, PlanMaintenanceDocument
+from maintenance.models import (
+    PlanMaintenance,
+    PlanMaintenanceConsommable,
+    PlanMaintenanceDocument,
+    DemandeInterventionDocument,
+    BonTravailDocument,
+)
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
 from gimao.viewsets import GimaoModelViewSet
 
-
-import json
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from django.db import transaction
-from django.utils import timezone
-
-# Models et Serializers...
 
 class EquipementViewSet(GimaoModelViewSet):
     queryset = Equipement.objects.all()
@@ -52,6 +50,8 @@ class EquipementViewSet(GimaoModelViewSet):
     def create(self, request, *args, **kwargs):
         """Création d'un nouvel équipement"""
         data = dict(request.data)
+        print('Données de la requête de création d\'équipement:')
+        print(data)
         
         # Extraire les valeurs uniques des listes
         for key, value in data.items():
@@ -145,7 +145,7 @@ class EquipementViewSet(GimaoModelViewSet):
             compteur = Compteur.objects.create(
                 equipement=equipement,
                 nomCompteur=cp["nom"],
-                valeurCourante=cp.get("valeurCourante", 0),
+                valeurCourante=self.getFormattedCounterValue(cp),
                 unite=cp.get("unite", "heures"),
                 estPrincipal=cp.get("estPrincipal", False),
                 type=cp.get("type", "Général")
@@ -153,7 +153,7 @@ class EquipementViewSet(GimaoModelViewSet):
             compteurs_crees.append(compteur)
 
         # Créer les plans de maintenance (qui référencent les compteurs par index)
-        for pm_data in data.get("plansMaintenance", []):
+        for pm_index, pm_data in enumerate(data.get("plansMaintenance", [])):
             compteur_index = pm_data.get("compteurIndex")
             if compteur_index is None or compteur_index >= len(compteurs_crees):
                 continue
@@ -172,14 +172,7 @@ class EquipementViewSet(GimaoModelViewSet):
 
             # Créer le lien Declencher entre le compteur et le plan
             seuil = pm_data.get("seuil", {})
-            Declencher.objects.create(
-                compteur=compteur,
-                planMaintenance=plan,
-                derniereIntervention=seuil.get("derniereIntervention", 0),
-                ecartInterventions=seuil.get("ecartInterventions", 0),
-                prochaineMaintenance=seuil.get("prochaineMaintenance", 0),
-                estGlissant=seuil.get("estGlissant", False)
-            )
+            self.create_declencher(compteur, plan, seuil)
 
             # Consommables du plan
             for consommable_data in pm_data.get("consommables", []):
@@ -199,12 +192,101 @@ class EquipementViewSet(GimaoModelViewSet):
                         quantite_necessaire=quantite
                     )
 
+            # Documents du plan (upload via FormData)
+            documents_data = pm_data.get("documents", []) or []
+            for doc_index, doc_data in enumerate(documents_data):
+                file_key = f"pm_{pm_index}_document_{doc_index}"
+                uploaded_file = request.FILES.get(file_key)
+                if not uploaded_file:
+                    return Response(
+                        {"error": f"Fichier manquant pour le document #{doc_index + 1} (clé attendue: {file_key})"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                doc_data = doc_data or {}
+
+                nom_document = doc_data.get("titre")
+                if not nom_document:
+                    # fallback minimal : nom réel du fichier uploadé
+                    nom_document = uploaded_file.name
+
+                type_document_id = doc_data.get("type")
+                try:
+                    type_document_id = int(type_document_id)
+                except (TypeError, ValueError):
+                    return Response(
+                        {"error": f"Type de document invalide pour le document '{nom_document}'"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                document = Document.objects.create(
+                    nomDocument=nom_document,
+                    typeDocument_id=type_document_id,
+                    cheminAcces=uploaded_file
+                )
+
+                PlanMaintenanceDocument.objects.create(
+                    plan_maintenance=plan,
+                    document=document
+                )
+
         return Response(
             EquipementSerializer(equipement).data,
             status=status.HTTP_201_CREATED
         )
 
 
+    def getFormattedCounterValue(self, counter):
+        if counter["type"] == "Calendaire":
+            return self.formatFromDateToDays(counter["valeurCourante"])
+        else:
+            try:
+                return float(counter["valeurCourante"])
+            except ValueError:
+                return 0
+
+    
+    def create_declencher(self, compteur, plan, seuil_data):
+
+        est_glissant = seuil_data.get("estGlissant", False)
+
+        ecart = float(seuil_data.get("ecartInterventions", 0))
+        if compteur.type == 'Calendaire':
+            print("Création d'un seuil calendaire")
+            # Dates en jours
+            derniere = self.formatFromDateToDays(
+                seuil_data.get("derniereIntervention")
+            )
+
+            prochaine = self.formatFromDateToDays(
+                seuil_data.get("prochaineMaintenance")
+            )
+
+
+        else:
+            derniere = float(seuil_data.get("derniereIntervention", 0))
+            prochaine = derniere + ecart
+
+        Declencher.objects.create(
+            compteur=compteur,
+            planMaintenance=plan,
+            derniereIntervention=derniere,
+            prochaineMaintenance=prochaine,
+            ecartInterventions=ecart,
+            estGlissant=est_glissant
+        )
+
+
+    def formatFromDateToDays(self, date_str):
+        try:
+            date_value = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+            base_date = datetime.datetime(1, 1, 1)  # Date de référence
+            delta = date_value - base_date
+            print(f"Conversion de la date {date_str} en jours: {delta.days}")
+            return delta.days
+        except Exception:
+            print(f"Erreur de conversion de la date {date_str}, retour 0")
+            return 0
     
     @transaction.atomic
     def update(self, request, *args, **kwargs):
@@ -701,6 +783,8 @@ class CompteurViewSet(GimaoModelViewSet):
         try:
             # Parser les données JSON du compteur
             compteur_data = json.loads(request.data.get('compteur', '{}'))
+
+            print(f"Données reçues pour création compteur : {compteur_data}")
             
             # Vérifier que l'équipement est fourni
             equipement_id = compteur_data.get('equipement')
@@ -719,67 +803,28 @@ class CompteurViewSet(GimaoModelViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
             
+            # Traiter le cas ou on a une date
+            if compteur_data.get('type') == 'Calendaire' and 'valeurCourante' in compteur_data:
+                valeurCourante = self.formatFromDateToDays(compteur_data.get('valeurCourante'))
+            else:
+                # sinon convertir en nombre
+                try:
+                    valeurCourante = float(compteur_data.get('valeurCourante', 0))
+                except (ValueError, TypeError):
+                    valeurCourante = 0
+
+
+            
             # Créer le compteur
             compteur = Compteur.objects.create(
                 equipement=equipement,
                 nomCompteur=compteur_data.get('nom', ''),
-                valeurCourante=compteur_data.get('valeurCourante', 0),
+                valeurCourante=valeurCourante,
                 unite=compteur_data.get('unite', 'heures'),
                 estPrincipal=compteur_data.get('estPrincipal', False),
-                type=compteur_data.get('type', 'Général')
+                type=compteur_data.get('type', 'Numérique')
             )
-            
-            # Si un plan de maintenance est fourni, le créer
-            plan_data = compteur_data.get('planMaintenance')
-            if plan_data:
-                # Créer le plan de maintenance
-                plan = PlanMaintenance.objects.create(
-                    equipement=equipement,
-                    nom=plan_data.get('nom', f"Plan {compteur.nomCompteur}"),
-                    type_plan_maintenance_id=plan_data.get('type_id'),
-                    commentaire=plan_data.get('description', ''),
-                    necessiteHabilitationElectrique=plan_data.get('necessiteHabilitationElectrique', False),
-                    necessitePermisFeu=plan_data.get('necessitePermisFeu', False)
-                )
-                
-                # Créer le lien Declencher entre le compteur et le plan
-                Declencher.objects.create(
-                    compteur=compteur,
-                    planMaintenance=plan,
-                    derniereIntervention=compteur_data.get('derniereIntervention', 0),
-                    ecartInterventions=compteur_data.get('intervalle', 0),
-                    prochaineMaintenance=compteur_data.get('prochaineMaintenance', 0),
-                    estGlissant=plan_data.get('estGlissant', False)
-                )
-                
-                # Ajouter les consommables au plan
-                for consommable_id in plan_data.get('consommables', []):
-                    PlanMaintenanceConsommable.objects.create(
-                        plan_maintenance=plan,
-                        consommable_id=consommable_id,
-                        quantite_necessaire=1
-                    )
-                
-                # Gérer les documents
-                documents = plan_data.get('documents', [])
-                for doc_index, doc_data in enumerate(documents):
-                    # Récupérer le fichier uploadé depuis FormData
-                    file_key = f'document_{doc_index}'
-                    uploaded_file = request.FILES.get(file_key)
-                    
-                    if uploaded_file:
-                        # Créer le document
-                        document = Document.objects.create(
-                            nomDocument=doc_data.get('titre', uploaded_file.name),
-                            lienDocument=uploaded_file,
-                            typeDocument_id=doc_data.get('type')
-                        )
-                        
-                        # Lier le document au plan
-                        PlanMaintenanceDocument.objects.create(
-                            plan_maintenance=plan,
-                            document=document
-                        )
+
             
             # Retourner le compteur créé
             serializer = CompteurSerializer(compteur)
@@ -795,6 +840,17 @@ class CompteurViewSet(GimaoModelViewSet):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def formatFromDateToDays(self, date_str):
+        try:
+            date_value = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+            base_date = datetime.datetime(1, 1, 1)  # Date de référence
+            delta = date_value - base_date
+            print(f"Conversion de la date {date_str} en jours: {delta.days}")
+            return delta.days
+        except Exception:
+            print(f"Erreur de conversion de la date {date_str}, retour 0")
+            return 0
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
@@ -826,8 +882,12 @@ class CompteurViewSet(GimaoModelViewSet):
                 
                 if nouvelle_valeur is not None:
                     old_value = getattr(compteur, model_field)
+                    if field == 'valeurCourante' and compteur.type == 'Calendaire':
+                            # Convertir la date en jours
+                            nouvelle_valeur = self.formatFromDateToDays(nouvelle_valeur)
                     
-                    if str(old_value) != str(nouvelle_valeur):
+                    if str(old_value) != str(nouvelle_valeur):                       
+
                         setattr(compteur, model_field, nouvelle_valeur)
                         
 
@@ -873,6 +933,8 @@ class DeclenchementViewSet(GimaoModelViewSet):
         """ Creation d'un Seuil avec PM & compteur """
         # Récupération et normalisation des données
         data = dict(request.data)
+
+        print(f"Données reçues pour création déclenchement : {data}")
 
         # Extraire les valeurs uniques des listes (compatibilité FormData)
         for key, value in list(data.items()):
@@ -922,39 +984,41 @@ class DeclenchementViewSet(GimaoModelViewSet):
                 type=plan_data.get('type', 'Général')
             )
 
-        # Créer le plan de maintenance
-        plan = PlanMaintenance.objects.create(
-            equipement=compteur.equipement,
-            nom=plan_data.get('nom') or f"Plan {compteur.nomCompteur}",
-            type_plan_maintenance_id=plan_data.get('type_id') or plan_data.get('type'),
-            commentaire=plan_data.get('description') or plan_data.get('commentaire', ''),
-            necessiteHabilitationElectrique=bool(plan_data.get('necessiteHabilitationElectrique', False)),
-            necessitePermisFeu=bool(plan_data.get('necessitePermisFeu', False))
-        )
+        pm_id = plan_data.get('id') or plan_data.get('planMaintenanceId')
+        plan = None
+        if pm_id:
+            try:
+                plan = PlanMaintenance.objects.get(id=pm_id)
+            except PlanMaintenance.DoesNotExist:
+                return Response({'error': 'Plan de maintenance introuvable'}, status=status.HTTP_404_NOT_FOUND)
+        
+        else :
+            # Créer le plan de maintenance
+            plan = PlanMaintenance.objects.create(
+                equipement=compteur.equipement,
+                nom=plan_data.get('nom') or f"Plan {compteur.nomCompteur}",
+                type_plan_maintenance_id=plan_data.get('type_id') or plan_data.get('type'),
+                commentaire=plan_data.get('description') or plan_data.get('commentaire', ''),
+                necessiteHabilitationElectrique=bool(plan_data.get('necessiteHabilitationElectrique', False)),
+                necessitePermisFeu=bool(plan_data.get('necessitePermisFeu', False))
+            )
 
         # Créer le déclencheur (seuil)
         derniere = seuil.get('derniereIntervention') or seuil.get('derniereintervention') or 0
+        prochaine = seuil.get('prochaineMaintenance') or seuil.get('prochainemaintenance') or 0
         ecart = seuil.get('ecartInterventions') or seuil.get('intervalle') or 0
         est_glissant = seuil.get('estGlissant', False)
 
-        try:
-            derniere = int(float(derniere))
-        except Exception:
-            derniere = 0
-
-        try:
-            ecart = float(ecart)
-        except Exception:
-            ecart = 0
-
-        prochaine = seuil.get('prochaineMaintenance')
-        if prochaine is None:
-            prochaine = int(derniere + ecart)
+        if compteur.type == 'Calendaire':
+            # Convertir en ordinal
+            derniere = self.date_to_days(derniere) if isinstance(derniere, str) else 0
+            prochaine = self.date_to_days(prochaine) if isinstance(prochaine, str) else 0
+            
+            # Garder ecart tel quel (timestamp MS)
+            ecart = int(ecart) if isinstance(ecart, str) else ecart
+            
         else:
-            try:
-                prochaine = int(float(prochaine))
-            except Exception:
-                prochaine = int(derniere + ecart)
+            prochaine = derniere + ecart
 
         declencher = Declencher.objects.create(
             compteur=compteur,
@@ -1002,12 +1066,24 @@ class DeclenchementViewSet(GimaoModelViewSet):
                     document=document
                 )
 
-
-
-
         serializer = DeclenchementSerializer(declencher)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    def date_to_days(self, date_str: str) -> int:
+        """
+        Convertit 'YYYY-MM-DD' → nombre de jours depuis 0001-01-01
+        """
+        try:
+            date_value = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+            base_date = datetime.datetime(1, 1, 1)  # Date de référence
+            delta = date_value - base_date
+            print(f"Conversion de la date {date_str} en jours: {delta.days}")
+            return delta.days
+        except Exception:
+            print(f"Erreur de conversion de la date {date_str}, retour 0")
+            return 0
+        
+        
 
     @transaction.atomic
     def partial_update(self, request, pk=None):
@@ -1024,7 +1100,16 @@ class DeclenchementViewSet(GimaoModelViewSet):
         # ============================
         if seuil_diff:
             for champ, valeurs in seuil_diff.items():
-                if hasattr(declenchement, champ):
+                if champ in ['derniereIntervention', 'prochaineMaintenance', 'ecartInterventions']:
+                    # Si c'est un champ de date, convertir en jours
+                    if champ in ['derniereIntervention', 'prochaineMaintenance'] and declenchement.compteur.type == 'Calendaire':
+                        nouvelle_valeur = self.date_to_days(valeurs.get('nouveau'))
+                        setattr(declenchement, champ, nouvelle_valeur)
+                    else:
+                        nouvelle_valeur = valeurs.get('nouveau')
+                        setattr(declenchement, champ, nouvelle_valeur)
+
+                elif hasattr(declenchement, champ):
                     setattr(declenchement, champ, valeurs.get('nouveau'))
 
             declenchement.save()
@@ -1073,23 +1158,114 @@ class DeclenchementViewSet(GimaoModelViewSet):
 
                 # Documents
                 elif champ == "documents":
-                    PlanMaintenanceDocument.objects.filter(
-                        plan_maintenance=plan
-                    ).delete()
+                    old_doc_ids = list(
+                        plan.planmaintenancedocument_set.values_list(
+                            "document_id", flat=True
+                        )
+                    )
 
+                    PlanMaintenanceDocument.objects.filter(plan_maintenance=plan).delete()
+
+                    kept_doc_ids = set()
                     for index, doc in enumerate(valeurs.get("nouveau", [])):
-                        fichier = request.FILES.get(f'document_{index}')
+                        file_key = f"document_{index}"
+                        uploaded_file = request.FILES.get(file_key)
+
+                        # Front attendu: {nom, type_id, document_id}. Fallback minimal: {titre, type} / {id}
+                        titre_value = (doc.get("nom") or doc.get("titre") or "")
+                        type_document_id = (doc.get("type_id") or doc.get("type") or None)
+                        existing_document_id = (doc.get("document_id") or doc.get("id"))
+
+                        if isinstance(type_document_id, str) and type_document_id.isdigit():
+                            type_document_id = int(type_document_id)
+
+                        # 1) Réutiliser / mettre à jour un document existant
+                        if existing_document_id:
+                            try:
+                                document = Document.objects.get(id=existing_document_id)
+                            except Document.DoesNotExist:
+                                return Response(
+                                    {"error": f"Document introuvable (id={existing_document_id})"},
+                                    status=status.HTTP_400_BAD_REQUEST,
+                                )
+
+                            if uploaded_file is not None:
+                                if type_document_id in (None, ""):
+                                    return Response(
+                                        {
+                                            "error": f"Type manquant pour le document #{index + 1}"
+                                        },
+                                        status=status.HTTP_400_BAD_REQUEST,
+                                    )
+
+                                # Remplacement du fichier: supprimer l'ancien fichier physique
+                                try:
+                                    if document.cheminAcces:
+                                        document.cheminAcces.delete(save=False)
+                                except Exception:
+                                    # Ne pas casser une mise à jour si le fichier est déjà manquant
+                                    pass
+
+                                document.nomDocument = titre_value or uploaded_file.name
+                                document.typeDocument_id = type_document_id
+                                document.cheminAcces = uploaded_file
+                                document.save()
+
+                            kept_doc_ids.add(document.id)
+                            PlanMaintenanceDocument.objects.create(
+                                plan_maintenance=plan,
+                                document=document,
+                            )
+                            continue
+
+                        # 2) Création d'un nouveau document (nécessite un fichier)
+                        if uploaded_file is None:
+                            # Pas d'id + pas de fichier => rien à créer / lier
+                            continue
+
+                        if type_document_id in (None, ""):
+                            return Response(
+                                {"error": f"Type manquant pour le document #{index + 1}"},
+                                status=status.HTTP_400_BAD_REQUEST,
+                            )
 
                         document = Document.objects.create(
-                            titre=doc.get("titre"),
-                            type_id=doc.get("type"),
-                            fichier=fichier
+                            nomDocument=titre_value or uploaded_file.name,
+                            typeDocument_id=type_document_id,
+                            cheminAcces=uploaded_file,
                         )
-
+                        kept_doc_ids.add(document.id)
                         PlanMaintenanceDocument.objects.create(
                             plan_maintenance=plan,
-                            document=document
+                            document=document,
                         )
+
+                    # Nettoyage: supprimer les documents retirés si non référencés ailleurs
+                    removed_doc_ids = set(old_doc_ids) - kept_doc_ids
+                    for removed_id in removed_doc_ids:
+                        # Si le doc est encore lié ailleurs, ne pas le supprimer
+                        still_used = (
+                            PlanMaintenanceDocument.objects.filter(document_id=removed_id).exists()
+                            or DemandeInterventionDocument.objects.filter(
+                                document_id=removed_id
+                            ).exists()
+                            or BonTravailDocument.objects.filter(document_id=removed_id).exists()
+                            or DocumentEquipement.objects.filter(document_id=removed_id).exists()
+                        )
+                        if still_used:
+                            continue
+
+                        try:
+                            doc_obj = Document.objects.get(id=removed_id)
+                        except Document.DoesNotExist:
+                            continue
+
+                        try:
+                            if doc_obj.cheminAcces:
+                                doc_obj.cheminAcces.delete(save=False)
+                        except Exception:
+                            pass
+                        doc_obj.delete()
 
             plan.save()
 

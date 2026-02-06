@@ -107,7 +107,7 @@
                               <div class="d-flex align-center justify-space-between mb-2">
                                 <div class="d-flex align-center gap-2">
                                   <v-icon color="primary">mdi-counter</v-icon>
-                                  <h3 class="text-h6">{{ compteur.nom || 'Compteur sans nom' }}</h3>
+                                  <h3 class="text-h6 mr-2">{{ compteur.nom || 'Compteur sans nom' }}</h3>
                                   <v-chip v-if="compteur.estPrincipal" color="primary" size="small" label>
                                     Principal
                                   </v-chip>
@@ -125,7 +125,7 @@
                               <v-row dense>
                                 <v-col cols="6" md="3">
                                   <div class="text-caption text-grey">Valeur courante</div>
-                                  <div class="text-body-1">{{ compteur.valeurCourante }} {{ compteur.unite }}</div>
+                                  <div class="text-body-1">{{ compteur.type === 'Calendaire' ? ordinalToDate(compteur.valeurCourante) : compteur.valeurCourante }} {{ compteur.type !== 'Calendaire' ? compteur.unite : '' }}</div>
                                 </v-col>
                                 <v-col cols="6" md="3">
                                   <div class="text-caption text-grey">Unité</div>
@@ -204,11 +204,19 @@
                                 </v-col>
                                 <v-col cols="12" md="3">
                                   <div class="text-caption text-grey">Intervalle</div>
-                                  <div class="text-body-1">{{ plan.seuil.ecartInterventions }} {{ getCounterUnit(plan.compteurIndex) }}</div>
+                                  <div class="text-body-1">{{ 
+                                    getCounterType(plan.compteurIndex) === 'Calendaire' 
+                                      ? getSeuilInterval(plan.seuil.ecartInterventions) 
+                                      : `${plan.seuil.ecartInterventions} ${getCounterUnit(plan.compteurIndex)}`
+                                   }}</div>
                                 </v-col>
                                 <v-col cols="12" md="3">
                                   <div class="text-caption text-grey">Prochaine maintenance</div>
-                                  <div class="text-body-1">{{ plan.seuil.prochaineMaintenance }} {{ getCounterUnit(plan.compteurIndex) }}</div>
+                                  <div class="text-body-1">{{ 
+                                    getCounterType(plan.compteurIndex) === 'Calendaire' 
+                                      ? getSeuilNextMaintenance(plan.seuil.prochaineMaintenance) 
+                                      : `${plan.seuil.prochaineMaintenance} ${getCounterUnit(plan.compteurIndex)}`
+                                  }}</div>
                                 </v-col>
                               </v-row>
 
@@ -411,7 +419,8 @@ const {
   handleLocationCreated,
   getEmptyCounter,
   api,
-  router
+  router,
+  ordinalToDate,
 } = useEquipmentForm();
 
 const step = ref(1);
@@ -429,6 +438,48 @@ const hasCounters = computed(() => (formData.value?.compteurs?.length ?? 0) > 0)
 const showFormActions = computed(() =>
   step.value === EQUIPMENT_CREATE_STEPS.length || (step.value === 6 && !hasCounters.value)
 );
+
+// Helpers de navigation entre étapes
+const getSeuilInterval = (intervalle) => {
+  if (intervalle === null || intervalle === undefined) return "—";
+
+    const days = Math.round(intervalle / 1000 / 60 / 60 / 24);
+    if (days === 0) return "0 jour";
+
+    const years = Math.floor(days / 365);
+    const remainingAfterYears = days % 365;
+
+    const months = Math.floor(remainingAfterYears / 30);
+    const remDays = remainingAfterYears % 30;
+
+    const parts = [];
+    if (years) parts.push(`${years} ${years > 1 ? "ans" : "an"}`);
+    if (months) parts.push(`${months} mois`);
+    if (remDays) parts.push(`${remDays} ${remDays > 1 ? "jours" : "jour"}`);
+
+    return parts.join(" ");
+};
+
+const getSeuilNextMaintenance = (nextMaintenance) => {
+  if (nextMaintenance === null || nextMaintenance === undefined) return "—";
+
+  // Cas : nombre de jours (calendaire backend)
+  if (typeof nextMaintenance === "number") {
+    const baseDate = new Date(1, 0, 1);
+    baseDate.setDate(baseDate.getDate() + nextMaintenance);
+    return baseDate.toLocaleDateString("fr-FR");
+  }
+
+  // Cas : string YYYY-MM-DD
+  if (typeof nextMaintenance === "string") {
+    const date = new Date(nextMaintenance);
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString("fr-FR");
+  }
+
+  return "—";
+};
+
 
 //Règles de validation par étape
 const validationSchema = {
@@ -506,12 +557,20 @@ const handleSubmit = async () => {
           nom: c.nom,
           valeurCourante: c.valeurCourante ?? 0,
           unite: c.unite,
-          estPrincipal: c.estPrincipal
+          estPrincipal: c.estPrincipal,
+          type: c.type
         }));
         fd.append(key, JSON.stringify(compteursData));
       } else if (key === 'plansMaintenance') {
         // Envoyer les plans de maintenance séparément
-        const plansData = formData.value.plansMaintenance.map(p => ({
+        const plansData = formData.value.plansMaintenance.map((p, planIndex) => {
+          const docsAvecFichier = (p.documents || []).filter((d) => d?.file instanceof File);
+
+          docsAvecFichier.forEach((doc, docIndex) => {
+            fd.append(`pm_${planIndex}_document_${docIndex}`, doc.file);
+          });
+
+          return {
           id: p.id,
           nom: p.nom,
           type_id: p.type_id,
@@ -520,13 +579,18 @@ const handleSubmit = async () => {
           consommables: p.consommables,
           necessiteHabilitationElectrique: p.necessiteHabilitationElectrique,
           necessitePermisFeu: p.necessitePermisFeu,
+          documents: docsAvecFichier.map((doc) => ({
+            titre: doc.nom || doc.nomDocument || doc.titre || '',
+            type: doc.type_id ?? doc.typeDocument_id ?? doc.type ?? null
+          })),
           seuil: {
             estGlissant: p.seuil.estGlissant,
             derniereIntervention: p.seuil.derniereIntervention ?? 0,
             ecartInterventions: p.seuil.ecartInterventions ?? 0,
             prochaineMaintenance: p.seuil.prochaineMaintenance ?? 0
           }
-        }));
+          };
+        });
         fd.append(key, JSON.stringify(plansData));
       } else if (key === 'lienImageEquipement') {
         if (formData.value[key] instanceof File) {
@@ -569,6 +633,12 @@ const getCounterName = (compteurIndex) => {
   if (compteurIndex === null || compteurIndex === undefined) return 'Non défini';
   const counter = formData.value.compteurs[compteurIndex];
   return counter ? counter.nom : 'Non défini';
+};
+
+const getCounterType = (compteurIndex) => {
+  if (compteurIndex === null || compteurIndex === undefined) return '';
+  const counter = formData.value.compteurs[compteurIndex];
+  return counter ? counter.type : '';
 };
 
 const getCounterUnit = (compteurIndex) => {

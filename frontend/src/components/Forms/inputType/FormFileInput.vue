@@ -2,7 +2,7 @@
   <div>
     <label v-if="label" class="field-label">
       {{ label }}
-      <span v-if="isRequired" class="required-asterisk">*</span>
+      <span v-if="isRequired" class="required-star">*</span>
     </label>
     <v-file-input
       :model-value="modelValue"
@@ -193,14 +193,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .field-label {
   display: block;
-  margin-bottom: 4px;
-  font-size: 0.875rem;
+  margin-bottom: 0px;
+  font-size: 1rem;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
-}
-
-.required-asterisk {
-  color: rgb(var(--v-theme-error));
-  margin-left: 2px;
 }
 </style>

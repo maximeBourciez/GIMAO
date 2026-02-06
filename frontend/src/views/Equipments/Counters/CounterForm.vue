@@ -124,10 +124,7 @@ const handleSubmit = async () => {
     } catch (error) {
       console.error("Erreur lors de la création du compteur :", error);
     } 
-
-
-
-
+    
     emit("submit", { ...form.value });
   }
 };

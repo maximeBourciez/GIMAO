@@ -143,14 +143,15 @@ LOGGING = {
 
 
 CRONJOBS = [
+    # Maj des status des bons de travail à midi et à minuit
+    ('0 12 * * *', 'tasks.updateBtStatus.update_bt_status'),
+    ('0 0 * * *', 'tasks.updateBtStatus.update_bt_status'),
+
     # Création auto des BT avec les compteurs 1 fois par jour à 3h00
     ('0 3 * * *', 'tasks.counterCron.update_counter'),
 
-    # Maj des status des bons de travail à midi
-    ('0 12 * * *', 'tasks.updateBtStatus.update_bt_status'),
-
-        # Maj des status des bons de travail à minuit
-    ('0 0 * * *', 'tasks.updateBtStatus.update_bt_status'),
+    # Mise à jour des dates des compteurs calendaires à minuit
+    ('0 0 * * *', 'tasks.updateCalendarDates.update_calendar_counters'),
 ]
 
 

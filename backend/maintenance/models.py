@@ -188,7 +188,7 @@ class PlanMaintenance(models.Model):
         verbose_name_plural = 'Plans de maintenance'
     
     def __str__(self):
-        return f"{self.nom} - {self.equipement}"
+        return f"{self.id } - {self.nom} - {self.equipement}"
 
 
 
