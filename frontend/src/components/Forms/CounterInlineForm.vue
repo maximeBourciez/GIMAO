@@ -71,7 +71,6 @@ const counterLocal = computed({
   }
 });
 
-
 // Met à jour le parent à chaque changement
 watch(counterLocal, (newVal) => {
   emit('update:modelValue', newVal)
@@ -113,6 +112,7 @@ watch(() => counterLocal.value.type, (newType) => {
     counterLocal.value.nom = 'Calendrier'
   } else {
     const n = Number(counterLocal.value.valeurCourante)
+    counterLocal.value.unite = 'Jours'
     counterLocal.value.valeurCourante = Number.isFinite(n) ? n : 0
   }
 }, { immediate: true })
