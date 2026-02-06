@@ -55,9 +55,6 @@
           @count-updated="btPendingCount = $event"
           @counts-updated="handleBtCountsUpdated"
         />
-        <div class="text-caption text-grey mt-2">
-          BT mis de cote: {{ btCompletedCount }}
-        </div>
       </v-col>
     </v-row>
 

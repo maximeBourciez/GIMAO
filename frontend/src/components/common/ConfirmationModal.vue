@@ -2,7 +2,7 @@
   <v-dialog
     v-model="dialogVisible"
     max-width="450"
-    persistent
+    :persistent="persistent"
   >
     <v-card class="rounded-lg">
       <!-- Header -->
@@ -91,6 +91,11 @@ const props = defineProps({
   },
   // État de chargement perrmet de désactiver les boutons pendant les requêtes ou chargements
   loading: {
+    type: Boolean,
+    default: false
+  },
+  // Allow closing by clicking outside when false
+  persistent: {
     type: Boolean,
     default: false
   }

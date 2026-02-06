@@ -74,29 +74,27 @@
                   </v-list-item-subtitle>
 
                   <template #append>
-                    <div class="d-flex align-center ga-2">
-                      <v-btn
-                        v-if="!isReserved(cons)"
-                        color="warning"
-                        size="small"
-                        variant="tonal"
-                        :loading="distributingId === `${bt.id}-${cons.consommable}`"
-                        @click="requestDistribute(bt, cons)"
-                      >
+                    <v-btn
+                      v-if="!isReserved(cons)"
+                      color="warning"
+                      size="small"
+                      variant="tonal"
+                      :loading="distributingId === `${bt.id}-${cons.consommable}`"
+                      @click="requestDistribute(bt, cons)"
+                    >
                       <v-icon size="18" class="mr-1">mdi-package-variant-closed</v-icon>
                       Mettre de cote
                     </v-btn>
-                      <v-btn
-                        v-else
-                        color="success"
-                        size="small"
-                        variant="outlined"
-                        disabled
-                      >
-                        <v-icon size="18" class="mr-1">mdi-check</v-icon>
-                        Mis de cote
-                      </v-btn>
-                    </div>
+                    <v-btn
+                      v-else
+                      color="success"
+                      size="small"
+                      variant="outlined"
+                      disabled
+                    >
+                      <v-icon size="18" class="mr-1">mdi-check</v-icon>
+                      Mis de cote
+                    </v-btn>
                   </template>
                 </v-list-item>
               </v-list>
@@ -108,7 +106,7 @@
                   variant="flat"
                   size="small"
                   :loading="distributingAll === bt.id"
-                  @click="handleDistributeAll(bt)"
+                  @click="requestReserveAll(bt)"
                 >
                   <v-icon size="18" class="mr-1">mdi-check-all</v-icon>
                   Tout mettre de cote
@@ -172,7 +170,7 @@
                     color="error"
                     variant="outlined"
                     size="small"
-                    @click="handleCancelReserve(bt)"
+                    @click="requestCancelReserve(bt)"
                   >
                     <v-icon size="18" class="mr-1">mdi-close</v-icon>
                     Annuler
@@ -181,7 +179,7 @@
                     color="success"
                     variant="flat"
                     size="small"
-                    @click="handleSetRecupere(bt)"
+                    @click="requestSetRecupere(bt)"
                   >
                     <v-icon size="18" class="mr-1">mdi-check</v-icon>
                     Recupere
@@ -260,6 +258,42 @@
     @confirm="confirmDistribute"
     @cancel="confirmDialog = false"
   />
+
+  <ConfirmationModal
+    v-model="confirmAllDialog"
+    type="warning"
+    title="Confirmer la mise de cote"
+    message="Etes-vous sur de vouloir mettre de cote tous les consommables de ce BT ?"
+    confirm-text="Tout mettre de cote"
+    confirm-icon="mdi-check"
+    :loading="confirmAllLoading"
+    @confirm="confirmReserveAll"
+    @cancel="confirmAllDialog = false"
+  />
+
+  <ConfirmationModal
+    v-model="confirmCancelDialog"
+    type="warning"
+    title="Confirmer l'annulation"
+    message="Etes-vous sur de vouloir annuler la mise de cote pour ce BT ?"
+    confirm-text="Annuler"
+    confirm-icon="mdi-close"
+    :loading="confirmCancelLoading"
+    @confirm="confirmCancelReserve"
+    @cancel="confirmCancelDialog = false"
+  />
+
+  <ConfirmationModal
+    v-model="confirmRecupereDialog"
+    type="success"
+    title="Confirmer la recuperation"
+    message="Etes-vous sur de vouloir valider la recuperation de ce BT ?"
+    confirm-text="Recupere"
+    confirm-icon="mdi-check"
+    :loading="confirmRecupereLoading"
+    @confirm="confirmSetRecupere"
+    @cancel="confirmRecupereDialog = false"
+  />
 </template>
 
 <script setup>
@@ -278,6 +312,15 @@ const distributingAll = ref(null);
 const confirmDialog = ref(false);
 const confirmLoading = ref(false);
 const pendingAction = ref({ bt: null, cons: null });
+const confirmAllDialog = ref(false);
+const confirmAllLoading = ref(false);
+const pendingAllBt = ref(null);
+const confirmCancelDialog = ref(false);
+const confirmCancelLoading = ref(false);
+const pendingCancelBt = ref(null);
+const confirmRecupereDialog = ref(false);
+const confirmRecupereLoading = ref(false);
+const pendingRecupereBt = ref(null);
 
 // Filtrer les BT qui ont des consommables non distribués
 const pendingBons = computed(() => {
@@ -334,6 +377,66 @@ const confirmDistribute = async () => {
     confirmLoading.value = false;
     confirmDialog.value = false;
     pendingAction.value = { bt: null, cons: null };
+  }
+};
+
+const requestReserveAll = (bt) => {
+  pendingAllBt.value = bt;
+  confirmAllDialog.value = true;
+};
+
+const confirmReserveAll = async () => {
+  if (!pendingAllBt.value) {
+    confirmAllDialog.value = false;
+    return;
+  }
+  confirmAllLoading.value = true;
+  try {
+    await handleDistributeAll(pendingAllBt.value);
+  } finally {
+    confirmAllLoading.value = false;
+    confirmAllDialog.value = false;
+    pendingAllBt.value = null;
+  }
+};
+
+const requestCancelReserve = (bt) => {
+  pendingCancelBt.value = bt;
+  confirmCancelDialog.value = true;
+};
+
+const confirmCancelReserve = async () => {
+  if (!pendingCancelBt.value) {
+    confirmCancelDialog.value = false;
+    return;
+  }
+  confirmCancelLoading.value = true;
+  try {
+    await handleCancelReserve(pendingCancelBt.value);
+  } finally {
+    confirmCancelLoading.value = false;
+    confirmCancelDialog.value = false;
+    pendingCancelBt.value = null;
+  }
+};
+
+const requestSetRecupere = (bt) => {
+  pendingRecupereBt.value = bt;
+  confirmRecupereDialog.value = true;
+};
+
+const confirmSetRecupere = async () => {
+  if (!pendingRecupereBt.value) {
+    confirmRecupereDialog.value = false;
+    return;
+  }
+  confirmRecupereLoading.value = true;
+  try {
+    await handleSetRecupere(pendingRecupereBt.value);
+  } finally {
+    confirmRecupereLoading.value = false;
+    confirmRecupereDialog.value = false;
+    pendingRecupereBt.value = null;
   }
 };
 
@@ -500,6 +603,15 @@ onMounted(() => {
 
 .consommable-item:last-child {
   border-bottom: none;
+}
+
+.consommable-item :deep(.v-list-item__content) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.consommable-item :deep(.v-list-item__append) {
+  margin-left: auto;
 }
 
 .border-t {
