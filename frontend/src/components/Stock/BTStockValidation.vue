@@ -23,6 +23,16 @@
         Aucun bon de travail en attente de mise de cote
       </v-alert>
 
+      <v-alert
+        v-if="stockError"
+        type="warning"
+        variant="tonal"
+        icon="mdi-alert-circle"
+        class="mb-3"
+      >
+        {{ stockError }}
+      </v-alert>
+
       <!-- Liste des BT -->
       <div v-else class="bt-list">
         <div v-if="pendingBons.length > 0">
@@ -294,6 +304,70 @@
     @confirm="confirmSetRecupere"
     @cancel="confirmRecupereDialog = false"
   />
+
+  <v-dialog v-model="magasinDialog" max-width="420">
+    <v-card class="rounded-lg">
+      <v-card-title class="pa-4 pb-2">
+        Choisir un magasin
+      </v-card-title>
+      <v-card-text class="pa-4 pt-2">
+        <v-radio-group v-model="magasinSelected">
+          <v-radio
+            v-for="m in magasinOptions"
+            :key="m.id"
+            :label="`${m.nom} (dispo: ${m.quantite})`"
+            :value="m.id"
+          />
+        </v-radio-group>
+      </v-card-text>
+      <v-card-actions class="pa-4 pt-0 d-flex justify-end">
+        <v-btn variant="outlined" @click="magasinDialog = false">Annuler</v-btn>
+        <v-btn color="primary" :disabled="!magasinSelected" @click="confirmMagasinSelection">
+          Confirmer
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog v-model="stockIssueDialog" max-width="560">
+    <v-card class="rounded-lg">
+      <v-card-title class="pa-4 pb-2 d-flex align-center">
+        <v-icon color="warning" size="22" class="mr-2">mdi-alert-circle</v-icon>
+        Stock insuffisant
+      </v-card-title>
+      <v-card-subtitle class="px-4 pb-2 text-caption text-grey">
+        Impossible de mettre de cote les pieces suivantes
+      </v-card-subtitle>
+      <v-card-text class="pa-4 pt-2">
+        <v-list density="compact" class="py-0">
+          <v-list-item
+            v-for="item in stockIssueItems"
+            :key="`${item.consommable_id}-${item.magasin_id || 'global'}`"
+            class="px-0 stock-issue-item"
+          >
+            <v-list-item-title class="text-body-2 d-flex align-center">
+              <v-icon size="18" color="grey" class="mr-2">mdi-package-variant</v-icon>
+              {{ item.designation || ('Consommable #' + item.consommable_id) }}
+            </v-list-item-title>
+            <v-list-item-subtitle class="text-caption d-flex align-center ga-2">
+              <v-chip size="x-small" color="error" variant="tonal">
+                Besoin: {{ item.needed }}
+              </v-chip>
+              <v-chip size="x-small" color="warning" variant="tonal">
+                Dispo: {{ item.available }}
+              </v-chip>
+              <v-chip v-if="item.magasin_nom" size="x-small" color="grey" variant="tonal">
+                Magasin: {{ item.magasin_nom }}
+              </v-chip>
+            </v-list-item-subtitle>
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+      <v-card-actions class="pa-4 pt-0 d-flex justify-end">
+        <v-btn variant="outlined" @click="stockIssueDialog = false">Fermer</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -303,7 +377,7 @@ import { API_BASE_URL } from '@/utils/constants';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 
 const api = useApi(API_BASE_URL);
-const emit = defineEmits(['count-updated', 'counts-updated']);
+const emit = defineEmits(['count-updated', 'counts-updated', 'stock-updated']);
 
 const bonsTravail = ref([]);
 const loading = ref(false);
@@ -321,6 +395,14 @@ const pendingCancelBt = ref(null);
 const confirmRecupereDialog = ref(false);
 const confirmRecupereLoading = ref(false);
 const pendingRecupereBt = ref(null);
+const stockError = ref('');
+const magasinDialog = ref(false);
+const magasinOptions = ref([]);
+const magasinSelected = ref(null);
+const magasinPendingAction = ref({ bt: null, cons: null });
+const stockIssueDialog = ref(false);
+const stockIssueItems = ref([]);
+const stockIssueMessage = ref('');
 
 // Filtrer les BT qui ont des consommables non distribués
 const pendingBons = computed(() => {
@@ -400,6 +482,18 @@ const confirmReserveAll = async () => {
   }
 };
 
+const confirmMagasinSelection = async () => {
+  if (!magasinPendingAction.value.bt || !magasinPendingAction.value.cons || !magasinSelected.value) {
+    magasinDialog.value = false;
+    return;
+  }
+  await handleDistribute(magasinPendingAction.value.bt, magasinPendingAction.value.cons, magasinSelected.value);
+  magasinDialog.value = false;
+  magasinOptions.value = [];
+  magasinSelected.value = null;
+  magasinPendingAction.value = { bt: null, cons: null };
+};
+
 const requestCancelReserve = (bt) => {
   pendingCancelBt.value = bt;
   confirmCancelDialog.value = true;
@@ -465,12 +559,14 @@ const fetchBonsTravail = async () => {
 };
 
 // Distribuer un consommable
-const handleDistribute = async (bt, consommable) => {
+const handleDistribute = async (bt, consommable, magasinId = null) => {
   distributingId.value = `${bt.id}-${consommable.consommable}`;
   try {
+    stockError.value = '';
     await api.patch(`bons-travail/${bt.id}/update_consommable_distribution/`, {
       consommable_id: consommable.consommable,
-      distribue: true
+      distribue: true,
+      magasin_id: magasinId
     });
     // Mettre à jour localement
     const btIndex = bonsTravail.value.findIndex(b => b.id === bt.id);
@@ -481,9 +577,30 @@ const handleDistribute = async (bt, consommable) => {
       if (consIndex !== -1) {
         bonsTravail.value[btIndex].consommables[consIndex].distribue = true;
         bonsTravail.value[btIndex].consommables[consIndex].date_distribution = new Date().toISOString();
+        if (magasinId) {
+          bonsTravail.value[btIndex].consommables[consIndex].magasin_reserve = magasinId;
+        }
       }
     }
+    emit('stock-updated');
   } catch (error) {
+    const data = error?.response?.data;
+    if (error?.response?.status === 409 && data?.needs_magasin_selection) {
+      magasinOptions.value = data.magasins || [];
+      magasinSelected.value = null;
+      magasinPendingAction.value = { bt, cons: consommable };
+      magasinDialog.value = true;
+      return;
+    }
+    if (data?.insuffisants) {
+      stockIssueItems.value = data.insuffisants;
+      stockIssueMessage.value = data.error || 'Stock insuffisant pour ce consommable.';
+      stockIssueDialog.value = true;
+    } else if (data?.error) {
+      stockError.value = data.error;
+    } else {
+      stockError.value = 'Stock insuffisant pour mettre de cote ce consommable.';
+    }
     console.error('Erreur distribution:', error);
   } finally {
     distributingId.value = null;
@@ -494,6 +611,7 @@ const handleDistribute = async (bt, consommable) => {
 const handleDistributeAll = async (bt) => {
   distributingAll.value = bt.id;
   try {
+    stockError.value = '';
     const pendingConsommables = getPendingConsommables(bt);
     for (const cons of pendingConsommables) {
       await api.patch(`bons-travail/${bt.id}/update_consommable_distribution/`, {
@@ -509,7 +627,20 @@ const handleDistributeAll = async (bt) => {
         c.date_distribution = new Date().toISOString();
       });
     }
+    emit('stock-updated');
   } catch (error) {
+    const data = error?.response?.data;
+    if (error?.response?.status === 409 && data?.needs_magasin_selection) {
+      stockError.value = 'Choisissez un magasin en passant par la mise de cote individuelle.';
+    } else if (data?.insuffisants) {
+      stockIssueItems.value = data.insuffisants;
+      stockIssueMessage.value = data.error || 'Stock insuffisant pour ce BT.';
+      stockIssueDialog.value = true;
+    } else if (data?.error) {
+      stockError.value = data.error;
+    } else {
+      stockError.value = 'Stock insuffisant pour mettre de cote tout le BT.';
+    }
     console.error('Erreur distribution multiple:', error);
   } finally {
     distributingAll.value = null;
@@ -528,6 +659,7 @@ const handleCancelReserve = async (bt) => {
       bonsTravail.value[btIndex].pieces_recuperees = false;
       bonsTravail.value[btIndex].date_recuperation = null;
     }
+    emit('stock-updated');
   } catch (error) {
     console.error('Erreur annulation mise de cote:', error);
   }
@@ -612,6 +744,18 @@ onMounted(() => {
 
 .consommable-item :deep(.v-list-item__append) {
   margin-left: auto;
+}
+
+.stock-issue-item {
+  border-bottom: 1px solid #F3F4F6;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.stock-issue-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 .border-t {

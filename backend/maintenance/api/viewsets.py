@@ -11,7 +11,7 @@ import json
 from donnees.models import Document, TypeDocument
 from equipement.models import Equipement
 from utilisateur.models import Utilisateur, Log
-from stock.models import Consommable
+from stock.models import Consommable, Stocker
 from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
 
 
@@ -1552,6 +1552,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         bon = self.get_object()
         consommable_id = request.data.get('consommable_id')
         distribue = request.data.get('distribue', False)
+        magasin_id = request.data.get('magasin_id')
         
         if not consommable_id:
             return Response(
@@ -1570,11 +1571,92 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        assoc.estConfirme = distribue
         if distribue:
+            needed = int(assoc.quantite_utilisee or 0)
+            if needed <= 0:
+                return Response(
+                    {
+                        'error': 'Quantite non renseignee pour ce consommable.',
+                        'insuffisants': [{
+                            'consommable_id': assoc.consommable_id,
+                            'designation': assoc.consommable.designation,
+                            'needed': needed,
+                            'available': 0,
+                        }],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if needed > 0:
+                if magasin_id:
+                    try:
+                        stock = Stocker.objects.get(consommable_id=consommable_id, magasin_id=magasin_id)
+                    except Stocker.DoesNotExist:
+                        return Response(
+                            {'error': 'Stock introuvable pour ce magasin'},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+                    if stock.quantite < needed:
+                        return Response(
+                            {
+                                'error': 'Stock insuffisant',
+                                'insuffisants': [{
+                                    'consommable_id': assoc.consommable_id,
+                                    'designation': assoc.consommable.designation,
+                                    'needed': needed,
+                                    'available': stock.quantite,
+                                    'magasin_id': stock.magasin_id,
+                                    'magasin_nom': stock.magasin.nom,
+                                }],
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    stock.quantite -= needed
+                    stock.save()
+                    assoc.magasin_reserve_id = int(magasin_id)
+                else:
+                    eligible = list(
+                        Stocker.objects.select_related('magasin')
+                        .filter(consommable_id=consommable_id, quantite__gte=needed)
+                    )
+                    if len(eligible) == 0:
+                        stocks = list(
+                            Stocker.objects.select_related('magasin')
+                            .filter(consommable_id=consommable_id)
+                            .values('magasin_id', 'magasin__nom', 'quantite')
+                        )
+                        return Response(
+                            {
+                                'error': 'Stock insuffisant',
+                                'insuffisants': [{
+                                    'consommable_id': assoc.consommable_id,
+                                    'designation': assoc.consommable.designation,
+                                    'needed': needed,
+                                    'available': sum(s.get('quantite', 0) for s in stocks),
+                                    'stocks': stocks,
+                                }],
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    if len(eligible) > 1:
+                        magasins = [
+                            {'id': s.magasin_id, 'nom': s.magasin.nom, 'quantite': s.quantite}
+                            for s in eligible
+                        ]
+                        return Response(
+                            {'error': 'Selection magasin requise', 'needs_magasin_selection': True, 'magasins': magasins},
+                            status=status.HTTP_409_CONFLICT
+                        )
+                    stock = eligible[0]
+                    stock.quantite -= needed
+                    stock.save()
+                    assoc.magasin_reserve_id = stock.magasin_id
+
+            assoc.estConfirme = True
             assoc.date_confirme = timezone.now()
         else:
+            assoc.estConfirme = False
             assoc.date_confirme = None
+            assoc.magasin_reserve = None
         assoc.save()
         
         utilisateur_id = (
@@ -1597,17 +1679,27 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         return Response({
             'consommable_id': assoc.consommable_id,
             'distribue': assoc.estConfirme,
-            'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None
+            'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
+            'magasin_reserve': assoc.magasin_reserve_id
         })
 
     @action(detail=True, methods=['patch'])
     def cancel_mise_de_cote(self, request, pk=None):
         bon = self.get_object()
 
-        BonTravailConsommable.objects.filter(bon_travail=bon).update(
-            estConfirme=False,
-            date_confirme=None
-        )
+        assocs = BonTravailConsommable.objects.filter(bon_travail=bon)
+        for assoc in assocs:
+            if assoc.estConfirme and assoc.magasin_reserve_id and assoc.quantite_utilisee:
+                try:
+                    stock = Stocker.objects.get(consommable_id=assoc.consommable_id, magasin_id=assoc.magasin_reserve_id)
+                    stock.quantite += int(assoc.quantite_utilisee or 0)
+                    stock.save()
+                except Stocker.DoesNotExist:
+                    pass
+            assoc.estConfirme = False
+            assoc.date_confirme = None
+            assoc.magasin_reserve = None
+            assoc.save()
 
         utilisateur_id = (
             request.data.get('user')

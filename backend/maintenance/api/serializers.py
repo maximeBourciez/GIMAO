@@ -305,6 +305,7 @@ class BonTravailListStockSerializer(serializers.ModelSerializer):
                 'quantite': assoc.quantite_utilisee,
                 'distribue': assoc.estConfirme,
                 'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
+                'magasin_reserve': assoc.magasin_reserve_id,
             }
             for assoc in associations
         ]

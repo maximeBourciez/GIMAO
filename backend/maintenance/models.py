@@ -316,6 +316,13 @@ class BonTravailConsommable(models.Model):
         null=True,
         help_text="Date à laquelle le consommable a été distribué"
     )
+    magasin_reserve = models.ForeignKey(
+        'stock.Magasin',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Magasin d ou le consommable a ete mis de cote"
+    )
     
     class Meta:
         db_table = 'gimao_bon_travail_consommable'

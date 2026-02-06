@@ -54,6 +54,7 @@
           ref="btStockValidationRef"
           @count-updated="btPendingCount = $event"
           @counts-updated="handleBtCountsUpdated"
+          @stock-updated="handleStockUpdated"
         />
       </v-col>
     </v-row>
@@ -283,6 +284,10 @@ const handleCancelFilter = () => {
 const handleBtCountsUpdated = ({ pending, completed, reserved }) => {
   btPendingCount.value = pending ?? 0;
   btCompletedCount.value = (reserved ?? completed) ?? 0;
+};
+
+const handleStockUpdated = async () => {
+  await fetchData();
 };
 
 onMounted(() => {
