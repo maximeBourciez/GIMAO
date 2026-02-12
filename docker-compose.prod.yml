@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  db:
+    image: mariadb:10.6
+    container_name: gimao_db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - gimao_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: gimao_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DJANGO_SETTINGS_MODULE=gimao.settings
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_PORT=${DATABASE_PORT}
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    networks:
+      - gimao_network
+    expose:
+      - "8000"
