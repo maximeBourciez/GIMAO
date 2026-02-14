@@ -1,9 +1,8 @@
 version: "3.9"
-
+name: gimao-dev
 services:
-  db-dev:
+  db:
     image: mariadb:10.6
-    container_name: gimao_db-dev
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: gimao
@@ -18,9 +17,8 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: gimao_phpmyadmin_dev
     environment:
-      PMA_HOST: db-dev
+      PMA_HOST: db
       PMA_USER: gimao_user
       PMA_PASSWORD: gimao_password
     ports:
@@ -28,20 +26,19 @@ services:
     networks:
       - gimao_network
     depends_on:
-      - db-dev
+      - db
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: gimao_backend_dev
     volumes:
       - ./backend:/app
       - media_data_dev:/app/media
     ports:
       - "8000:8000"
     depends_on:
-      - db-dev
+      - db
     environment:
       - DJANGO_SETTINGS_MODULE=gimao.settings
       - DJANGO_SUPERUSER_USERNAME=admin
@@ -53,7 +50,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: gimao_frontend_dev
     volumes:
       - ./frontend:/app
       - /app/node_modules

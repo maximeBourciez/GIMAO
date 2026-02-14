@@ -21,7 +21,7 @@ RUN pip install --upgrade pip \
 EXPOSE 8000
 
 # Script de démarrage simplifié
-CMD sh -c "while ! nc -z db-dev 3306; do sleep 1; done && \
+CMD sh -c "while ! nc -z db 3306; do sleep 1; done && \
     cd /app && \
     mkdir -p media/cron_logs && \
     touch media/cron_logs/cron.log && \
