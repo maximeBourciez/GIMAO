@@ -7,7 +7,7 @@ COPY package*.json ./
 RUN npm install
 
 # Le code source sera monté via volume pour le hot reload
-# Ne pas copier le code ici !
+
 
 EXPOSE 8080
 
