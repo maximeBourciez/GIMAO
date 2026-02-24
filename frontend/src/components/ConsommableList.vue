@@ -126,7 +126,7 @@ import { API_BASE_URL } from '@/utils/constants';
 const props = defineProps({
   title: {
     type: String,
-    default: 'Liste des Consommables'
+    default: 'Liste des consommables'
   },
   createButtonText: {
     type: String,
@@ -217,7 +217,7 @@ const currentSubtitle = computed(() => {
     return `${filteredConsommables.value.length} consommable(s) au total`;
   }
   const magasin = magasins.value.find(m => m.id === selectedMagasin.value);
-  return magasin ? `Magasin: ${magasin.nom} - ${filteredConsommables.value.length} consommable(s)` : '';
+  return magasin ? `Magasin : ${magasin.nom} - ${filteredConsommables.value.length} consommable(s)` : '';
 });
 
 // Couleur de la quantité
