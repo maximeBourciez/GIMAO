@@ -15,9 +15,8 @@ backend/*/migrations/0*.py
 backend/media/*/*
 
 # Variables d'environnement
-*.env
-*.env.development
-*.env.production
+*.env*
+!.env.*.example
 
 #Migrations de la base de données
 backend/*/migrations/0*.py

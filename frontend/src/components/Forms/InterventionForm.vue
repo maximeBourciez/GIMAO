@@ -183,12 +183,8 @@
 
 				<v-row dense>
 					<v-col cols="12">
-						<v-btn
-							color="primary"
-							variant="text"
-							prepend-icon="mdi-plus"
-							@click="addConsommableLine"
-						>
+						<v-btn variant="outlined" color="primary" size="small" @click="addConsommableLine">
+							<v-icon left>mdi-plus</v-icon>
 							Ajouter un consommable
 						</v-btn>
 					</v-col>
@@ -260,8 +256,8 @@ const formData = ref({
 	diagnostic: '',
 	responsable_id: null,
 	utilisateur_assigne_ids: [],
-	consommables: [{ consommable_id: null, quantite_utilisee: null }],
-	documents: [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
+	consommables: [],
+	documents: []
 });
 
 const originalFormData = ref(null);
@@ -286,9 +282,9 @@ watch(() => props.initialData, (newData) => {
 			commentaire: newData.commentaire || '',
 			diagnostic: newData.diagnostic || '',
 			responsable_id: newData.responsable_id || null,
-			utilisateur_assigne_ids: Array.isArray(newData.utilisateur_assigne_ids) ? [...newData.utilisateur_assigne_ids] : [],
-			consommables: initialConsommables.length ? initialConsommables : [{ consommable_id: null, quantite_utilisee: null }],
-			documents: initialDocuments.length ? initialDocuments : [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
+			utilisateur_assigne_ids: newData.utilisateur_assigne_ids || [],
+			consommables: Array.isArray(newData.consommables) ? newData.consommables : [],
+			documents: Array.isArray(newData.documents) ? newData.documents : []
 		};
 		// Sauvegarder l'état original pour comparaison
 		if (props.isEdit) {
@@ -642,40 +638,21 @@ const markTouched = (type, index) => {
 	if (type === 'quantite') touched.quantite[index] = true;
 };
 
-const ensureConsommablesLines = () => {
-	if (!formData.value) return;
-	if (!Array.isArray(formData.value.consommables)) {
-		formData.value.consommables = [];
-	}
-	if (formData.value.consommables.length === 0) {
-		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
-	}
-};
-
-watch(
-	() => formData.value,
-	() => {
-		ensureConsommablesLines();
-	},
-	{ immediate: true, deep: true }
-);
-
 const consommableLines = computed(() => {
-	ensureConsommablesLines();
-	return formData.value?.consommables || [];
+	return Array.isArray(formData.value?.consommables) ? formData.value.consommables : [];
 });
 
 const addConsommableLine = () => {
-	ensureConsommablesLines();
+	if (!Array.isArray(formData.value.consommables)) formData.value.consommables = [];
 	formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
 };
 
 const removeConsommableLine = (index) => {
-	ensureConsommablesLines();
+	if (!Array.isArray(formData.value.consommables)) formData.value.consommables = [];
 	formData.value.consommables.splice(index, 1);
-	if (formData.value.consommables.length === 0) {
-		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
-	}
+	// éviter les erreurs/touched décalés après suppression
+	touched.consommable = {};
+	touched.quantite = {};
 };
 
 watch(
@@ -838,7 +815,6 @@ const isFormValidForSubmit = computed(() => {
 	// datetime-local renvoie typiquement 'YYYY-MM-DDTHH:mm'
 	if (datePrevue && String(datePrevue).length < 16) return false;
 
-	ensureConsommablesLines();
 	const lines = Array.isArray(formData.value?.consommables) ? formData.value.consommables : [];
 	for (let i = 0; i < lines.length; i++) {
 		if (getConsommableLineError(i)) return false;

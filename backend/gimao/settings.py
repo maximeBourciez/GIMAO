@@ -5,16 +5,12 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# URL d'accès aux fichiers média (via le navigateur)
 MEDIA_URL = '/media/'
-
-# Chemin physique de stockage des fichiers
 MEDIA_ROOT = BASE_DIR / 'media'
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = True
-
 
 ALLOWED_HOSTS = ['*']
 
@@ -38,18 +34,25 @@ INSTALLED_APPS = [
     'tasks',
 ]
 
-
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Doit être en premier
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',  # Désactivé
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+}
 
 ROOT_URLCONF = 'gimao.urls'
 
@@ -88,7 +91,6 @@ DATABASES = {
     }
 }
 
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -105,22 +107,53 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'Europe/Paris'
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
 STATIC_URL = '/static/'
+STATIC_ROOT = '/app/staticfiles'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8081",
-    "http://127.0.0.1:8081",
+# ============================================
+# CORS Configuration - CORRIGÉ
+# ============================================
+CORS_ALLOW_ALL_ORIGINS = True  # En développement uniquement
+CORS_ALLOW_CREDENTIALS = True
+
+# Ou en production, utilisez plutôt :
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost",
+#     "http://localhost:8080",
+#     "http://127.0.0.1",
+#     "http://127.0.0.1:8080",
+# ]
+
+# Headers autorisés
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# ============================================
+# Logging
+# ============================================
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -130,6 +163,10 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': os.path.join(MEDIA_ROOT, 'cron_logs/cron.log'),
         },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
     },
     'loggers': {
         'tasks': {
@@ -137,22 +174,20 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 
-
+# ============================================
+# Cron Jobs
+# ============================================
 CRONJOBS = [
-    # Création auto des BT avec les compteurs 1 fois par jour à 3h00
-    ('0 3 * * *', 'tasks.counterCron.update_counter'),
-
-    # Maj des status des bons de travail à midi
     ('0 12 * * *', 'tasks.updateBtStatus.update_bt_status'),
-
-        # Maj des status des bons de travail à minuit
     ('0 0 * * *', 'tasks.updateBtStatus.update_bt_status'),
+    ('0 3 * * *', 'tasks.counterCron.update_counter'),
+    ('0 0 * * *', 'tasks.updateCalendarDates.update_calendar_counters'),
 ]
-
-
-
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True

@@ -20,7 +20,7 @@
     </template>
 
     <v-main>
-      <Breadcrumb v-if="!isPublicPage && !isOperateur" />
+      <Breadcrumb v-if="!isPublicPage" />
       <router-view />
     </v-main>
 

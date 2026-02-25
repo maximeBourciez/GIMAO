@@ -120,7 +120,8 @@ export function useEquipmentForm(isEditMode = false) {
     nom: '',
     valeurCourante: null,
     unite: 'heures',
-    estPrincipal: false
+    estPrincipal: false,
+    type: 'Numérique'
   });
   const currentCounter = ref(getEmptyCounter());
 
@@ -138,7 +139,9 @@ export function useEquipmentForm(isEditMode = false) {
       estGlissant: false,
       derniereIntervention: null,
       ecartInterventions: null,
-      prochaineMaintenance: null
+      prochaineMaintenance: null,
+      uniteCalendaire: 'Jours',
+      ecartCalendaire: 1
     }
   });
   const currentPlan = ref(getEmptyPlan());
@@ -313,13 +316,45 @@ export function useEquipmentForm(isEditMode = false) {
     }
   };
 
+  const dateToOrdinal = (dateStr) => {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return null;
+
+    const ORDINAL_EPOCH = 719162; // 1970-01-01
+
+    // Nombre de jours depuis 1970-01-01 en UTC
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysSinceEpoch = Math.floor(
+      (Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) -
+      Date.UTC(1970, 0, 1)) / msPerDay
+    );
+
+    return daysSinceEpoch + ORDINAL_EPOCH;
+  };
+
+  const ordinalToDate = (ordinal) => {
+    const ORDINAL_EPOCH = 719162; // 1970-01-01
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const date = new Date((ordinal - ORDINAL_EPOCH) * msPerDay);
+    return date.toISOString().split('T')[0];
+  }
+
+
   const saveCurrentCounter = () => {
     if (editingCounterIndex.value >= 0) {
       // Mode édition
       formData.value.compteurs[editingCounterIndex.value] = { ...currentCounter.value };
+      formData.value.compteurs[editingCounterIndex.value].type === 'Calendaire' ? 
+        formData.value.compteurs[editingCounterIndex.value].valeurCourante =  
+          dateToOrdinal(currentCounter.value.valeurCourante) :
+        formData.value.compteurs[editingCounterIndex.value].valeurCourante = currentCounter.value.valeurCourante;
     } else {
       // Mode ajout
       formData.value.compteurs.push({ ...currentCounter.value });
+      formData.value.compteurs[formData.value.compteurs.length - 1].type === 'Calendaire' ?
+        formData.value.compteurs[formData.value.compteurs.length - 1].valeurCourante =  
+          dateToOrdinal(currentCounter.value.valeurCourante) :
+        formData.value.compteurs[formData.value.compteurs.length - 1].valeurCourante = currentCounter.value.valeurCourante;
     }
     closeCounterDialog();
   };
@@ -340,8 +375,10 @@ export function useEquipmentForm(isEditMode = false) {
     currentPlan.value = {
       ...plan,
       seuil: { ...plan.seuil },
-      consommables: [...plan.consommables]
+      consommables: [...plan.consommables],
+      documents: [...plan.documents]
     };
+
     showPlanDialog.value = true;
   };
 
@@ -510,6 +547,8 @@ export function useEquipmentForm(isEditMode = false) {
     fetchEquipment,
     fetchDocs,
     detectChanges,
+    dateToOrdinal,
+    ordinalToDate,
 
     // Counter methods
     getEmptyCounter,

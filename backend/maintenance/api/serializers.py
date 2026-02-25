@@ -389,35 +389,32 @@ class PlanMaintenanceConsommableSerializer(serializers.ModelSerializer):
 
 class PlanMaintenanceSerializer(serializers.ModelSerializer):
     """Serializer pour PlanMaintenance"""
-    type_plan_maintenance = TypePlanMaintenanceSerializer(read_only=True)
-    equipement = EquipementSimpleSerializer(read_only=True)
-    
-    type_plan_maintenance_id = serializers.PrimaryKeyRelatedField(
-        queryset=TypePlanMaintenance.objects.all(),
-        source='type_plan_maintenance',
-        write_only=True
-    )
-    equipement_id = serializers.PrimaryKeyRelatedField(
-        queryset=Equipement.objects.all(),
-        source='equipement',
-        write_only=True
-    )
     documents = DocumentSerializer(many=True, read_only=True)
-    consommables = PlanMaintenanceConsommableSerializer(many=True, read_only=True)
+    consommables = serializers.SerializerMethodField()
+
+    type_id = serializers.IntegerField(
+        source='type_plan_maintenance.id',
+        read_only=True
+    )
     
     class Meta:
         model = PlanMaintenance
         fields = [
             'id',
             'nom',
-            'commentaire',
-            'type_plan_maintenance',
-            'equipement',
-            'type_plan_maintenance_id',
-            'equipement_id',
+            'type_id',
             'documents',
             'consommables'
         ]
+
+    def get_consommables(self, obj):
+        associations = PlanMaintenanceConsommable.objects.filter(
+            plan_maintenance=obj
+        ).select_related('consommable')
+        return [{
+            'consommable': assoc.consommable.id,
+            'quantite': assoc.quantite_necessaire
+        } for assoc in associations]
 
 
 class PlanMaintenanceDetailSerializer(serializers.ModelSerializer):

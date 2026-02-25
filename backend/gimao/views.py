@@ -10,7 +10,7 @@ def home_view(request):
     from dotenv import load_dotenv
     load_dotenv()
     
-    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
+    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:8081')
 
     html = f"""
     <!DOCTYPE html>

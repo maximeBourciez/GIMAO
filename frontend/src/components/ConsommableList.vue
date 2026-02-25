@@ -167,16 +167,25 @@ const tableHeaders = [
   { title: 'Quantité', key: 'quantite', sortable: true, align: 'center' }
 ];
 
+// Fonction utilitaire pour calculer la quantité selon le magasin sélectionné
+const getQuantityForConsommable = (consommable) => {
+  if (selectedMagasin.value !== null) {
+    const stock = consommable.stocks?.find(s => s.magasin === selectedMagasin.value);
+    return stock ? stock.quantite : 0;
+  }
+  return consommable.quantite_totale || 0;
+};
+
 // Fonction utilitaire pour vérifier le statut du stock d'un consommable
 const getStockStatus = (consommable) => {
-  const quantite = consommable.quantite_totale ?? 0;
+  const quantite = getQuantityForConsommable(consommable);
   if (quantite === 0) return 'hors-stock';
   if (consommable.seuilStockFaible !== null && quantite <= consommable.seuilStockFaible) return 'sous-seuil';
   return 'stock-suffisant';
 };
 
-// Filtrage par magasin et stock sur les consommables originaux
-const consommablesFiltered = computed(() => {
+// Consommables filtrés par magasin avec quantité calculée (pour les stats)
+const consommablesForStats = computed(() => {
   let filtered = consommables.value;
 
   if (selectedMagasin.value !== null) {
@@ -202,11 +211,9 @@ const filteredConsommables = computed(() => {
       quantityToDisplay = consommable.quantite_totale || 0;
     }
     const magasins_noms = [...new Set(consommable.stocks?.map(s => s.magasin_nom).filter(Boolean))].join(', ');
-
     return {
       ...consommable,
-      quantite: quantityToDisplay,
-      magasin_nom: magasins_noms || '-',
+      magasin_nom: magasins_noms || '-'
     };
   });
 });

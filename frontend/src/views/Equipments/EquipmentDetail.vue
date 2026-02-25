@@ -93,6 +93,15 @@
                 <v-data-table v-if="data.compteurs && data.compteurs.length > 0" :items="data.compteurs"
                   :headers="TABLE_HEADERS.COUNTER" class="elevation-1" hide-default-footer>
 
+                  <template #item.valeurCourante="{ item }">
+                    {{ item.type === 'Calendaire' 
+                        ? new Date(item.valeurCourante).toLocaleDateString('fr-FR') 
+                        : item.valeurCourante 
+                    }}
+                  </template>
+
+
+
                   <template #item.action="{ item }">
                     <v-btn icon size="small" @click="viewCounter(item)">
                       <v-icon>mdi-eye</v-icon>
@@ -227,6 +236,7 @@ const getEmptyCounter = () => ({
   unite: 'heures',
   valeurCourante: 0,
   estPrincipal: false,
+  type: 'Numérique'
 });
 
 // Documents des plans de maintenance (techniques)
@@ -405,7 +415,8 @@ const saveCounter = async () => {
       unite: currentCounter.value.unite,
       valeurCourante: currentCounter.value.valeurCourante ?? 0,
       estPrincipal: currentCounter.value.estPrincipal,
-      equipement: route.params.id
+      equipement: route.params.id,
+      type: currentCounter.value.type
     };
 
     fd.append('compteur', JSON.stringify(counterData));

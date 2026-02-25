@@ -1,32 +1,40 @@
+version: "3.9"
+name: gimao-dev
 services:
   db:
     image: mariadb:10.6
-    container_name: gimao_db
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: gimao
       MYSQL_USER: gimao_user
       MYSQL_PASSWORD: gimao_password
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data_dev:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - gimao_network
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: gimao_phpmyadmin
     environment:
       PMA_HOST: db
       PMA_USER: gimao_user
       PMA_PASSWORD: gimao_password
     ports:
       - "8080:80"
+    networks:
+      - gimao_network
+    depends_on:
+      - db
 
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: gimao_backend
-    volumes: 
-      - media_data:/app/media
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      - media_data_dev:/app/media
     ports:
       - "8000:8000"
     depends_on:
@@ -36,17 +44,28 @@ services:
       - DJANGO_SUPERUSER_USERNAME=admin
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_EMAIL=admin@admin.com
-
+    networks:
+      - gimao_network
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: gimao_frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - "8081:80"
+      - "8081:8080"
     depends_on:
       - backend
+    environment:
+      - NODE_ENV=development
+    networks:
+      - gimao_network
 
 volumes:
-  db_data:
-  media_data:
+  db_data_dev:
+  media_data_dev:
+
+networks:
+  gimao_network:
+    driver: bridge

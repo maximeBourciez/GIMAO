@@ -19,9 +19,10 @@
 
           <v-col cols="12" md="4">
             <strong>Valeur actuelle :</strong>
-            <div class="text-h6">{{ counter.valeurCourante ?? "—" }}</div>
+            <div class="text-h6">{{ counter.type === "Calendaire" ? formatDate(counter.valeurCourante) :
+              counter.valeurCourante }}</div>
           </v-col>
-          <v-col cols="12" md="4">
+          <v-col cols="12" md="4" v-if="counter.type !== 'Calendaire'">
             <strong>Unité :</strong>
             <div class="text-h6">{{ counter.unite }}</div>
           </v-col>
@@ -30,12 +31,7 @@
         <v-row dense class="mt-2">
           <v-col cols="12" md="4">
             <strong>Statut :</strong>
-            <v-chip
-              :color="counter.estPrincipal ? 'primary' : 'grey'"
-              label
-              class="ml-2"
-              size="small"
-            >
+            <v-chip :color="counter.estPrincipal ? 'primary' : 'grey'" label class="ml-2" size="small">
               {{ counter.estPrincipal ? "Principal" : "Secondaire" }}
             </v-chip>
           </v-col>
@@ -89,23 +85,19 @@
                 <v-row dense>
                   <v-col cols="12" md="3">
                     <strong>Dernière intervention :</strong>
-                    <div>{{ seuil.derniereIntervention }} {{ counter.unite }}</div>
+                    <div>{{ formatLastIntervention(seuil.derniereIntervention) }}</div>
                   </v-col>
                   <v-col cols="12" md="3">
                     <strong>Prochaine maintenance :</strong>
-                    <div>{{ seuil.prochaineMaintenance }} {{ counter.unite }}</div>
+                    <div>{{ formatNextMaintenance(seuil.prochaineMaintenance) }}</div>
                   </v-col>
                   <v-col cols="12" md="3">
                     <strong>Intervalle :</strong>
-                    <div>{{ seuil.ecartInterventions }} {{ counter.unite }}</div>
+                    <div>{{ formatIntervalle(seuil.ecartInterventions) }}</div>
                   </v-col>
                   <v-col cols="12" md="3">
-                    <strong>Type de seuil :</strong>
-                    <v-chip
-                      :color="seuil.estGlissant ? 'green' : 'orange'"
-                      size="small"
-                      label
-                    >
+                    <strong class="mr-2">Type de seuil :</strong>
+                    <v-chip :color="seuil.estGlissant ? 'green' : 'orange'" size="small" label>
                       {{ seuil.estGlissant ? "Glissant" : "Fixe" }}
                     </v-chip>
                   </v-col>
@@ -142,15 +134,10 @@
                     <v-col cols="12">
                       <strong>Requis :</strong>
                       <div class="d-flex gap-3">
-                        <v-chip
-                          :color="
-                            seuil.planMaintenance.necessiteHabilitationElectrique
-                              ? 'orange'
-                              : 'grey'
-                          "
-                          size="small"
-                          label
-                        >
+                        <v-chip :color="seuil.planMaintenance.necessiteHabilitationElectrique
+                          ? 'orange'
+                          : 'grey'
+                          " size="small" label>
                           <v-icon left small>{{
                             seuil.planMaintenance.necessiteHabilitationElectrique
                               ? "mdi-check"
@@ -158,13 +145,8 @@
                           }}</v-icon>
                           Habilitation électrique
                         </v-chip>
-                        <v-chip
-                          :color="
-                            seuil.planMaintenance.necessitePermisFeu ? 'red' : 'grey'
-                          "
-                          size="small"
-                          label
-                        >
+                        <v-chip :color="seuil.planMaintenance.necessitePermisFeu ? 'red' : 'grey'
+                          " size="small" label>
                           <v-icon left small>{{
                             seuil.planMaintenance.necessitePermisFeu
                               ? "mdi-check"
@@ -180,20 +162,12 @@
                   <v-sheet class="pa-3 mb-3" elevation="0" rounded color="white">
                     <h5 class="mb-2">Consommables nécessaires</h5>
 
-                    <div
-                      v-if="!seuil.planMaintenance.consommables?.length"
-                      class="text-grey"
-                    >
+                    <div v-if="!seuil.planMaintenance.consommables?.length" class="text-grey">
                       Aucun consommable requis
                     </div>
 
-                    <v-row
-                      v-for="(consommable, consIndex) in seuil.planMaintenance
-                        .consommables"
-                      :key="consommable.id"
-                      dense
-                      class="mb-1"
-                    >
+                    <v-row v-for="(consommable, consIndex) in seuil.planMaintenance
+                      .consommables" :key="consommable.id" dense class="mb-1">
                       <v-col cols="8">
                         <v-icon left small>mdi-package-variant</v-icon>
                         {{ consommable.designation }}
@@ -209,19 +183,12 @@
                   <v-sheet class="pa-3" elevation="0" rounded color="white">
                     <h5 class="mb-2">Documents associés</h5>
 
-                    <div
-                      v-if="!seuil.planMaintenance.documents?.length"
-                      class="text-grey"
-                    >
+                    <div v-if="!seuil.planMaintenance.documents?.length" class="text-grey">
                       Aucun document
                     </div>
 
-                    <v-row
-                      v-for="(doc, docIndex) in seuil.planMaintenance.documents"
-                      :key="doc.id"
-                      dense
-                      class="mb-2 align-center"
-                    >
+                    <v-row v-for="(doc, docIndex) in seuil.planMaintenance.documents" :key="doc.id" dense
+                      class="mb-2 align-center">
                       <v-col cols="3">
                         <strong>{{ doc.nom || doc.titre || "Sans titre" }}</strong>
                       </v-col>
@@ -235,12 +202,7 @@
                         </v-chip>
                       </v-col>
                       <v-col cols="1" class="text-right">
-                        <v-btn
-                          :href="BASE_URL + MEDIA_BASE_URL + doc.chemin"
-                          target="_blank"
-                          icon
-                          small
-                        >
+                        <v-btn :href="BASE_URL + MEDIA_BASE_URL + doc.chemin" target="_blank" icon small>
                           <v-icon>mdi-open-in-new</v-icon>
                         </v-btn>
                       </v-col>
@@ -256,7 +218,8 @@
 
               <!-- Boutons d'action pour ce seuil -->
               <div class="d-flex justify-end mt-3">
-                <v-btn color="primary" size="small" @click="editSeuil(seuil)" v-if="store.getters.hasPermission('mp:edit')">
+                <v-btn color="primary" size="small" @click="editSeuil(seuil)"
+                  v-if="store.getters.hasPermission('mp:edit')">
                   <v-icon left small>mdi-pencil</v-icon>
                   Modifier ce seuil
                 </v-btn>
@@ -296,7 +259,7 @@
         <v-icon left>mdi-pencil</v-icon>
         Modifier le compteur
       </v-btn>
-      <v-btn color="success" @click="addNewSeuil" v-if="store.getters.hasPermission('mp:add')">
+      <v-btn color="success" @click="addNewSeuil" v-if="store.getters.hasPermission('mp:create')">
         <v-icon left>mdi-plus</v-icon>
         Ajouter un seuil
       </v-btn>
@@ -304,12 +267,16 @@
   </v-card>
 
   <v-dialog v-model="showCounterDialog" max-width="1000px">
-    <CounterForm
-      :counter="counter"
-      :isCounterEdit="isCounterEdit"
-      @close="closeCounterDialog"
-    />
+    <v-card>
+      <v-card-title>Modifier le compteur</v-card-title>
+      <v-divider></v-divider>
+      <v-card-text>
+        <CounterInlineForm v-if="counter" :modelValue="counter" :is-edit-mode="true" @save="saveCounter"
+          @cancel="closeCounterDialog" />
+      </v-card-text>
+    </v-card>
   </v-dialog>
+
 
   <v-dialog v-model="showSeuilDialog" max-width="1200px" scrollable>
     <v-card v-if="currentSeuil">
@@ -318,42 +285,22 @@
       </v-card-title>
       <v-divider></v-divider>
       <v-card-text class="pa-4">
-        <MaintenancePlanInlineForm
-          v-model="currentPlan"
-          :counters="countersForSelect"
-          :types-p-m="typesPM"
-          :consumables="consumables"
-          :existing-p-ms="existingPMs"
-          :types-documents="typesDocuments"
-          :show-pm-selection="true"
-          :is-edit-mode="!!currentSeuil.id"
-          :show-actions="false"
-          @save="handleFormSave"
-        />
+        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :typesPM="typesPM"
+          :consumables="consumables" :existing-p-ms="availablesPMs" :types-documents="typesDocuments" @cancel="closeSeuilDialog"
+          :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="true" @save="handleFormSave" />
       </v-card-text>
       <v-divider></v-divider>
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="closeSeuilDialog">Annuler</v-btn>
-        <v-btn
-          color="primary"
-          :loading="saving"
-          @click="handleFormSave({ pmMode: 'new', selectedExistingPMId: null })"
-        >
-          {{ currentSeuil.id ? "Enregistrer les modifications" : "Créer le seuil" }}
-        </v-btn>
-      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { useApi } from "@/composables/useApi";
 import { API_BASE_URL, MEDIA_BASE_URL, BASE_URL } from "@/utils/constants";
-import CounterForm from "./CounterForm.vue";
+import CounterInlineForm from "@/components/Forms/CounterInlineForm.vue";
 import MaintenancePlanInlineForm from "@/components/Forms/MaintenancePlanInlineForm.vue";
 
 const route = useRoute();
@@ -362,6 +309,7 @@ const store = useStore();
 const counterId = Number(route.params.id);
 
 const counter = ref(null);
+const originalCounter = ref(null);
 const openedPanels = ref([]); // Premier panel ouvert par défaut
 const currentSeuil = ref(null);
 const currentPlan = ref(null);
@@ -398,6 +346,7 @@ const countersForSelect = computed(() => {
       unite: counter.value.unite || "heures",
       valeurCourante: counter.value.valeurCourante || 0,
       estPrincipal: counter.value.estPrincipal || false,
+      type: counter.value.type || "Numérique",
     },
   ];
 });
@@ -418,6 +367,16 @@ const progressionData = computed(() => {
   return data;
 });
 
+const availablesPMs = computed(() => {
+  if (!counter.value) return [];
+
+  const associatedPMIds = counter.value.seuils
+    .filter((s) => s.planMaintenance)
+    .map((s) => s.planMaintenance.id);
+
+  return existingPMs.value.filter((pm) => !associatedPMIds.includes(pm.id));
+});
+
 const getProgressionColor = (seuil) => {
   const progression = progressionData.value[seuil.id];
   if (!progression) return "grey";
@@ -427,6 +386,8 @@ const getProgressionColor = (seuil) => {
   if (progression >= 50) return "blue";
   return "green";
 };
+
+
 
 const getProgressionText = (seuil) => {
   const progression = progressionData.value[seuil.id];
@@ -447,9 +408,86 @@ const getDocumentTypeLabel = (id) => {
   return typesDocuments.value.find((t) => t.id === id)?.nomTypeDocument || "—";
 };
 
+const formatDate = (value) => {
+  if (!value && value !== 0) return "—";
+
+  let date;
+
+  if (typeof value === 'string') {
+    date = new Date(value + 'T00:00:00');
+  }
+  else if (typeof value === 'number' && value > 10000000000) {
+    date = new Date(value);
+  }
+  else if (typeof value === 'number') {
+    console.log("Formatage date calendaire pour", value);
+    const ORDINAL_EPOCH = 719162; 
+    const daysFromEpoch = value - ORDINAL_EPOCH;
+    date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
+  }
+  else {
+    return "—";
+  }
+
+  if (isNaN(date.getTime())) return "—";
+
+  return date.toLocaleDateString("fr-FR", { timeZone: 'UTC' });
+};
+
+
+const formatLastIntervention = (days) => {
+  if (days === null || days === undefined) return "—";
+
+  if (counter.value.type === "Calendaire") {
+    console.log("Formatage date calendaire pour", days);
+    return formatDate(days);
+  } else {
+    return `${days} ${counter.value.unite}`;
+  }
+};
+
+const formatNextMaintenance = (days) => {
+  if (days === null || days === undefined) return "—";
+
+  if (counter.value.type === "Calendaire") {
+    return formatDate(days);
+  } else {
+    return `${days} ${counter.value.unite}`;
+  }
+};
+
+const formatIntervalle = (intervalle) => {
+  if (intervalle === null || intervalle === undefined) return "—";
+
+  if (counter.value.type === "Calendaire") {
+    const days = Math.round(intervalle / 1000 / 24 / 60 / 60) - 1; // convertir ms en jours
+    if (days === 0) return "0 jour";
+
+    const years = Math.floor(days / 365);
+    const remainingAfterYears = days % 365;
+
+    const months = Math.floor(remainingAfterYears / 30);
+    const remDays = remainingAfterYears % 30;
+
+    const parts = [];
+    if (years) parts.push(`${years} ${years > 1 ? "ans" : "an"}`);
+    if (months) parts.push(`${months} mois`);
+    if (remDays) parts.push(`${remDays} ${remDays > 1 ? "jours" : "jour"}`);
+
+    return parts.join(" ");
+  } else {
+    console.log("Compteur non calendaire - formatIntervalle")
+  }
+
+  return `${intervalle} ${counter.value.unite}`;
+};
+
+
+
 // Méthodes de chargement
 const fetchCounter = async () => {
   counter.value = await api.get(`compteurs/${counterId}`);
+  originalCounter.value = JSON.parse(JSON.stringify(counter.value));
 };
 
 const fetchReferentials = async () => {
@@ -457,7 +495,7 @@ const fetchReferentials = async () => {
     api.get("consommables/"),
     api.get("types-plan-maintenance/"),
     api.get("types-documents/"),
-    api.get("plans-maintenance/"),
+    api.get("plans-maintenance/par_equipement/?equipement_id=" + counter.value.equipement_info?.id),
   ]);
 
   consumables.value = cons;
@@ -475,7 +513,8 @@ const loadPage = async () => {
       throw new Error("Identifiant compteur invalide");
     }
 
-    await Promise.all([fetchCounter(), fetchReferentials()]);
+    await fetchCounter();
+    await fetchReferentials();
   } catch (e) {
     console.error(e);
     errorMessage.value = e.message || "Erreur lors du chargement";
@@ -538,7 +577,7 @@ const editSeuil = (seuil) => {
     consommables:
       pm?.consommables?.map((c) => ({
         consommable_id: c.consommable_id || c.id,
-        quantite_necessaire: c.quantite_necessaire || 1,
+        quantite_necessaire: c.quantite || 1,
       })) || [],
     documents:
       pm?.documents?.map((d) => ({
@@ -581,22 +620,70 @@ const closeSeuilDialog = () => {
   isEditSeuil.value = false;
 };
 
-const saveCounter = async (updatedCounter) => {
-  try {
-    await api.put(`compteurs/${counterId}/`, updatedCounter);
-    await fetchCounter(); // Rafraîchir les données
-    successMessage.value = "Compteur modifié avec succès";
-    showCounterDialog.value = false;
-  } catch (e) {
-    errorMessage.value = "Erreur lors de la modification du compteur";
-    console.error(e);
+const saveCounter = async () => {
+  // Mode édition
+  const changes = detectCounterChanges();
+
+  console.log("Modifications détectées du compteur :", changes);
+
+  // Ajouter l'ID utilisateur 
+  if (Object.keys(changes).length > 0) {
+    changes.user = store.getters.currentUser?.id;
+
+    await api.put(`compteurs/${counterId}/`, changes);
+    successMessage.value = "Compteur mis à jour avec succès.";
+  } else {
+    successMessage.value = "Aucune modification détectée.";
   }
 };
 
+const detectCounterChanges = () => {
+  const changes = {};
+
+  if (originalCounter.value.nomCompteur !== counter.value.nomCompteur) {
+    changes.nomCompteur = {
+      'ancien': originalCounter.value.nomCompteur,
+      'nouveau': counter.value.nomCompteur,
+    };
+  }
+  if (originalCounter.value.valeurCourante !== counter.value.valeurCourante) {
+    changes.valeurCourante = {
+      'ancienne': originalCounter.value.valeurCourante,
+      'nouvelle': counter.value.valeurCourante,
+    };
+  }
+  if (originalCounter.value.unite !== counter.value.unite && counter.value.type !== 'Calendaire') {
+    changes.unite = {
+      'ancienne': originalCounter.value.unite,
+      'nouvelle': counter.value.unite,
+    };
+  }
+  if (originalCounter.value.estPrincipal !== counter.value.estPrincipal) {
+    changes.estPrincipal = {
+      'ancien': originalCounter.value.estPrincipal,
+      'nouveau': counter.value.estPrincipal,
+    };
+  }
+  if (originalCounter.value.type !== counter.value.type) {
+    changes.type = {
+      'ancien': originalCounter.value.type,
+      'nouveau': counter.value.type,
+    };
+  }
+
+  return changes;
+};
+
 const handleFormSave = (data) => {
-  // Stocker les données du formulaire pour saveSeuil
+  
   currentPlan.value.pmMode = data.pmMode;
-  currentPlan.value.selectedExistingPMId = data.selectedExistingPMId;
+  
+  // Si un PM existant est sélectionné
+  if (data.pmMode === 'existing' && data.selectedExistingPMId) {
+    currentPlan.value.id = data.selectedExistingPMId;
+    console.log("PM existant sélectionné, ID:", data.selectedExistingPMId);
+  }
+  
   saveSeuil();
 };
 
@@ -625,9 +712,11 @@ const saveSeuil = async () => {
     const formData = new FormData();
 
     if (isEditSeuil.value) {
+
       const seuilDiff = diffObjects(initialSeuilSnapshot.value, currentPlan.value.seuil);
 
       const planDiff = diffObjects(initialPlanSnapshot.value, {
+        id: currentPlan.value.id,
         nom: currentPlan.value.nom,
         type_id: currentPlan.value.type_id,
         description: currentPlan.value.description,
@@ -646,6 +735,7 @@ const saveSeuil = async () => {
       const docsAvecFichier = currentPlan.value.documents.filter(
         (d) => d.file instanceof File
       );
+      console.log("Changements détectés pour le seuil :", seuilDiff);
 
       docsAvecFichier.forEach((doc, index) => {
         formData.append(`document_${index}`, doc.file);
@@ -664,6 +754,14 @@ const saveSeuil = async () => {
         })
       );
 
+      console.log("Saving new seuil for counter", counterId);
+      console.log("Seuil data:", {
+        derniereIntervention: currentPlan.value.seuil.derniereIntervention ?? 0,
+        ecartInterventions: currentPlan.value.seuil.ecartInterventions ?? 0,
+        prochaineMaintenance: currentPlan.value.seuil.prochaineMaintenance ?? null,
+        estGlissant: !!currentPlan.value.seuil.estGlissant,
+      });
+
       /* ===== COMPTEUR ===== */
       formData.append("compteur", counterId);
 
@@ -673,6 +771,7 @@ const saveSeuil = async () => {
       );
 
       const planMaintenance = {
+        id: currentPlan.value.id,
         nom: currentPlan.value.nom,
         type_id: currentPlan.value.type_id,
         commentaire: currentPlan.value.description,

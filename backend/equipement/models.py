@@ -118,7 +118,7 @@ class Compteur(models.Model):
     
 
     def __str__(self):
-        return f"Compteur {self.id} - {self.equipement.designation}"
+        return f"Compteur {self.id} - {self.equipement.designation} - Nom : {self.nomCompteur}"
     
     class Meta:
         db_table = 'gimao_compteur'
@@ -161,11 +161,31 @@ class Declencher(models.Model):
         related_name="declenchements"
     )
 
+    def ordinalToISOString(self, ordinal):
+        from datetime import date
+        try:
+            return date.fromordinal(int(ordinal)).isoformat()
+        except Exception:
+            return "—"
+
     def __str__(self):
-        return (
-            f"Déclenchement à {self.prochaineMaintenance} "
-            f"pour le compteur {self.compteur.id}"
-        )
+        if self.compteur.type == "Calendaire":
+            # Convertir les valeurs ordinales en format date pour l'affichage
+            valeurAfficheeProchaine = self.ordinalToISOString(self.prochaineMaintenance)
+
+            return(
+                f"{self.compteur.nomCompteur} - Seuil: {valeurAfficheeProchaine} "
+                f"(Dernière: {self.ordinalToISOString(self.derniereIntervention)}, Écart: {self.ecartInterventions} {self.compteur.unite},"
+                f" Glissant: {'Oui' if self.estGlissant else 'Non'})"
+            )
+
+        else:
+            valeurAfficheeProchaine = self.prochaineMaintenance
+            return (
+                f"{self.compteur.nomCompteur} - Seuil: {valeurAfficheeProchaine} {self.compteur.unite }"
+                f" (Dernière: {self.derniereIntervention} {self.compteur.unite}, Écart: {self.ecartInterventions} {self.compteur.unite},"
+                f" Glissant: {'Oui' if self.estGlissant else 'Non'})"
+            )
 
     class Meta:
         db_table = 'gimao_declencher'
