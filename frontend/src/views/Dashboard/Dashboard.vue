@@ -144,8 +144,7 @@
       <div
         v-if="
           store.getters.hasPermission('dash:display.eq') &&
-          !store.getters.hasPermission('dash:display.vertical') &&
-          !store.getters.hasPermission('dash:display.di')
+          !store.getters.hasPermission('dash:display.vertical')
         "
       >
         <v-card rounded="" v-if="store.getters.hasPermission('dash:display.eq')">
