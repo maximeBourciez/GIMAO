@@ -47,14 +47,23 @@
           </v-card-title>
           <v-divider></v-divider>
           <v-list dense>
-            <v-list-item 
+          <v-text-field
+            v-model="searchEquipmentType"
+            placeholder="Rechercher..."
+            prepend-inner-icon="mdi-magnify"
+            variant="outlined"
+            density="compact"
+            clearable class="mb-n2">
+          </v-text-field> 
+           <v-list-item 
+              v-if="searchEquipmentType === '' || searchEquipmentType === null"
               link 
               @click="handleEquipmentTypeSelected(null)"
               :class="{ 'selected-item': selectedTypeEquipments.length === 0 }">
               <v-list-item-title>Tous</v-list-item-title>
             </v-list-item>
             <v-list-item 
-              v-for="(model, index) in equipmentModels" 
+              v-for="(model, index) in filteredEquipmentModels" 
               :key="index" 
               link
               @click="handleEquipmentTypeSelected(model)" 
@@ -148,6 +157,17 @@ const selectedLocation = ref([]);
 const selectedTypeEquipments = ref([]);
 const selectedTreeNodes = ref([]);
 const openNodes = ref(new Set());
+
+const searchEquipmentType = ref('');
+const filteredEquipmentModels = computed(() => {
+  if (!searchEquipmentType.value) {
+    handleEquipmentTypeSelected(null);
+    return equipmentModels.value; 
+  }
+  return equipmentModels.value.filter(model =>
+    model?.nom?.toLowerCase().includes(searchEquipmentType.value.toLowerCase())
+  );
+});
 
 // Refs pour le container
 const tableContainer = ref(null);

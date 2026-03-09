@@ -131,7 +131,7 @@
         </v-card>
 
         <v-card rounded="" v-if="store.getters.hasPermission('dash:display.eq')">
-          <EquipmentListComponent
+          <EquipmentFilteredList
             title="Liste des Équipements"
             :showSearch="true"
             @row-click="handleRowClickEquipment"
@@ -184,6 +184,7 @@ import { useRouter } from "vue-router";
 import FailureListComponent from "@/components/FailureListComponent.vue";
 import InterventionListComponent from "@/components/InterventionListComponent.vue";
 import EquipmentListComponent from "@/components/EquipmentListComponent.vue";
+import EquipmentFilteredList from "@/views/Equipments/EquipmentList.vue";
 import StatsComponent from "@/components/StatsComponent.vue";
 import Stocks from "@/views/Stocks/Stocks.vue";
 
