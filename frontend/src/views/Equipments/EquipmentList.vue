@@ -1,8 +1,8 @@
 <template>
   <v-container fluid :style="containerStyle">
-    <v-row>
+    <v-row class="align-stretch">
       <!-- Sidebar gauche avec filtres -->
-      <v-col cols="12" md="4" lg="3">
+      <v-col cols="12" md="4" lg="3" class="filters-column">
         <!-- Card: Structure des Lieux -->
         <v-card elevation="1" class="rounded-lg pa-2 mb-4">
           <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
@@ -14,32 +14,16 @@
               Pas de données disponibles.
             </p>
             <div v-else>
-              <v-text-field
-                v-model="searchLocation"
-                placeholder="Rechercher un lieu..."
-                prepend-inner-icon="mdi-magnify"
-                variant="outlined"
-                density="compact"
-                clearable
-                class="mb-n4">
+              <v-text-field v-model="searchLocation" placeholder="Rechercher un lieu..."
+                prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" clearable class="mb-n4">
               </v-text-field>
 
-              <VTreeview 
-                v-model:selected="selectedTreeNodes" 
-                v-model:opened="openedNodes"
-                :items="filteredLocations"
-                item-title="nomLieu"
-                item-children="children" 
-                item-value="id" 
-                select-strategy="independent" 
-                selectable 
-                dense
-                @update:selected="onSelectLocation">
+              <VTreeview v-model:selected="selectedTreeNodes" v-model:opened="openedNodes" :items="filteredLocations"
+                item-title="nomLieu" item-children="children" item-value="id" select-strategy="independent" selectable
+                dense @update:selected="onSelectLocation">
                 <template v-slot:prepend="{ item, open }">
-                  <v-icon 
-                    v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
-                    @click.stop="toggleNode(item)" 
-                    :class="{ 'rotate-icon': open }">
+                  <v-icon v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
+                    @click.stop="toggleNode(item)" :class="{ 'rotate-icon': open }">
                     {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
                   </v-icon>
                   <span v-else class="tree-icon-placeholder"></span>
@@ -58,29 +42,31 @@
             Types des équipements
           </v-card-title>
           <v-divider></v-divider>
-          <v-list dense>
-          <v-text-field
-            v-model="searchEquipmentType"
-            placeholder="Rechercher..."
-            prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-            density="compact"
-            clearable class="mb-n2">
-          </v-text-field> 
-           <v-list-item 
-              v-if="searchEquipmentType === '' || searchEquipmentType === null"
-              link 
-              @click="handleEquipmentTypeSelected(null)"
-              :class="{ 'selected-item': selectedTypeEquipments.length === 0 }">
-              <v-list-item-title>Tous</v-list-item-title>
+          <v-list density="compact" bg-color="transparent">
+            <!-- Option Tous -->
+            <v-list-item link @click="handleEquipmentTypeSelected(null)" :active="selectedTypeEquipments.length === 0"
+              :class="{ 'selected-item': selectedTypeEquipments.length === 0 }" density="compact">
+              <template v-slot:prepend>
+                <v-icon size="small" color="grey-darken-1">mdi-all-inclusive</v-icon>
+              </template>
+              <v-list-item-title class="text-body-2">Tous</v-list-item-title>
             </v-list-item>
-            <v-list-item 
-              v-for="(model, index) in filteredEquipmentModels" 
-              :key="index" 
-              link
-              @click="handleEquipmentTypeSelected(model)" 
-              :class="{ 'selected-item': isEquipmentTypeSelected(model) }">
-              <v-list-item-title>{{ model.nom }}</v-list-item-title>
+
+            <!-- Types filtrés -->
+            <v-list-item v-for="model in filteredEquipmentModels" :key="model.id" link
+              @click="handleEquipmentTypeSelected(model)" :active="isEquipmentTypeSelected(model)"
+              :class="{ 'selected-item': isEquipmentTypeSelected(model) }" density="compact">
+              <template v-slot:prepend>
+                <v-icon size="small" color="grey-darken-1">mdi-wrench</v-icon>
+              </template>
+              <v-list-item-title class="text-body-2">{{ model.nom }}</v-list-item-title>
+            </v-list-item>
+
+            <!-- Message si aucun résultat -->
+            <v-list-item v-if="filteredEquipmentModels.length === 0 && searchEquipmentType">
+              <v-list-item-title class="text-caption text-grey text-center">
+                Aucun type trouvé pour "{{ searchEquipmentType }}"
+              </v-list-item-title>
             </v-list-item>
           </v-list>
         </v-card>
@@ -88,26 +74,13 @@
 
       <!-- Colonne principale avec EquipmentListComponent -->
       <v-col cols="12" md="8" lg="9" ref="tableContainer">
-        <EquipmentListComponent 
-          :title="title"
-          :show-search="showSearch"
-          :no-data-text="noDataText"
-          :table-headers="computedTableHeaders"
-          :filtered-items="filteredEquipments"
-          @row-click="handleRowClick"
-          @equipments-loaded="handleEquipmentsLoaded"
-          @locations-loaded="handleLocationsLoaded"
-          @models-loaded="handleModelsLoaded"
-          ref="equipmentListComponentRef" />
+        <EquipmentListComponent :title="title" :show-search="showSearch" :no-data-text="noDataText"
+          :table-headers="computedTableHeaders" :filtered-items="filteredEquipments" @row-click="handleRowClick"
+          @equipments-loaded="handleEquipmentsLoaded" @locations-loaded="handleLocationsLoaded"
+          @models-loaded="handleModelsLoaded" ref="equipmentListComponentRef" />
 
         <!-- Bouton flottant en bas à droite -->
-        <v-btn 
-          v-if="showCreateButton" 
-          color="primary" 
-          size="large" 
-          icon 
-          class="floating-add-button" 
-          elevation="4"
+        <v-btn v-if="showCreateButton" color="primary" size="large" icon class="floating-add-button" elevation="4"
           @click="handleCreate">
           <v-icon size="large">mdi-plus</v-icon>
           <v-tooltip activator="parent" location="left">
@@ -174,7 +147,7 @@ const searchEquipmentType = ref('');
 const filteredEquipmentModels = computed(() => {
   if (!searchEquipmentType.value) {
     handleEquipmentTypeSelected(null);
-    return equipmentModels.value; 
+    return equipmentModels.value;
   }
   return equipmentModels.value.filter(model =>
     model?.nom?.toLowerCase().includes(searchEquipmentType.value.toLowerCase())
@@ -190,7 +163,7 @@ const filteredLocations = computed(() => {
     openedNodes.value = [];
     return locations.value;
   }
-  
+
   const search = searchLocation.value.toLowerCase();
   const parentsToOpen = [];
 
@@ -198,7 +171,7 @@ const filteredLocations = computed(() => {
     return nodes.reduce((acc, node) => {
       const matchSelf = node.nomLieu?.toLowerCase().includes(search);
       const filteredChildren = node.children ? filterTree(node.children) : [];
-      
+
       if (matchSelf || filteredChildren.length > 0) {
         if (filteredChildren.length > 0) {
           parentsToOpen.push(node.id); // ← ouvre ce parent
@@ -328,15 +301,15 @@ const isEquipmentTypeSelected = (model) => {
 // Filtrage des équipements
 const filteredEquipments = computed(() => {
   if (!equipments.value) return [];
-  
+
   return equipments.value.filter(e => {
     const locationMatch = selectedLocation.value.length === 0 ||
       selectedLocation.value.includes('All') ||
       selectedLocation.value.includes(e.lieu.nomLieu);
-    
+
     const typeMatch = selectedTypeEquipments.value.length === 0 ||
       selectedTypeEquipments.value.some(m => m.nom === e.modele);
-    
+
     return locationMatch && typeMatch;
   });
 });
@@ -455,8 +428,13 @@ onBeforeUnmount(() => {
 }
 
 .v-list-item__prepend i,
-.tree-icon-placeholder {
-  display: none !important;
+.v-list-item__prepend i {
+  margin-right: 8px;
+}
+
+.filters-column {
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 .tree-label {
@@ -465,5 +443,10 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   display: inline-block;
+}
+
+.filters-column {
+  max-height: calc(100% - 120px);
+  overflow-y: hidden;
 }
 </style>

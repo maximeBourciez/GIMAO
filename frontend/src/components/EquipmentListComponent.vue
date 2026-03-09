@@ -4,6 +4,7 @@
     :headers="tableHeaders" 
     :items="displayedItems" 
     :loading="loading"
+    :items-per-page="25"
     :error-message="errorMessage" 
     :show-search="showSearch"
     :show-create-button="false" 
