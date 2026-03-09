@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 
 from donnees.models import Adresse
+from gimao.mixins import ArchivableMixin
 
 class Magasin(models.Model):
     nom = models.CharField(max_length=100)
@@ -17,7 +18,7 @@ class Magasin(models.Model):
         verbose_name_plural = 'Magasins'
 
 
-class Consommable(models.Model):
+class Consommable(ArchivableMixin, models.Model):
     designation = models.CharField(max_length=50)
     lienImageConsommable = models.ImageField(upload_to='images/', null=True, blank=True)
     magasins = models.ManyToManyField(Magasin, through='Stocker', related_name='consommables', blank=True)

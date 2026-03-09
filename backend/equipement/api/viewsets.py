@@ -36,9 +36,10 @@ from maintenance.models import (
 )
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
 from gimao.viewsets import GimaoModelViewSet
+from gimao.mixins import ArchivableViewSetMixin
 
 
-class EquipementViewSet(GimaoModelViewSet):
+class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     queryset = Equipement.objects.all()
 
     def get_serializer_class(self):

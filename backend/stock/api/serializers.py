@@ -64,7 +64,7 @@ class ConsommableDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Consommable
         fields = ['id', 'designation', 'lienImageConsommable', 'magasins',
-                  'fournitures', 'stocks', 'quantite_totale', 'seuilStockFaible', 'documents']
+                  'fournitures', 'stocks', 'quantite_totale', 'seuilStockFaible', 'documents', 'archive']
     
 
     
