@@ -24,8 +24,18 @@
       <router-view />
     </v-main>
 
-    <!-- Bouton flottant d'accès aux notices -->
+    <!-- Bouton flottant : retour si on est sur la page notices, sinon accès notices -->
     <v-btn
+      v-if="isNoticePage"
+      :style="{ position: 'fixed', top: '72px', right: '16px', zIndex: 2500 }"
+      color="secondary"
+      icon="mdi-arrow-left"
+      elevation="6"
+      aria-label="Retour"
+      @click="router.back()"
+    />
+    <v-btn
+      v-else
       :style="{ position: 'fixed', top: '72px', right: '16px', zIndex: 2500 }"
       color="primary"
       icon="mdi-help"
@@ -78,6 +88,8 @@ const isPublicPage = computed(() => route.meta?.public === true)
  * Titre page
  */
 const pageTitle = computed(() => route.meta?.title || 'GIMAO')
+
+const isNoticePage = computed(() => route.name === 'Notice')
 
 const goToNotices = () => {
   router.push('/Notice')
