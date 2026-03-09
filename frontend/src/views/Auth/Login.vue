@@ -87,7 +87,6 @@ const loginWithPassword = async () => {
     }
 
     // Connexion réussie
-    localStorage.setItem("user", JSON.stringify(response.utilisateur));
     store.commit("setUser", response.utilisateur);
     router.push("/");
   } catch (err) {
