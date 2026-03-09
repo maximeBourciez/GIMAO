@@ -1,9 +1,11 @@
+
+
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import check_password, make_password
 
-from utilisateur.models import Role, Utilisateur, Log
+from utilisateur.models import Role, Utilisateur, Log, Permission, UtilisateurPermission
 from .serializers import (
     RoleSerializer,
     UtilisateurSerializer,
@@ -13,7 +15,8 @@ from .serializers import (
     LogSerializer,
     LoginSerializer,
     ChangePasswordSerializer,
-    DefinirMotDePasseSerializer
+    DefinirMotDePasseSerializer,
+    PermissionSerializer
 )
 from gimao.viewsets import GimaoModelViewSet
 
@@ -23,6 +26,19 @@ from gimao.viewsets import GimaoModelViewSet
 class RoleViewSet(GimaoModelViewSet):
     queryset = Role.objects.all().order_by('rang')
     serializer_class = RoleSerializer
+
+
+# ==================== PERMISSION VIEWSET ====================
+
+class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet en lecture seule pour lister toutes les permissions disponibles.
+    Utilisé par les pages de gestion des rôles et des permissions utilisateur.
+    GET /api/permissions/
+    GET /api/permissions/{id}/
+    """
+    queryset = Permission.objects.all().order_by('nomPermission')
+    serializer_class = PermissionSerializer
 
 
 # ==================== UTILISATEUR VIEWSET ====================
@@ -44,7 +60,6 @@ class UtilisateurViewSet(GimaoModelViewSet):
         return UtilisateurSerializer
 
     # ---------- LOGIN ----------
-    # Vérifie l'existence de l'utilisateur
     @action(detail=False, methods=['post'])
     def exists(self, request):
         """
@@ -64,7 +79,6 @@ class UtilisateurViewSet(GimaoModelViewSet):
 
         return Response({"existe": exists, "message": message}, status=status.HTTP_200_OK)
 
-    # Connexion
     @action(detail=False, methods=['post'])
     def login(self, request):
         """
@@ -92,7 +106,7 @@ class UtilisateurViewSet(GimaoModelViewSet):
 
         if not motDePasse or motDePasse.strip() == '':
             return Response({"detail": "Mot de passe requis"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if not user.check_password(motDePasse):
             return Response({"detail": "Mot de passe incorrect"}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -111,7 +125,6 @@ class UtilisateurViewSet(GimaoModelViewSet):
     def definir_mot_de_passe(self, request):
         """
         Permet à un utilisateur sans mot de passe de définir son mot de passe lors de sa première connexion.
-        Conditions : pas de mot de passe ET jamais connecté (derniereConnexion == null)
         """
         serializer = DefinirMotDePasseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -129,7 +142,7 @@ class UtilisateurViewSet(GimaoModelViewSet):
                 {"detail": "Cet utilisateur a déjà un mot de passe. Utilisez l'endpoint de changement de mot de passe."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if not user.premiere_connexion():
             return Response(
                 {"detail": "Cet utilisateur s'est déjà connecté. Utilisez l'endpoint de changement de mot de passe."},
@@ -137,7 +150,7 @@ class UtilisateurViewSet(GimaoModelViewSet):
             )
 
         user.set_password(nouveau_motDePasse)
-        
+
         from django.utils import timezone
         user.derniereConnexion = timezone.now()
         user.save()
@@ -171,10 +184,87 @@ class UtilisateurViewSet(GimaoModelViewSet):
 
         return Response({"message": "Mot de passe mis à jour avec succès"}, status=status.HTTP_200_OK)
 
+    # ---------- PERMISSIONS PERSONNALISÉES (SCRUM-159) ----------
+
+    @action(detail=True, methods=['get'])
+    def permissions(self, request, pk=None):
+        """
+        Retourne les permissions d'un utilisateur.
+        Si des permissions personnalisées existent, elles sont retournées.
+        Sinon, les permissions du rôle sont retournées.
+
+        GET /api/utilisateurs/{id}/permissions/
+        """
+        user = self.get_object()
+        perms_perso = user.permissions_personnalisees.select_related('permission').all()
+
+        if perms_perso.exists():
+            permissions = [up.permission for up in perms_perso]
+            source = "personnalisees"
+        else:
+            permissions = list(user.role.permissions.all()) if user.role else []
+            source = "role"
+
+        return Response({
+            "source": source,
+            "permissions": PermissionSerializer(permissions, many=True).data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def definir_permissions(self, request, pk=None):
+        """
+        Définit les permissions personnalisées d'un utilisateur.
+        Remplace toutes les permissions personnalisées existantes.
+
+        POST /api/utilisateurs/{id}/definir_permissions/
+        Body: { "permissions_ids": [1, 2, 3] }
+        """
+        user = self.get_object()
+        permissions_ids = request.data.get('permissions_ids', [])
+
+        if not isinstance(permissions_ids, list):
+            return Response(
+                {"detail": "permissions_ids doit être une liste"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Vérifier que toutes les permissions existent
+        permissions = Permission.objects.filter(id__in=permissions_ids)
+        if len(permissions) != len(permissions_ids):
+            return Response(
+                {"detail": "Une ou plusieurs permissions sont introuvables"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Supprimer les anciennes permissions personnalisées et les remplacer
+        UtilisateurPermission.objects.filter(utilisateur=user).delete()
+        for perm in permissions:
+            UtilisateurPermission.objects.create(utilisateur=user, permission=perm)
+
+        return Response({
+            "message": f"{len(permissions)} permissions personnalisées définies pour {user.nomUtilisateur}",
+            "permissions": PermissionSerializer(permissions, many=True).data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def reinitialiser_permissions(self, request, pk=None):
+        """
+        Supprime les permissions personnalisées d'un utilisateur.
+        L'utilisateur retrouve les permissions de son rôle.
+
+        POST /api/utilisateurs/{id}/reinitialiser_permissions/
+        """
+        user = self.get_object()
+        count = UtilisateurPermission.objects.filter(utilisateur=user).delete()[0]
+
+        return Response({
+            "message": f"Permissions personnalisées supprimées. {user.nomUtilisateur} utilise maintenant les permissions du rôle '{user.role.nomRole}'.",
+            "permissions": PermissionSerializer(user.role.permissions.all(), many=True).data
+        }, status=status.HTTP_200_OK)
+
 
 # ==================== LOG VIEWSET ====================
 
 class LogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Log.objects.all().order_by('-date')
     serializer_class = LogSerializer
-

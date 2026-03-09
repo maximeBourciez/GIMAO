@@ -1,5 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
+// ---------------------------------------------------------------
+// ROLES ET PERMISSIONS
+import RoleList from '@/views/Users/RoleList.vue'
+import UserPermissions from '@/views/Users/UserPermissions.vue'
 // ---------------------------------------------------------------
 // AUTH
 import Login from '@/views/Auth/Login.vue'
@@ -85,6 +88,21 @@ const routes = [
     component: Dashboard,
     meta: { title: 'Tableau de Bord' }
   },
+  //  ROLES ET PERMISSIONS
+  {
+    path: '/RoleList',
+    name: 'RoleList',
+    component: RoleList,
+    meta: { title: 'Gestion des rôles', requiresPermissions: ['role:viewList'] }
+  },
+  {
+    path: '/UserPermissions/:id',
+    name: 'UserPermissions',
+    component: UserPermissions,
+    props: true,
+    meta: { title: 'Permissions utilisateur', requiresPermissions: ['user:edit'] }
+  },
+  // 
 
   {
     path: '/UserList',

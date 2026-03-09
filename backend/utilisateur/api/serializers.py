@@ -1,16 +1,52 @@
+
+
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from utilisateur.models import Role, Utilisateur, Log
+from utilisateur.models import Role, Utilisateur, Log, Permission, UtilisateurPermission
+
+
+# ==================== PERMISSION ====================
+
+class PermissionSerializer(serializers.ModelSerializer):
+    """Serializer pour le modèle Permission"""
+
+    class Meta:
+        model = Permission
+        fields = ['id', 'nomPermission', 'description']
 
 
 # ==================== ROLE ====================
 
 class RoleSerializer(serializers.ModelSerializer):
-    """Serializer pour le modèle Role"""
-    
+    """Serializer pour le modèle Role - inclut les permissions du rôle"""
+    permissions = PermissionSerializer(many=True, read_only=True)
+    permissions_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Permission.objects.all(),
+        source='permissions',
+        many=True,
+        write_only=True,
+        required=False
+    )
+
     class Meta:
         model = Role
-        fields = ['id', 'nomRole', 'rang']
+        fields = ['id', 'nomRole', 'rang', 'permissions', 'permissions_ids']
+
+    def create(self, validated_data):
+        permissions = validated_data.pop('permissions', [])
+        role = Role.objects.create(**validated_data)
+        if permissions:
+            role.permissions.set(permissions)
+        return role
+
+    def update(self, instance, validated_data):
+        permissions = validated_data.pop('permissions', None)
+        instance.nomRole = validated_data.get('nomRole', instance.nomRole)
+        instance.rang = validated_data.get('rang', instance.rang)
+        instance.save()
+        if permissions is not None:
+            instance.permissions.set(permissions)
+        return instance
 
 
 # ==================== UTILISATEUR ====================
@@ -26,7 +62,8 @@ class UtilisateurSerializer(serializers.ModelSerializer):
         required=True
     )
     permissions_names = serializers.SerializerMethodField()
-    
+    a_permissions_personnalisees = serializers.SerializerMethodField()
+
     class Meta:
         model = Utilisateur
         fields = [
@@ -41,15 +78,27 @@ class UtilisateurSerializer(serializers.ModelSerializer):
             'actif',
             'role',
             'role_id',
-            'permissions_names'
+            'permissions_names',
+            'a_permissions_personnalisees'
         ]
         read_only_fields = ['derniereConnexion', 'dateCreation']
 
     def get_permissions_names(self, obj):
-        """Retourne les noms des permissions associées au rôle de l'utilisateur"""
+        """
+        Retourne les permissions de l'utilisateur.
+        Si des permissions personnalisées existent, elles remplacent celles du rôle.
+        Sinon, on retourne les permissions du rôle.
+        """
+        perms_perso = obj.permissions_personnalisees.select_related('permission').all()
+        if perms_perso.exists():
+            return [up.permission.nomPermission for up in perms_perso]
         if obj.role:
             return [perm.nomPermission for perm in obj.role.permissions.all()]
         return []
+
+    def get_a_permissions_personnalisees(self, obj):
+        """Indique si l'utilisateur a des permissions personnalisées"""
+        return obj.permissions_personnalisees.exists()
 
 
 class UtilisateurCreateSerializer(serializers.ModelSerializer):
@@ -68,7 +117,13 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
         allow_blank=True,
         style={'input_type': 'password'}
     )
-    
+    permissions_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Permission.objects.all(),
+        many=True,
+        write_only=True,
+        required=False
+    )
+
     class Meta:
         model = Utilisateur
         fields = [
@@ -81,7 +136,8 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
             'email',
             'photoProfil',
             'actif',
-            'role'
+            'role',
+            'permissions_ids'
         ]
         read_only_fields = ['id']
         extra_kwargs = {
@@ -92,17 +148,15 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
             'actif': {'required': True},
             'role': {'required': True, 'allow_null': False},
         }
-    
+
     def validate(self, data):
         """Vérifie que les mots de passe correspondent"""
         mot_de_passe = data.get('motDePasse')
         confirmation = data.get('motDePasse_confirmation')
 
-        # Si aucun mot de passe n'est fourni, on autorise la création sans mot de passe.
         if mot_de_passe in (None, '') and confirmation in (None, ''):
             return data
 
-        # Si l'un des deux est fourni, on exige les deux + égalité.
         if mot_de_passe in (None, '') or confirmation in (None, ''):
             raise serializers.ValidationError({
                 'motDePasse_confirmation': 'Confirmation du mot de passe requise'
@@ -113,26 +167,40 @@ class UtilisateurCreateSerializer(serializers.ModelSerializer):
                 'motDePasse_confirmation': 'Les mots de passe ne correspondent pas'
             })
         return data
-    
+
     def create(self, validated_data):
-        """Crée un utilisateur avec un mot de passe hashé"""
+        """Crée un utilisateur avec mot de passe hashé et permissions personnalisées optionnelles"""
         validated_data.pop('motDePasse_confirmation', None)
+        permissions = validated_data.pop('permissions_ids', [])
 
         mot_de_passe = validated_data.get('motDePasse')
         if mot_de_passe in (None, ''):
             validated_data['motDePasse'] = None
         else:
             validated_data['motDePasse'] = make_password(mot_de_passe)
-        return super().create(validated_data)
+
+        utilisateur = super().create(validated_data)
+
+        # Si des permissions personnalisées sont fournies, on les associe
+        if permissions:
+            for perm in permissions:
+                UtilisateurPermission.objects.create(
+                    utilisateur=utilisateur,
+                    permission=perm
+                )
+
+        return utilisateur
 
 
 class UtilisateurDetailSerializer(serializers.ModelSerializer):
-    """Serializer détaillé avec logs et rôles supplémentaires"""
+    """Serializer détaillé avec logs, rôles et permissions personnalisées"""
     photoProfil = serializers.FileField(required=False, allow_null=True, use_url=False)
     role = RoleSerializer(read_only=True)
     logs_recents = serializers.SerializerMethodField()
     avoirs = serializers.SerializerMethodField()
-    
+    permissions_names = serializers.SerializerMethodField()
+    a_permissions_personnalisees = serializers.SerializerMethodField()
+
     class Meta:
         model = Utilisateur
         fields = [
@@ -147,9 +215,22 @@ class UtilisateurDetailSerializer(serializers.ModelSerializer):
             'actif',
             'role',
             'logs_recents',
-            'avoirs'
+            'avoirs',
+            'permissions_names',
+            'a_permissions_personnalisees'
         ]
-    
+
+    def get_permissions_names(self, obj):
+        perms_perso = obj.permissions_personnalisees.select_related('permission').all()
+        if perms_perso.exists():
+            return [up.permission.nomPermission for up in perms_perso]
+        if obj.role:
+            return [perm.nomPermission for perm in obj.role.permissions.all()]
+        return []
+
+    def get_a_permissions_personnalisees(self, obj):
+        return obj.permissions_personnalisees.exists()
+
     def get_logs_recents(self, obj):
         """Retourne les 10 derniers logs de l'utilisateur"""
         logs = obj.logs.order_by('-date')[:10]
@@ -159,19 +240,15 @@ class UtilisateurDetailSerializer(serializers.ModelSerializer):
             'nomTable': log.nomTable,
             'date': log.date
         } for log in logs]
-    
+
     def get_avoirs(self, obj):
         """Retourne les rôles supplémentaires de l'utilisateur"""
-        # Certains schémas n'ont pas de relation "avoirs" sur Utilisateur.
-        # On sécurise pour éviter un 500 sur l'endpoint retrieve.
         if not hasattr(obj, 'avoirs'):
             return []
-
         try:
             avoirs = obj.avoirs.prefetch_related('roles').all()
         except Exception:
             return []
-
         return [
             {
                 'id': avoir.id,
@@ -183,7 +260,7 @@ class UtilisateurDetailSerializer(serializers.ModelSerializer):
 
 class UtilisateurSimpleSerializer(serializers.ModelSerializer):
     """Serializer simple pour les relations"""
-    
+
     class Meta:
         model = Utilisateur
         fields = ['id', 'nomUtilisateur', 'prenom', 'nomFamille', 'email', 'photoProfil']
@@ -221,9 +298,8 @@ class ChangePasswordSerializer(serializers.Serializer):
         style={'input_type': 'password'},
         write_only=True
     )
-    
+
     def validate(self, data):
-        """Vérifie que les nouveaux mots de passe correspondent"""
         if data['nouveau_motDePasse'] != data['nouveau_motDePasse_confirmation']:
             raise serializers.ValidationError({
                 'nouveau_motDePasse_confirmation': 'Les mots de passe ne correspondent pas'
@@ -245,9 +321,8 @@ class DefinirMotDePasseSerializer(serializers.Serializer):
         style={'input_type': 'password'},
         write_only=True
     )
-    
+
     def validate(self, data):
-        """Vérifie que les mots de passe correspondent"""
         if data['nouveau_motDePasse'] != data['nouveau_motDePasse_confirmation']:
             raise serializers.ValidationError({
                 'nouveau_motDePasse_confirmation': 'Les mots de passe ne correspondent pas'
@@ -267,7 +342,7 @@ class LogSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
-    
+
     class Meta:
         model = Log
         fields = [

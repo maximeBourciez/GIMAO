@@ -239,3 +239,74 @@ class RolePermission(models.Model):
         verbose_name = 'Rôle-Permission'
         verbose_name_plural = 'Rôles-Permissions'
         unique_together = ('role', 'permission')
+
+    
+#  utilisateur permission
+
+class UtilisateurPermission(models.Model):
+    """
+    Représente une permission spécifique attribuée à un rôle ou un utilisateur.
+
+    Convention de nommage : <module>:<action>
+    
+    Modules disponibles :
+        di      Demande d'Intervention
+        bt      Bon de Travail
+        eq      Équipement
+        cp      Compteur
+        mp      Maintenance Préventive
+        stock   Stock
+        cons    Consommable
+        mag     Magasin
+        user    Utilisateur
+        role    Rôle
+        loc     Lieu
+        sup     Fournisseur (Supplier)
+        man     Fabricant (Manufacturer)
+        eqmod   Modèle d'équipement
+        export  Export global
+        menu    Accès au menu
+        dash    Dashboard
+
+    Actions disponibles :
+        viewList        Voir la liste
+        viewDetail      Voir le détail
+        create          Créer
+        edit            Modifier
+        editAll         Modifier tous les enregistrements
+        editCreated     Modifier ses propres enregistrements
+        editAssigned    Modifier les enregistrements assignés
+        delete          Supprimer
+        export          Exporter
+        accept          Accepter
+        refuse          Refuser
+        transform       Transformer en BT
+        start           Démarrer
+        end             Clôturer
+        disable         Désactiver
+        enable          Activer
+
+    Exemples : di:create, bt:editAssigned, user:disable
+    """
+    
+    utilisateur = models.ForeignKey(
+        Utilisateur,
+        on_delete=models.CASCADE,
+        related_name="permissions_personnalisees",
+        help_text="Utilisateur concerné"
+    )
+    permission = models.ForeignKey(
+        Permission,
+        on_delete=models.CASCADE,
+        related_name="utilisateur_permissions",
+        help_text="Permission accordée à l'utilisateur"
+    )
+
+    def __str__(self):
+        return f"{self.utilisateur.nomUtilisateur} - {self.permission.nomPermission}"
+
+    class Meta:
+        db_table = 'gimao_utilisateur_permission'
+        verbose_name = 'Permission utilisateur'
+        verbose_name_plural = 'Permissions utilisateur'
+        unique_together = ('utilisateur', 'permission')
