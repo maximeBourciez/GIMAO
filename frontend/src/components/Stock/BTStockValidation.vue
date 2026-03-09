@@ -52,36 +52,51 @@
                         </div>
                       </v-col>
                       <v-col cols="4" class="text-right">
-                        <v-chip size="small" color="primary" variant="tonal">
-                          {{ getPendingCount(bt) }} consommable(s)
-                        </v-chip>
+                        <div class="bt-title-metrics">
+                          <v-chip size="small" color="primary" variant="tonal">
+                            {{ getReservedCount(bt) }}/{{ getTotalCount(bt) }} préparé(s)
+                          </v-chip>
+                        </div>
                       </v-col>
                     </v-row>
                   </v-expansion-panel-title>
 
                   <v-expansion-panel-text>
                     <v-list density="compact" class="py-0">
-                      <v-list-item v-for="cons in getPendingConsommables(bt)" :key="cons.consommable"
-                        class="consommable-item px-0">
+                      <v-list-item v-for="cons in getSortedConsommables(bt)" :key="cons.consommable"
+                        class="consommable-item px-0" :class="{ 'consommable-item--reserved': isReserved(cons) }">
                         <template #prepend>
-                          <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
+                          <v-icon :color="isReserved(cons) ? 'success' : 'primary'" class="mr-3">
+                            {{ isReserved(cons) ? 'mdi-package-variant-closed-check' : 'mdi-package-variant' }}
+                          </v-icon>
                         </template>
 
-                        <v-list-item-title class="text-body-2">
+                        <div class="consommable-body">
+                          <div class="consommable-main">
+                            <v-list-item-title class="text-body-2 consommable-title">
                           {{ cons.designation }}
-                        </v-list-item-title>
-                        <v-list-item-subtitle class="text-caption">
+                            </v-list-item-title>
+                            <v-chip
+                              size="x-small"
+                              :color="isReserved(cons) ? 'success' : 'info'"
+                              :variant="isReserved(cons) ? 'flat' : 'tonal'"
+                            >
+                              {{ isReserved(cons) ? 'Mis de côté' : 'À préparer' }}
+                            </v-chip>
+                          </div>
+                          <v-list-item-subtitle class="text-caption consommable-meta">
                           Quantité demandée : {{ cons.quantite }}
                         </v-list-item-subtitle>
+                        </div>
 
                         <template #append>
                           <v-tooltip v-if="!isReserved(cons)" location="top">
                             <template #activator="{ props: tooltipProps }">
                               <v-btn
                                 v-bind="tooltipProps"
-                                color="warning"
+                                color="primary"
                                 size="small"
-                                variant="tonal"
+                                variant="flat"
                                 :loading="distributingId === `${bt.id}-${cons.consommable}`"
                                 @click="requestDistribute(bt, cons)"
                               >
@@ -91,7 +106,7 @@
                             </template>
                             {{ getConsommableStockTooltip(cons) }}
                           </v-tooltip>
-                          <v-btn v-else color="success" size="small" variant="outlined" disabled>
+                          <v-btn v-else color="success" size="small" variant="tonal" disabled>
                             <v-icon size="18" class="mr-1">mdi-check</v-icon>
                             Mis de côté
                           </v-btn>
@@ -100,7 +115,7 @@
                     </v-list>
 
                     <div class="d-flex justify-end mt-3 pt-3 border-t">
-                      <v-btn color="success" variant="flat" size="small" :loading="distributingAll === bt.id"
+                      <v-btn color="primary" variant="flat" size="small" :loading="distributingAll === bt.id"
                         @click="requestReserveAll(bt)">
                         <v-icon size="18" class="mr-1">mdi-check-all</v-icon>
                         Tout mettre de côté
@@ -239,16 +254,16 @@
     </v-card-text>
   </v-card>
 
-  <ConfirmationModal v-model="confirmDialog" type="warning" title="Confirmer la mise de côté"
+  <ConfirmationModal v-model="confirmDialog" type="info" title="Confirmer la mise de côté"
     message="Êtes-vous sûr de vouloir mettre ce consommable de côté ?" confirm-text="Mettre de côté"
     confirm-icon="mdi-check" :loading="confirmLoading" @confirm="confirmDistribute" @cancel="confirmDialog = false" />
 
-  <ConfirmationModal v-model="confirmAllDialog" type="warning" title="Confirmer la mise de côté"
+  <ConfirmationModal v-model="confirmAllDialog" type="info" title="Confirmer la mise de côté"
     message="Êtes-vous sûr de vouloir mettre de côté tous les consommables de ce BT ?"
     confirm-text="Tout mettre de côté" confirm-icon="mdi-check" :loading="confirmAllLoading"
     @confirm="confirmReserveAll" @cancel="confirmAllDialog = false" />
 
-  <ConfirmationModal v-model="confirmCancelDialog" type="warning" title="Confirmer l'annulation"
+  <ConfirmationModal v-model="confirmCancelDialog" type="error" title="Confirmer l'annulation"
     message="Êtes-vous sûr de vouloir annuler la mise de côté pour ce BT ?" confirm-text="Annuler"
     confirm-icon="mdi-close" :loading="confirmCancelLoading" @confirm="confirmCancelReserve"
     @cancel="confirmCancelDialog = false" />
@@ -491,8 +506,24 @@ const getPendingConsommables = (bt) => {
   return bt.consommables?.filter(c => !isReserved(c)) || [];
 };
 
+const getReservedConsommables = (bt) => {
+  return bt.consommables?.filter(c => isReserved(c)) || [];
+};
+
 const getAllConsommables = (bt) => {
   return bt.consommables || [];
+};
+
+const getSortedConsommables = (bt) => {
+  return [...getPendingConsommables(bt), ...getReservedConsommables(bt)];
+};
+
+const getTotalCount = (bt) => {
+  return getAllConsommables(bt).length;
+};
+
+const getReservedCount = (bt) => {
+  return getReservedConsommables(bt).length;
 };
 
 const getBtById = (btId) => {
@@ -600,11 +631,6 @@ const confirmSetRecupere = async () => {
     confirmRecupereDialog.value = false;
     pendingRecupereBt.value = null;
   }
-};
-
-// Compter les pièces en attente
-const getPendingCount = (bt) => {
-  return getPendingConsommables(bt).length;
 };
 
 // Formater la date
@@ -868,6 +894,13 @@ onMounted(() => {
   gap: 8px;
 }
 
+.bt-title-metrics {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .section-title {
   font-size: 0.75rem;
   font-weight: 600;
@@ -895,9 +928,7 @@ onMounted(() => {
   font-size: 0.875rem;
   font-weight: 500;
   color: #05004E;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 .bt-date {
@@ -907,10 +938,18 @@ onMounted(() => {
 
 .consommable-item {
   border-bottom: 1px solid #F3F4F6;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  padding-inline: 8px !important;
 }
 
 .consommable-item:last-child {
   border-bottom: none;
+  margin-bottom: 0;
+}
+
+.consommable-item--reserved {
+  background-color: #F4FBF6;
 }
 
 .consommable-item :deep(.v-list-item__content) {
@@ -920,6 +959,30 @@ onMounted(() => {
 
 .consommable-item :deep(.v-list-item__append) {
   margin-left: auto;
+}
+
+.consommable-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.consommable-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.consommable-title {
+  color: #20324F;
+  font-weight: 500;
+}
+
+.consommable-meta {
+  color: #667085;
 }
 
 .stock-issue-item {
@@ -936,5 +999,12 @@ onMounted(() => {
 
 .border-t {
   border-top: 1px solid #E5E7EB;
+}
+
+@media (max-width: 960px) {
+  .bt-title-metrics {
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
 }
 </style>

@@ -117,8 +117,8 @@ const typeConfig = {
   },
   warning: {
     icon: 'mdi-alert-circle-outline',
-    color: 'warning',
-    iconColor: 'warning'
+    color: 'primary',
+    iconColor: 'primary'
   },
   error: {
     icon: 'mdi-close-circle-outline',
