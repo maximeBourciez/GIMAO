@@ -1,4 +1,5 @@
 import os
+from django.http import JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -1385,24 +1386,7 @@ class BonTravailViewSet(GimaoModelViewSet):
             assoc.magasin_reserve = None
         assoc.save()
         
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-        
-        self._create_log_entry(
-            type_action='modification',
-            nom_table='bon_travail_consommable',
-            id_cible={'bon_travail_id': bon.id, 'consommable_id': consommable_id},
-            champs_modifies={
-                'estConfirme': {'ancien': not distribue, 'nouveau': distribue},
-                'date_confirme': {'nouveau': assoc.date_confirme.isoformat() if assoc.date_confirme else None},
-            },
-            utilisateur_id=utilisateur_id,
-        )
-        
-        return Response({
+        return JsonResponse({
             'consommable_id': assoc.consommable_id,
             'distribue': assoc.estConfirme,
             'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
@@ -1428,25 +1412,7 @@ class BonTravailViewSet(GimaoModelViewSet):
             assoc.magasin_reserve = None
             assoc.save()
 
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        self._create_log_entry(
-            type_action='modification',
-            nom_table='bon_travail',
-            id_cible={'bon_travail_id': bon.id},
-            champs_modifies={
-                'consommables': {
-                    'valModification': 'annulation_mise_de_cote',
-                }
-            },
-            utilisateur_id=utilisateur_id,
-        )
-
-        return Response({'ok': True})
+        return JsonResponse({'ok': True})
 
     @action(detail=True, methods=['patch'])
     @transaction.atomic
@@ -1458,24 +1424,7 @@ class BonTravailViewSet(GimaoModelViewSet):
         bon.date_recuperation = timezone.now() if bon.pieces_recuperees else None
         bon.save(update_fields=['pieces_recuperees', 'date_recuperation'])
 
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        self._create_log_entry(
-            type_action='modification',
-            nom_table='bon_travail',
-            id_cible={'bon_travail_id': bon.id},
-            champs_modifies={
-                'pieces_recuperees': {'nouveau': bon.pieces_recuperees},
-                'date_recuperation': {'nouveau': bon.date_recuperation.isoformat() if bon.date_recuperation else None},
-            },
-            utilisateur_id=utilisateur_id,
-        )
-
-        return Response({
+        return JsonResponse({
             'pieces_recuperees': bon.pieces_recuperees,
             'date_recuperation': bon.date_recuperation.isoformat() if bon.date_recuperation else None,
         })
