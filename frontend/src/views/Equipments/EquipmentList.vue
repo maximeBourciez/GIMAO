@@ -13,30 +13,42 @@
             <p v-if="!locations || locations.length === 0" class="text-caption">
               Pas de données disponibles.
             </p>
-            <VTreeview 
-              v-else 
-              v-model:selected="selectedTreeNodes" 
-              :items="locations" 
-              item-title="nomLieu"
-              item-children="children" 
-              item-value="id" 
-              select-strategy="independent" 
-              selectable 
-              dense
-              @update:selected="onSelectLocation">
-              <template v-slot:prepend="{ item, open }">
-                <v-icon 
-                  v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
-                  @click.stop="toggleNode(item)" 
-                  :class="{ 'rotate-icon': open }">
-                  {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
-                </v-icon>
-                <span v-else class="tree-icon-placeholder"></span>
-              </template>
-              <template v-slot:label="{ item }">
-                <span class="text-caption ml-2 tree-label" :title="item.nomLieu">{{ item.nomLieu }}</span>
-              </template>
-            </VTreeview>
+            <div v-else>
+              <v-text-field
+                v-model="searchLocation"
+                placeholder="Rechercher un lieu..."
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                density="compact"
+                clearable
+                class="mb-n4">
+              </v-text-field>
+
+              <VTreeview 
+                v-model:selected="selectedTreeNodes" 
+                v-model:opened="openedNodes"
+                :items="filteredLocations"
+                item-title="nomLieu"
+                item-children="children" 
+                item-value="id" 
+                select-strategy="independent" 
+                selectable 
+                dense
+                @update:selected="onSelectLocation">
+                <template v-slot:prepend="{ item, open }">
+                  <v-icon 
+                    v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
+                    @click.stop="toggleNode(item)" 
+                    :class="{ 'rotate-icon': open }">
+                    {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
+                  </v-icon>
+                  <span v-else class="tree-icon-placeholder"></span>
+                </template>
+                <template v-slot:label="{ item }">
+                  <span class="text-caption ml-2 tree-label" :title="item.nomLieu">{{ item.nomLieu }}</span>
+                </template>
+              </VTreeview>
+            </div>
           </div>
         </v-card>
 
@@ -167,6 +179,39 @@ const filteredEquipmentModels = computed(() => {
   return equipmentModels.value.filter(model =>
     model?.nom?.toLowerCase().includes(searchEquipmentType.value.toLowerCase())
   );
+});
+
+const searchLocation = ref('');
+
+const openedNodes = ref([]);
+
+const filteredLocations = computed(() => {
+  if (!searchLocation.value) {
+    openedNodes.value = [];
+    return locations.value;
+  }
+  
+  const search = searchLocation.value.toLowerCase();
+  const parentsToOpen = [];
+
+  const filterTree = (nodes) => {
+    return nodes.reduce((acc, node) => {
+      const matchSelf = node.nomLieu?.toLowerCase().includes(search);
+      const filteredChildren = node.children ? filterTree(node.children) : [];
+      
+      if (matchSelf || filteredChildren.length > 0) {
+        if (filteredChildren.length > 0) {
+          parentsToOpen.push(node.id); // ← ouvre ce parent
+        }
+        acc.push({ ...node, children: filteredChildren });
+      }
+      return acc;
+    }, []);
+  };
+
+  const result = filterTree(locations.value);
+  openedNodes.value = parentsToOpen;
+  return result;
 });
 
 // Refs pour le container
