@@ -52,6 +52,7 @@
       <v-col cols="12" lg="6">
         <BTStockValidation
           ref="btStockValidationRef"
+          :consommables="consommables"
           @count-updated="btPendingCount = $event"
           @counts-updated="handleBtCountsUpdated"
           @stock-updated="handleStockUpdated"

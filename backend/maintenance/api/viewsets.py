@@ -517,6 +517,25 @@ class BonTravailViewSet(GimaoModelViewSet):
     serializer_class = BonTravailSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
+    def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
+        try:
+            utilisateur = None
+            if utilisateur_id:
+                try:
+                    utilisateur = Utilisateur.objects.get(pk=utilisateur_id)
+                except (Utilisateur.DoesNotExist, ValueError, TypeError):
+                    utilisateur = None
+
+            Log.objects.create(
+                type=type_action,
+                nomTable=nom_table,
+                idCible=id_cible,
+                champsModifies=champs_modifies,
+                utilisateur=utilisateur,
+            )
+        except Exception as error:
+            print(f"Erreur lors de la creation du log manuel: {error}")
+
     def _get_consommables_state(self, bon_travail_id):
         return list(
             BonTravailConsommable.objects.filter(bon_travail_id=bon_travail_id)
@@ -1246,6 +1265,7 @@ class BonTravailViewSet(GimaoModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['patch'])
+    @transaction.atomic
     def update_consommable_distribution(self, request, pk=None):
         bon = self.get_object()
         consommable_id = request.data.get('consommable_id')
@@ -1312,24 +1332,32 @@ class BonTravailViewSet(GimaoModelViewSet):
                     stock.save()
                     assoc.magasin_reserve_id = int(magasin_id)
                 else:
-                    eligible = list(
+                    all_stocks = list(
                         Stocker.objects.select_related('magasin')
-                        .filter(consommable_id=consommable_id, quantite__gte=needed)
+                        .filter(consommable_id=consommable_id)
                     )
+                    eligible = [stock for stock in all_stocks if stock.quantite >= needed]
                     if len(eligible) == 0:
-                        stocks = list(
-                            Stocker.objects.select_related('magasin')
-                            .filter(consommable_id=consommable_id)
-                            .values('magasin_id', 'magasin__nom', 'quantite')
-                        )
+                        total_available = sum(int(stock.quantite or 0) for stock in all_stocks)
+                        stocks = [
+                            {
+                                'magasin_id': stock.magasin_id,
+                                'magasin__nom': stock.magasin.nom,
+                                'quantite': stock.quantite,
+                            }
+                            for stock in all_stocks
+                        ]
+                        error_message = 'Stock insuffisant'
+                        if total_available >= needed and total_available > 0:
+                            error_message = 'Le stock existe mais il est réparti sur plusieurs magasins. Aucun magasin ne couvre seul la quantité demandée.'
                         return Response(
                             {
-                                'error': 'Stock insuffisant',
+                                'error': error_message,
                                 'insuffisants': [{
                                     'consommable_id': assoc.consommable_id,
                                     'designation': assoc.consommable.designation,
                                     'needed': needed,
-                                    'available': sum(s.get('quantite', 0) for s in stocks),
+                                    'available': total_available,
                                     'stocks': stocks,
                                 }],
                             },
@@ -1382,6 +1410,7 @@ class BonTravailViewSet(GimaoModelViewSet):
         })
 
     @action(detail=True, methods=['patch'])
+    @transaction.atomic
     def cancel_mise_de_cote(self, request, pk=None):
         bon = self.get_object()
 
@@ -1420,6 +1449,7 @@ class BonTravailViewSet(GimaoModelViewSet):
         return Response({'ok': True})
 
     @action(detail=True, methods=['patch'])
+    @transaction.atomic
     def set_recupere(self, request, pk=None):
         bon = self.get_object()
         recupere = request.data.get('recupere', True)

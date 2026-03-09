@@ -25,161 +25,215 @@
 
       <!-- Liste des BT -->
       <div v-else class="bt-list">
-        <div v-if="pendingBons.length > 0">
-          <div class="section-title">En attente</div>
-          <v-expansion-panels variant="accordion">
-            <v-expansion-panel v-for="bt in pendingBons" :key="bt.id" class="bt-item mb-2" elevation="0">
-              <v-expansion-panel-title class="py-3">
-                <v-row no-gutters align="center" class="w-100">
-                  <v-col cols="8" class="d-flex align-center">
-                    <v-icon color="primary" size="20" class="mr-3">mdi-wrench</v-icon>
-                    <div class="bt-info">
-                      <span class="bt-name">{{ bt.nom }}</span>
-                      <span class="bt-date">Date : {{ formatDate(bt.date_assignation) }}</span>
-                    </div>
-                  </v-col>
-                  <v-col cols="4" class="text-right">
-                    <v-chip size="small" color="primary" variant="tonal">
-                      {{ getPendingCount(bt) }} consommable(s)
-                    </v-chip>
-                  </v-col>
-                </v-row>
-              </v-expansion-panel-title>
+        <div v-if="pendingBons.length > 0" class="bt-section">
+          <button type="button" class="section-toggle" @click="toggleSection('pending')">
+            <div class="section-toggle-content">
+              <div class="section-title mb-0">En attente</div>
+              <v-chip size="small" color="primary" variant="tonal">
+                {{ pendingBons.length }} BT
+              </v-chip>
+            </div>
+            <v-icon size="20" color="grey-darken-1">
+              {{ isSectionCollapsed('pending') ? 'mdi-chevron-down' : 'mdi-chevron-up' }}
+            </v-icon>
+          </button>
 
-              <v-expansion-panel-text>
-                <v-list density="compact" class="py-0">
-                  <v-list-item v-for="cons in getPendingConsommables(bt)" :key="cons.consommable"
-                    class="consommable-item px-0">
-                    <template #prepend>
-                      <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
-                    </template>
+          <v-expand-transition>
+            <div v-show="!isSectionCollapsed('pending')">
+              <v-expansion-panels variant="accordion">
+                <v-expansion-panel v-for="bt in pendingBons" :key="bt.id" class="bt-item mb-2" elevation="0">
+                  <v-expansion-panel-title class="py-3">
+                    <v-row no-gutters align="center" class="w-100">
+                      <v-col cols="8" class="d-flex align-center">
+                        <v-icon color="primary" size="20" class="mr-3">mdi-wrench</v-icon>
+                        <div class="bt-info">
+                          <span class="bt-name">{{ bt.nom }}</span>
+                          <span class="bt-date">Date : {{ formatDate(bt.date_assignation) }}</span>
+                        </div>
+                      </v-col>
+                      <v-col cols="4" class="text-right">
+                        <v-chip size="small" color="primary" variant="tonal">
+                          {{ getPendingCount(bt) }} consommable(s)
+                        </v-chip>
+                      </v-col>
+                    </v-row>
+                  </v-expansion-panel-title>
 
-                    <v-list-item-title class="text-body-2">
-                      {{ cons.designation }}
-                    </v-list-item-title>
-                    <v-list-item-subtitle class="text-caption">
-                      Quantité demandée : {{ cons.quantite }}
-                    </v-list-item-subtitle>
+                  <v-expansion-panel-text>
+                    <v-list density="compact" class="py-0">
+                      <v-list-item v-for="cons in getPendingConsommables(bt)" :key="cons.consommable"
+                        class="consommable-item px-0">
+                        <template #prepend>
+                          <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
+                        </template>
 
-                    <template #append>
-                      <v-btn v-if="!isReserved(cons)" color="warning" size="small" variant="tonal"
-                        :loading="distributingId === `${bt.id}-${cons.consommable}`"
-                        @click="requestDistribute(bt, cons)">
-                        <v-icon size="18" class="mr-1">mdi-package-variant-closed</v-icon>
-                        Mettre de côté
+                        <v-list-item-title class="text-body-2">
+                          {{ cons.designation }}
+                        </v-list-item-title>
+                        <v-list-item-subtitle class="text-caption">
+                          Quantité demandée : {{ cons.quantite }}
+                        </v-list-item-subtitle>
+
+                        <template #append>
+                          <v-tooltip v-if="!isReserved(cons)" location="top">
+                            <template #activator="{ props: tooltipProps }">
+                              <v-btn
+                                v-bind="tooltipProps"
+                                color="warning"
+                                size="small"
+                                variant="tonal"
+                                :loading="distributingId === `${bt.id}-${cons.consommable}`"
+                                @click="requestDistribute(bt, cons)"
+                              >
+                                <v-icon size="18" class="mr-1">mdi-package-variant-closed</v-icon>
+                                Mettre de côté
+                              </v-btn>
+                            </template>
+                            {{ getConsommableStockTooltip(cons) }}
+                          </v-tooltip>
+                          <v-btn v-else color="success" size="small" variant="outlined" disabled>
+                            <v-icon size="18" class="mr-1">mdi-check</v-icon>
+                            Mis de côté
+                          </v-btn>
+                        </template>
+                      </v-list-item>
+                    </v-list>
+
+                    <div class="d-flex justify-end mt-3 pt-3 border-t">
+                      <v-btn color="success" variant="flat" size="small" :loading="distributingAll === bt.id"
+                        @click="requestReserveAll(bt)">
+                        <v-icon size="18" class="mr-1">mdi-check-all</v-icon>
+                        Tout mettre de côté
                       </v-btn>
-                      <v-btn v-else color="success" size="small" variant="outlined" disabled>
+                    </div>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </div>
+          </v-expand-transition>
+        </div>
+
+        <div v-if="reservedBons.length > 0" class="bt-section">
+          <button type="button" class="section-toggle" @click="toggleSection('reserved')">
+            <div class="section-toggle-content">
+              <div class="section-title mb-0">Mis de côté</div>
+              <v-chip size="small" color="success" variant="tonal">
+                {{ reservedBons.length }} BT
+              </v-chip>
+            </div>
+            <v-icon size="20" color="grey-darken-1">
+              {{ isSectionCollapsed('reserved') ? 'mdi-chevron-down' : 'mdi-chevron-up' }}
+            </v-icon>
+          </button>
+
+          <v-expand-transition>
+            <div v-show="!isSectionCollapsed('reserved')">
+              <v-expansion-panels variant="accordion">
+                <v-expansion-panel v-for="bt in reservedBons" :key="bt.id" class="bt-item mb-2" elevation="0">
+                  <v-expansion-panel-title class="py-3">
+                    <v-row no-gutters align="center" class="w-100">
+                      <v-col cols="8" class="d-flex align-center">
+                        <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
+                        <div class="bt-info">
+                          <span class="bt-name">{{ bt.nom }}</span>
+                          <span class="bt-date">Date : {{ formatDate(bt.date_assignation) }}</span>
+                        </div>
+                      </v-col>
+                      <v-col cols="4" class="text-right">
+                        <v-chip size="small" color="success" variant="tonal">
+                          Toutes les pièces mises de côté
+                        </v-chip>
+                      </v-col>
+                    </v-row>
+                  </v-expansion-panel-title>
+
+                  <v-expansion-panel-text>
+                    <v-list density="compact" class="py-0">
+                      <v-list-item v-for="cons in getAllConsommables(bt)" :key="cons.consommable"
+                        class="consommable-item px-0">
+                        <template #prepend>
+                          <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
+                        </template>
+                        <v-list-item-title class="text-body-2">
+                          {{ cons.designation }}
+                        </v-list-item-title>
+                        <v-list-item-subtitle class="text-caption">
+                          Quantité demandée : {{ cons.quantite }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                    </v-list>
+                    <div class="d-flex justify-end mt-3 pt-3 border-t ga-2">
+                      <v-btn color="error" variant="outlined" size="small" @click="requestCancelReserve(bt)">
+                        <v-icon size="18" class="mr-1">mdi-close</v-icon>
+                        Annuler
+                      </v-btn>
+                      <v-btn color="success" variant="flat" size="small" @click="requestSetRecupere(bt)">
                         <v-icon size="18" class="mr-1">mdi-check</v-icon>
-                        Mis de côté
+                        Valider le retrait
                       </v-btn>
-                    </template>
-                  </v-list-item>
-                </v-list>
-
-                <!-- Bouton tout mettre de côté -->
-                <div class="d-flex justify-end mt-3 pt-3 border-t">
-                  <v-btn color="success" variant="flat" size="small" :loading="distributingAll === bt.id"
-                    @click="requestReserveAll(bt)">
-                    <v-icon size="18" class="mr-1">mdi-check-all</v-icon>
-                    Tout mettre de côté
-                  </v-btn>
-                </div>
-              </v-expansion-panel-text>
-            </v-expansion-panel>
-          </v-expansion-panels>
+                    </div>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </div>
+          </v-expand-transition>
         </div>
 
-        <div v-if="reservedBons.length > 0" class="mt-4">
-          <div class="section-title">Mis de côté</div>
-          <v-expansion-panels variant="accordion">
-            <v-expansion-panel v-for="bt in reservedBons" :key="bt.id" class="bt-item mb-2" elevation="0">
-              <v-expansion-panel-title class="py-3">
-                <v-row no-gutters align="center" class="w-100">
-                  <v-col cols="8" class="d-flex align-center">
-                    <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
-                    <div class="bt-info">
-                      <span class="bt-name">{{ bt.nom }}</span>
-                      <span class="bt-date">Date : {{ formatDate(bt.date_assignation) }}</span>
-                    </div>
-                  </v-col>
-                  <v-col cols="4" class="text-right">
-                    <v-chip size="small" color="success" variant="tonal">
-                      Toutes les pièces mises de côté
-                    </v-chip>
-                  </v-col>
-                </v-row>
-              </v-expansion-panel-title>
+        <div v-if="recoveredBons.length > 0" class="bt-section">
+          <button type="button" class="section-toggle" @click="toggleSection('recovered')">
+            <div class="section-toggle-content">
+              <div class="section-title mb-0">Récupérés</div>
+              <v-chip size="small" color="success" variant="tonal">
+                {{ recoveredBons.length }} BT
+              </v-chip>
+            </div>
+            <v-icon size="20" color="grey-darken-1">
+              {{ isSectionCollapsed('recovered') ? 'mdi-chevron-down' : 'mdi-chevron-up' }}
+            </v-icon>
+          </button>
 
-              <v-expansion-panel-text>
-                <v-list density="compact" class="py-0">
-                  <v-list-item v-for="cons in getAllConsommables(bt)" :key="cons.consommable"
-                    class="consommable-item px-0">
-                    <template #prepend>
-                      <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
-                    </template>
-                    <v-list-item-title class="text-body-2">
-                      {{ cons.designation }}
-                    </v-list-item-title>
-                    <v-list-item-subtitle class="text-caption">
-                      Quantité demandée : {{ cons.quantite }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
-                <div class="d-flex justify-end mt-3 pt-3 border-t ga-2">
-                  <v-btn color="error" variant="outlined" size="small" @click="requestCancelReserve(bt)">
-                    <v-icon size="18" class="mr-1">mdi-close</v-icon>
-                    Annuler
-                  </v-btn>
-                  <v-btn color="success" variant="flat" size="small" @click="requestSetRecupere(bt)">
-                    <v-icon size="18" class="mr-1">mdi-check</v-icon>
-                    Valider le retrait
-                  </v-btn>
-                </div>
-              </v-expansion-panel-text>
-            </v-expansion-panel>
-          </v-expansion-panels>
-        </div>
+          <v-expand-transition>
+            <div v-show="!isSectionCollapsed('recovered')">
+              <v-expansion-panels variant="accordion">
+                <v-expansion-panel v-for="bt in recoveredBons" :key="bt.id" class="bt-item mb-2" elevation="0">
+                  <v-expansion-panel-title class="py-3">
+                    <v-row no-gutters align="center" class="w-100">
+                      <v-col cols="8" class="d-flex align-center">
+                        <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
+                        <div class="bt-info">
+                          <span class="bt-name">{{ bt.nom }}</span>
+                          <span class="bt-date">Date : {{ formatDate(bt.date_assignation) }}</span>
+                        </div>
+                      </v-col>
+                      <v-col cols="4" class="text-right">
+                        <v-chip size="small" color="success" variant="tonal">
+                          Pièces récupérées
+                        </v-chip>
+                      </v-col>
+                    </v-row>
+                  </v-expansion-panel-title>
 
-        <div v-if="recoveredBons.length > 0" class="mt-4">
-          <div class="section-title">Récupérés</div>
-          <v-expansion-panels variant="accordion">
-            <v-expansion-panel v-for="bt in recoveredBons" :key="bt.id" class="bt-item mb-2" elevation="0">
-              <v-expansion-panel-title class="py-3">
-                <v-row no-gutters align="center" class="w-100">
-                  <v-col cols="8" class="d-flex align-center">
-                    <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
-                    <div class="bt-info">
-                      <span class="bt-name">{{ bt.nom }}</span>
-                      <span class="bt-date">Date : {{ formatDate(bt.date_assignation) }}</span>
-                    </div>
-                  </v-col>
-                  <v-col cols="4" class="text-right">
-                    <v-chip size="small" color="success" variant="tonal">
-                      Pièces récupérées
-                    </v-chip>
-                  </v-col>
-                </v-row>
-              </v-expansion-panel-title>
+                  <v-expansion-panel-text>
+                    <v-list density="compact" class="py-0">
+                      <v-list-item v-for="cons in getAllConsommables(bt)" :key="cons.consommable"
+                        class="consommable-item px-0">
+                        <template #prepend>
+                          <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
+                        </template>
 
-              <v-expansion-panel-text>
-                <v-list density="compact" class="py-0">
-                  <v-list-item v-for="cons in getAllConsommables(bt)" :key="cons.consommable"
-                    class="consommable-item px-0">
-                    <template #prepend>
-                      <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
-                    </template>
-
-                    <v-list-item-title class="text-body-2">
-                      {{ cons.designation }}
-                    </v-list-item-title>
-                    <v-list-item-subtitle class="text-caption">
-                      Quantité demandée : {{ cons.quantite }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
-              </v-expansion-panel-text>
-            </v-expansion-panel>
-          </v-expansion-panels>
+                        <v-list-item-title class="text-body-2">
+                          {{ cons.designation }}
+                        </v-list-item-title>
+                        <v-list-item-subtitle class="text-caption">
+                          Quantité demandée : {{ cons.quantite }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                    </v-list>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </div>
+          </v-expand-transition>
         </div>
       </div>
     </v-card-text>
@@ -234,7 +288,8 @@
       </v-card-subtitle>
       <v-card-text class="pa-4 pt-2">
         <v-list density="compact" class="py-0">
-          <v-list-item v-for="item in stockIssueItems" :key="`${item.consommable_id}-${item.magasin_id || 'global'}`"
+          <v-list-item v-for="(item, index) in stockIssueItems"
+            :key="`${item.consommable_id}-${item.magasin_id || 'global'}-${index}`"
             class="px-0 stock-issue-item">
             <v-list-item-title class="text-body-2 d-flex align-center">
               <v-icon size="18" color="grey" class="mr-2">mdi-package-variant</v-icon>
@@ -267,6 +322,13 @@ import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 
+const props = defineProps({
+  consommables: {
+    type: Array,
+    default: () => []
+  }
+});
+
 const api = useApi(API_BASE_URL);
 const emit = defineEmits(['count-updated', 'counts-updated', 'stock-updated']);
 
@@ -294,6 +356,25 @@ const magasinPendingAction = ref({ bt: null, cons: null });
 const stockIssueDialog = ref(false);
 const stockIssueItems = ref([]);
 const stockIssueMessage = ref('');
+const collapsedSections = ref({
+  pending: false,
+  reserved: false,
+  recovered: false
+});
+
+const consommableStockMap = computed(() => {
+  return props.consommables.reduce((map, consommable) => {
+    map.set(Number(consommable.id), Number(consommable.quantite_totale ?? consommable.quantite ?? 0));
+    return map;
+  }, new Map());
+});
+
+const consommableDetailsMap = computed(() => {
+  return props.consommables.reduce((map, consommable) => {
+    map.set(Number(consommable.id), consommable);
+    return map;
+  }, new Map());
+});
 
 
 // Helpers locaux pour garder l'UI synchronisee sans recharger les BT
@@ -335,6 +416,37 @@ const clearStockIssue = () => {
 const clearStockFeedback = () => {
   stockError.value = '';
   clearStockIssue();
+};
+
+const isSectionCollapsed = (section) => {
+  return Boolean(collapsedSections.value[section]);
+};
+
+const toggleSection = (section) => {
+  collapsedSections.value[section] = !collapsedSections.value[section];
+};
+
+const getConsommableTotalStock = (consommable) => {
+  return consommableStockMap.value.get(Number(consommable?.consommable)) ?? 0;
+};
+
+const getConsommableMaxStock = (consommable) => {
+  const details = consommableDetailsMap.value.get(Number(consommable?.consommable));
+  const stocks = Array.isArray(details?.stocks) ? details.stocks : [];
+
+  return stocks.reduce((max, stock) => Math.max(max, Number(stock?.quantite ?? 0)), 0);
+};
+
+const getConsommableStockTooltip = (consommable) => {
+  const totalStock = getConsommableTotalStock(consommable);
+  const maxStock = getConsommableMaxStock(consommable);
+  const needed = Number(consommable?.quantite ?? 0);
+
+  if (needed > 0 && totalStock >= needed && maxStock < needed) {
+    return `Stock total disponible : ${totalStock}. Aucun magasin ne couvre seul la quantité demandée (${needed}).`;
+  }
+
+  return `Stock total disponible : ${totalStock}`;
 };
 
 const openStockIssue = (data, fallback) => {
@@ -381,6 +493,16 @@ const getPendingConsommables = (bt) => {
 
 const getAllConsommables = (bt) => {
   return bt.consommables || [];
+};
+
+const getBtById = (btId) => {
+  return bonsTravail.value.find((bt) => bt.id === btId) || null;
+};
+
+const syncAfterServerError = async (btId) => {
+  await fetchBonsTravail();
+  emit('stock-updated');
+  return getBtById(btId);
 };
 
 // Compat backend : le champ "distribue" correspond ici au statut "mis de cote".
@@ -491,6 +613,36 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('fr-FR');
 };
 
+const normalizeStockIssueItem = (item, consommable) => {
+  const stocks = Array.isArray(item?.stocks) ? item.stocks : [];
+  const available = item?.available ?? stocks.reduce((total, stock) => total + Number(stock.quantite || 0), 0);
+
+  return {
+    consommable_id: item?.consommable_id ?? consommable?.consommable ?? null,
+    designation: item?.designation ?? consommable?.designation ?? null,
+    needed: item?.needed ?? consommable?.quantite ?? 0,
+    available,
+    magasin_id: item?.magasin_id ?? null,
+    magasin_nom: item?.magasin_nom ?? null
+  };
+};
+
+const buildBulkReserveMessage = ({ insuffisants, requiresMagasinSelection }) => {
+  if (insuffisants.length > 0 && requiresMagasinSelection) {
+    return 'Certaines pièces sont en stock insuffisant et d’autres nécessitent un choix de magasin.';
+  }
+  if (insuffisants.length > 1) {
+    return 'Impossible de mettre de côté les pièces suivantes.';
+  }
+  if (insuffisants.length === 1) {
+    return 'Impossible de mettre de côté la pièce suivante.';
+  }
+  if (requiresMagasinSelection) {
+    return 'Certains consommables nécessitent un choix de magasin. Utilisez la mise de côté individuelle.';
+  }
+  return 'Impossible de mettre de côté tout le BT.';
+};
+
 // Charger les BT
 const fetchBonsTravail = async () => {
   loading.value = true;
@@ -524,6 +676,18 @@ const handleDistribute = async (bt, consommable, magasinId = null) => {
     });
     emit('stock-updated');
   } catch (error) {
+    if ((error?.response?.status ?? 0) >= 500) {
+      const refreshedBt = await syncAfterServerError(bt.id);
+      const refreshedConsommable = refreshedBt?.consommables?.find(
+        (cons) => cons.consommable === consommable.consommable
+      );
+
+      if (refreshedConsommable && isReserved(refreshedConsommable)) {
+        clearStockFeedback();
+        return;
+      }
+    }
+
     const data = error?.response?.data;
     if (error?.response?.status === 409 && data?.needs_magasin_selection) {
       openMagasinSelection(data, bt, consommable);
@@ -534,7 +698,7 @@ const handleDistribute = async (bt, consommable, magasinId = null) => {
     } else if (data?.error) {
       stockError.value = data.error;
     } else {
-      stockError.value = 'Stock insuffisant pour mettre de côté ce consommable.';
+      stockError.value = 'Une erreur est survenue lors de la mise de côté de ce consommable.';
     }
     console.error('Erreur distribution:', error);
   } finally {
@@ -546,40 +710,73 @@ const handleDistribute = async (bt, consommable, magasinId = null) => {
 const handleDistributeAll = async (bt) => {
   distributingAll.value = bt.id;
   let hasPartialSuccess = false;
+  const insuffisants = [];
+  const otherErrors = [];
+  let requiresMagasinSelection = false;
+
   try {
     clearStockFeedback();
     const pendingConsommables = getPendingConsommables(bt);
+
     for (const cons of pendingConsommables) {
-      const response = await api.patch(`bons-travail/${bt.id}/update_consommable_distribution/`, {
-        consommable_id: cons.consommable,
-        distribue: true
-      });
-      hasPartialSuccess = true;
-      updateConsommable(bt.id, cons.consommable, (localCons) => {
-        setConsommableReservationState(localCons, {
-          reserved: true,
-          magasinId: response?.magasin_reserve,
-          dateDistribution: response?.date_distribution
+      try {
+        const response = await api.patch(`bons-travail/${bt.id}/update_consommable_distribution/`, {
+          consommable_id: cons.consommable,
+          distribue: true
         });
-      });
+        hasPartialSuccess = true;
+        updateConsommable(bt.id, cons.consommable, (localCons) => {
+          setConsommableReservationState(localCons, {
+            reserved: true,
+            magasinId: response?.magasin_reserve,
+            dateDistribution: response?.date_distribution
+          });
+        });
+      } catch (error) {
+        const data = error?.response?.data;
+
+        if (error?.response?.status === 409 && data?.needs_magasin_selection) {
+          requiresMagasinSelection = true;
+          continue;
+        }
+
+        if (Array.isArray(data?.insuffisants) && data.insuffisants.length > 0) {
+          insuffisants.push(...data.insuffisants.map((item) => normalizeStockIssueItem(item, cons)));
+          continue;
+        }
+
+        if (data?.error) {
+          otherErrors.push(`${cons.designation} : ${data.error}`);
+          continue;
+        }
+
+        otherErrors.push(`${cons.designation} : impossible de mettre de côté ce consommable.`);
+      }
     }
-    emit('stock-updated');
-  } catch (error) {
+
     if (hasPartialSuccess) {
-      await fetchBonsTravail();
       emit('stock-updated');
     }
-    const data = error?.response?.data;
-    if (error?.response?.status === 409 && data?.needs_magasin_selection) {
-      stockError.value = 'Choisissez un magasin en passant par la mise de côté individuelle.';
-    } else if (data?.insuffisants) {
-      openStockIssue(data, 'Stock insuffisant pour ce BT.');
-    } else if (data?.error) {
-      stockError.value = data.error;
-    } else {
-      stockError.value = 'Stock insuffisant pour mettre de côté tout le BT.';
+
+    if (insuffisants.length > 0) {
+      openStockIssue(
+        {
+          insuffisants,
+          error: buildBulkReserveMessage({ insuffisants, requiresMagasinSelection })
+        },
+        'Stock insuffisant pour ce BT.'
+      );
+      return;
     }
-    console.error('Erreur distribution multiple:', error);
+
+    if (requiresMagasinSelection) {
+      stockError.value = buildBulkReserveMessage({ insuffisants, requiresMagasinSelection });
+      return;
+    }
+
+    if (otherErrors.length > 0) {
+      stockError.value = otherErrors.join(' ');
+    }
   } finally {
     distributingAll.value = null;
   }
@@ -598,6 +795,17 @@ const handleCancelReserve = async (bt) => {
     });
     emit('stock-updated');
   } catch (error) {
+    if ((error?.response?.status ?? 0) >= 500) {
+      const refreshedBt = await syncAfterServerError(bt.id);
+      const consommables = refreshedBt?.consommables || [];
+
+      if (consommables.length > 0 && consommables.every((cons) => !isReserved(cons))) {
+        clearStockFeedback();
+        return;
+      }
+    }
+
+    stockError.value = error?.response?.data?.error || 'Une erreur est survenue lors de l’annulation de la mise de côté.';
     console.error('Erreur annulation mise de cote:', error);
   }
 };
@@ -611,6 +819,16 @@ const handleSetRecupere = async (bt) => {
       btLocal.date_recuperation = response?.date_recuperation ?? new Date().toISOString();
     });
   } catch (error) {
+    if ((error?.response?.status ?? 0) >= 500) {
+      const refreshedBt = await syncAfterServerError(bt.id);
+
+      if (refreshedBt?.pieces_recuperees) {
+        clearStockFeedback();
+        return;
+      }
+    }
+
+    stockError.value = error?.response?.data?.error || 'Une erreur est survenue lors de la validation du retrait.';
     console.error('Erreur validation recuperation:', error);
   }
 };
@@ -621,8 +839,33 @@ onMounted(() => {
 
 <style scoped>
 .bt-list {
-  max-height: 500px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-toggle {
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.section-toggle-content {
+  align-items: center;
+  display: flex;
+  gap: 8px;
 }
 
 .section-title {
@@ -631,7 +874,6 @@ onMounted(() => {
   color: #6B7280;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 8px;
 }
 
 .bt-item {
