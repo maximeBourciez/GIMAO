@@ -1,28 +1,24 @@
 <template>
-    <v-container fluid class="d-flex justify-center">
-        <v-container fluid>
 
-            <v-row dense>
-                <v-col v-for="(stat, index) in stats" :key="index" cols="12" md="4">
-                    <v-card elevation="2" class="pa-4">
-                        <v-row align="center" justify="space-between">
-                            <v-col cols="8">
-                                <span class="font-weight-bold">
-                                    {{ stat.label }}
-                                </span>
-                            </v-col>
+    <v-row dense>
+        <v-col v-for="(stat, index) in stats" :key="index" cols="12" md="4">
+            <v-card elevation="2" class="pa-4">
+                <v-row align="center" justify="space-between">
+                    <v-col cols="8">
+                        <span class="font-weight-bold">
+                            {{ stat.label }}
+                        </span>
+                    </v-col>
 
-                            <v-col cols="4" class="text-right">
-                                <span class="text-h4 font-weight-bold">
-                                    {{ stat.value }}
-                                </span>
-                            </v-col>
-                        </v-row>
-                    </v-card>
-                </v-col>
-            </v-row>
-        </v-container>
-    </v-container>
+                    <v-col cols="4" class="text-right">
+                        <span class="text-h4 font-weight-bold">
+                            {{ stat.value }}
+                        </span>
+                    </v-col>
+                </v-row>
+            </v-card>
+        </v-col>
+    </v-row>
 </template>
 
 
@@ -49,7 +45,7 @@ const buildUrl = () => {
 
     const userId = store.getters.currentUser.id;
     params.append('userId', userId);
-    
+
     return `stats/?${params.toString()}`;
 }
 
