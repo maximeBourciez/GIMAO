@@ -70,14 +70,11 @@ export default createStore({
             if (!state.isAuthenticated) return false;
             return getters.userPermissions.includes(perm);
         },
-        hasValidAuthentication: (state) => {
-            if (!state.isAuthenticated || !state.authTimestamp) return false;
-            const currentTime = Math.floor(Date.now() / 1000);
-            const elapsedTime = currentTime - state.authTimestamp;
-            return elapsedTime < 15; // 7 jours en secondes : 24 * 60 * 60
-        },
     },
 
     modules: {},
 });
 
+export function checkAuthValidity(store) {
+  return Math.floor(Date.now() / 1000) - parseInt(localStorage.getItem('authTimestamp') || '0') < 24 * 60 * 60; // 7 jours en secondes : 24 * 60 * 60
+}
