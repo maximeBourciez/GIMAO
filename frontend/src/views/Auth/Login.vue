@@ -3,6 +3,11 @@
     <v-row justify="center" align="center">
       <v-col cols="12" sm="6" md="4">
         <v-card class="pa-6">
+
+          <v-alert v-if="message" type="warning" class="mb-3">
+                {{ message }}
+              </v-alert>
+
           <v-card-title class="text-center text-h5 mb-4"> Connexion GIMAO </v-card-title>
 
           <v-card-text>
@@ -40,8 +45,8 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { ref, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import { useApi } from "@/composables/useApi";
 import { API_BASE_URL } from "@/utils/constants";
@@ -49,6 +54,7 @@ import FormField from "@/components/Forms/inputType/FormField.vue";
 
 const router = useRouter();
 const store = useStore();
+const route = useRoute();
 const api = useApi(API_BASE_URL);
 
 const showPasswordField = ref(false);
@@ -58,9 +64,12 @@ const motDePasse = ref("");
 const error = ref("");
 const loading = ref(false);
 
+const message = ref(history.state?.message || null) // ref au lieu de computed
+
 const login = async () => {
   error.value = "";
   loading.value = true;
+  message.value = null;
 
   if (showPasswordField.value) {
     loginWithPassword();

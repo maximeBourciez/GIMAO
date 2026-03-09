@@ -474,7 +474,7 @@ router.beforeEach((to, from, next) => {
   // Vérification validité auth
   if (!checkAuthValidity(store)) {
     store.commit('logout')
-    next('/login')
+    next({ path: '/login', state: { message: 'Votre session a expiré. Veuillez vous reconnecter.' } })   
     return
   }
 
