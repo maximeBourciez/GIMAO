@@ -7,3 +7,8 @@ Pillow
 django-cors-headers>=4.0.0
 python-dotenv>=1.0.0
 drf-yasg>=1.21.7
+
+# --- Tests ---
+pytest>=7.4.0
+pytest-django>=4.5.0
+factory-boy>=3.3.0
