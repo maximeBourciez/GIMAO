@@ -1,6 +1,6 @@
 <template>
   <div class="notices-layout">
-    <!-- Sidebar notices (même style que SideBar.vue) -->
+    <!-- Sidebar notice -->
     <v-navigation-drawer
       permanent
       :width="drawerWidth"
@@ -62,18 +62,18 @@
 
     <!-- Contenu -->
     <div class="notices-content">
-      <v-card elevation="1" class="ma-4 pa-4">
-          <div class="text-h5 font-weight-bold mb-1">{{ currentNotice.label }}</div>
-          <div class="text-body-2 text-medium-emphasis mb-4">{{ currentNotice.description }}</div>
-          <v-divider class="mb-4" />
-          <v-window v-model="tab">
-            <v-window-item value="global"><NoticeGlobale /></v-window-item>
-            <v-window-item value="operateur"><NoticeOperateur /></v-window-item>
-            <v-window-item value="technicien"><NoticeTechnicien /></v-window-item>
-            <v-window-item value="magasinier"><NoticeMagasinier /></v-window-item>
-            <v-window-item value="responsable"><NoticeResponsable /></v-window-item>
-          </v-window>
-        </v-card>
+      <div class="notices-topbar">
+        <span>{{ currentNotice.label }}</span>
+      </div>
+      <v-container fluid>
+        <v-window v-model="tab">
+          <v-window-item value="global"><NoticeGlobale /></v-window-item>
+          <v-window-item value="operateur"><NoticeOperateur /></v-window-item>
+          <v-window-item value="technicien"><NoticeTechnicien /></v-window-item>
+          <v-window-item value="magasinier"><NoticeMagasinier /></v-window-item>
+          <v-window-item value="responsable"><NoticeResponsable /></v-window-item>
+        </v-window>
+      </v-container>
     </div>
   </div>
 </template>
@@ -91,11 +91,11 @@ import NoticeResponsable from '@/views/Notices/NoticeResponsable.vue'
 import logo from '@/assets/images/LogoGIMAO.png'
 
 const noticeItems = [
-  { value: 'global', label: 'Générale', icon: 'mdi-book-open-variant', description: 'Notice générale : connexion, navigation, bonnes pratiques et autres notices.' },
-  { value: 'operateur', label: 'Opérateur', icon: 'mdi-account-hard-hat', description: 'Guide pour le rôle Opérateur : signaler des pannes, suivre les DI.' },
-  { value: 'technicien', label: 'Technicien', icon: 'mdi-wrench', description: 'Guide pour le rôle Technicien : interventions et bons de travail.' },
-  { value: 'magasinier', label: 'Magasinier', icon: 'mdi-package-variant-closed', description: 'Guide pour le rôle Magasinier : gestion des stocks et consommables.' },
-  { value: 'responsable', label: 'Responsable', icon: 'mdi-shield-account', description: 'Guide pour le rôle Responsable : supervision, validation et comptes.' },
+  { value: 'global', label: 'Générale', icon: 'mdi-book-open-variant' },
+  { value: 'operateur', label: 'Opérateur', icon: 'mdi-account-hard-hat' },
+  { value: 'technicien', label: 'Technicien', icon: 'mdi-wrench' },
+  { value: 'magasinier', label: 'Magasinier', icon: 'mdi-package-variant-closed' },
+  { value: 'responsable', label: 'Responsable', icon: 'mdi-shield-account' },
 ]
 
 const tab = ref('global')
@@ -142,6 +142,21 @@ const goBack = () => {
 
 .notices-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.notices-topbar {
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #05004E;
+  flex-shrink: 0;
 }
 
 .active-item {

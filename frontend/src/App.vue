@@ -2,7 +2,7 @@
   <v-app>
 
     <!-- Navigation (si page privée ET utilisateur a menu) -->
-    <template v-if="!isPublicPage && userHasMenu">
+    <template v-if="!isPublicPage && userHasMenu  && !isNoticePage">
 
       <!-- Sidebar desktop -->
       <Sidebar v-if="!isMobile" />
@@ -24,7 +24,6 @@
       <router-view />
     </v-main>
 
-    <!-- Bouton flottant : retour si on est sur la page notices, sinon accès notices -->
     <v-btn
       v-if="isNoticePage"
       :style="{ position: 'fixed', top: '72px', right: '16px', zIndex: 2500 }"
