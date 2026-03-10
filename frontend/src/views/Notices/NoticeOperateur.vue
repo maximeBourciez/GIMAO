@@ -57,5 +57,16 @@
       - Vous avez accès en lecture seule à la liste des BT (bons de travail).<br />
       - Cela vous permet de suivre l'avancement des interventions liées à vos DI.
     </div>
+
+    <creationDI />
+
   </div>
 </template>
+
+
+<script setup>
+import creationDI from "./DI/creationDI.vue";
+
+
+
+</script>
