@@ -54,8 +54,11 @@ const checkIfMobile = () => {
  */
 const userRole = computed(() => store.getters.userRole)
 
+// const userHasMenu = computed(() => {
+//   return store.getters.userPermissions.includes('menu:view')
+// })
 const userHasMenu = computed(() => {
-  return store.getters.userPermissions.includes('menu:view')
+  return store.getters.userPermissions.length > 0
 })
 
 /**

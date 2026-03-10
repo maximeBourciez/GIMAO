@@ -61,17 +61,6 @@
               </div>
               <div class="d-flex gap-2 flex-wrap">
                 <v-btn
-                  v-if="utilisateur.a_permissions_personnalisees"
-                  variant="outlined"
-                  color="warning"
-                  size="small"
-                  prepend-icon="mdi-restore"
-                  :loading="resetting"
-                  @click="resetToRole"
-                >
-                  Réinitialiser (rôle)
-                </v-btn>
-                <v-btn
                   variant="outlined"
                   color="secondary"
                   size="small"
@@ -192,6 +181,7 @@ const fetchData = async () => {
     ])
 
     utilisateur.value = userRes
+    console.log('userRes:', JSON.stringify(userRes)) 
     allPermissions.value = Array.isArray(permsRes) ? permsRes : []
     selectedIds.value = (userPermsRes.permissions || []).map(p => p.id)
   } catch (e) {
@@ -209,6 +199,9 @@ const getModule = (nomPermission) => nomPermission.split(':')[0]
 const permissionsByModule = computed(() => {
   const groups = {}
   for (const perm of allPermissions.value) {
+    if (perm.nomPermission.startsWith('dash:display')) continue
+    if (perm.nomPermission === 'export:view') continue
+    if (perm.nomPermission.endsWith(':export')) continue  //supprimer les permissions d'export
     const module = getModule(perm.nomPermission)
     if (!groups[module]) groups[module] = []
     groups[module].push(perm)

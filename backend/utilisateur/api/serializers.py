@@ -83,13 +83,28 @@ class UtilisateurSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['derniereConnexion', 'dateCreation']
 
+    # def get_permissions_names(self, obj):
+    #     """
+    #     Retourne les permissions de l'utilisateur.
+    #     Si des permissions personnalisées existent, elles remplacent celles du rôle.
+    #     Sinon, on retourne les permissions du rôle.
+    #     """
+    #     perms_perso = obj.permissions_personnalisees.select_related('permission').all()
+    #     if perms_perso.exists():
+    #         return [up.permission.nomPermission for up in perms_perso]
+    #     if obj.role:
+    #         return [perm.nomPermission for perm in obj.role.permissions.all()]
+    #     return []
     def get_permissions_names(self, obj):
         """
         Retourne les permissions de l'utilisateur.
         Si des permissions personnalisées existent, elles remplacent celles du rôle.
         Sinon, on retourne les permissions du rôle.
         """
-        perms_perso = obj.permissions_personnalisees.select_related('permission').all()
+        perms_perso = UtilisateurPermission.objects.filter(
+            utilisateur=obj
+        ).select_related('permission')
+        
         if perms_perso.exists():
             return [up.permission.nomPermission for up in perms_perso]
         if obj.role:

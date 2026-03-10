@@ -295,8 +295,9 @@ const getModules = (permissions) => {
 const permissionsByModule = computed(() => {
   const groups = {}
   for (const perm of allPermissions.value) {
-    // Exclure les permissions dash:display.*
     if (perm.nomPermission.startsWith('dash:display')) continue
+    if (perm.nomPermission === 'export:view') continue
+    if (perm.nomPermission.endsWith(':export')) continue  // supprimer les permissions d'export
     const module = getModule(perm.nomPermission)
     if (!groups[module]) groups[module] = []
     groups[module].push(perm)
@@ -464,9 +465,13 @@ const saveRole = async () => {
     if (isEdit.value) {
       await api.put(`roles/${editingRoleId.value}/`, payload)
       successMessage.value = 'Rôle modifié avec succès.'
+      setTimeout(() => { successMessage.value = '' }, 4000)
+
     } else {
       await api.post('roles/', payload)
       successMessage.value = 'Rôle créé avec succès.'
+      setTimeout(() => { successMessage.value = '' }, 4000)
+
     }
 
     closeDialog()
@@ -495,6 +500,7 @@ const deleteRole = async () => {
   try {
     await api.remove(`roles/${roleToDelete.value.id}/`)
     successMessage.value = `Rôle "${roleToDelete.value.nomRole}" supprimé.`
+    setTimeout(() => { successMessage.value = '' }, 4000)
     deleteDialog.value = false
     await fetchData()
   } catch (e) {

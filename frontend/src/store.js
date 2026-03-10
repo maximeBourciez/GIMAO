@@ -10,7 +10,11 @@ export default createStore({
     setUser(state, user) {
       state.user = user
       state.isAuthenticated = !!user
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user))
+      }
     },
+
 
     logout(state) {
       state.user = null
