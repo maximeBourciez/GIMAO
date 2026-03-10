@@ -2,7 +2,7 @@
   <v-app>
 
     <!-- Navigation (si page privée ET utilisateur a menu) -->
-    <template v-if="!isPublicPage && userHasMenu">
+    <template v-if="!isPublicPage && userHasMenu  && !isNoticePage">
 
       <!-- Sidebar desktop -->
       <Sidebar v-if="!isMobile" />
@@ -24,6 +24,25 @@
       <router-view />
     </v-main>
 
+    <v-btn
+      v-if="isNoticePage"
+      :style="{ position: 'fixed', top: '72px', right: '16px', zIndex: 2500 }"
+      color="secondary"
+      icon="mdi-arrow-left"
+      elevation="6"
+      aria-label="Retour"
+      @click="router.back()"
+    />
+    <v-btn
+      v-else
+      :style="{ position: 'fixed', top: '72px', right: '16px', zIndex: 2500 }"
+      color="primary"
+      icon="mdi-help"
+      elevation="6"
+      aria-label="Ouvrir les notices d'utilisation"
+      @click="goToNotices"
+    />
+
   </v-app>
 </template>
 
@@ -31,7 +50,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import Sidebar from '@/components/SideBar.vue'
 import TopBar from '@/components/TopBar.vue'
@@ -39,6 +58,7 @@ import Breadcrumb from '@/components/Breadcrumb.vue'
 
 const store = useStore()
 const route = useRoute()
+const router = useRouter()
 
 /**
  * Mobile
@@ -67,6 +87,12 @@ const isPublicPage = computed(() => route.meta?.public === true)
  * Titre page
  */
 const pageTitle = computed(() => route.meta?.title || 'GIMAO')
+
+const isNoticePage = computed(() => route.name === 'Notice')
+
+const goToNotices = () => {
+  router.push('/Notice')
+}
 
 /**
  * Lifecycle
