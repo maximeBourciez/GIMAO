@@ -83,7 +83,7 @@
 
         <v-card-text class="pa-4">
           <MagasinFilter :magasins="magasins" :consommables="consommables" v-model:selectedMagasin="selectedMagasin"
-            @edit:magasin="handleOpenEditMagasin" />
+            @edit:magasin="handleOpenEditMagasin" @archive:magasin="handleOpenArchiveMagasin" />
         </v-card-text>
 
         <v-divider />
@@ -110,6 +110,17 @@
           @close="showMagasinFormDialog = false" />
       </v-card>
     </v-dialog>
+
+    <ConfirmationModal
+      v-model="showArchiveDialog"
+      type="warning"
+      title="Confirmer l'archivage"
+      message="Êtes-vous sûr de vouloir archiver le magasin ?\nIl ne sera plus visible dans la liste des magasins."
+      confirm-text="Archiver"
+      :loading="archiving"
+      @confirm="archiveMagasin"
+      @cancel="handleCancelArchive"
+    />
   </v-container>
 </template>
 
@@ -121,6 +132,7 @@ import MagasinFilter from '@/components/Stock/MagasinFilter.vue';
 import MagasinForm from '@/components/Forms/MagasinForm.vue';
 import StockStatistics from '@/components/Stock/StockStatistics.vue';
 import BTStockValidation from '@/components/Stock/BTStockValidation.vue';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 
@@ -143,6 +155,7 @@ const emit = defineEmits(['create', 'row-click', 'consommables-loaded']);
 
 const consommablesApi = useApi(API_BASE_URL);
 const magasinsApi = useApi(API_BASE_URL);
+const archiveApi = useApi(API_BASE_URL);
 const store = useStore();
 
 const errorMessage = ref('');
@@ -150,10 +163,13 @@ const selectedMagasin = ref(null);
 const selectedStockFilter = ref(null);
 const showMagasinFilterDialog = ref(false);
 const showMagasinFormDialog = ref(false);
+const showArchiveDialog = ref(false);
 const magasinToEdit = ref(null);
+const magasinToArchive = ref(null);
 const btPendingCount = ref(0);
 const btCompletedCount = ref(0);
 const btStockValidationRef = ref(null);
+const archiving = ref(false);
 
 const consommables = computed(() => consommablesApi.data.value || []);
 const magasins = computed(() => magasinsApi.data.value || []);
@@ -267,14 +283,47 @@ const handleOpenEditMagasin = (magasin) => {
   showMagasinFormDialog.value = true;
 };
 
+const handleOpenArchiveMagasin = (magasin) => {
+  magasinToArchive.value = magasin;
+  showArchiveDialog.value = true;
+};
+
 const handleMagasinCreated = async () => {
-  await magasinsApi.get('magasins/');
+  await fetchData();
   showMagasinFormDialog.value = false;
 };
 
 const handleMagasinUpdated = async () => {
-  await magasinsApi.get('magasins/');
+  await fetchData();
   showMagasinFormDialog.value = false;
+};
+
+const handleCancelArchive = () => {
+  showArchiveDialog.value = false;
+  magasinToArchive.value = null;
+};
+
+const archiveMagasin = async () => {
+  if (!magasinToArchive.value?.id) {
+    showArchiveDialog.value = false;
+    return;
+  }
+
+  archiving.value = true;
+
+  try {
+    await archiveApi.patch(`magasins/${magasinToArchive.value.id}/set-archive/`, { archive: true });
+    await fetchData();
+    if (selectedMagasin.value === magasinToArchive.value.id) {
+      selectedMagasin.value = null;
+    }
+    showArchiveDialog.value = false;
+  } catch (error) {
+    console.error('Erreur archivage magasin', error);
+  } finally {
+    archiving.value = false;
+    magasinToArchive.value = null;
+  }
 };
 
 const handleCancelFilter = () => {

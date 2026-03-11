@@ -60,17 +60,30 @@
               mdi-check
             </v-icon>
           </div>
-          <v-btn
-            icon
-            size="x-small"
-            variant="text"
-            color="primary"
-            class="magasin-item-edit"
-            @click.stop="handleEditMagasin(magasin)"
-          >
-            <v-icon size="16">mdi-pencil</v-icon>
-            <v-tooltip activator="parent" location="top">Modifier</v-tooltip>
-          </v-btn>
+          <div class="magasin-item-actions">
+            <v-btn
+              icon
+              size="x-small"
+              variant="text"
+              color="orange"
+              class="magasin-item-archive"
+              @click.stop="handleArchiveMagasin(magasin)"
+            >
+              <v-icon size="16">mdi-archive-outline</v-icon>
+              <v-tooltip activator="parent" location="top">Archiver</v-tooltip>
+            </v-btn>
+            <v-btn
+              icon
+              size="x-small"
+              variant="text"
+              color="primary"
+              class="magasin-item-edit"
+              @click.stop="handleEditMagasin(magasin)"
+            >
+              <v-icon size="16">mdi-pencil</v-icon>
+              <v-tooltip activator="parent" location="top">Modifier</v-tooltip>
+            </v-btn>
+          </div>
         </div>
       </v-col>
     </v-row>
@@ -95,7 +108,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:selectedMagasin', 'edit:magasin']);
+const emit = defineEmits(['update:selectedMagasin', 'edit:magasin', 'archive:magasin']);
 
 const totalCount = computed(() => props.consommables.length);
 
@@ -111,6 +124,10 @@ const handleSelectMagasin = (magasinId) => {
 
 const handleEditMagasin = (magasin) => {
   emit('edit:magasin', magasin);
+};
+
+const handleArchiveMagasin = (magasin) => {
+  emit('archive:magasin', magasin);
 };
 </script>
 
@@ -163,7 +180,10 @@ const handleEditMagasin = (magasin) => {
   margin-top: 2px;
 }
 
-.magasin-item-edit {
+.magasin-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   flex-shrink: 0;
 }
 </style>
