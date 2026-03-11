@@ -5,10 +5,11 @@ from .models import Role, Utilisateur, Log , Permission, RolePermission
 
 
 class RoleAdmin(admin.ModelAdmin):
-    list_display = ('nomRole', 'rang')
-    list_filter = ('rang',)
+    list_display = ('nomRole',)
+    # list_filter = ('rang',)
     search_fields = ('nomRole',)
-    ordering = ('rang',)
+    # ordering = ('rang',)
+    filter_horizontal = ('permissions',)
 
 
 class UtilisateurAdmin(admin.ModelAdmin):

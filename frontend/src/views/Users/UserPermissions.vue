@@ -94,43 +94,44 @@
           />
 
           <!-- Permissions groupées par module -->
-          <v-row>
-            <v-col
-              v-for="(perms, module) in filteredPermissionsByModule"
-              :key="module"
-              cols="12"
-              md="6"
-              lg="4"
-            >
-              <v-card elevation="1" rounded class="mb-2">
-                <v-card-title class="d-flex align-center justify-space-between pa-3 pb-1">
-                  <span class="text-body-1 font-weight-medium">{{ moduleLabel(module) }}</span>
-                  <v-checkbox
-                    :model-value="isModuleFullySelected(perms)"
-                    :indeterminate="isModulePartiallySelected(perms)"
-                    density="compact"
-                    hide-details
-                    color="primary"
-                    @update:model-value="toggleModule(perms, $event)"
-                  />
-                </v-card-title>
-                <v-divider />
-                <v-card-text class="pa-2">
-                  <v-checkbox
-                    v-for="perm in perms"
-                    :key="perm.id"
-                    :model-value="selectedIds.includes(perm.id)"
-                    :label="permActionLabel(perm.nomPermission)"
-                    density="compact"
-                    hide-details
-                    color="primary"
-                    class="mb-1"
-                    @update:model-value="togglePermission(perm.id, $event)"
-                  />
-                </v-card-text>
-              </v-card>
-            </v-col>
-          </v-row>
+         <!-- Permissions groupées par module -->
+<div v-for="(perms, module) in filteredPermissionsByModule" :key="module" class="mb-2">
+  <v-expansion-panels variant="accordion">
+    <v-expansion-panel>
+      <v-expansion-panel-title>
+        <div class="d-flex align-center" style="gap: 12px;">
+          <v-checkbox
+            :model-value="isModuleFullySelected(perms)"
+            :indeterminate="isModulePartiallySelected(perms)"
+            density="compact"
+            hide-details
+            color="primary"
+            @update:model-value="toggleModule(perms, $event)"
+            @click.stop
+          />
+          <span class="font-weight-medium">{{ moduleLabel(module) }}</span>
+          <v-chip size="x-small" color="primary" variant="tonal">
+            {{ perms.filter(p => selectedIds.includes(p.id)).length }}/{{ perms.length }}
+          </v-chip>
+        </div>
+      </v-expansion-panel-title>
+      <v-expansion-panel-text>
+        <div class="d-flex flex-column" style="gap: 4px;">
+          <div v-for="perm in perms" :key="perm.id" class="d-flex align-center">
+            <v-checkbox
+              :model-value="selectedIds.includes(perm.id)"
+              :label="permActionLabel(perm.nomPermission)"
+              density="compact"
+              hide-details
+              color="primary"
+              @update:model-value="togglePermission(perm.id, $event)"
+            />
+          </div>
+        </div>
+      </v-expansion-panel-text>
+    </v-expansion-panel>
+  </v-expansion-panels>
+</div>
 
           <p v-if="Object.keys(filteredPermissionsByModule).length === 0" class="text-body-2 text-medium-emphasis text-center mt-4">
             Aucune permission trouvée.
@@ -199,9 +200,9 @@ const getModule = (nomPermission) => nomPermission.split(':')[0]
 const permissionsByModule = computed(() => {
   const groups = {}
   for (const perm of allPermissions.value) {
-    if (perm.nomPermission.startsWith('dash:display')) continue
+    // if (perm.nomPermission.startsWith('dash:display')) continue
     if (perm.nomPermission === 'export:view') continue
-    if (perm.nomPermission.endsWith(':export')) continue  //supprimer les permissions d'export
+    if (perm.nomPermission.endsWith(':export')) continue  
     const module = getModule(perm.nomPermission)
     if (!groups[module]) groups[module] = []
     groups[module].push(perm)
@@ -243,30 +244,114 @@ const MODULE_LABELS = {
 const moduleLabel = (module) => MODULE_LABELS[module] || module
 
 const permActionLabel = (nomPermission) => {
-  const action = nomPermission.split(':')[1] || nomPermission
-  const labels = {
-    viewList: 'Voir liste',
-    viewDetail: 'Voir détail',
-    create: 'Créer',
-    edit: 'Modifier',
-    editAll: 'Modifier tout',
-    editCreated: 'Modifier les siens',
-    editAssigned: 'Modifier assignés',
-    delete: 'Supprimer',
-    export: 'Exporter',
-    accept: 'Accepter',
-    refuse: 'Refuser',
-    transform: 'Transformer',
-    start: 'Démarrer',
-    end: 'Clôturer',
-    refuseClosure: 'Refuser clôture',
-    acceptClosure: 'Accepter clôture',
-    acceptConsumableRequest: 'Valider consommable',
-    view: 'Voir',
-    disable: 'Désactiver',
-    enable: 'Activer',
+  const FULL_LABELS = {
+    // Demandes d'intervention
+    'di:viewList': 'Voir la liste des DI',
+    'di:viewDetail': "Voir le détail d\'une DI",
+    'di:create': 'Créer une DI',
+    'di:editCreated': 'Modifier ses propres DI',
+    'di:editAll': 'Modifier toutes les DI',
+    'di:delete': 'Supprimer une DI',
+    'di:accept': 'Accepter une DI',
+    'di:refuse': 'Refuser une DI',
+    'di:transform': 'Transformer une DI en BT',
+    // Bons de travail
+    'bt:viewList': 'Voir la liste des BT',
+    'bt:viewDetail': "Voir le détail d\'un BT",
+    'bt:create': 'Créer un BT',
+    'bt:editAll': 'Modifier tous les BT',
+    'bt:editAssigned': 'Modifier ses BT assignés',
+    'bt:delete': 'Supprimer un BT',
+    'bt:start': 'Démarrer un BT',
+    'bt:end': 'Clôturer un BT',
+    'bt:refuse': 'Refuser un BT',
+    'bt:refuseClosure': 'Refuser la clôture d\'un BT',
+    'bt:acceptClosure': 'Accepter la clôture d\'un BT',
+    'bt:acceptConsumableRequest': 'Valider une demande de consommable',
+    // Équipements
+    'eq:viewList': 'Voir la liste des équipements',
+    'eq:viewDetail': "Voir le détail d\'un équipement",
+    'eq:create': 'Créer un équipement',
+    'eq:edit': 'Modifier un équipement',
+    'eq:delete': 'Supprimer un équipement',
+    // Compteurs
+    'cp:viewList': 'Voir la liste des compteurs',
+    'cp:viewDetail': "Voir le détail d\'un compteur",
+    'cp:create': 'Créer un compteur',
+    'cp:edit': 'Modifier un compteur',
+    'cp:delete': 'Supprimer un compteur',
+    // Maintenances préventives
+    'mp:viewList': 'Voir la liste des maintenances préventives',
+    'mp:viewDetail': 'Voir le détail d\'une maintenance préventive',
+    'mp:create': 'Créer une maintenance préventive',
+    'mp:edit': 'Modifier une maintenance préventive',
+    'mp:delete': 'Supprimer une maintenance préventive',
+    // Stocks
+    'stock:view': 'Voir les stocks',
+    // Consommables
+    'cons:viewDetail': "Voir le détail d\'un consommable",
+    'cons:create': 'Créer un consommable',
+    'cons:edit': 'Modifier un consommable',
+    'cons:delete': 'Supprimer un consommable',
+    // Magasins
+    'mag:viewList': 'Voir la liste des magasins',
+    'mag:viewDetail': "Voir le détail d\'un magasin",
+    'mag:create': 'Créer un magasin',
+    'mag:edit': 'Modifier un magasin',
+    'mag:delete': 'Supprimer un magasin',
+    // Utilisateurs
+    'user:viewList': 'Voir la liste des utilisateurs',
+    'user:viewDetail': "Voir le détail d\'un utilisateur",
+    'user:create': 'Créer un utilisateur',
+    'user:edit': 'Modifier un utilisateur',
+    'user:disable': 'Désactiver un utilisateur',
+    'user:enable': 'Activer un utilisateur',
+    'user:delete': 'Supprimer un utilisateur',
+    // Rôles
+    'role:viewList': 'Voir la liste des rôles',
+    'role:viewDetail': "Voir le détail d\'un rôle",
+    'role:create': 'Créer un rôle',
+    'role:edit': 'Modifier un rôle',
+    'role:delete': 'Supprimer un rôle',
+    // Lieux
+    'loc:viewList': 'Voir la liste des lieux',
+    'loc:viewDetail': "Voir le détail d\'un lieu",
+    'loc:create': 'Créer un lieu',
+    'loc:edit': 'Modifier un lieu',
+    'loc:delete': 'Supprimer un lieu',
+    // Fournisseurs
+    'sup:viewList': 'Voir la liste des fournisseurs',
+    'sup:viewDetail': "Voir le détail d\'un fournisseur",
+    'sup:create': 'Créer un fournisseur',
+    'sup:edit': 'Modifier un fournisseur',
+    'sup:delete': 'Supprimer un fournisseur',
+    // Fabricants
+    'man:viewList': 'Voir la liste des fabricants',
+    'man:viewDetail': "Voir le détail d\'un fabricant",
+    'man:create': 'Créer un fabricant',
+    'man:edit': 'Modifier un fabricant',
+    'man:delete': 'Supprimer un fabricant',
+    // Modèles d'équipement
+    'eqmod:viewList': 'Voir la liste des modèles d\'équipement',
+    'eqmod:viewDetail': "Voir le détail d\'un modèle d\'équipement",
+    'eqmod:create': 'Créer un modèle d\'équipement',
+    'eqmod:edit': 'Modifier un modèle d\'équipement',
+    'eqmod:delete': 'Supprimer un modèle d\'équipement',
+    // Menu
+    'menu:view': 'Accéder au menu de navigation',
+    // Dashboard
+    'dash:display.bt': 'Afficher les BT sur le dashboard',
+    'dash:display.btAssigned': 'Afficher ses BT assignés sur le dashboard',
+    'dash:display.di': 'Afficher les DI sur le dashboard',
+    'dash:display.diCreated': 'Afficher ses DI créées sur le dashboard',
+    'dash:display.eq': 'Afficher les équipements sur le dashboard',
+    'dash:display.mag': 'Afficher les magasins sur le dashboard',
+    'dash:display.vertical': 'Afficher le dashboard en mode vertical',
+    'dash:stats.bt': 'Voir les statistiques de ses BT',
+    'dash:stats.di': 'Voir les statistiques de ses DI',
+    'dash:stats.full': 'Voir toutes les statistiques',
   }
-  return labels[action] || action
+  return FULL_LABELS[nomPermission] || nomPermission
 }
 
 // ==================== SÉLECTION ====================

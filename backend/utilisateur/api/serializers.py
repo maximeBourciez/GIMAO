@@ -30,7 +30,7 @@ class RoleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Role
-        fields = ['id', 'nomRole', 'rang', 'permissions', 'permissions_ids']
+        fields = ['id', 'nomRole', 'permissions', 'permissions_ids']
 
     def create(self, validated_data):
         permissions = validated_data.pop('permissions', [])
@@ -42,7 +42,7 @@ class RoleSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         permissions = validated_data.pop('permissions', None)
         instance.nomRole = validated_data.get('nomRole', instance.nomRole)
-        instance.rang = validated_data.get('rang', instance.rang)
+        # instance.rang = validated_data.get('rang', instance.rang)
         instance.save()
         if permissions is not None:
             instance.permissions.set(permissions)

@@ -32,7 +32,7 @@ export default {
         { name: "Fournisseurs", route: "/SupplierList", icon: "mdi-truck", color: "orange", requiresPermission: "sup:viewList" },
         { name: "Fabricants", route: "/ManufacturerList", icon: "mdi-factory", color: "red", requiresPermission: "man:viewList" },
         { name: "Modèles d'équipements", route: "/ModelEquipmentList", icon: "mdi-cog", color: "purple", requiresPermission: "eqmod:viewList" },
-        { name: "Gestion des rôles", route: "/RoleList", icon: "mdi-shield-account", color: "green", requiresPermission: "role:viewList" },
+        { name: "Rôles", route: "/RoleList", icon: "mdi-shield-account", color: "green", requiresPermission: "role:viewList" },
       ],
     };
   },

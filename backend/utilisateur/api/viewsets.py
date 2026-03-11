@@ -24,7 +24,7 @@ from gimao.viewsets import GimaoModelViewSet
 # ==================== ROLE VIEWSET ====================
 
 class RoleViewSet(GimaoModelViewSet):
-    queryset = Role.objects.all().order_by('rang')
+    queryset = Role.objects.all().order_by('nomRole')
     serializer_class = RoleSerializer
 
 

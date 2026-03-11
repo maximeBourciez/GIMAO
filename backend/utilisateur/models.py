@@ -4,15 +4,15 @@ from django.contrib.auth.hashers import make_password, check_password
 
 class Role(models.Model):
     """
-    Représente un rôle attribué à un utilisateur, avec un rang pour la hiérarchie.
+    Représente un rôle attribué à un utilisateur
     """
     nomRole = models.CharField(
         max_length=50,
         help_text="Nom du rôle (ex: Administrateur, Technicien, etc.)"
     )
-    rang = models.PositiveSmallIntegerField(
-        help_text="Rang du rôle pour hiérarchiser les permissions (plus petit = plus élevé)"
-    )
+    # rang = models.PositiveSmallIntegerField(
+    #     help_text="Rang du rôle pour hiérarchiser les permissions (plus petit = plus élevé)"
+    # )
     permissions = models.ManyToManyField(
         'Permission',
         through='RolePermission',
@@ -27,7 +27,7 @@ class Role(models.Model):
         db_table = 'gimao_role'
         verbose_name = 'Rôle'
         verbose_name_plural = 'Rôles'
-        ordering = ['rang']
+        # ordering = ['rang']
 
 
 class Utilisateur(models.Model):
