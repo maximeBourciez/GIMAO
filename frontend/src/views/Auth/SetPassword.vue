@@ -98,7 +98,6 @@ export default {
         })
 
         // Stocker l'utilisateur et rediriger
-        localStorage.setItem('user', JSON.stringify(response.utilisateur))
         this.$store.commit('setUser', response.utilisateur)
         this.$router.push('/')
 

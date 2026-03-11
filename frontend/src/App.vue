@@ -31,7 +31,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import Sidebar from '@/components/SideBar.vue'
 import TopBar from '@/components/TopBar.vue'
@@ -39,7 +39,7 @@ import Breadcrumb from '@/components/Breadcrumb.vue'
 
 const store = useStore()
 const route = useRoute()
-
+const router = useRouter()
 /**
  * Mobile
  */
@@ -69,10 +69,25 @@ const isPublicPage = computed(() => route.meta?.public === true)
 const pageTitle = computed(() => route.meta?.title || 'GIMAO')
 
 /**
+ * Vérification de l'authentification
+ */
+const checkIfAuthIsValid = () => {
+  if (store.getters.isAuthenticated && !store.getters.hasValidAuthentication) {
+    store.commit('logout')
+    localStorage.removeItem('user')
+
+    // Rediriger vers la page de connexion
+    router.push('/');
+  }
+}
+
+/**
  * Lifecycle
  */
 onMounted(() => {
   store.dispatch('initAuth')
+
+  checkIfAuthIsValid();
 
   checkIfMobile()
   window.addEventListener('resize', checkIfMobile)
