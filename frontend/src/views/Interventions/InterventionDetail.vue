@@ -358,18 +358,48 @@
     </template>
   </BaseDetailView>
 
-    <!-- Bouton flottant : modifier le BT -->
-    <v-btn
-      v-if="canUserEditBT"
-      color="primary"
-      size="large"
-      icon
-      elevation="4"
-      class="floating-create-button"
-      @click="goToEditIntervention"
-    >
-      <v-icon>mdi-pencil</v-icon>
-    </v-btn>
+    <!-- Boutons flottants -->
+    <div class="floating-buttons" v-if="canUserEditBT">
+      <v-btn
+        v-if="!intervention?.archive"
+        color="warning"
+        size="large"
+        icon
+        elevation="4"
+        class="mb-3 d-block"
+        @click="showArchiveDialog = true"
+      >
+        <v-icon size="large">mdi-archive-arrow-down</v-icon>
+        <v-tooltip activator="parent" location="left">
+          Archiver le bon de travail
+        </v-tooltip>
+      </v-btn>
+
+      <v-btn
+        color="primary"
+        size="large"
+        icon
+        elevation="4"
+        class="d-block"
+        @click="goToEditIntervention"
+      >
+        <v-icon size="large">mdi-pencil</v-icon>
+        <v-tooltip activator="parent" location="left">
+          Modifier l'intervention
+        </v-tooltip>
+      </v-btn>
+    </div>
+
+    <!-- Modale d'archivage -->
+    <ConfirmationModal
+      v-model="showArchiveDialog"
+      title="Confirmer l'archivage"
+      message="Êtes-vous sûr de vouloir archiver ce bon de travail ?
+            Il ne sera plus visible dans la liste principale."
+      confirmText="Archiver"
+      @confirm="archiveIntervention"
+      @cancel="showArchiveDialog = false"
+    />
 
     <!-- Modales de confirmation (comme DI) -->
     <ConfirmationModal
@@ -481,6 +511,9 @@ const showDocumentsDetails = ref(false);
 const showConsommablesDetails = ref(false);
 const showAffectation = ref(false);
 const showEquipementDetails = ref(false);
+
+const showArchiveDialog = ref(false);
+const archiving = ref(false);
 
 const showStart = ref(false);
 const showFinish = ref(false);
@@ -611,6 +644,24 @@ const goToEditIntervention = () => {
   }
 
   router.push({ name: "EditIntervention", params: { id } });
+};
+
+const archiveIntervention = async () => {
+  archiving.value = true;
+  try {
+    await api.patch(`bons-travail/${route.params.id}/set-archive/`, { archive: true });
+    successMessage.value = 'Bon de travail archivé avec succès';
+    showArchiveDialog.value = false;
+    setTimeout(() => {
+      router.push({ name: 'InterventionList' });
+    }, 1000);
+  } catch (error) {
+    console.error("Erreur lors de l'archivage:", error);
+    errorMessage.value = "Erreur lors de l'archivage du bon de travail";
+    showArchiveDialog.value = false;
+  } finally {
+    archiving.value = false;
+  }
 };
 
 const fetchData = async () => {
@@ -798,6 +849,18 @@ const handleDeleteError = (message) => {
 
 onMounted(fetchData);
 </script>
+
+<style scoped>
+.floating-buttons {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+</style>
 
 <style scoped>
 .doc-truncate {

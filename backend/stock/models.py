@@ -4,7 +4,7 @@ from django.core.validators import MinValueValidator
 from donnees.models import Adresse
 from gimao.mixins import ArchivableMixin
 
-class Magasin(models.Model):
+class Magasin(ArchivableMixin, models.Model):
     nom = models.CharField(max_length=100)
     estMobile = models.BooleanField(default=False)
     adresse = models.ForeignKey(Adresse, on_delete=models.CASCADE, null=True, blank=True, help_text="Adresse du magasin")

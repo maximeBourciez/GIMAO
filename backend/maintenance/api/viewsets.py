@@ -39,6 +39,7 @@ from maintenance.api.serializers import (
     PlanMaintenanceConsommableSerializer
 )
 from gimao.viewsets import GimaoModelViewSet
+from gimao.mixins import ArchivableViewSetMixin
 
 
 class DemandeInterventionViewSet(GimaoModelViewSet):
@@ -495,7 +496,7 @@ class DemandeInterventionViewSet(GimaoModelViewSet):
             raise
 
 
-class BonTravailViewSet(GimaoModelViewSet):
+class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     """
     ViewSet pour gérer les bons de travail.
     

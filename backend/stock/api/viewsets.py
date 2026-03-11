@@ -18,7 +18,7 @@ from gimao.viewsets import GimaoModelViewSet
 from gimao.mixins import ArchivableViewSetMixin
 
 
-class MagasinViewSet(GimaoModelViewSet):
+class MagasinViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     """ViewSet pour la gestion des magasins avec CRUD complet"""
     queryset = Magasin.objects.all()
     serializer_class = MagasinSerializer
