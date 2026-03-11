@@ -92,17 +92,19 @@
                         <template #append>
                           <v-tooltip v-if="!isReserved(cons)" location="top">
                             <template #activator="{ props: tooltipProps }">
-                              <v-btn
-                                v-bind="tooltipProps"
-                                color="primary"
-                                size="small"
-                                variant="flat"
-                                :loading="distributingId === `${bt.id}-${cons.consommable}`"
-                                @click="requestDistribute(bt, cons)"
-                              >
-                                <v-icon size="18" class="mr-1">mdi-package-variant-closed</v-icon>
+                              <span v-bind="tooltipProps" class="d-inline-flex">
+                                <v-btn
+                                  color="primary"
+                                  size="small"
+                                  variant="flat"
+                                  :disabled="isDistributeDisabled(cons)"
+                                  :loading="distributingId === `${bt.id}-${cons.consommable}`"
+                                  @click="requestDistribute(bt, cons)"
+                                >
+                                  <v-icon size="18" class="mr-1">mdi-package-variant-closed</v-icon>
                                 Mettre de côté
-                              </v-btn>
+                                  </v-btn>
+                              </span>
                             </template>
                             {{ getConsommableStockTooltip(cons) }}
                           </v-tooltip>
@@ -256,7 +258,7 @@
 
   <ConfirmationModal v-model="confirmDialog" type="info" title="Confirmer la mise de côté"
     message="Êtes-vous sûr de vouloir mettre ce consommable de côté ?" confirm-text="Mettre de côté"
-    confirm-icon="mdi-check" :loading="confirmLoading" @confirm="confirmDistribute" @cancel="confirmDialog = false" />
+    confirm-icon="mdi-check" :loading="confirmLoading" @confirm="confirmDistribute" @cancel="cancelDistributeConfirmation" />
 
   <ConfirmationModal v-model="confirmAllDialog" type="info" title="Confirmer la mise de côté"
     message="Êtes-vous sûr de vouloir mettre de côté tous les consommables de ce BT ?"
@@ -278,6 +280,9 @@
       <v-card-title class="pa-4 pb-2">
         Choisir un magasin
       </v-card-title>
+      <v-card-subtitle v-if="magasinPendingAction.cons" class="px-4 pb-0 text-caption text-grey">
+        {{ magasinPendingAction.cons.designation }} - Quantite demandee : {{ magasinPendingAction.cons.quantite }}
+      </v-card-subtitle>
       <v-card-text class="pa-4 pt-2">
         <v-radio-group v-model="magasinSelected">
           <v-radio v-for="m in magasinOptions" :key="m.id" :label="`${m.nom} (disponible : ${m.quantite})`" :value="m.id" />
@@ -353,7 +358,7 @@ const distributingId = ref(null);
 const distributingAll = ref(null);
 const confirmDialog = ref(false);
 const confirmLoading = ref(false);
-const pendingAction = ref({ bt: null, cons: null });
+const pendingAction = ref({ bt: null, cons: null, magasinId: null });
 const confirmAllDialog = ref(false);
 const confirmAllLoading = ref(false);
 const pendingAllBt = ref(null);
@@ -445,17 +450,41 @@ const getConsommableTotalStock = (consommable) => {
   return consommableStockMap.value.get(Number(consommable?.consommable)) ?? 0;
 };
 
-const getConsommableMaxStock = (consommable) => {
+const getConsommableStocks = (consommable) => {
   const details = consommableDetailsMap.value.get(Number(consommable?.consommable));
-  const stocks = Array.isArray(details?.stocks) ? details.stocks : [];
+  return Array.isArray(details?.stocks) ? details.stocks : [];
+};
+
+const getConsommableMaxStock = (consommable) => {
+  const stocks = getConsommableStocks(consommable);
 
   return stocks.reduce((max, stock) => Math.max(max, Number(stock?.quantite ?? 0)), 0);
+};
+
+const getEligibleMagasins = (consommable) => {
+  const needed = Number(consommable?.quantite ?? 0);
+
+  return getConsommableStocks(consommable)
+    .map((stock) => ({
+      id: stock.magasin,
+      nom: stock.magasin_nom,
+      quantite: Number(stock.quantite ?? 0)
+    }))
+    .filter((stock) => stock.quantite >= needed);
+};
+
+const isDistributeDisabled = (consommable) => {
+  return getConsommableTotalStock(consommable) <= 0;
 };
 
 const getConsommableStockTooltip = (consommable) => {
   const totalStock = getConsommableTotalStock(consommable);
   const maxStock = getConsommableMaxStock(consommable);
   const needed = Number(consommable?.quantite ?? 0);
+
+  if (totalStock <= 0) {
+    return 'Aucun stock disponible.';
+  }
 
   if (needed > 0 && totalStock >= needed && maxStock < needed) {
     return `Stock total disponible : ${totalStock}. Aucun magasin ne couvre seul la quantité demandée (${needed}).`;
@@ -471,8 +500,10 @@ const openStockIssue = (data, fallback) => {
 };
 
 const openMagasinSelection = (data, bt, cons) => {
-  magasinOptions.value = data?.magasins || [];
-  magasinSelected.value = null;
+  const options = data?.magasins || [];
+
+  magasinOptions.value = options;
+  magasinSelected.value = options.length === 1 ? options[0].id : null;
   magasinPendingAction.value = { bt, cons };
   magasinDialog.value = true;
 };
@@ -542,8 +573,22 @@ const isReserved = (cons) => {
 };
 
 const requestDistribute = (bt, cons) => {
-  pendingAction.value = { bt, cons };
-  confirmDialog.value = true;
+  clearStockFeedback();
+
+  if (isDistributeDisabled(cons)) {
+    return;
+  }
+
+  const eligibleMagasins = getEligibleMagasins(cons);
+  if (eligibleMagasins.length > 0) {
+    openMagasinSelection({ magasins: eligibleMagasins }, bt, cons);
+    return;
+  }
+
+  openStockIssue({
+    error: getConsommableStockTooltip(cons),
+    insuffisants: [normalizeStockIssueItem({ available: getConsommableTotalStock(cons) }, cons)]
+  }, 'Stock insuffisant pour ce consommable.');
 };
 
 const confirmDistribute = async () => {
@@ -553,12 +598,21 @@ const confirmDistribute = async () => {
   }
   confirmLoading.value = true;
   try {
-    await handleDistribute(pendingAction.value.bt, pendingAction.value.cons);
+    await handleDistribute(
+      pendingAction.value.bt,
+      pendingAction.value.cons,
+      pendingAction.value.magasinId
+    );
   } finally {
     confirmLoading.value = false;
     confirmDialog.value = false;
-    pendingAction.value = { bt: null, cons: null };
+    pendingAction.value = { bt: null, cons: null, magasinId: null };
   }
+};
+
+const cancelDistributeConfirmation = () => {
+  confirmDialog.value = false;
+  pendingAction.value = { bt: null, cons: null, magasinId: null };
 };
 
 const requestReserveAll = (bt) => {
@@ -586,11 +640,13 @@ const confirmMagasinSelection = async () => {
     resetMagasinSelectionState();
     return;
   }
-  try {
-    await handleDistribute(magasinPendingAction.value.bt, magasinPendingAction.value.cons, magasinSelected.value);
-  } finally {
-    resetMagasinSelectionState();
-  }
+  pendingAction.value = {
+    bt: magasinPendingAction.value.bt,
+    cons: magasinPendingAction.value.cons,
+    magasinId: magasinSelected.value
+  };
+  confirmDialog.value = true;
+  resetMagasinSelectionState();
 };
 
 const requestCancelReserve = (bt) => {
