@@ -2,7 +2,7 @@
   <div class="magasin-filter">
     <v-row dense>
       <!-- Tous les magasins -->
-      <v-col cols="12" sm="6" md="4">
+      <v-col cols="12" sm="6" md="6">
         <div 
           class="magasin-item"
           :class="{ 'magasin-item--selected': selectedMagasin === null }"
@@ -29,7 +29,7 @@
         :key="magasin.id"
         cols="12" 
         sm="6" 
-        md="4"
+        md="6"
       >
         <div 
           class="magasin-item"
