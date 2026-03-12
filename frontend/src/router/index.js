@@ -292,7 +292,8 @@ const routes = [
     path: '/DataManagement',
     name: 'DataManagement',
     component: DataManagement,
-    meta: { title: 'Gestion des données', requiresPermissions: ['loc:viewList'] }
+    // meta: { title: 'Gestion des données', requiresPermissions: ['loc:viewList'] }
+    meta: { title: 'Gestion des données', requiresPermissions: ['menu:dataManagement'] }
   },
 
   // Bon de travail ---------------------------------------------------------------

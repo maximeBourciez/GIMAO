@@ -339,6 +339,7 @@ const permActionLabel = (nomPermission) => {
     'eqmod:delete': 'Supprimer un modèle d\'équipement',
     // Menu
     'menu:view': 'Accéder au menu de navigation',
+    'menu:dataManagement': 'Accéder au menu Gestion des données',
     // Dashboard
     'dash:display.bt': 'Afficher les BT sur le dashboard',
     'dash:display.btAssigned': 'Afficher ses BT assignés sur le dashboard',

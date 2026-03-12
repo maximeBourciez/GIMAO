@@ -37,6 +37,10 @@ perms = [
     # Menu
     'menu:view',
 
+    # Menu
+    'menu:view',
+    'menu:dataManagement',
+
     # Dashboard
     'dash:display.di', 'dash:display.bt', 'dash:display.eq', 'dash:display.mag', 'dash:display.diCreated', 'dash:display.btAssigned',
     'dash:stats.full', 'dash:stats.bt', 'dash:stats.di',
@@ -73,6 +77,8 @@ perms_map = {
 
         'eq:viewList', 'eq:viewDetail',
 
+        'menu:view',
+
         'dash:display.diCreated', 'dash:display.eq', 'dash:stats.di','dash:display.vertical',
     ],
 
@@ -84,6 +90,8 @@ perms_map = {
         'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
 
         'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export',
+
+        'menu:view',
 
         'export:view',
 
