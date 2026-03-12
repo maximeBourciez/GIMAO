@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- App Bar -->
-    <v-app-bar app color="white" elevation="1">
+    <v-app-bar app :color="isDarkTheme ? 'surface' : 'white'" elevation="1">
       <v-app-bar-nav-icon @click="drawer = !drawer" />
 
       <v-toolbar-title class="font-weight-bold">
@@ -9,6 +9,16 @@
       </v-toolbar-title>
 
       <v-spacer />
+
+      <v-btn
+        icon
+        variant="text"
+        class="mr-2"
+        :title="themeToggleLabel"
+        @click="handleThemeToggle"
+      >
+        <v-icon>{{ themeToggleIcon }}</v-icon>
+      </v-btn>
 
       <!-- User avatar -->
       <v-avatar size="36" color="grey-lighten-3" class="mr-2">
@@ -74,6 +84,8 @@
 
 <script>
 import { MEDIA_BASE_URL, BASE_URL } from "@/utils/constants";
+import vuetify from "@/plugins/vuetify";
+import { toggleTheme } from "@/utils/theme";
 
 export default {
   name: "TopBar",
@@ -98,6 +110,18 @@ export default {
   computed: {
     pageTitle() {
       return this.$route.meta?.title || this.appTitle;
+    },
+
+    isDarkTheme() {
+      return vuetify.theme.global.current.value.dark;
+    },
+
+    themeToggleIcon() {
+      return this.isDarkTheme ? 'mdi-weather-sunny' : 'mdi-weather-night';
+    },
+
+    themeToggleLabel() {
+      return this.isDarkTheme ? 'Activer le mode clair' : 'Activer le mode sombre';
     },
 
     user() {
@@ -159,6 +183,10 @@ export default {
   },
 
   methods: {
+    handleThemeToggle() {
+      toggleTheme();
+    },
+
     isActive(routeName) {
       return this.$route.name === routeName;
     },
@@ -210,6 +238,6 @@ export default {
 }
 
 .logout-item:hover {
-  background-color: #f5f5f5;
+  background-color: var(--hover-color);
 }
 </style>

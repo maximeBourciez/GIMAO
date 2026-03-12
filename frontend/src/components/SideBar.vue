@@ -226,18 +226,18 @@ export default {
    ITEM NORMAL
 ========================= */
 .v-list-item-title {
-    color: #151d48 !important;
+    color: var(--text-color) !important;
 }
 
 /* Hover item NON actif */
 .v-list-item:not(.active-item):hover {
-    background-color: #f5f5f5;
+    background-color: var(--hover-color);
 }
 
 /* Forcer couleur texte au hover (mini ou normal) */
 .v-list-item:not(.active-item):hover .v-list-item-title,
 .v-list-item:not(.active-item):hover .v-icon {
-    color: #151d48 !important;
+    color: var(--text-color) !important;
 }
 
 /* =========================
@@ -253,7 +253,7 @@ export default {
    LOGOUT
 ========================= */
 .logout-item:hover {
-    background-color: #f5f5f5;
+    background-color: var(--hover-color);
 }
 
 .user-info-item {

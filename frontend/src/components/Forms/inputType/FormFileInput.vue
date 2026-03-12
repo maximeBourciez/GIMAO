@@ -196,6 +196,6 @@ onBeforeUnmount(() => {
   margin-bottom: 0px;
   font-size: 1rem;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.87);
+  color: var(--text-color);
 }
 </style>
