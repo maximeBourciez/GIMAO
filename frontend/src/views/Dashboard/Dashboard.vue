@@ -34,7 +34,6 @@
               title="Liste des BT"
               :showSearch="true"
               :showCreateButton="false"
-              show-statut-filter
             />
 
             <v-btn
@@ -118,7 +117,6 @@
             title="Liste des BT"
             :showSearch="true"
             :showCreateButton="false"
-            show-statut-filter
           />
 
           <v-btn

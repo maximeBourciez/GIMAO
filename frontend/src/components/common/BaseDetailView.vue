@@ -343,7 +343,8 @@ const handleBack = () => {
   display: block;
   font-weight: 600;
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-color);
+  opacity: 0.7;
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -351,8 +352,8 @@ const handleBack = () => {
 
 .detail-value {
   font-size: 1rem;
-  color: #333;
+  color: var(--text-color);
   padding: 8px 0;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
 }
 </style>

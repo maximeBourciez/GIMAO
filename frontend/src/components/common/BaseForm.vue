@@ -512,6 +512,6 @@ defineExpose({
   margin-bottom: 4px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.87);
+  color: var(--text-color);
 }
 </style>

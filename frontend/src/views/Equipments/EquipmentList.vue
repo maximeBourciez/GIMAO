@@ -13,28 +13,34 @@
             <p v-if="!locations || locations.length === 0" class="text-caption">
               Pas de données disponibles.
             </p>
-            <VTreeview 
-              v-else 
-              v-model:selected="selectedTreeNodes" 
-              :items="locations" 
+            <VTreeview
+              v-else
+              v-model:selected="selectedTreeNodes"
+              :items="locations"
               item-title="nomLieu"
-              item-children="children" 
-              item-value="id" 
-              select-strategy="independent" 
-              selectable 
+              item-children="children"
+              item-value="id"
+              select-strategy="independent"
+              selectable
               dense
-              @update:selected="onSelectLocation">
+              @update:selected="onSelectLocation"
+            >
               <template v-slot:prepend="{ item, open }">
-                <v-icon 
-                  v-if="item.children && item.children.length > 0 && item.nomLieu !== 'Tous'"
-                  @click.stop="toggleNode(item)" 
-                  :class="{ 'rotate-icon': open }">
-                  {{ open ? 'mdi-triangle-down' : 'mdi-triangle-right' }}
+                <v-icon
+                  v-if="
+                    item.children && item.children.length > 0 && item.nomLieu !== 'Tous'
+                  "
+                  @click.stop="toggleNode(item)"
+                  :class="{ 'rotate-icon': open }"
+                >
+                  {{ open ? "mdi-triangle-down" : "mdi-triangle-right" }}
                 </v-icon>
                 <span v-else class="tree-icon-placeholder"></span>
               </template>
               <template v-slot:label="{ item }">
-                <span class="text-caption ml-2 tree-label" :title="item.nomLieu">{{ item.nomLieu }}</span>
+                <span class="text-caption ml-2 tree-label" :title="item.nomLieu">{{
+                  item.nomLieu
+                }}</span>
               </template>
             </VTreeview>
           </div>
@@ -47,18 +53,20 @@
           </v-card-title>
           <v-divider></v-divider>
           <v-list dense>
-            <v-list-item 
-              link 
+            <v-list-item
+              link
               @click="handleEquipmentTypeSelected(null)"
-              :class="{ 'selected-item': selectedTypeEquipments.length === 0 }">
+              :class="{ 'selected-item': selectedTypeEquipments.length === 0 }"
+            >
               <v-list-item-title>Tous</v-list-item-title>
             </v-list-item>
-            <v-list-item 
-              v-for="(model, index) in equipmentModels" 
-              :key="index" 
+            <v-list-item
+              v-for="(model, index) in equipmentModels"
+              :key="index"
               link
-              @click="handleEquipmentTypeSelected(model)" 
-              :class="{ 'selected-item': isEquipmentTypeSelected(model) }">
+              @click="handleEquipmentTypeSelected(model)"
+              :class="{ 'selected-item': isEquipmentTypeSelected(model) }"
+            >
               <v-list-item-title>{{ model.nom }}</v-list-item-title>
             </v-list-item>
           </v-list>
@@ -67,7 +75,7 @@
 
       <!-- Colonne principale avec EquipmentListComponent -->
       <v-col cols="12" md="8" lg="9" ref="tableContainer">
-        <EquipmentListComponent 
+        <EquipmentListComponent
           :title="title"
           :show-search="showSearch"
           :no-data-text="noDataText"
@@ -77,17 +85,19 @@
           @equipments-loaded="handleEquipmentsLoaded"
           @locations-loaded="handleLocationsLoaded"
           @models-loaded="handleModelsLoaded"
-          ref="equipmentListComponentRef" />
+          ref="equipmentListComponentRef"
+        />
 
         <!-- Bouton flottant en bas à droite -->
-        <v-btn 
-          v-if="showCreateButton" 
-          color="primary" 
-          size="large" 
-          icon 
-          class="floating-add-button" 
+        <v-btn
+          v-if="hasCreationPermission && showCreateButton"
+          color="primary"
+          size="large"
+          icon
+          class="floating-add-button"
           elevation="4"
-          @click="handleCreate">
+          @click="handleCreate"
+        >
           <v-icon size="large">mdi-plus</v-icon>
           <v-tooltip activator="parent" location="left">
             {{ createButtonText }}
@@ -99,40 +109,48 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
-import { VTreeview } from 'vuetify/labs/components'
-import EquipmentListComponent from '@/components/EquipmentListComponent.vue';
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
+import { useStore } from "vuex";
+import { VTreeview } from "vuetify/labs/components";
+import EquipmentListComponent from "@/components/EquipmentListComponent.vue";
+
+const store = useStore();
+
+// Constantes
+const hasCreationPermission = computed(() => { 
+  return store.getters.hasPermission('eq:create');
+});
 
 const props = defineProps({
   title: {
     type: String,
-    default: 'Liste des Équipements'
+    default: "Liste des Équipements",
   },
   showSearch: {
     type: Boolean,
-    default: true
+    default: true,
   },
   showCreateButton: {
     type: Boolean,
-    default: true
+    default: true,
   },
   createButtonText: {
     type: String,
-    default: 'Ajouter un équipement'
+    default: "Ajouter un équipement",
   },
   noDataText: {
     type: String,
-    default: 'Aucun équipement trouvé avec ces filtres'
+    default: "Aucun équipement trouvé avec ces filtres",
   },
   height: {
     type: String,
-    default: null
+    default: null,
   },
   maxHeight: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 });
 
 const router = useRouter();
@@ -170,11 +188,11 @@ const handleModelsLoaded = (data) => {
 
 // Navigation handlers
 const handleCreate = () => {
-  router.push('/CreateEquipment');
+  router.push("/CreateEquipment");
 };
 
 const handleRowClick = (item) => {
-  router.push({ name: 'EquipmentDetail', params: { id: item.id } });
+  router.push({ name: "EquipmentDetail", params: { id: item.id } });
 };
 
 // Fonctions utilitaires pour la hiérarchie des lieux
@@ -192,7 +210,7 @@ const findItem = (items, id) => {
 const getAllDescendantIds = (item) => {
   let ids = [item.id];
   if (item.children && item.children.length > 0) {
-    item.children.forEach(child => {
+    item.children.forEach((child) => {
       ids = ids.concat(getAllDescendantIds(child));
     });
   }
@@ -202,7 +220,7 @@ const getAllDescendantIds = (item) => {
 const getAllDescendantNames = (item) => {
   let names = [item.nomLieu];
   if (item.children && item.children.length > 0) {
-    item.children.forEach(child => {
+    item.children.forEach((child) => {
       names = names.concat(getAllDescendantNames(child));
     });
   }
@@ -214,7 +232,7 @@ const onSelectLocation = (items) => {
   if (items.length > 0) {
     const allLocationNames = [];
 
-    items.forEach(id => {
+    items.forEach((id) => {
       const selectedItem = findItem(locations.value, id);
       if (selectedItem) {
         allLocationNames.push(...getAllDescendantNames(selectedItem));
@@ -222,9 +240,9 @@ const onSelectLocation = (items) => {
     });
 
     selectedLocation.value = [...new Set(allLocationNames)];
-    console.log('Selected Locations (with descendants):', selectedLocation.value);
+    console.log("Selected Locations (with descendants):", selectedLocation.value);
   } else {
-    console.log('No Locations Selected');
+    console.log("No Locations Selected");
     selectedLocation.value = [];
   }
 };
@@ -242,36 +260,34 @@ const handleEquipmentTypeSelected = (model) => {
   if (model === null) {
     selectedTypeEquipments.value = [];
   } else {
-    const index = selectedTypeEquipments.value.findIndex(
-      m => m.nom === model.nom
-    );
+    const index = selectedTypeEquipments.value.findIndex((m) => m.nom === model.nom);
     if (index > -1) {
       selectedTypeEquipments.value.splice(index, 1);
     } else {
       selectedTypeEquipments.value.push(model);
     }
-    console.log('Selected Equipment Types:', selectedTypeEquipments.value);
+    console.log("Selected Equipment Types:", selectedTypeEquipments.value);
   }
 };
 
 const isEquipmentTypeSelected = (model) => {
-  return selectedTypeEquipments.value.some(
-    m => m.nom === model.nom
-  );
+  return selectedTypeEquipments.value.some((m) => m.nom === model.nom);
 };
 
 // Filtrage des équipements
 const filteredEquipments = computed(() => {
   if (!equipments.value) return [];
-  
-  return equipments.value.filter(e => {
-    const locationMatch = selectedLocation.value.length === 0 ||
-      selectedLocation.value.includes('All') ||
+
+  return equipments.value.filter((e) => {
+    const locationMatch =
+      selectedLocation.value.length === 0 ||
+      selectedLocation.value.includes("All") ||
       selectedLocation.value.includes(e.lieu.nomLieu);
-    
-    const typeMatch = selectedTypeEquipments.value.length === 0 ||
-      selectedTypeEquipments.value.some(m => m.nom === e.modele);
-    
+
+    const typeMatch =
+      selectedTypeEquipments.value.length === 0 ||
+      selectedTypeEquipments.value.some((m) => m.nom === e.modele);
+
     return locationMatch && typeMatch;
   });
 });
@@ -285,26 +301,26 @@ const computedTableHeaders = computed(() => {
 });
 
 const fullHeaders = [
-  { title: 'Référence', key: 'reference', sortable: true, align: 'center' },
-  { title: 'Désignation', key: 'designation', sortable: true, align: 'center' },
-  { title: 'Lieu', key: 'lieu.nomLieu', sortable: false, align: 'center' },
-  { title: 'Modèle', key: 'modele', sortable: false, align: 'center' },
+  { title: "Référence", key: "reference", sortable: true, align: "center" },
+  { title: "Désignation", key: "designation", sortable: true, align: "center" },
+  { title: "Lieu", key: "lieu.nomLieu", sortable: false, align: "center" },
+  { title: "Modèle", key: "modele", sortable: false, align: "center" },
   {
-    title: 'Statut',
-    key: 'statut.statut',
+    title: "Statut",
+    key: "statut.statut",
     sortable: true,
-    align: 'center',
+    align: "center",
     sort: (a, b) => {
-      const order = ['EN_FONCTIONNEMENT', 'DEGRADE', 'A_LARRET', 'HORS_SERVICE'];
+      const order = ["EN_FONCTIONNEMENT", "DEGRADE", "A_LARRET", "HORS_SERVICE"];
       return order.indexOf(a) - order.indexOf(b);
-    }
-  }
+    },
+  },
 ];
 
 const compactHeaders = [
-  { title: 'Réf.', key: 'reference', align: 'center' },
-  { title: 'Désignation', key: 'designation', align: 'center' },
-  { title: 'Statut', key: 'statut.statut', align: 'center' }
+  { title: "Réf.", key: "reference", align: "center" },
+  { title: "Désignation", key: "designation", align: "center" },
+  { title: "Statut", key: "statut.statut", align: "center" },
 ];
 
 // Style du container
@@ -312,18 +328,18 @@ const containerStyle = computed(() => {
   const styles = {};
   if (props.height) {
     styles.height = props.height;
-    styles.overflow = 'auto';
+    styles.overflow = "auto";
   }
   if (props.maxHeight) {
     styles.maxHeight = props.maxHeight;
-    styles.overflow = 'auto';
+    styles.overflow = "auto";
   }
   return styles;
 });
 
 // Observer pour le responsive
 onMounted(() => {
-  resizeObserver = new ResizeObserver(entries => {
+  resizeObserver = new ResizeObserver((entries) => {
     const entry = entries[0];
     containerWidth.value = Math.round(entry.contentRect.width);
   });

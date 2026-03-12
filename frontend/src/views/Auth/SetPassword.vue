@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="fill-height" style="background: #f5f5f5;">
+  <v-container fluid class="fill-height" style="background: var(--background-color);">
     <v-row justify="center" align="center">
       <v-col cols="12" sm="6" md="4">
         <v-card class="pa-6">

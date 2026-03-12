@@ -46,3 +46,18 @@ const fieldRules = computed(() => {
     return validation.getFieldRules(props.fieldName, props.step);
 });
 </script>
+
+<style scoped>
+.field-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.required-star {
+    color: #d32f2f;
+    margin-left: 2px;
+}
+</style>
