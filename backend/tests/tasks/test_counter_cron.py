@@ -9,7 +9,9 @@ from tests.factories import (
     EquipementFactory, 
     PlanMaintenanceFactory, 
     CompteurFactory, 
-    DeclencherFactory
+    DeclencherFactory,
+    DemandeInterventionFactory,
+    BonTravailFactory,
 )
 
 @pytest.mark.django_db
@@ -67,3 +69,69 @@ def test_should_create_bt_when_counter_reaches_85_percent():
     assert bt.type == 'PREVENTIF'
     assert bt.statut == 'EN_ATTENTE'
     assert bt.responsable.id == admin.id
+
+
+@pytest.mark.django_db
+def test_should_not_create_duplicate_bt_when_active_bt_exists():
+    """
+    Si un BT actif (EN_ATTENTE, EN_COURS ou EN_RETARD) existe déjà pour ce
+    plan de maintenance, un deuxième appel à update_counter() ne doit pas
+    créer de nouvelles DI/BT.
+    """
+    # GIVEN
+    role_resp = RoleFactory(nomRole="Responsable GMAO")
+    UtilisateurFactory(role=role_resp)
+
+    equipement = EquipementFactory()
+    plan = PlanMaintenanceFactory(nom="Vidange Huile", equipement=equipement)
+    compteur = CompteurFactory(equipement=equipement, valeurCourante=90.0)
+    DeclencherFactory(
+        compteur=compteur,
+        planMaintenance=plan,
+        derniereIntervention=0,
+        ecartInterventions=100.0,
+        prochaineMaintenance=100.0,
+    )
+
+    # Un premier appel crée le BT
+    update_counter()
+    assert BonTravail.objects.filter(
+        demande_intervention__equipement=equipement
+    ).count() == 1
+
+    # WHEN — deuxième appel
+    update_counter()
+
+    # THEN — toujours 1 seul BT, pas de doublon
+    assert BonTravail.objects.filter(
+        demande_intervention__equipement=equipement
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_should_not_create_bt_when_counter_is_below_threshold():
+    """
+    Si le compteur est sous 85% du seuil, aucune DI ni BT ne doit être créé.
+    """
+    # GIVEN
+    role_resp = RoleFactory(nomRole="Responsable GMAO")
+    UtilisateurFactory(role=role_resp)
+
+    equipement = EquipementFactory()
+    plan = PlanMaintenanceFactory(nom="Contrôle Filtre", equipement=equipement)
+    # 50 unités sur un seuil de 100 = 50% < 85%
+    compteur = CompteurFactory(equipement=equipement, valeurCourante=50.0)
+    DeclencherFactory(
+        compteur=compteur,
+        planMaintenance=plan,
+        derniereIntervention=0,
+        ecartInterventions=100.0,
+        prochaineMaintenance=100.0,
+    )
+
+    # WHEN
+    update_counter()
+
+    # THEN — aucune DI ni BT créé
+    assert DemandeIntervention.objects.filter(equipement=equipement).count() == 0
+    assert BonTravail.objects.count() == 0

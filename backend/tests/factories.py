@@ -5,7 +5,7 @@ from django.utils import timezone
 from utilisateur.models import Role, Utilisateur
 from equipement.models import Equipement, Compteur, ModeleEquipement, FamilleEquipement, Declencher
 from donnees.models import Lieu, Fabricant, Fournisseur
-from maintenance.models import PlanMaintenance, TypePlanMaintenance
+from maintenance.models import PlanMaintenance, TypePlanMaintenance, DemandeIntervention, BonTravail
 
 # ==========================================
 # UTILISATEUR & ROLES
@@ -116,3 +116,30 @@ class DeclencherFactory(DjangoModelFactory):
     prochaineMaintenance = 100
     ecartInterventions = 100
     estGlissant = False
+
+
+# ==========================================
+# DEMANDES D'INTERVENTION & BONS DE TRAVAIL
+# ==========================================
+
+class DemandeInterventionFactory(DjangoModelFactory):
+    class Meta:
+        model = DemandeIntervention
+
+    nom = factory.Sequence(lambda n: f"Demande_Intervention_{n}")
+    statut = 'EN_ATTENTE'
+    date_creation = factory.LazyFunction(timezone.now)
+    date_changementStatut = factory.LazyFunction(timezone.now)
+    utilisateur = factory.SubFactory(UtilisateurFactory)
+    equipement = factory.SubFactory(EquipementFactory)
+
+
+class BonTravailFactory(DjangoModelFactory):
+    class Meta:
+        model = BonTravail
+
+    nom = factory.Sequence(lambda n: f"Bon_Travail_{n}")
+    type = 'PREVENTIF'
+    statut = 'EN_ATTENTE'
+    demande_intervention = factory.SubFactory(DemandeInterventionFactory)
+    responsable = factory.SubFactory(UtilisateurFactory)
