@@ -231,6 +231,29 @@ export default {
   color: white;
 }
 
+/* Textes et icônes dans le drawer */
+.v-list-item-title {
+  color: var(--text-color) !important;
+}
+
+.v-list-item-subtitle {
+  color: var(--text-color) !important;
+  opacity: 0.7;
+}
+
+.v-list-item:not(.active-item) .v-icon {
+  color: var(--text-color) !important;
+}
+
+.v-list-item:not(.active-item):hover {
+  background-color: var(--hover-color);
+}
+
+.v-list-item:not(.active-item):hover .v-list-item-title,
+.v-list-item:not(.active-item):hover .v-icon {
+  color: var(--text-color) !important;
+}
+
 .disabled-item {
   pointer-events: none;
   opacity: 0.5;

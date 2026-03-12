@@ -229,6 +229,17 @@ export default {
     color: var(--text-color) !important;
 }
 
+/* Icônes des items normaux */
+.v-list-item:not(.active-item) .v-icon {
+    color: var(--text-color) !important;
+}
+
+/* Sous-titre (rôle utilisateur) */
+.v-list-item-subtitle {
+    color: var(--text-color) !important;
+    opacity: 0.7;
+}
+
 /* Hover item NON actif */
 .v-list-item:not(.active-item):hover {
     background-color: var(--hover-color);
