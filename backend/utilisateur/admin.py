@@ -4,12 +4,22 @@ from django.utils.crypto import get_random_string
 from .models import Role, Utilisateur, Log , Permission, RolePermission
 
 
+class RolePermissionInline(admin.TabularInline):
+    model = RolePermission
+    extra = 1
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'permission':
+            kwargs['queryset'] = Permission.objects.exclude(
+                nomPermission__endswith=':export'
+            ).exclude(nomPermission='export:view')
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 class RoleAdmin(admin.ModelAdmin):
     list_display = ('nomRole',)
-    # list_filter = ('rang',)
     search_fields = ('nomRole',)
-    # ordering = ('rang',)
-    filter_horizontal = ('permissions',)
+    ordering = ('nomRole',)
+    inlines = [RolePermissionInline]
 
 
 class UtilisateurAdmin(admin.ModelAdmin):
