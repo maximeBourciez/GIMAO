@@ -8,6 +8,19 @@ import json
 from .models import Log, Utilisateur
 from .middleware import get_current_user
 
+
+def get_safe_app_user(app_user):
+    if not isinstance(app_user, Utilisateur):
+        return None
+
+    if not app_user.pk:
+        return None
+
+    if not Utilisateur.objects.filter(pk=app_user.pk).exists():
+        return None
+
+    return app_user
+
 def make_serializable(obj):
     if isinstance(obj, Decimal):
         return str(obj)
@@ -83,7 +96,7 @@ def log_save(sender, instance, created, **kwargs):
 
     # Get User from Thread Local (set by ViewSet)
     from .middleware import get_thread_user, get_thread_log_group
-    app_user = get_thread_user()
+    app_user = get_safe_app_user(get_thread_user())
     log_group_id = get_thread_log_group()
 
     # Fallback to request user if thread user not set (e.g. Admin panel)
@@ -93,9 +106,11 @@ def log_save(sender, instance, created, **kwargs):
              request = get_current_request()
              if request and request.user and request.user.is_authenticated:
                   if hasattr(request.user, 'utilisateur'):
-                      app_user = request.user.utilisateur
+                      app_user = get_safe_app_user(request.user.utilisateur)
                   elif hasattr(request.user, 'username'):
-                      app_user = Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
+                      app_user = get_safe_app_user(
+                          Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
+                      )
         except:
              pass
 
@@ -136,9 +151,11 @@ def log_delete(sender, instance, **kwargs):
     app_user = None
     if django_user and django_user.is_authenticated:
         if hasattr(django_user, 'utilisateur'):
-            app_user = django_user.utilisateur
+            app_user = get_safe_app_user(django_user.utilisateur)
         elif hasattr(django_user, 'username'):
-             app_user = Utilisateur.objects.filter(nomUtilisateur=django_user.username).first()
+             app_user = get_safe_app_user(
+                 Utilisateur.objects.filter(nomUtilisateur=django_user.username).first()
+             )
 
     # Enrich idCible with FKs
     id_cible = {'id': instance.pk}

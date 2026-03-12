@@ -1,23 +1,26 @@
 <template>
-  <div>
-    <h3 class="text-subtitle-2 text-primary mb-2">Filtrer par magasin</h3>
+  <div class="magasin-filter">
     <v-row dense>
       <!-- Tous les magasins -->
-      <v-col cols="12" sm="6" md="4" lg="3" xl="2">
-        <v-card 
-          elevation="1" 
-          class="rounded-lg pa-2 cursor-pointer magasin-card"
-          :class="{ 'selected-card': selectedMagasin === null }"
+      <v-col cols="12" sm="6" md="6">
+        <div 
+          class="magasin-item"
+          :class="{ 'magasin-item--selected': selectedMagasin === null }"
           @click="handleSelectMagasin(null)"
         >
-          <div class="d-flex align-center">
-            <v-icon size="24" color="primary" class="mr-2">mdi-view-grid</v-icon>
-            <div>
-              <p class="text-caption font-weight-medium mb-0">Tous les magasins</p>
-              <p class="text-caption text-grey-darken-1 mb-0" style="font-size: 0.7rem;">{{ totalCount }} consommables</p>
-            </div>
+          <v-icon size="20" color="primary" class="mr-3">mdi-view-grid</v-icon>
+          <div class="magasin-item__content">
+            <span class="magasin-item__name">Tous les magasins</span>
+            <span class="magasin-item__count">{{ totalCount }} consommables</span>
           </div>
-        </v-card>
+          <v-icon 
+            v-if="selectedMagasin === null" 
+            color="primary"
+            size="18"
+          >
+            mdi-check
+          </v-icon>
+        </div>
       </v-col>
 
       <!-- Chaque magasin -->
@@ -26,32 +29,62 @@
         :key="magasin.id"
         cols="12" 
         sm="6" 
-        md="4" 
-        lg="3"
-        xl="2"
+        md="6"
       >
-        <v-card 
-          elevation="1" 
-          class="rounded-lg pa-2 cursor-pointer magasin-card"
-          :class="{ 'selected-card': selectedMagasin === magasin.id }"
-          @click="handleSelectMagasin(magasin.id)"
+        <div 
+          class="magasin-item"
+          :class="{ 'magasin-item--selected': selectedMagasin === magasin.id }"
         >
-          <div class="d-flex align-center">
+          <div 
+            class="magasin-item-select"
+            @click="handleSelectMagasin(magasin.id)"
+          >
             <v-icon 
-              size="24" 
+              size="20" 
               :color="magasin.estMobile ? 'orange' : 'blue'" 
-              class="mr-2"
+              class="mr-3"
             >
               {{ magasin.estMobile ? 'mdi-truck' : 'mdi-warehouse' }}
             </v-icon>
-            <div>
-              <p class="text-caption font-weight-medium mb-0">{{ magasin.nom }}</p>
-              <p class="text-caption text-grey-darken-1 mb-0" style="font-size: 0.7rem;">
+            <div class="magasin-item__content">
+              <span class="magasin-item__name">{{ magasin.nom }}</span>
+              <span class="magasin-item__count">
                 {{ getConsommableCountByMagasin(magasin.id) }} consommables
-              </p>
+              </span>
             </div>
+            <v-icon 
+              v-if="selectedMagasin === magasin.id" 
+              color="primary"
+              size="18"
+            >
+              mdi-check
+            </v-icon>
           </div>
-        </v-card>
+          <div class="magasin-item-actions">
+            <v-btn
+              icon
+              size="x-small"
+              variant="text"
+              color="orange"
+              class="magasin-item-archive"
+              @click.stop="handleArchiveMagasin(magasin)"
+            >
+              <v-icon size="16">mdi-archive-outline</v-icon>
+              <v-tooltip activator="parent" location="top">Archiver</v-tooltip>
+            </v-btn>
+            <v-btn
+              icon
+              size="x-small"
+              variant="text"
+              color="primary"
+              class="magasin-item-edit"
+              @click.stop="handleEditMagasin(magasin)"
+            >
+              <v-icon size="16">mdi-pencil</v-icon>
+              <v-tooltip activator="parent" location="top">Modifier</v-tooltip>
+            </v-btn>
+          </div>
+        </div>
       </v-col>
     </v-row>
   </div>
@@ -75,37 +108,82 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:selectedMagasin']);
+const emit = defineEmits(['update:selectedMagasin', 'edit:magasin', 'archive:magasin']);
 
 const totalCount = computed(() => props.consommables.length);
 
 const getConsommableCountByMagasin = (magasinId) => {
-  return props.consommables.filter(c => c.stocks.find(s => s.magasin === magasinId)).length;
+  return props.consommables.filter(c => 
+    Array.isArray(c.stocks) && c.stocks.some(s => s.magasin === magasinId)
+  ).length;
 };
 
 const handleSelectMagasin = (magasinId) => {
   emit('update:selectedMagasin', magasinId);
 };
+
+const handleEditMagasin = (magasin) => {
+  emit('edit:magasin', magasin);
+};
+
+const handleArchiveMagasin = (magasin) => {
+  emit('archive:magasin', magasin);
+};
 </script>
 
 <style scoped>
-.cursor-pointer {
+.magasin-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #E5E7EB;
+  background: #FFFFFF;
+  transition: all 0.15s ease;
+  gap: 8px;
+}
+
+.magasin-item:hover {
+  border-color: #05004E;
+  background: #FAFBFF;
+}
+
+.magasin-item--selected {
+  border-color: #05004E;
+  background: #F1F5FF;
+}
+
+.magasin-item-select {
+  display: flex;
+  align-items: center;
+  flex: 1;
   cursor: pointer;
+  min-width: 0;
 }
 
-.magasin-card {
-  transition: all 0.2s ease-in-out;
-  border: 2px solid rgba(0, 0, 0, 0.12);
+.magasin-item__content {
+  flex: 1;
+  min-width: 0;
 }
 
-.magasin-card:hover {
-  transform: translateY(-2px);
-  border-color: rgb(var(--v-theme-primary));
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+.magasin-item__name {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #05004E;
 }
 
-.selected-card {
-  border-color: rgb(var(--v-theme-primary));
-  background-color: rgba(var(--v-theme-primary), 0.08);
+.magasin-item__count {
+  display: block;
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 2px;
+}
+
+.magasin-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 </style>

@@ -5,16 +5,28 @@
     <template v-if="!isPublicPage && userHasMenu">
 
       <!-- Sidebar desktop -->
-      <Sidebar v-if="!isMobile" />
+      <Sidebar v-if="!isMobile && userHasMen" />
 
       <!-- TopBar mobile (hamburger) -->
       <TopBar v-if="isMobile" />
 
       <!-- AppBar desktop -->
-      <v-app-bar v-if="!isMobile" app color="white" elevation="1">
+      <v-app-bar v-if="!isMobile" app :color="isDarkTheme ? 'surface' : 'white'" elevation="1">
         <v-toolbar-title class="font-weight-bold ml-4">
           {{ pageTitle }}
         </v-toolbar-title>
+
+        <v-spacer />
+
+        <v-btn
+          icon
+          variant="text"
+          class="mr-4"
+          :title="themeToggleLabel"
+          @click="handleThemeToggle"
+        >
+          <v-icon>{{ themeToggleIcon }}</v-icon>
+        </v-btn>
       </v-app-bar>
 
     </template>
@@ -31,15 +43,17 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import Sidebar from '@/components/SideBar.vue'
 import TopBar from '@/components/TopBar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import vuetify from '@/plugins/vuetify'
+import { toggleTheme } from '@/utils/theme'
 
 const store = useStore()
 const route = useRoute()
-
+const router = useRouter()
 /**
  * Mobile
  */
@@ -54,9 +68,7 @@ const checkIfMobile = () => {
  */
 const userRole = computed(() => store.getters.userRole)
 
-// const userHasMenu = computed(() => {
-//   return store.getters.userPermissions.includes('menu:view')
-// })
+
 const userHasMenu = computed(() => {
   return store.getters.userPermissions.length > 0
 })
@@ -70,12 +82,36 @@ const isPublicPage = computed(() => route.meta?.public === true)
  * Titre page
  */
 const pageTitle = computed(() => route.meta?.title || 'GIMAO')
+const isDarkTheme = computed(() => vuetify.theme.global.current.value.dark)
+const themeToggleIcon = computed(() => (isDarkTheme.value ? 'mdi-weather-sunny' : 'mdi-weather-night'))
+const themeToggleLabel = computed(() => (
+  isDarkTheme.value ? 'Activer le mode clair' : 'Activer le mode sombre'
+))
+
+const handleThemeToggle = () => {
+  toggleTheme()
+}
+
+/**
+ * Vérification de l'authentification
+ */
+const checkIfAuthIsValid = () => {
+  if (store.getters.isAuthenticated && !store.getters.hasValidAuthentication) {
+    store.commit('logout')
+    localStorage.removeItem('user')
+
+    // Rediriger vers la page de connexion
+    router.push('/');
+  }
+}
 
 /**
  * Lifecycle
  */
 onMounted(() => {
   store.dispatch('initAuth')
+
+  checkIfAuthIsValid();
 
   checkIfMobile()
   window.addEventListener('resize', checkIfMobile)
@@ -85,25 +121,3 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', checkIfMobile)
 })
 </script>
-<style>
-.text-primary {
-  color: #05004E;
-}
-
-.text-dark {
-  color: #3C3C3C;
-}
-
-.v-card {
-  background-color: #FFFFFF;
-}
-
-.v-btn {
-  background-color: #F1F5FF;
-  border-radius: 50%;
-}
-
-h1 {
-  color: #05004E;
-}
-</style>

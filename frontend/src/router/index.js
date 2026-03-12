@@ -1,8 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// ---------------------------------------------------------------
-// ROLES ET PERMISSIONS
-import RoleList from '@/views/Users/RoleList.vue'
-import UserPermissions from '@/views/Users/UserPermissions.vue'
+
+// Utils
+import store, { checkAuthValidity } from '@/store'
 // ---------------------------------------------------------------
 // AUTH
 import Login from '@/views/Auth/Login.vue'
@@ -65,6 +64,10 @@ import EditModelEquipment from '@/views/DataManagement/EquipmentsModels/EditMode
 import CounterDetail from '@/views/Equipments/Counters/CounterDetail.vue'
 import EditSupplier from '@/views/DataManagement/Suppliers/EditSupplier.vue'
 
+// ---------------------------------------------------------------
+// ROLES ET PERMISSIONS
+import RoleList from '@/views/Users/RoleList.vue'
+import UserPermissions from '@/views/Users/UserPermissions.vue'
 
 const routes = [
   // Auth routes (publiques)
@@ -479,8 +482,19 @@ router.beforeEach((to, from, next) => {
   const userRaw = localStorage.getItem('user')
   const isAuthenticated = !!userRaw
 
+  if (!store.getters.isAuthenticated) {
+    store.dispatch('initAuth')
+  }
+
   if (to.meta.public) {
     next()
+    return
+  } 
+
+  // Vérification validité auth
+  if (!checkAuthValidity(store)) {
+    store.commit('logout')
+    next({ path: '/login', state: { message: 'Votre session a expiré. Veuillez vous reconnecter.' } })   
     return
   }
 

@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="fill-height" style="background: #f5f5f5;">
+  <v-container fluid class="fill-height" style="background: var(--background-color);">
     <v-row justify="center" align="center">
       <v-col cols="12" sm="6" md="4">
         <v-card class="pa-6">
@@ -98,7 +98,6 @@ export default {
         })
 
         // Stocker l'utilisateur et rediriger
-        localStorage.setItem('user', JSON.stringify(response.utilisateur))
         this.$store.commit('setUser', response.utilisateur)
         this.$router.push('/')
 
