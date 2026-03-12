@@ -5,10 +5,10 @@
     <template v-if="!isPublicPage && userHasMenu">
 
       <!-- Sidebar desktop -->
-      <Sidebar v-if="!isMobile && userHasMen" />
+      <Sidebar v-if="!isMobile && userHasMenu" />
 
       <!-- TopBar mobile (hamburger) -->
-      <TopBar v-if="isMobile" />
+      <TopBar v-if="isMobile && userHasMenu" />
 
       <!-- AppBar desktop -->
       <v-app-bar v-if="!isMobile" app :color="isDarkTheme ? 'surface' : 'white'" elevation="1">
@@ -70,7 +70,7 @@ const userRole = computed(() => store.getters.userRole)
 
 
 const userHasMenu = computed(() => {
-  return store.getters.userPermissions.length > 0
+  return store.getters.hasPermission('menu:view') || store.getters.hasPermission('menu:dataManagement')
 })
 
 /**
