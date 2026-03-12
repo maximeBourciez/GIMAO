@@ -3,6 +3,7 @@ import datetime
 from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
@@ -46,6 +47,32 @@ class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         if self.action == 'create':
             return EquipementCreateSerializer
         return EquipementSerializer
+
+    @action(detail=True, methods=['patch'], url_path='set-archive')
+    @transaction.atomic
+    def set_archive(self, request, pk=None):
+        """Surcharge pour clôturer tous les bons de travail liés lors de l'archivage"""
+        response = super().set_archive(request, pk=pk)
+        print(f"Archiving")
+        
+        if response.status_code == status.HTTP_200_OK:
+            instance = self.get_object()
+            if instance.archive:
+                print(f"Instance: {instance}")
+                # Tous les bons de travail liés (via les demandes d'intervention) prennent le statut 'TERMINE'
+                from maintenance.models import BonTravail
+                from django.utils import timezone
+                bons_a_terminer = BonTravail.objects.filter(
+                    demande_intervention__equipement=instance
+                )
+                
+                for bt in bons_a_terminer:
+                    bt.statut = 'TERMINE' if bt.statut != 'CLOTURE' else bt.statut
+                    bt.date_fin = timezone.now()
+                    bt.archive = True
+                    bt.save(update_fields=['statut', 'date_fin', 'archive'])
+                
+        return response
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
