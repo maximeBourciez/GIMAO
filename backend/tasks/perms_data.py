@@ -36,9 +36,6 @@ perms = [
 
     # Menu
     'menu:view',
-
-    # Menu
-    'menu:view',
     'menu:dataManagement',
 
     # Dashboard
