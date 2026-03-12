@@ -21,6 +21,21 @@ router.register(r'plan-maintenance-consommables', PlanMaintenanceConsommableView
 
 # URLs
 urlpatterns = [
+    path(
+        'bons-travail/<int:pk>/update_consommable_distribution/',
+        BonTravailViewSet.as_view({'patch': 'update_consommable_distribution'}),
+        name='bon-travail-update-consommable-distribution',
+    ),
+    path(
+        'bons-travail/<int:pk>/cancel_mise_de_cote/',
+        BonTravailViewSet.as_view({'patch': 'cancel_mise_de_cote'}),
+        name='bon-travail-cancel-mise-de-cote',
+    ),
+    path(
+        'bons-travail/<int:pk>/set_recupere/',
+        BonTravailViewSet.as_view({'patch': 'set_recupere'}),
+        name='bon-travail-set-recupere',
+    ),
     path('', include(router.urls)),
     path(
         "stats/",

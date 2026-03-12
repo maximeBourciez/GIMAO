@@ -2,7 +2,7 @@
   <v-dialog
     v-model="dialogVisible"
     max-width="450"
-    persistent
+    :persistent="persistent"
   >
     <v-card class="rounded-lg">
       <!-- Header -->
@@ -93,6 +93,11 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  // Allow closing by clicking outside when false
+  persistent: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -112,8 +117,8 @@ const typeConfig = {
   },
   warning: {
     icon: 'mdi-alert-circle-outline',
-    color: 'warning',
-    iconColor: 'warning'
+    color: 'primary',
+    iconColor: 'primary'
   },
   error: {
     icon: 'mdi-close-circle-outline',

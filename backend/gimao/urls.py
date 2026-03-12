@@ -7,6 +7,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from gimao.views import home_view
+from maintenance.api.viewsets import BonTravailViewSet
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -31,6 +32,21 @@ urlpatterns = [
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     
     # API endpoints
+    path(
+        'api/bons-travail/<int:pk>/update_consommable_distribution/',
+        BonTravailViewSet.as_view({'patch': 'update_consommable_distribution'}),
+        name='bon-travail-update-consommable-distribution-direct',
+    ),
+    path(
+        'api/bons-travail/<int:pk>/cancel_mise_de_cote/',
+        BonTravailViewSet.as_view({'patch': 'cancel_mise_de_cote'}),
+        name='bon-travail-cancel-mise-de-cote-direct',
+    ),
+    path(
+        'api/bons-travail/<int:pk>/set_recupere/',
+        BonTravailViewSet.as_view({'patch': 'set_recupere'}),
+        name='bon-travail-set-recupere-direct',
+    ),
     path('api/', include('equipement.api.urls')),
     path('api/', include('maintenance.api.urls')),
     path('api/', include('utilisateur.api.urls')),

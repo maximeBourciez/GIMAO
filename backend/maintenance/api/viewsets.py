@@ -1,4 +1,5 @@
 import os
+from django.http import JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -11,7 +12,7 @@ import json
 from donnees.models import Document, TypeDocument
 from equipement.models import Equipement
 from utilisateur.models import Utilisateur, Log
-from stock.models import Consommable
+from stock.models import Consommable, Stocker
 from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
 from gimao.viewsets import GimaoModelViewSet
 
@@ -33,6 +34,7 @@ from maintenance.api.serializers import (
     DemandeInterventionDetailSerializer,
     BonTravailSerializer,
     BonTravailDetailSerializer,
+    BonTravailListStockSerializer,
     TypePlanMaintenanceSerializer,
     PlanMaintenanceSerializer,
     PlanMaintenanceDetailSerializer,
@@ -515,6 +517,25 @@ class BonTravailViewSet(GimaoModelViewSet):
     ).prefetch_related('utilisateur_assigne', 'documents', 'demande_intervention__documents')
     serializer_class = BonTravailSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
+        try:
+            utilisateur = None
+            if utilisateur_id:
+                try:
+                    utilisateur = Utilisateur.objects.get(pk=utilisateur_id)
+                except (Utilisateur.DoesNotExist, ValueError, TypeError):
+                    utilisateur = None
+
+            Log.objects.create(
+                type=type_action,
+                nomTable=nom_table,
+                idCible=id_cible,
+                champsModifies=champs_modifies,
+                utilisateur=utilisateur,
+            )
+        except Exception as error:
+            print(f"Erreur lors de la creation du log manuel: {error}")
 
     def _get_consommables_state(self, bon_travail_id):
         return list(
@@ -1221,6 +1242,192 @@ class BonTravailViewSet(GimaoModelViewSet):
 
         serializer = BonTravailDetailSerializer(bon, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'])
+    def list_stock(self, request):
+        """Liste tous les BonTravail non CLOTURE et non TERMINE avec leurs consommables.
+        
+        Endpoint idéal pour le magasinier pour voir les BT en cours et les consommables à distribuer.
+        """
+        queryset = self.get_queryset().exclude(
+            statut__in=['CLOTURE', 'TERMINE']
+        ).select_related(
+            'demande_intervention',
+            'demande_intervention__equipement',
+            'responsable'
+        ).prefetch_related(
+            'utilisateur_assigne',
+            'documents',
+            'demande_intervention__documents',
+            'bontravailconsommable_set__consommable'
+        )
+        
+        serializer = BonTravailListStockSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'])
+    @transaction.atomic
+    def update_consommable_distribution(self, request, pk=None):
+        bon = self.get_object()
+        consommable_id = request.data.get('consommable_id')
+        distribue = request.data.get('distribue', False)
+        magasin_id = request.data.get('magasin_id')
+        
+        if not consommable_id:
+            return Response(
+                {'error': 'consommable_id requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            assoc = BonTravailConsommable.objects.get(
+                bon_travail=bon,
+                consommable_id=consommable_id
+            )
+        except BonTravailConsommable.DoesNotExist:
+            return Response(
+                {'error': 'Consommable non trouvé pour ce BT'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if distribue:
+            needed = int(assoc.quantite_utilisee or 0)
+            if needed <= 0:
+                return Response(
+                    {
+                        'error': 'Quantite non renseignee pour ce consommable.',
+                        'insuffisants': [{
+                            'consommable_id': assoc.consommable_id,
+                            'designation': assoc.consommable.designation,
+                            'needed': needed,
+                            'available': 0,
+                        }],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if needed > 0:
+                if magasin_id:
+                    try:
+                        stock = Stocker.objects.get(consommable_id=consommable_id, magasin_id=magasin_id)
+                    except Stocker.DoesNotExist:
+                        return Response(
+                            {'error': 'Stock introuvable pour ce magasin'},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+                    if stock.quantite < needed:
+                        return Response(
+                            {
+                                'error': 'Stock insuffisant',
+                                'insuffisants': [{
+                                    'consommable_id': assoc.consommable_id,
+                                    'designation': assoc.consommable.designation,
+                                    'needed': needed,
+                                    'available': stock.quantite,
+                                    'magasin_id': stock.magasin_id,
+                                    'magasin_nom': stock.magasin.nom,
+                                }],
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    stock.quantite -= needed
+                    stock.save()
+                    assoc.magasin_reserve_id = int(magasin_id)
+                else:
+                    all_stocks = list(
+                        Stocker.objects.select_related('magasin')
+                        .filter(consommable_id=consommable_id)
+                    )
+                    eligible = [stock for stock in all_stocks if stock.quantite >= needed]
+                    if len(eligible) == 0:
+                        total_available = sum(int(stock.quantite or 0) for stock in all_stocks)
+                        stocks = [
+                            {
+                                'magasin_id': stock.magasin_id,
+                                'magasin__nom': stock.magasin.nom,
+                                'quantite': stock.quantite,
+                            }
+                            for stock in all_stocks
+                        ]
+                        error_message = 'Stock insuffisant'
+                        if total_available >= needed and total_available > 0:
+                            error_message = 'Le stock existe mais il est réparti sur plusieurs magasins. Aucun magasin ne couvre seul la quantité demandée.'
+                        return Response(
+                            {
+                                'error': error_message,
+                                'insuffisants': [{
+                                    'consommable_id': assoc.consommable_id,
+                                    'designation': assoc.consommable.designation,
+                                    'needed': needed,
+                                    'available': total_available,
+                                    'stocks': stocks,
+                                }],
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    if len(eligible) > 1:
+                        magasins = [
+                            {'id': s.magasin_id, 'nom': s.magasin.nom, 'quantite': s.quantite}
+                            for s in eligible
+                        ]
+                        return Response(
+                            {'error': 'Selection magasin requise', 'needs_magasin_selection': True, 'magasins': magasins},
+                            status=status.HTTP_409_CONFLICT
+                        )
+                    stock = eligible[0]
+                    stock.quantite -= needed
+                    stock.save()
+                    assoc.magasin_reserve_id = stock.magasin_id
+
+            assoc.estConfirme = True
+            assoc.date_confirme = timezone.now()
+        else:
+            assoc.estConfirme = False
+            assoc.date_confirme = None
+            assoc.magasin_reserve = None
+        assoc.save()
+        
+        return JsonResponse({
+            'consommable_id': assoc.consommable_id,
+            'distribue': assoc.estConfirme,
+            'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
+            'magasin_reserve': assoc.magasin_reserve_id
+        })
+
+    @action(detail=True, methods=['patch'])
+    @transaction.atomic
+    def cancel_mise_de_cote(self, request, pk=None):
+        bon = self.get_object()
+
+        assocs = BonTravailConsommable.objects.filter(bon_travail=bon)
+        for assoc in assocs:
+            if assoc.estConfirme and assoc.magasin_reserve_id and assoc.quantite_utilisee:
+                try:
+                    stock = Stocker.objects.get(consommable_id=assoc.consommable_id, magasin_id=assoc.magasin_reserve_id)
+                    stock.quantite += int(assoc.quantite_utilisee or 0)
+                    stock.save()
+                except Stocker.DoesNotExist:
+                    pass
+            assoc.estConfirme = False
+            assoc.date_confirme = None
+            assoc.magasin_reserve = None
+            assoc.save()
+
+        return JsonResponse({'ok': True})
+
+    @action(detail=True, methods=['patch'])
+    @transaction.atomic
+    def set_recupere(self, request, pk=None):
+        bon = self.get_object()
+        recupere = request.data.get('recupere', True)
+
+        bon.pieces_recuperees = bool(recupere)
+        bon.date_recuperation = timezone.now() if bon.pieces_recuperees else None
+        bon.save(update_fields=['pieces_recuperees', 'date_recuperation'])
+
+        return JsonResponse({
+            'pieces_recuperees': bon.pieces_recuperees,
+            'date_recuperation': bon.date_recuperation.isoformat() if bon.date_recuperation else None,
+        })
 
 
 class TypePlanMaintenanceViewSet(GimaoModelViewSet):
