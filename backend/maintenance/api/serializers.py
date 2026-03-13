@@ -100,7 +100,8 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
             'equipement',
             'utilisateur',
             'utilisateur_id',
-            'equipement_id'
+            'equipement_id',
+            'archive'
         ]
         read_only_fields = ['id', 'date_creation', 'date_changementStatut', 'statut']
 

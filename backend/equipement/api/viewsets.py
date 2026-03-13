@@ -59,9 +59,16 @@ class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             instance = self.get_object()
             if instance.archive:
                 print(f"Instance: {instance}")
-                # Tous les bons de travail liés (via les demandes d'intervention) prennent le statut 'TERMINE'
-                from maintenance.models import BonTravail
+                from maintenance.models import BonTravail, DemandeIntervention
                 from django.utils import timezone
+                
+                # Archiver toutes les demandes d'interventions liées
+                dis_a_archiver = DemandeIntervention.objects.filter(equipement=instance)
+                for di in dis_a_archiver:
+                    di.archive = True
+                    di.save(update_fields=['archive'])
+
+                # Tous les bons de travail liés (via les demandes d'intervention) prennent le statut 'TERMINE'
                 bons_a_terminer = BonTravail.objects.filter(
                     demande_intervention__equipement=instance
                 )

@@ -8,7 +8,7 @@ from stock.models import Consommable
 from donnees.models import Fabricant, Fournisseur, Document
 from gimao.mixins import ArchivableMixin
 
-class DemandeIntervention(models.Model):
+class DemandeIntervention(ArchivableMixin, models.Model):
     """Demande d'intervention sur un équipement"""
     STATUT_CHOICES = [
         ('EN_ATTENTE', 'En attente'),

@@ -42,7 +42,7 @@ from gimao.viewsets import GimaoModelViewSet
 from gimao.mixins import ArchivableViewSetMixin
 
 
-class DemandeInterventionViewSet(GimaoModelViewSet):
+class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     """
     ViewSet pour gérer les demandes d'intervention.
     
@@ -1644,28 +1644,28 @@ class DashboardStatsViewset(viewsets.ViewSet):
 
         if 'dash:stats.full' in perms:
             stats = [
-                {"label": "Nombre de DI", "value": DemandeIntervention.objects.filter(~Q(statut="TRANSFORMEE")).count()},
-                {"label": "DI en attente", "value": DemandeIntervention.objects.filter(statut="EN_ATTENTE").count()},
-                {"label": "DI acceptées", "value": DemandeIntervention.objects.filter(statut="ACCEPTEE").count()},
-                {"label": "Nombre de BT", "value": BonTravail.objects.filter(~Q(statut="CLOTURE")).count()},
-                {"label": "BT en retard", "value": BonTravail.objects.filter(statut="EN_RETARD").count()},
-                {"label": "BT en cours", "value": BonTravail.objects.filter(statut="EN_COURS").count()},
+                {"label": "Nombre de DI", "value": DemandeIntervention.objects.filter(~Q(statut="TRANSFORMEE"), archive=False).count()},
+                {"label": "DI en attente", "value": DemandeIntervention.objects.filter(statut="EN_ATTENTE", archive=False).count()},
+                {"label": "DI acceptées", "value": DemandeIntervention.objects.filter(statut="ACCEPTEE", archive=False).count()},
+                {"label": "Nombre de BT", "value": BonTravail.objects.filter(~Q(statut="CLOTURE"), archive=False).count()},
+                {"label": "BT en retard", "value": BonTravail.objects.filter(statut="EN_RETARD", archive=False).count()},
+                {"label": "BT en cours", "value": BonTravail.objects.filter(statut="EN_COURS", archive=False).count()},
             ]
 
         elif 'dash:stats.bt' in perms:
             bt = BonTravail.objects.filter(utilisateur_assigne=user)
             stats = [
-                {"label": "Vos BT", "value": bt.filter(~Q(statut="CLOTURE")).count()},
-                {"label": "Vos BT en cours", "value": bt.filter(statut="EN_COURS").count()},
-                {"label": "Vos BT terminés", "value": bt.filter(statut="TERMINE").count()},
+                {"label": "Vos BT", "value": bt.filter(~Q(statut="CLOTURE"), archive=False).count()},
+                {"label": "Vos BT en cours", "value": bt.filter(statut="EN_COURS", archive=False).count()},
+                {"label": "Vos BT terminés", "value": bt.filter(statut="TERMINE", archive=False).count()},
             ]
 
         elif 'dash:stats.di' in perms:
             di = DemandeIntervention.objects.filter(utilisateur=user)
             stats = [
-                {"label": "Vos DI", "value": DemandeIntervention.objects.filter(utilisateur=user).filter(~Q(statut="TRANSFORMEE")).count()},
-                {"label": "Vos DI en attente", "value": di.filter(statut="EN_ATTENTE").count()},
-                {"label": "Vos DI acceptées", "value": di.filter(statut="ACCEPTEE").count()},
+                {"label": "Vos DI", "value": DemandeIntervention.objects.filter(utilisateur=user).filter(~Q(statut="TRANSFORMEE"), archive=False).count()},
+                {"label": "Vos DI en attente", "value": di.filter(statut="EN_ATTENTE", archive=False).count()},
+                {"label": "Vos DI acceptées", "value": di.filter(statut="ACCEPTEE", archive=False).count()},
             ]
         else:
             return Response({"detail": "Invalid role"},
