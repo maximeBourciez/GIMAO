@@ -1882,10 +1882,18 @@ class DashboardStatsViewset(viewsets.ViewSet):
 
     def get_dashboard_permissions(self, user):
         """ Récupère les permissions de l'utilisateur pour les stats du dashboard """
-        perms = []
-
-        user_perms = user.role.permissions.filter(nomPermission__startswith='dash').values_list('nomPermission', flat=True)
-
-        perms = list(user_perms)
-
-        return perms
+        from utilisateur.models import UtilisateurPermission
+        
+        # Si l'utilisateur a des permissions personnalisées, les utiliser
+        perms_perso = UtilisateurPermission.objects.filter(
+            utilisateur=user,
+            permission__nomPermission__startswith='dash'
+        ).values_list('permission__nomPermission', flat=True)
+        
+        if perms_perso.exists():
+            return list(perms_perso)
+        
+        # Sinon, utiliser les permissions du rôle
+        return list(user.role.permissions.filter(
+            nomPermission__startswith='dash'
+        ).values_list('nomPermission', flat=True))

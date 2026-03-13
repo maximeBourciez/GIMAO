@@ -28,5 +28,8 @@ backend/media/cron_logs/cron.log
 backend/venv/
 backend/.venv/
 
+venv/
+.venv/
+
 # Fichiers d'IDE   
 */.idea
