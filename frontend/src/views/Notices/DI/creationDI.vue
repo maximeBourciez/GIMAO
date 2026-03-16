@@ -1,5 +1,6 @@
 <template>
   <v-container class="doc-page">
+    <h1>Créer une DI</h1>
 
     <p>
       Si vous souhaitez signaler une nouvelle défaillance sur un équipement,
@@ -20,7 +21,7 @@
     </p>
 
     <ZoomImage
-      src="require('@/assets/images/notices/DI/formulaire-di.png')"
+      :src="require('@/assets/images/notices/DI/formulaire-di.png')"
       alt="Formulaire DI"
     />
 
