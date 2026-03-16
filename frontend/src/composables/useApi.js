@@ -1,160 +1,50 @@
 import { ref } from "vue";
-import axios from "axios";
-import store from '../store';
+import api from "@/composables/http";
 
-const API_BASE_URL = "/api/";
-
-/**
- * Composable API flexible
- * @param {string|Object} config - URL ou objet de configuration { url, method }
- * @returns {Object} État et méthodes pour les appels API
- */
-export function useApi(config = null) {
+export function useApi() {
   const data = ref(null);
   const loading = ref(false);
   const error = ref(null);
 
-  // Si config est une string, c'est une URL de base
-  const baseUrl = typeof config === "string" ? config : config?.url || null;
-
-  /**
-   * Appel API avec axios direct (si baseUrl fourni)
-   * @param {string} endpoint - Endpoint à appeler
-   * @param {Object} options - Options axios (method, data, params, etc.)
-   * @returns {Promise} Résultat de l'API
-   */
-  const fetch = async (endpoint = "", options = {}) => {
-    if (!baseUrl) {
-      throw new Error(
-        "baseUrl non défini. Utilisez call() pour api.js ou passez une URL à useApi()"
-      );
-    }
-
+  const request = async (config) => {
     loading.value = true;
     error.value = null;
+
     try {
-      const url = endpoint.startsWith("http")
-        ? endpoint
-        : `${baseUrl}${endpoint}`;
-      const response = await axios({
-        url,
-        method: options.method || "GET",
-        ...options,
-      });
+      const response = await api(config);
       data.value = response.data;
       return response.data;
     } catch (err) {
-      error.value = err.message || "Erreur lors de l'appel API";
-      console.error(`Error fetching ${endpoint}:`, err);
+      error.value = err.response?.data || err.message;
       throw err;
     } finally {
       loading.value = false;
     }
   };
 
-  /**
-   * GET request
-   * @param {string} endpoint - Endpoint relatif ou complet
-   * @param {Object} params - Paramètres de requête
-   */
-  const get = async (endpoint, params = {}) => {
-    return await fetch(endpoint, { method: "GET", params });
-  };
+  const get = (url, params = {}) =>
+    request({ url, method: "GET", params });
 
-  /**
-   * POST request
-   * @param {string} endpoint - Endpoint relatif ou complet
-   * @param {Object} payload - Données à envoyer
-   * @param {Object} options - Options supplémentaires (ex: headers)
-   */
-  const post = async (endpoint, payload, options = {}) => {
-    // Gestion spécifique pour FormData
-    if (payload instanceof FormData) {
-      if (!payload.has('user') && !payload.has('user_id') && !payload.has('utilisateur')) {
-        const userId = store.getters.currentUser?.id;
-        if (userId) payload.append('user', userId);
-      }
-    } else {
-      // Gestion pour JSON standard
-      if (!(payload.user || payload.user_id || payload.utilisateur || payload.utilisateur_id)) {
-        const userId = store.getters.currentUser?.id;
-        if (userId) payload.user = userId;
-      }
-    }
-    return await fetch(endpoint, { method: "POST", data: payload, ...options });
-  };
+  const post = (url, data = {}) =>
+    request({ url, method: "POST", data });
 
-  /**
-   * PUT request
-   * @param {string} endpoint - Endpoint relatif ou complet
-   * @param {Object} payload - Données à envoyer
-   * @param {Object} options - Options supplémentaires (ex: headers)
-   */
-  const put = async (endpoint, payload, options = {}) => {
-    if (payload instanceof FormData) {
-      if (!payload.has('user') && !payload.has('user_id') && !payload.has('utilisateur')) {
-        const userId = store.getters.currentUser?.id;
-        if (userId) payload.append('user', userId);
-      }
-    } else {
-      if (!(payload.user || payload.user_id || payload.utilisateur || payload.utilisateur_id)) {
-        const userId = store.getters.currentUser?.id;
-        if (userId) payload.user = userId;
-      }
-    }
-    return await fetch(endpoint, { method: "PUT", data: payload, ...options });
-  };
+  const put = (url, data = {}) =>
+    request({ url, method: "PUT", data });
 
-  /**
-   * PATCH request
-   * @param {string} endpoint - Endpoint relatif ou complet
-   * @param {Object} payload - Données à mettre à jour
-   */
-  const patch = async (endpoint, payload) => {
-    if (payload instanceof FormData) {
-      if (!payload.has('user') && !payload.has('user_id') && !payload.has('utilisateur')) {
-        const userId = store.getters.currentUser?.id;
-        if (userId) payload.append('user', userId);
-      }
-    } else {
-      if (!(payload.user || payload.user_id || payload.utilisateur || payload.utilisateur_id)) {
-        const userId = store.getters.currentUser?.id;
-        if (userId) payload.user = userId;
-      }
-    }
-    return await fetch(endpoint, { method: "PATCH", data: payload });
-  };
+  const patch = (url, data = {}) =>
+    request({ url, method: "PATCH", data });
 
-  /**
-   * DELETE request
-   * @param {string} endpoint - Endpoint relatif ou complet
-   */
-  const remove = async (endpoint) => {
-    return await fetch(endpoint, { method: "DELETE" });
-  };
-
-  /**
-   * Reset de l'état
-   */
-  const reset = () => {
-    data.value = null;
-    error.value = null;
-    loading.value = false;
-  };
+  const remove = (url) =>
+    request({ url, method: "DELETE" });
 
   return {
-    // State
     data,
     loading,
     error,
-
-    // Methods
-    fetch,
     get,
     post,
     put,
     patch,
     remove,
-    reset,
   };
 }

@@ -19,6 +19,7 @@ from .serializers import (
     PermissionSerializer
 )
 from gimao.viewsets import GimaoModelViewSet
+from security.models import create_token
 
 
 # ==================== ROLE VIEWSET ====================
@@ -114,10 +115,13 @@ class UtilisateurViewSet(GimaoModelViewSet):
         user.derniereConnexion = timezone.now()
         user.save(update_fields=['derniereConnexion'])
 
+        token = create_token(user)
+
         return Response({
             "message": "Connexion réussie",
             "besoinDefinirMotDePasse": False,
-            "utilisateur": UtilisateurSerializer(user).data
+            "utilisateur": UtilisateurSerializer(user).data,
+            "token": token
         }, status=status.HTTP_200_OK)
 
     # ---------- DÉFINIR MOT DE PASSE (PREMIÈRE CONNEXION) ----------
@@ -154,10 +158,12 @@ class UtilisateurViewSet(GimaoModelViewSet):
         from django.utils import timezone
         user.derniereConnexion = timezone.now()
         user.save()
+        token = create_token(user)
 
         return Response({
             "message": "Mot de passe défini avec succès. Vous pouvez maintenant vous connecter.",
-            "utilisateur": UtilisateurSerializer(user).data
+            "utilisateur": UtilisateurSerializer(user).data,
+            "token": token
         }, status=status.HTTP_200_OK)
 
     # ---------- CHANGEMENT DE MOT DE PASSE ----------

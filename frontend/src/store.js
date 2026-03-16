@@ -18,6 +18,11 @@ export default createStore({
             localStorage.setItem("authTimestamp", state.authTimestamp);
         },
 
+        setToken(state, token) {
+            state.token = token;
+            localStorage.setItem("token", token);
+        },
+
         restoreAuth(state, { user, timestamp }) {
             state.user = user;
             state.isAuthenticated = true;

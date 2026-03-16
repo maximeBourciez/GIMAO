@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_yasg',
     'utilisateur',
+    'security',
     'donnees',
     'stock',
     'equipement',
@@ -43,6 +44,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'gimao.middleware.ApiTokenMiddleware',  # Ajout du middleware personnalisé
 ]
 
 REST_FRAMEWORK = {
