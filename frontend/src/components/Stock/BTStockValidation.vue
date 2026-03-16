@@ -260,11 +260,6 @@
     message="Êtes-vous sûr de vouloir mettre ce consommable de côté ?" confirm-text="Mettre de côté"
     confirm-icon="mdi-check" :loading="confirmLoading" @confirm="confirmDistribute" @cancel="cancelDistributeConfirmation" />
 
-  <ConfirmationModal v-model="confirmAllDialog" type="info" title="Confirmer la mise de côté"
-    message="Êtes-vous sûr de vouloir mettre de côté tous les consommables de ce BT ?"
-    confirm-text="Tout mettre de côté" confirm-icon="mdi-check" :loading="confirmAllLoading"
-    @confirm="confirmReserveAll" @cancel="confirmAllDialog = false" />
-
   <ConfirmationModal v-model="confirmCancelDialog" type="error" title="Confirmer l'annulation"
     message="Êtes-vous sûr de vouloir annuler la mise de côté pour ce BT ?" confirm-text="Annuler"
     confirm-icon="mdi-close" :loading="confirmCancelLoading" @confirm="confirmCancelReserve"
@@ -275,13 +270,64 @@
     confirm-icon="mdi-check" :loading="confirmRecupereLoading" @confirm="confirmSetRecupere"
     @cancel="confirmRecupereDialog = false" />
 
+  <v-dialog v-model="bulkReserveDialog" max-width="720">
+    <v-card class="rounded-lg">
+      <v-card-title class="pa-4 pb-2">
+        Choisir un magasin pour chaque pièce
+      </v-card-title>
+      <v-card-subtitle class="px-4 pb-0 text-caption text-grey">
+        Le premier magasin disponible est présélectionné. Vous pouvez le modifier avant de confirmer.
+      </v-card-subtitle>
+      <v-card-text class="pa-4">
+        <div class="bulk-reserve-list">
+          <div
+            v-for="item in bulkReserveItems"
+            :key="item.consommableId"
+            class="bulk-reserve-item"
+          >
+            <div class="bulk-reserve-item__header">
+              <span class="bulk-reserve-item__title">{{ item.designation }}</span>
+              <v-chip size="x-small" color="info" variant="tonal">
+                Quantité demandée : {{ item.quantite }}
+              </v-chip>
+            </div>
+
+            <v-select
+              v-model="item.magasinId"
+              :items="item.magasins"
+              item-title="label"
+              item-value="id"
+              label="Magasin"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </div>
+        </div>
+      </v-card-text>
+      <v-card-actions class="pa-4 pt-0 d-flex justify-end ga-2">
+        <v-btn variant="outlined" @click="cancelBulkReserve">
+          Annuler
+        </v-btn>
+        <v-btn
+          color="primary"
+          :disabled="!canConfirmBulkReserve"
+          :loading="bulkReserveLoading"
+          @click="confirmBulkReserve"
+        >
+          Tout mettre de côté
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-dialog v-model="magasinDialog" max-width="420">
     <v-card class="rounded-lg">
       <v-card-title class="pa-4 pb-2">
         Choisir un magasin
       </v-card-title>
       <v-card-subtitle v-if="magasinPendingAction.cons" class="px-4 pb-0 text-caption text-grey">
-        {{ magasinPendingAction.cons.designation }} - Quantite demandee : {{ magasinPendingAction.cons.quantite }}
+        {{ magasinPendingAction.cons.designation }} - Quantité demandée : {{ magasinPendingAction.cons.quantite }}
       </v-card-subtitle>
       <v-card-text class="pa-4 pt-2">
         <v-radio-group v-model="magasinSelected">
@@ -359,9 +405,6 @@ const distributingAll = ref(null);
 const confirmDialog = ref(false);
 const confirmLoading = ref(false);
 const pendingAction = ref({ bt: null, cons: null, magasinId: null });
-const confirmAllDialog = ref(false);
-const confirmAllLoading = ref(false);
-const pendingAllBt = ref(null);
 const confirmCancelDialog = ref(false);
 const confirmCancelLoading = ref(false);
 const pendingCancelBt = ref(null);
@@ -369,6 +412,10 @@ const confirmRecupereDialog = ref(false);
 const confirmRecupereLoading = ref(false);
 const pendingRecupereBt = ref(null);
 const stockError = ref('');
+const bulkReserveDialog = ref(false);
+const bulkReserveLoading = ref(false);
+const bulkReserveBt = ref(null);
+const bulkReserveItems = ref([]);
 const magasinDialog = ref(false);
 const magasinOptions = ref([]);
 const magasinSelected = ref(null);
@@ -394,6 +441,11 @@ const consommableDetailsMap = computed(() => {
     map.set(Number(consommable.id), consommable);
     return map;
   }, new Map());
+});
+
+const canConfirmBulkReserve = computed(() => {
+  return bulkReserveItems.value.length > 0
+    && bulkReserveItems.value.every((item) => item.magasinId !== null && item.magasinId !== undefined);
 });
 
 
@@ -425,6 +477,12 @@ const resetMagasinSelectionState = () => {
   magasinOptions.value = [];
   magasinSelected.value = null;
   magasinPendingAction.value = { bt: null, cons: null };
+};
+
+const resetBulkReserveState = () => {
+  bulkReserveDialog.value = false;
+  bulkReserveBt.value = null;
+  bulkReserveItems.value = [];
 };
 
 // Gestion des erreurs stock (modal ou message simple)
@@ -503,9 +561,41 @@ const openMagasinSelection = (data, bt, cons) => {
   const options = data?.magasins || [];
 
   magasinOptions.value = options;
-  magasinSelected.value = options.length === 1 ? options[0].id : null;
+  magasinSelected.value = options[0]?.id ?? null;
   magasinPendingAction.value = { bt, cons };
   magasinDialog.value = true;
+};
+
+const buildBulkReserveItems = (bt) => {
+  const items = [];
+  const insuffisants = [];
+
+  getPendingConsommables(bt).forEach((consommable) => {
+    const eligibleMagasins = getEligibleMagasins(consommable);
+
+    if (eligibleMagasins.length === 0) {
+      insuffisants.push(
+        normalizeStockIssueItem(
+          { available: getConsommableTotalStock(consommable) },
+          consommable
+        )
+      );
+      return;
+    }
+
+    items.push({
+      consommableId: consommable.consommable,
+      designation: consommable.designation,
+      quantite: Number(consommable.quantite ?? 0),
+      magasinId: eligibleMagasins[0].id,
+      magasins: eligibleMagasins.map((magasin) => ({
+        ...magasin,
+        label: `${magasin.nom} (disponible : ${magasin.quantite})`
+      }))
+    });
+  });
+
+  return { items, insuffisants };
 };
 // Filtrer les BT qui ont des consommables non distribués
 const pendingBons = computed(() => {
@@ -616,22 +706,51 @@ const cancelDistributeConfirmation = () => {
 };
 
 const requestReserveAll = (bt) => {
-  pendingAllBt.value = bt;
-  confirmAllDialog.value = true;
-};
+  clearStockFeedback();
 
-const confirmReserveAll = async () => {
-  if (!pendingAllBt.value) {
-    confirmAllDialog.value = false;
+  const { items, insuffisants } = buildBulkReserveItems(bt);
+
+  if (insuffisants.length > 0) {
+    openStockIssue(
+      {
+        insuffisants,
+        error: buildBulkStockIssueMessage(insuffisants)
+      },
+      'Stock insuffisant pour ce BT.'
+    );
     return;
   }
-  confirmAllLoading.value = true;
+
+  if (items.length === 0) {
+    return;
+  }
+
+  bulkReserveBt.value = bt;
+  bulkReserveItems.value = items;
+  bulkReserveDialog.value = true;
+};
+
+const cancelBulkReserve = () => {
+  resetBulkReserveState();
+};
+
+const confirmBulkReserve = async () => {
+  if (!bulkReserveBt.value || !canConfirmBulkReserve.value) {
+    resetBulkReserveState();
+    return;
+  }
+
+  bulkReserveLoading.value = true;
   try {
-    await handleDistributeAll(pendingAllBt.value);
+    const magasinSelections = bulkReserveItems.value.reduce((selections, item) => {
+      selections[item.consommableId] = item.magasinId;
+      return selections;
+    }, {});
+
+    await handleDistributeAll(bulkReserveBt.value, magasinSelections);
   } finally {
-    confirmAllLoading.value = false;
-    confirmAllDialog.value = false;
-    pendingAllBt.value = null;
+    bulkReserveLoading.value = false;
+    resetBulkReserveState();
   }
 };
 
@@ -707,6 +826,16 @@ const normalizeStockIssueItem = (item, consommable) => {
     magasin_id: item?.magasin_id ?? null,
     magasin_nom: item?.magasin_nom ?? null
   };
+};
+
+const buildBulkStockIssueMessage = (insuffisants) => {
+  if (insuffisants.length > 1) {
+    return 'Impossible de mettre de côté les pièces suivantes.';
+  }
+  if (insuffisants.length === 1) {
+    return 'Impossible de mettre de côté la pièce suivante.';
+  }
+  return 'Impossible de mettre de côté tout le BT.';
 };
 
 const buildBulkReserveMessage = ({ insuffisants, requiresMagasinSelection }) => {
@@ -789,28 +918,30 @@ const handleDistribute = async (bt, consommable, magasinId = null) => {
 };
 
 // Distribuer tous les consommables d'un BT
-const handleDistributeAll = async (bt) => {
+const handleDistributeAll = async (bt, magasinSelections = {}) => {
   distributingAll.value = bt.id;
   let hasPartialSuccess = false;
   const insuffisants = [];
   const otherErrors = [];
-  let requiresMagasinSelection = false;
 
   try {
     clearStockFeedback();
     const pendingConsommables = getPendingConsommables(bt);
 
     for (const cons of pendingConsommables) {
+      const magasinId = magasinSelections[cons.consommable] ?? null;
+
       try {
         const response = await api.patch(`bons-travail/${bt.id}/update_consommable_distribution/`, {
           consommable_id: cons.consommable,
-          distribue: true
+          distribue: true,
+          magasin_id: magasinId
         });
         hasPartialSuccess = true;
         updateConsommable(bt.id, cons.consommable, (localCons) => {
           setConsommableReservationState(localCons, {
             reserved: true,
-            magasinId: response?.magasin_reserve,
+            magasinId: response?.magasin_reserve ?? magasinId,
             dateDistribution: response?.date_distribution
           });
         });
@@ -818,7 +949,7 @@ const handleDistributeAll = async (bt) => {
         const data = error?.response?.data;
 
         if (error?.response?.status === 409 && data?.needs_magasin_selection) {
-          requiresMagasinSelection = true;
+          otherErrors.push(`${cons.designation} : choix du magasin requis.`);
           continue;
         }
 
@@ -844,15 +975,10 @@ const handleDistributeAll = async (bt) => {
       openStockIssue(
         {
           insuffisants,
-          error: buildBulkReserveMessage({ insuffisants, requiresMagasinSelection })
+          error: buildBulkStockIssueMessage(insuffisants)
         },
         'Stock insuffisant pour ce BT.'
       );
-      return;
-    }
-
-    if (requiresMagasinSelection) {
-      stockError.value = buildBulkReserveMessage({ insuffisants, requiresMagasinSelection });
       return;
     }
 
@@ -1039,6 +1165,33 @@ onMounted(() => {
 
 .consommable-meta {
   color: #667085;
+}
+
+.bulk-reserve-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bulk-reserve-item {
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.bulk-reserve-item__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.bulk-reserve-item__title {
+  color: #20324F;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .stock-issue-item {
