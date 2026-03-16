@@ -198,7 +198,8 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             'dateMiseEnService', 'prixAchat', 'lienImage',
             'createurEquipement', 'x', 'y', 'fabricant', 'fournisseur',
             'lieu', 'modele', 'famille', 'dernier_statut',
-            'compteurs', 'documents', 'documents_equipement', 'consommables', 'bons_travail'
+            'compteurs', 'documents', 'documents_equipement', 'consommables', 'bons_travail',
+            'archive'
         ]
 
     def get_modele(self, obj):

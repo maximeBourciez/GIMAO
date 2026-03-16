@@ -2,6 +2,7 @@ from django.db import models
 from stock.models import Consommable
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
 from utilisateur.models import Utilisateur
+from gimao.mixins import ArchivableMixin
 
 
 
@@ -37,7 +38,7 @@ class FamilleEquipement(models.Model):
         verbose_name_plural = 'Familles d\'équipements'
 
 
-class Equipement(models.Model):
+class Equipement(ArchivableMixin, models.Model):
     """
     Représente un équipement physique.
     """

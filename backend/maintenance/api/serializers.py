@@ -100,7 +100,8 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
             'equipement',
             'utilisateur',
             'utilisateur_id',
-            'equipement_id'
+            'equipement_id',
+            'archive'
         ]
         read_only_fields = ['id', 'date_creation', 'date_changementStatut', 'statut']
 
@@ -191,7 +192,8 @@ class BonTravailSerializer(serializers.ModelSerializer):
             'responsable_id',
             'utilisateur_assigne_ids',
             'consommables_ids',
-            'consommables'
+            'consommables',
+            'archive'
         ]
 
     def _sync_consommables(self, bon_travail, consommables_dict):
@@ -340,7 +342,8 @@ class BonTravailDetailSerializer(serializers.ModelSerializer):
             'consommables',
             'demande_intervention',
             'responsable',
-            'utilisateur_assigne'
+            'utilisateur_assigne',
+            'archive'
         ]
 
     def get_consommables(self, obj):

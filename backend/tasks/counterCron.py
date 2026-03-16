@@ -14,7 +14,7 @@ ALERT_THRESHOLD = 0.85
 
 def update_counter():
     try:
-        counters = Compteur.objects.all()
+        counters = Compteur.objects.filter(equipement__archive=False)
         counters_on_alert = 0
         BT_created = 0
 
@@ -56,6 +56,7 @@ def update_counter():
                         existing_bt = BonTravail.objects.filter(
                             demande_intervention__equipement=counter.equipement,
                             nom__icontains=plan_maintenance.nom,
+                            archive=False,
                             statut__in=['EN_ATTENTE', 'EN_COURS', 'EN_RETARD']
                         ).exists()
 

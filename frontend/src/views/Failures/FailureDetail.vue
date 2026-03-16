@@ -163,21 +163,48 @@
     @cancel="showCreateInterventionModal = false"
   />
 
-  <!-- Bouton modifier -->
-  <v-btn
-    v-if="canEditFailure"
-    color="primary"
-    size="large"
-    icon
-    class="floating-edit-button"
-    elevation="4"
-    @click="editCurrentFailure()"
-  >
-    <v-icon size="large">mdi-pencil</v-icon>
-    <v-tooltip activator="parent" location="left">
-      Modifier la demande
-    </v-tooltip>
-  </v-btn>
+  <!-- Modale d'archivage -->
+  <ConfirmationModal
+    v-model="showArchiveDialog"
+    title="Confirmer l'archivage"
+    message="Êtes-vous sûr de vouloir archiver cette demande d'intervention ?
+          Elle ne sera plus visible dans la liste principale."
+    confirmText="Archiver"
+    @confirm="archiveFailure"
+    @cancel="showArchiveDialog = false"
+  />
+
+  <!-- Boutons flottants -->
+  <div class="floating-buttons" v-if="canEditFailure">
+    <v-btn
+      v-if="!defaillance?.archive"
+      color="warning"
+      size="large"
+      icon
+      elevation="4"
+      class="mb-3 d-block"
+      @click="showArchiveDialog = true"
+    >
+      <v-icon size="large">mdi-archive-arrow-down</v-icon>
+      <v-tooltip activator="parent" location="left">
+        Archiver la demande
+      </v-tooltip>
+    </v-btn>
+
+    <v-btn
+      color="primary"
+      size="large"
+      icon
+      elevation="4"
+      class="d-block"
+      @click="editCurrentFailure()"
+    >
+      <v-icon size="large">mdi-pencil</v-icon>
+      <v-tooltip activator="parent" location="left">
+        Modifier la demande
+      </v-tooltip>
+    </v-btn>
+  </div>
 </template>
 
 <script setup>
@@ -218,6 +245,9 @@ const showRejectModal = ref(false);
 const rejectLoading = ref(false);
 const showCreateInterventionModal = ref(false);
 const createInterventionLoading = ref(false);
+
+const showArchiveDialog = ref(false);
+const archiving = ref(false);
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Non spécifié';
@@ -280,6 +310,24 @@ const fetchData = async () => {
     errorMessage.value = 'Erreur lors du chargement des données';
   } finally {
     loading.value = false;
+  }
+};
+
+const archiveFailure = async () => {
+  archiving.value = true;
+  try {
+    await patchApi.patch(`demandes-intervention/${route.params.id}/set-archive/`, { archive: true });
+    successMessage.value = 'Demande archivée avec succès';
+    showArchiveDialog.value = false;
+    setTimeout(() => {
+      router.push({ name: 'FailureList' });
+    }, 1000);
+  } catch (error) {
+    console.error("Erreur lors de l'archivage:", error);
+    errorMessage.value = "Erreur lors de l'archivage de la demande";
+    showArchiveDialog.value = false;
+  } finally {
+    archiving.value = false;
   }
 };
 
@@ -450,10 +498,13 @@ onMounted(() => {
 /*****************
   Bouton flottant
 *****************/
-.floating-edit-button {
+.floating-buttons {
   position: fixed !important;
   bottom: 24px;
   right: 24px;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>

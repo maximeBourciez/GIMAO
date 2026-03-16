@@ -33,3 +33,7 @@ venv/
 
 # Fichiers d'IDE   
 */.idea
+
+
+# distribution
+frontend/dist/*

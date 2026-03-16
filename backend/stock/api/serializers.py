@@ -15,7 +15,7 @@ class MagasinDetailSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Magasin
-        fields = ['id', 'nom', 'estMobile', 'adresse', 'adresse_details']
+        fields = ['id', 'nom', 'estMobile', 'adresse', 'adresse_details', 'archive']
     
     def get_adresse_details(self, obj):
         if obj.adresse:
@@ -64,7 +64,7 @@ class ConsommableDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Consommable
         fields = ['id', 'designation', 'lienImageConsommable', 'magasins',
-                  'fournitures', 'stocks', 'quantite_totale', 'seuilStockFaible', 'documents']
+                  'fournitures', 'stocks', 'quantite_totale', 'seuilStockFaible', 'documents', 'archive']
     
 
     

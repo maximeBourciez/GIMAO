@@ -6,8 +6,9 @@ from equipement.models import Equipement, Compteur
 from utilisateur.models import Utilisateur
 from stock.models import Consommable
 from donnees.models import Fabricant, Fournisseur, Document
+from gimao.mixins import ArchivableMixin
 
-class DemandeIntervention(models.Model):
+class DemandeIntervention(ArchivableMixin, models.Model):
     """Demande d'intervention sur un équipement"""
     STATUT_CHOICES = [
         ('EN_ATTENTE', 'En attente'),
@@ -53,7 +54,7 @@ class DemandeIntervention(models.Model):
             return f"{self.nom} - Équipement supprimé (id={self.equipement_id})"
 
 
-class BonTravail(models.Model):
+class BonTravail(ArchivableMixin, models.Model):
     """Bon de travail généré suite à une demande d'intervention"""
     STATUT_CHOICES = [
         ('EN_ATTENTE', 'En attente'),
