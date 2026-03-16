@@ -74,19 +74,41 @@
                         <div class="consommable-body">
                           <div class="consommable-main">
                             <v-list-item-title class="text-body-2 consommable-title">
-                          {{ cons.designation }}
+                              {{ cons.designation }}
                             </v-list-item-title>
-                            <v-chip
-                              size="x-small"
-                              :color="isReserved(cons) ? 'success' : 'info'"
-                              :variant="isReserved(cons) ? 'flat' : 'tonal'"
+                            <span
+                              v-if="isReserved(cons)"
+                              class="consommable-status consommable-status--reserved"
                             >
-                              {{ isReserved(cons) ? 'Mis de côté' : 'À préparer' }}
-                            </v-chip>
+                              <v-icon size="14">mdi-check-circle</v-icon>
+                              Mis de côté
+                            </span>
+                            <v-tooltip v-else location="top">
+                              <template #activator="{ props: tooltipProps }">
+                                <span
+                                  v-bind="tooltipProps"
+                                  class="consommable-status consommable-status--pending consommable-status--icon"
+                                >
+                                  <v-icon size="14">mdi-clock-outline</v-icon>
+                                </span>
+                              </template>
+                              À préparer
+                            </v-tooltip>
                           </div>
                           <v-list-item-subtitle class="text-caption consommable-meta">
                           Quantité demandée : {{ cons.quantite }}
                         </v-list-item-subtitle>
+                          <div v-if="isReserved(cons) && getReservationEntries(cons).length > 0" class="reservation-list">
+                            <v-chip
+                              v-for="reservation in getReservationEntries(cons)"
+                              :key="`${cons.consommable}-${reservation.magasin_id}`"
+                              size="x-small"
+                              color="success"
+                              variant="tonal"
+                            >
+                              {{ reservation.magasin_nom }} : {{ reservation.quantite }}
+                            </v-chip>
+                          </div>
                         </div>
 
                         <template #append>
@@ -108,10 +130,22 @@
                             </template>
                             {{ getConsommableStockTooltip(cons) }}
                           </v-tooltip>
-                          <v-btn v-else color="success" size="small" variant="tonal" disabled>
-                            <v-icon size="18" class="mr-1">mdi-check</v-icon>
-                            Mis de côté
-                          </v-btn>
+                          <v-tooltip v-else location="top">
+                            <template #activator="{ props: tooltipProps }">
+                              <v-btn
+                                v-bind="tooltipProps"
+                                icon
+                                size="small"
+                                variant="text"
+                                color="grey-darken-1"
+                                :loading="distributingId === `${bt.id}-${cons.consommable}`"
+                                @click="requestDistribute(bt, cons)"
+                              >
+                                <v-icon size="18">mdi-pencil</v-icon>
+                              </v-btn>
+                            </template>
+                            Modifier la mise de côté
+                          </v-tooltip>
                         </template>
                       </v-list-item>
                     </v-list>
@@ -158,7 +192,7 @@
                       </v-col>
                       <v-col cols="4" class="text-right">
                         <v-chip size="small" color="success" variant="tonal">
-                          Toutes les pièces mises de côté
+                          Mis de côté
                         </v-chip>
                       </v-col>
                     </v-row>
@@ -171,12 +205,49 @@
                         <template #prepend>
                           <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
                         </template>
-                        <v-list-item-title class="text-body-2">
+                        <div class="consommable-body">
+                          <div class="consommable-main">
+                            <v-list-item-title class="text-body-2 consommable-title">
                           {{ cons.designation }}
-                        </v-list-item-title>
-                        <v-list-item-subtitle class="text-caption">
+                            </v-list-item-title>
+                            <span class="consommable-status consommable-status--reserved">
+                              <v-icon size="14">mdi-check-circle</v-icon>
+                              Mis de côté
+                            </span>
+                          </div>
+                          <v-list-item-subtitle class="text-caption consommable-meta">
                           Quantité demandée : {{ cons.quantite }}
                         </v-list-item-subtitle>
+                        <div v-if="getReservationEntries(cons).length > 0" class="reservation-list">
+                          <v-chip
+                            v-for="reservation in getReservationEntries(cons)"
+                            :key="`${cons.consommable}-${reservation.magasin_id}`"
+                            size="x-small"
+                            color="success"
+                            variant="tonal"
+                          >
+                            {{ reservation.magasin_nom }} : {{ reservation.quantite }}
+                          </v-chip>
+                        </div>
+                        </div>
+                        <template #append>
+                          <v-tooltip location="top">
+                            <template #activator="{ props: tooltipProps }">
+                              <v-btn
+                                v-bind="tooltipProps"
+                                icon
+                                size="small"
+                                variant="text"
+                                color="grey-darken-1"
+                                :loading="distributingId === `${bt.id}-${cons.consommable}`"
+                                @click="requestDistribute(bt, cons)"
+                              >
+                                <v-icon size="18">mdi-pencil</v-icon>
+                              </v-btn>
+                            </template>
+                            Modifier la mise de côté
+                          </v-tooltip>
+                        </template>
                       </v-list-item>
                     </v-list>
                     <div class="d-flex justify-end mt-3 pt-3 border-t ga-2">
@@ -244,6 +315,35 @@
                         <v-list-item-subtitle class="text-caption">
                           Quantité demandée : {{ cons.quantite }}
                         </v-list-item-subtitle>
+                        <div v-if="getReservationEntries(cons).length > 0" class="reservation-list">
+                          <v-chip
+                            v-for="reservation in getReservationEntries(cons)"
+                            :key="`${cons.consommable}-${reservation.magasin_id}`"
+                            size="x-small"
+                            color="success"
+                            variant="tonal"
+                          >
+                            {{ reservation.magasin_nom }} : {{ reservation.quantite }}
+                          </v-chip>
+                        </div>
+                        <template #append>
+                          <v-tooltip location="top">
+                            <template #activator="{ props: tooltipProps }">
+                              <v-btn
+                                v-bind="tooltipProps"
+                                icon
+                                size="small"
+                                variant="text"
+                                color="grey-darken-1"
+                                :loading="distributingId === `${bt.id}-${cons.consommable}`"
+                                @click="requestDistribute(bt, cons)"
+                              >
+                                <v-icon size="18">mdi-pencil</v-icon>
+                              </v-btn>
+                            </template>
+                            Modifier la mise de côté
+                          </v-tooltip>
+                        </template>
                       </v-list-item>
                     </v-list>
                   </v-expansion-panel-text>
@@ -321,16 +421,16 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="magasinDialog" max-width="420">
-    <v-card class="rounded-lg">
-      <v-card-title class="pa-4 pb-2">
-        Repartir la quantite
+  <v-dialog v-model="magasinDialog" max-width="760">
+    <v-card class="rounded-lg magasin-dialog-card">
+      <v-card-title class="pa-5 pb-2">
+        Ajuster la mise de côté
       </v-card-title>
-      <v-card-subtitle v-if="magasinPendingAction.cons" class="px-4 pb-0 text-caption text-grey">
+      <v-card-subtitle v-if="magasinPendingAction.cons" class="px-5 pb-0 text-body-2 text-grey-darken-1">
         {{ magasinPendingAction.cons.designation }} - Quantité demandée : {{ magasinPendingAction.cons.quantite }}
       </v-card-subtitle>
-      <v-card-text class="pa-4 pt-2">
-        <div class="magasin-summary mb-4">
+      <v-card-text class="pa-5 pt-4">
+        <div class="magasin-summary mb-5">
           <v-chip size="small" color="info" variant="tonal">
             Demande : {{ magasinNeededQuantity }}
           </v-chip>
@@ -369,9 +469,18 @@
           </div>
         </div>
       </v-card-text>
-      <v-card-actions class="pa-4 pt-0 d-flex justify-end">
-        <v-btn variant="outlined" @click="resetMagasinSelectionState">Annuler</v-btn>
-        <v-btn color="primary" :disabled="!canSubmitMagasinSelection" @click="confirmMagasinSelection">
+      <v-card-actions class="magasin-dialog-actions pa-5 pt-0">
+        <v-btn
+          v-if="isEditingReservedCons"
+          color="error"
+          variant="outlined"
+          :loading="distributingId === `${magasinPendingAction.bt?.id}-${magasinPendingAction.cons?.consommable}`"
+          @click="cancelSingleReserveFromModal"
+        >
+          Annuler cette mise de cote
+        </v-btn>
+        <v-btn variant="text" @click="resetMagasinSelectionState">Fermer</v-btn>
+        <v-btn color="primary" size="large" :disabled="!canSubmitMagasinSelection" @click="confirmMagasinSelection">
           Confirmer
         </v-btn>
       </v-card-actions>
@@ -502,6 +611,10 @@ const canSubmitMagasinSelection = computed(() => {
   return magasinNeededQuantity.value > 0 && magasinAllocatedQuantity.value === magasinNeededQuantity.value;
 });
 
+const isEditingReservedCons = computed(() => {
+  return isReserved(magasinPendingAction.value.cons);
+});
+
 
 // Helpers locaux pour garder l'UI synchronisee sans recharger les BT
 const updateBt = (btId, updater) => {
@@ -528,6 +641,30 @@ const setConsommableReservationState = (
   cons.date_distribution = reserved ? (dateDistribution || new Date().toISOString()) : null;
   cons.magasin_reserve = reserved ? (magasinId ?? cons.magasin_reserve ?? null) : null;
   cons.magasins_reserves = reserved ? reservations : [];
+};
+
+const getReservationEntries = (cons) => {
+  if (Array.isArray(cons?.magasins_reserves) && cons.magasins_reserves.length > 0) {
+    return cons.magasins_reserves.map((reservation) => ({
+      magasin_id: reservation.magasin_id,
+      magasin_nom: reservation.magasin_nom,
+      quantite: Number(reservation.quantite ?? 0)
+    }));
+  }
+
+  if (cons?.magasin_reserve) {
+    const stock = getConsommableStocks(cons).find(
+      (item) => Number(item.magasin) === Number(cons.magasin_reserve)
+    );
+
+    return [{
+      magasin_id: Number(cons.magasin_reserve),
+      magasin_nom: stock?.magasin_nom ?? `Magasin #${cons.magasin_reserve}`,
+      quantite: Number(cons.quantite ?? 0)
+    }];
+  }
+
+  return [];
 };
 
 const resetMagasinSelectionState = () => {
@@ -599,6 +736,26 @@ const getAvailableMagasins = (consommable) => {
     .filter((stock) => stock.quantite > 0);
 };
 
+const getEditableMagasins = (consommable) => {
+  const magasins = new Map();
+
+  getAvailableMagasins(consommable).forEach((magasin) => {
+    magasins.set(magasin.id, { ...magasin });
+  });
+
+  getReservationEntries(consommable).forEach((reservation) => {
+    const existingMagasin = magasins.get(reservation.magasin_id);
+
+    magasins.set(reservation.magasin_id, {
+      id: reservation.magasin_id,
+      nom: reservation.magasin_nom,
+      quantite: Number(existingMagasin?.quantite ?? 0) + Number(reservation.quantite ?? 0)
+    });
+  });
+
+  return Array.from(magasins.values());
+};
+
 const isDistributeDisabled = (consommable) => {
   return getConsommableTotalStock(consommable) <= 0;
 };
@@ -626,16 +783,30 @@ const openStockIssue = (data, fallback) => {
 };
 
 const openMagasinSelection = (data, bt, cons) => {
-  const options = data?.magasins || [];
+  const options = data?.magasins || getEditableMagasins(cons);
   const needed = Number(data?.needed ?? cons?.quantite ?? 0);
+  const existingReservations = getReservationEntries(cons);
 
   magasinOptions.value = options;
-  magasinAllocations.value = buildDefaultMagasinAllocations(options, needed);
+  magasinAllocations.value = buildDefaultMagasinAllocations(options, needed, existingReservations);
   magasinPendingAction.value = { bt, cons };
   magasinDialog.value = true;
 };
 
-const buildDefaultMagasinAllocations = (options, needed) => {
+const buildDefaultMagasinAllocations = (options, needed, existingReservations = []) => {
+  const reservationMap = existingReservations.reduce((map, reservation) => {
+    map.set(Number(reservation.magasin_id), Number(reservation.quantite ?? 0));
+    return map;
+  }, new Map());
+
+  if (reservationMap.size > 0) {
+    return options.map((magasin) => ({
+      ...magasin,
+      quantite: Number(magasin.quantite ?? 0),
+      quantiteSelectionnee: reservationMap.get(Number(magasin.id)) ?? 0
+    }));
+  }
+
   let remaining = Number(needed ?? 0);
 
   return options.map((magasin) => {
@@ -770,17 +941,14 @@ const isReserved = (cons) => {
 const requestDistribute = (bt, cons) => {
   clearStockFeedback();
 
-  if (isDistributeDisabled(cons)) {
-    return;
-  }
-
-  const totalStock = getConsommableTotalStock(cons);
+  const magasinsEditables = getEditableMagasins(cons);
+  const totalStock = magasinsEditables.reduce((total, magasin) => total + Number(magasin.quantite ?? 0), 0);
   const needed = Number(cons?.quantite ?? 0);
 
   if (totalStock >= needed) {
     openMagasinSelection(
       {
-        magasins: getAvailableMagasins(cons),
+        magasins: magasinsEditables,
         needed
       },
       bt,
@@ -894,6 +1062,38 @@ const confirmMagasinSelection = async () => {
   resetMagasinSelectionState();
 };
 
+const handleCancelSingleReserve = async (bt, consommable) => {
+  distributingId.value = `${bt.id}-${consommable.consommable}`;
+  try {
+    clearStockFeedback();
+    await api.patch(`bons-travail/${bt.id}/update_consommable_distribution/`, {
+      consommable_id: consommable.consommable,
+      distribue: false
+    });
+
+    updateConsommable(bt.id, consommable.consommable, (localCons) => {
+      setConsommableReservationState(localCons, { reserved: false });
+    });
+
+    resetMagasinSelectionState();
+    emit('stock-updated');
+  } catch (error) {
+    stockError.value = error?.response?.data?.error || 'Une erreur est survenue lors de l annulation de cette mise de cote.';
+    console.error('Erreur annulation mise de cote unitaire:', error);
+  } finally {
+    distributingId.value = null;
+  }
+};
+
+const cancelSingleReserveFromModal = async () => {
+  if (!magasinPendingAction.value.bt || !magasinPendingAction.value.cons || !isEditingReservedCons.value) {
+    resetMagasinSelectionState();
+    return;
+  }
+
+  await handleCancelSingleReserve(magasinPendingAction.value.bt, magasinPendingAction.value.cons);
+};
+
 const requestCancelReserve = (bt) => {
   pendingCancelBt.value = bt;
   confirmCancelDialog.value = true;
@@ -1005,6 +1205,9 @@ const handleDistribute = async (bt, consommable, { magasinId = null, repartition
 
     if (Array.isArray(repartition) && repartition.length > 0) {
       payload.repartition = repartition;
+      if (repartition.length === 1) {
+        payload.magasin_id = repartition[0].magasin_id;
+      }
     } else {
       payload.magasin_id = magasinId;
     }
@@ -1301,6 +1504,51 @@ onMounted(() => {
   color: #667085;
 }
 
+.consommable-status {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 600;
+  gap: 4px;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.consommable-status--reserved {
+  background: #E8F5ED;
+  color: #17663B;
+}
+
+.consommable-status--pending {
+  background: #EEF4FF;
+  color: #2457C5;
+}
+
+.consommable-status--icon {
+  justify-content: center;
+  min-width: 24px;
+  padding: 4px 6px;
+}
+
+.reservation-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.magasin-dialog-card {
+  overflow: hidden;
+}
+
+.magasin-dialog-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
 .bulk-reserve-list {
   display: flex;
   flex-direction: column;
@@ -1341,9 +1589,10 @@ onMounted(() => {
 }
 
 .magasin-allocation-item {
+  background: #F8FAFC;
   border: 1px solid #E5E7EB;
   border-radius: 10px;
-  padding: 12px;
+  padding: 14px;
 }
 
 .magasin-allocation-item__header {
@@ -1359,6 +1608,16 @@ onMounted(() => {
   color: #20324F;
   font-size: 0.95rem;
   font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .magasin-dialog-actions {
+    justify-content: stretch;
+  }
+
+  .magasin-dialog-actions .v-btn {
+    width: 100%;
+  }
 }
 
 .stock-issue-item {

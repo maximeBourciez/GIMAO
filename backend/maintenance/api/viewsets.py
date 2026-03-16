@@ -1,4 +1,7 @@
+import ast
+import logging
 import os
+from urllib.parse import parse_qs
 from django.http import JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -43,6 +46,8 @@ from maintenance.api.serializers import (
 )
 from gimao.viewsets import GimaoModelViewSet
 from gimao.mixins import ArchivableViewSetMixin
+
+logger = logging.getLogger(__name__)
 
 
 class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
@@ -1329,6 +1334,107 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    def _normalize_repartition(self, repartition):
+        current = repartition
+
+        for _ in range(6):
+            if current is None:
+                return None
+
+            if isinstance(current, bytes):
+                try:
+                    current = current.decode('utf-8')
+                except UnicodeDecodeError:
+                    return None
+                continue
+
+            if isinstance(current, dict):
+                return [current]
+
+            if isinstance(current, tuple):
+                current = list(current)
+                continue
+
+            if isinstance(current, list):
+                if len(current) == 1 and isinstance(current[0], str):
+                    current = current[0]
+                    continue
+                return current
+
+            if isinstance(current, str):
+                current = current.strip()
+                if not current:
+                    return None
+
+                if (
+                    len(current) >= 2
+                    and current[0] == current[-1]
+                    and current[0] in ("'", '"')
+                ):
+                    current = current[1:-1].strip()
+                    continue
+
+                for parser in (json.loads, ast.literal_eval):
+                    try:
+                        current = parser(current)
+                        break
+                    except (ValueError, SyntaxError, TypeError):
+                        continue
+                else:
+                    unescaped = current.replace('\\"', '"').replace("\\'", "'")
+                    if unescaped != current:
+                        current = unescaped
+                        continue
+                    return None
+                continue
+
+            return None
+
+        return current if isinstance(current, list) else None
+
+    def _extract_repartition(self, request):
+        candidates = []
+
+        raw_request = getattr(request, '_request', None)
+        for source in (getattr(request, 'data', None), getattr(request, 'POST', None), getattr(raw_request, 'POST', None)):
+            if source is None:
+                continue
+            getter = getattr(source, 'get', None)
+            if callable(getter):
+                candidates.append(getter('repartition'))
+            getlist = getattr(source, 'getlist', None)
+            if callable(getlist):
+                candidates.append(getlist('repartition'))
+
+        try:
+            raw_body = request.body.decode('utf-8').strip()
+        except Exception:
+            raw_body = ''
+
+        if raw_body:
+            candidates.append(raw_body)
+
+            try:
+                body_json = json.loads(raw_body)
+            except ValueError:
+                body_json = None
+
+            if isinstance(body_json, dict):
+                candidates.append(body_json.get('repartition'))
+            elif isinstance(body_json, list):
+                candidates.append(body_json)
+
+            parsed_body = parse_qs(raw_body, keep_blank_values=True)
+            if 'repartition' in parsed_body:
+                candidates.append(parsed_body.get('repartition'))
+
+        for candidate in candidates:
+            normalized = self._normalize_repartition(candidate)
+            if normalized is not None:
+                return normalized
+
+        return None
+
     def _apply_reservation_split(self, assoc, needed, repartition):
         if not isinstance(repartition, list) or len(repartition) == 0:
             return Response(
@@ -1430,13 +1536,16 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         consommable_id = request.data.get('consommable_id')
         distribue = request.data.get('distribue', False)
         magasin_id = request.data.get('magasin_id')
-        repartition = request.data.get('repartition')
-
-        if isinstance(repartition, str):
-            try:
-                repartition = json.loads(repartition)
-            except ValueError:
-                repartition = None
+        repartition = self._extract_repartition(request)
+        logger.warning(
+            "update_consommable_distribution bt=%s consommable=%s magasin_id=%s raw_repartition=%r normalized_repartition=%r content_type=%s",
+            pk,
+            consommable_id,
+            magasin_id,
+            request.data.get('repartition', None),
+            repartition,
+            request.content_type,
+        )
         
         if not consommable_id:
             return Response(
@@ -1471,7 +1580,7 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            if repartition:
+            if repartition is not None:
                 error_response = self._apply_reservation_split(assoc, needed, repartition)
                 if error_response is not None:
                     return error_response
