@@ -87,7 +87,7 @@
               xl="6"
               class="py-1"
             >
-              <v-btn color="success" block :disabled="!canClose" @click="openCloseModal" v-if="store.getters.hasPermission('bt:acceptClosure')"
+              <v-btn color="success" class="text-white" block :disabled="!canClose" @click="openCloseModal" v-if="store.getters.hasPermission('bt:acceptClosure')"
                 >Clôturer le BT</v-btn
               >
             </v-col>
@@ -98,7 +98,7 @@
               class="py-1"
             >
               <v-btn
-                color="warning"
+                color="error"
                 block
                 :disabled="!canRefuseClose"
                 @click="openRefuseCloseModal"
@@ -448,7 +448,7 @@
             :error-message="errorMessage"
             :success-message="successMessage"
             submit-button-text="Refuser"
-            submit-button-color="warning"
+            submit-button-color="error"
             cancel-button-text="Annuler"
             :custom-cancel-action="() => (showRefuseClose = false)"
             :handleSubmit="refuseCloseBonTravail"
