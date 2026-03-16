@@ -324,19 +324,54 @@
   <v-dialog v-model="magasinDialog" max-width="420">
     <v-card class="rounded-lg">
       <v-card-title class="pa-4 pb-2">
-        Choisir un magasin
+        Repartir la quantite
       </v-card-title>
       <v-card-subtitle v-if="magasinPendingAction.cons" class="px-4 pb-0 text-caption text-grey">
         {{ magasinPendingAction.cons.designation }} - Quantité demandée : {{ magasinPendingAction.cons.quantite }}
       </v-card-subtitle>
       <v-card-text class="pa-4 pt-2">
-        <v-radio-group v-model="magasinSelected">
-          <v-radio v-for="m in magasinOptions" :key="m.id" :label="`${m.nom} (disponible : ${m.quantite})`" :value="m.id" />
-        </v-radio-group>
+        <div class="magasin-summary mb-4">
+          <v-chip size="small" color="info" variant="tonal">
+            Demande : {{ magasinNeededQuantity }}
+          </v-chip>
+          <v-chip size="small" color="primary" variant="tonal">
+            Selectionne : {{ magasinAllocatedQuantity }}
+          </v-chip>
+          <v-chip size="small" :color="magasinRemainingQuantity === 0 ? 'success' : 'warning'" variant="tonal">
+            Reste : {{ magasinRemainingQuantity }}
+          </v-chip>
+        </div>
+
+        <div class="magasin-allocation-list">
+          <div
+            v-for="magasin in magasinAllocations"
+            :key="magasin.id"
+            class="magasin-allocation-item"
+          >
+            <div class="magasin-allocation-item__header">
+              <span class="magasin-allocation-item__title">{{ magasin.nom }}</span>
+              <v-chip size="x-small" color="grey" variant="tonal">
+                Disponible : {{ magasin.quantite }}
+              </v-chip>
+            </div>
+
+            <v-text-field
+              :model-value="magasin.quantiteSelectionnee"
+              type="number"
+              min="0"
+              :max="magasin.quantite"
+              label="Quantite a prendre"
+              variant="outlined"
+              density="compact"
+              hide-details
+              @update:model-value="updateMagasinAllocation(magasin.id, $event)"
+            />
+          </div>
+        </div>
       </v-card-text>
       <v-card-actions class="pa-4 pt-0 d-flex justify-end">
-        <v-btn variant="outlined" @click="magasinDialog = false">Annuler</v-btn>
-        <v-btn color="primary" :disabled="!magasinSelected" @click="confirmMagasinSelection">
+        <v-btn variant="outlined" @click="resetMagasinSelectionState">Annuler</v-btn>
+        <v-btn color="primary" :disabled="!canSubmitMagasinSelection" @click="confirmMagasinSelection">
           Confirmer
         </v-btn>
       </v-card-actions>
@@ -404,7 +439,7 @@ const distributingId = ref(null);
 const distributingAll = ref(null);
 const confirmDialog = ref(false);
 const confirmLoading = ref(false);
-const pendingAction = ref({ bt: null, cons: null, magasinId: null });
+const pendingAction = ref({ bt: null, cons: null, magasinId: null, repartition: [] });
 const confirmCancelDialog = ref(false);
 const confirmCancelLoading = ref(false);
 const pendingCancelBt = ref(null);
@@ -418,7 +453,7 @@ const bulkReserveBt = ref(null);
 const bulkReserveItems = ref([]);
 const magasinDialog = ref(false);
 const magasinOptions = ref([]);
-const magasinSelected = ref(null);
+const magasinAllocations = ref([]);
 const magasinPendingAction = ref({ bt: null, cons: null });
 const stockIssueDialog = ref(false);
 const stockIssueItems = ref([]);
@@ -448,6 +483,25 @@ const canConfirmBulkReserve = computed(() => {
     && bulkReserveItems.value.every((item) => item.magasinId !== null && item.magasinId !== undefined);
 });
 
+const magasinNeededQuantity = computed(() => {
+  return Number(magasinPendingAction.value.cons?.quantite ?? 0);
+});
+
+const magasinAllocatedQuantity = computed(() => {
+  return magasinAllocations.value.reduce(
+    (total, magasin) => total + Number(magasin.quantiteSelectionnee ?? 0),
+    0
+  );
+});
+
+const magasinRemainingQuantity = computed(() => {
+  return Math.max(magasinNeededQuantity.value - magasinAllocatedQuantity.value, 0);
+});
+
+const canSubmitMagasinSelection = computed(() => {
+  return magasinNeededQuantity.value > 0 && magasinAllocatedQuantity.value === magasinNeededQuantity.value;
+});
+
 
 // Helpers locaux pour garder l'UI synchronisee sans recharger les BT
 const updateBt = (btId, updater) => {
@@ -466,16 +520,20 @@ const updateConsommable = (btId, consommableId, updater) => {
   });
 };
 
-const setConsommableReservationState = (cons, { reserved, magasinId = null, dateDistribution = null }) => {
+const setConsommableReservationState = (
+  cons,
+  { reserved, magasinId = null, dateDistribution = null, reservations = [] }
+) => {
   cons.distribue = reserved;
   cons.date_distribution = reserved ? (dateDistribution || new Date().toISOString()) : null;
   cons.magasin_reserve = reserved ? (magasinId ?? cons.magasin_reserve ?? null) : null;
+  cons.magasins_reserves = reserved ? reservations : [];
 };
 
 const resetMagasinSelectionState = () => {
   magasinDialog.value = false;
   magasinOptions.value = [];
-  magasinSelected.value = null;
+  magasinAllocations.value = [];
   magasinPendingAction.value = { bt: null, cons: null };
 };
 
@@ -531,6 +589,16 @@ const getEligibleMagasins = (consommable) => {
     .filter((stock) => stock.quantite >= needed);
 };
 
+const getAvailableMagasins = (consommable) => {
+  return getConsommableStocks(consommable)
+    .map((stock) => ({
+      id: stock.magasin,
+      nom: stock.magasin_nom,
+      quantite: Number(stock.quantite ?? 0)
+    }))
+    .filter((stock) => stock.quantite > 0);
+};
+
 const isDistributeDisabled = (consommable) => {
   return getConsommableTotalStock(consommable) <= 0;
 };
@@ -559,11 +627,48 @@ const openStockIssue = (data, fallback) => {
 
 const openMagasinSelection = (data, bt, cons) => {
   const options = data?.magasins || [];
+  const needed = Number(data?.needed ?? cons?.quantite ?? 0);
 
   magasinOptions.value = options;
-  magasinSelected.value = options[0]?.id ?? null;
+  magasinAllocations.value = buildDefaultMagasinAllocations(options, needed);
   magasinPendingAction.value = { bt, cons };
   magasinDialog.value = true;
+};
+
+const buildDefaultMagasinAllocations = (options, needed) => {
+  let remaining = Number(needed ?? 0);
+
+  return options.map((magasin) => {
+    const quantiteDisponible = Number(magasin.quantite ?? 0);
+    const quantiteSelectionnee = Math.min(remaining, quantiteDisponible);
+
+    remaining -= quantiteSelectionnee;
+
+    return {
+      ...magasin,
+      quantite: quantiteDisponible,
+      quantiteSelectionnee
+    };
+  });
+};
+
+const updateMagasinAllocation = (magasinId, value) => {
+  const parsedValue = Number.parseInt(value, 10);
+
+  magasinAllocations.value = magasinAllocations.value.map((magasin) => {
+    if (magasin.id !== magasinId) {
+      return magasin;
+    }
+
+    const quantiteSelectionnee = Number.isNaN(parsedValue)
+      ? 0
+      : Math.min(Math.max(parsedValue, 0), magasin.quantite);
+
+    return {
+      ...magasin,
+      quantiteSelectionnee
+    };
+  });
 };
 
 const buildBulkReserveItems = (bt) => {
@@ -669,9 +774,18 @@ const requestDistribute = (bt, cons) => {
     return;
   }
 
-  const eligibleMagasins = getEligibleMagasins(cons);
-  if (eligibleMagasins.length > 0) {
-    openMagasinSelection({ magasins: eligibleMagasins }, bt, cons);
+  const totalStock = getConsommableTotalStock(cons);
+  const needed = Number(cons?.quantite ?? 0);
+
+  if (totalStock >= needed) {
+    openMagasinSelection(
+      {
+        magasins: getAvailableMagasins(cons),
+        needed
+      },
+      bt,
+      cons
+    );
     return;
   }
 
@@ -691,18 +805,21 @@ const confirmDistribute = async () => {
     await handleDistribute(
       pendingAction.value.bt,
       pendingAction.value.cons,
-      pendingAction.value.magasinId
+      {
+        magasinId: pendingAction.value.magasinId,
+        repartition: pendingAction.value.repartition
+      }
     );
   } finally {
     confirmLoading.value = false;
     confirmDialog.value = false;
-    pendingAction.value = { bt: null, cons: null, magasinId: null };
+    pendingAction.value = { bt: null, cons: null, magasinId: null, repartition: [] };
   }
 };
 
 const cancelDistributeConfirmation = () => {
   confirmDialog.value = false;
-  pendingAction.value = { bt: null, cons: null, magasinId: null };
+  pendingAction.value = { bt: null, cons: null, magasinId: null, repartition: [] };
 };
 
 const requestReserveAll = (bt) => {
@@ -755,14 +872,23 @@ const confirmBulkReserve = async () => {
 };
 
 const confirmMagasinSelection = async () => {
-  if (!magasinPendingAction.value.bt || !magasinPendingAction.value.cons || !magasinSelected.value) {
+  if (!magasinPendingAction.value.bt || !magasinPendingAction.value.cons || !canSubmitMagasinSelection.value) {
     resetMagasinSelectionState();
     return;
   }
+
+  const repartition = magasinAllocations.value
+    .filter((magasin) => Number(magasin.quantiteSelectionnee ?? 0) > 0)
+    .map((magasin) => ({
+      magasin_id: magasin.id,
+      quantite: Number(magasin.quantiteSelectionnee)
+    }));
+
   pendingAction.value = {
     bt: magasinPendingAction.value.bt,
     cons: magasinPendingAction.value.cons,
-    magasinId: magasinSelected.value
+    magasinId: repartition.length === 1 ? repartition[0].magasin_id : null,
+    repartition
   };
   confirmDialog.value = true;
   resetMagasinSelectionState();
@@ -868,21 +994,29 @@ const fetchBonsTravail = async () => {
 };
 
 // Distribuer un consommable
-const handleDistribute = async (bt, consommable, magasinId = null) => {
+const handleDistribute = async (bt, consommable, { magasinId = null, repartition = [] } = {}) => {
   distributingId.value = `${bt.id}-${consommable.consommable}`;
   try {
     clearStockFeedback();
-    const response = await api.patch(`bons-travail/${bt.id}/update_consommable_distribution/`, {
+    const payload = {
       consommable_id: consommable.consommable,
-      distribue: true,
-      magasin_id: magasinId
-    });
+      distribue: true
+    };
+
+    if (Array.isArray(repartition) && repartition.length > 0) {
+      payload.repartition = repartition;
+    } else {
+      payload.magasin_id = magasinId;
+    }
+
+    const response = await api.patch(`bons-travail/${bt.id}/update_consommable_distribution/`, payload);
     // Mettre a jour localement
     updateConsommable(bt.id, consommable.consommable, (c) => {
       setConsommableReservationState(c, {
         reserved: true,
         magasinId: response?.magasin_reserve ?? magasinId,
-        dateDistribution: response?.date_distribution
+        dateDistribution: response?.date_distribution,
+        reservations: response?.magasins_reserves ?? repartition
       });
     });
     emit('stock-updated');
@@ -1189,6 +1323,39 @@ onMounted(() => {
 }
 
 .bulk-reserve-item__title {
+  color: #20324F;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.magasin-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.magasin-allocation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.magasin-allocation-item {
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.magasin-allocation-item__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.magasin-allocation-item__title {
   color: #20324F;
   font-size: 0.95rem;
   font-weight: 500;

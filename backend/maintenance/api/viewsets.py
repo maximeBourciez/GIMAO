@@ -25,6 +25,7 @@ from maintenance.models import (
     PlanMaintenance,
     PlanMaintenanceConsommable,
     BonTravailConsommable,
+    BonTravailConsommableReservation,
     BonTravailDocument,
     PlanMaintenanceDocument,
     DemandeInterventionDocument
@@ -1260,11 +1261,167 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             'utilisateur_assigne',
             'documents',
             'demande_intervention__documents',
-            'bontravailconsommable_set__consommable'
+            'bontravailconsommable_set__consommable',
+            'bontravailconsommable_set__reservations__magasin'
         )
         
         serializer = BonTravailListStockSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
+
+    def _serialize_reservations(self, assoc):
+        return [
+            {
+                'magasin_id': reservation.magasin_id,
+                'magasin_nom': reservation.magasin.nom,
+                'quantite': reservation.quantite,
+            }
+            for reservation in assoc.reservations.select_related('magasin').all()
+        ]
+
+    def _restore_reservations(self, assoc):
+        reservations = list(assoc.reservations.select_related('magasin').all())
+
+        if reservations:
+            for reservation in reservations:
+                stock, _ = Stocker.objects.get_or_create(
+                    consommable_id=assoc.consommable_id,
+                    magasin_id=reservation.magasin_id,
+                    defaults={'quantite': 0}
+                )
+                stock.quantite += int(reservation.quantite or 0)
+                stock.save(update_fields=['quantite'])
+
+            assoc.reservations.all().delete()
+            return
+
+        if assoc.magasin_reserve_id and assoc.quantite_utilisee:
+            try:
+                stock = Stocker.objects.get(
+                    consommable_id=assoc.consommable_id,
+                    magasin_id=assoc.magasin_reserve_id
+                )
+                stock.quantite += int(assoc.quantite_utilisee or 0)
+                stock.save(update_fields=['quantite'])
+            except Stocker.DoesNotExist:
+                pass
+
+    def _build_insufficient_stock_response(self, assoc, needed, stocks, error_message='Stock insuffisant'):
+        total_available = sum(int(stock.quantite or 0) for stock in stocks)
+
+        return Response(
+            {
+                'error': error_message,
+                'insuffisants': [{
+                    'consommable_id': assoc.consommable_id,
+                    'designation': assoc.consommable.designation,
+                    'needed': needed,
+                    'available': total_available,
+                    'stocks': [
+                        {
+                            'magasin_id': stock.magasin_id,
+                            'magasin_nom': stock.magasin.nom,
+                            'quantite': stock.quantite,
+                        }
+                        for stock in stocks
+                    ],
+                }],
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def _apply_reservation_split(self, assoc, needed, repartition):
+        if not isinstance(repartition, list) or len(repartition) == 0:
+            return Response(
+                {'error': 'La repartition des magasins est invalide.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if assoc.estConfirme:
+            self._restore_reservations(assoc)
+
+        total_selected = 0
+        seen_magasins = set()
+        stock_updates = []
+
+        for item in repartition:
+            magasin_id = item.get('magasin_id', item.get('magasin'))
+            quantite = item.get('quantite')
+
+            try:
+                magasin_id = int(magasin_id)
+                quantite = int(quantite)
+            except (TypeError, ValueError):
+                return Response(
+                    {'error': 'Chaque ligne de repartition doit contenir un magasin_id et une quantite entiers.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if quantite <= 0:
+                return Response(
+                    {'error': 'Chaque quantite de repartition doit etre strictement positive.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if magasin_id in seen_magasins:
+                return Response(
+                    {'error': 'Un magasin ne peut etre present qu une seule fois dans la repartition.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            stock = Stocker.objects.select_related('magasin').filter(
+                consommable_id=assoc.consommable_id,
+                magasin_id=magasin_id
+            ).first()
+            if stock is None:
+                return Response(
+                    {'error': 'Stock introuvable pour un des magasins selectionnes.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            if stock.quantite < quantite:
+                return Response(
+                    {
+                        'error': 'Stock insuffisant',
+                        'insuffisants': [{
+                            'consommable_id': assoc.consommable_id,
+                            'designation': assoc.consommable.designation,
+                            'needed': quantite,
+                            'available': stock.quantite,
+                            'magasin_id': stock.magasin_id,
+                            'magasin_nom': stock.magasin.nom,
+                        }],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            seen_magasins.add(magasin_id)
+            total_selected += quantite
+            stock_updates.append((stock, quantite))
+
+        if total_selected != needed:
+            return Response(
+                {'error': f'La repartition doit totaliser exactement {needed}.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        assoc.reservations.all().delete()
+        reservations = []
+
+        for stock, quantite in stock_updates:
+            stock.quantite -= quantite
+            stock.save(update_fields=['quantite'])
+            reservations.append(
+                BonTravailConsommableReservation(
+                    bon_travail_consommable=assoc,
+                    magasin_id=stock.magasin_id,
+                    quantite=quantite
+                )
+            )
+
+        BonTravailConsommableReservation.objects.bulk_create(reservations)
+        assoc.magasin_reserve_id = stock_updates[0][0].magasin_id if len(stock_updates) == 1 else None
+
+        return None
 
     @action(detail=True, methods=['patch'])
     @transaction.atomic
@@ -1273,6 +1430,13 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         consommable_id = request.data.get('consommable_id')
         distribue = request.data.get('distribue', False)
         magasin_id = request.data.get('magasin_id')
+        repartition = request.data.get('repartition')
+
+        if isinstance(repartition, str):
+            try:
+                repartition = json.loads(repartition)
+            except ValueError:
+                repartition = None
         
         if not consommable_id:
             return Response(
@@ -1306,6 +1470,24 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                     },
                     status=status.HTTP_400_BAD_REQUEST
                 )
+
+            if repartition:
+                error_response = self._apply_reservation_split(assoc, needed, repartition)
+                if error_response is not None:
+                    return error_response
+
+                assoc.estConfirme = True
+                assoc.date_confirme = timezone.now()
+                assoc.save()
+
+                return JsonResponse({
+                    'consommable_id': assoc.consommable_id,
+                    'distribue': assoc.estConfirme,
+                    'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
+                    'magasin_reserve': assoc.magasin_reserve_id,
+                    'magasins_reserves': self._serialize_reservations(assoc),
+                })
+
             if needed > 0:
                 if magasin_id:
                     try:
@@ -1382,6 +1564,7 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             assoc.estConfirme = True
             assoc.date_confirme = timezone.now()
         else:
+            self._restore_reservations(assoc)
             assoc.estConfirme = False
             assoc.date_confirme = None
             assoc.magasin_reserve = None
@@ -1391,7 +1574,8 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             'consommable_id': assoc.consommable_id,
             'distribue': assoc.estConfirme,
             'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
-            'magasin_reserve': assoc.magasin_reserve_id
+            'magasin_reserve': assoc.magasin_reserve_id,
+            'magasins_reserves': self._serialize_reservations(assoc),
         })
 
     @action(detail=True, methods=['patch'])
@@ -1401,13 +1585,7 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
 
         assocs = BonTravailConsommable.objects.filter(bon_travail=bon)
         for assoc in assocs:
-            if assoc.estConfirme and assoc.magasin_reserve_id and assoc.quantite_utilisee:
-                try:
-                    stock = Stocker.objects.get(consommable_id=assoc.consommable_id, magasin_id=assoc.magasin_reserve_id)
-                    stock.quantite += int(assoc.quantite_utilisee or 0)
-                    stock.save()
-                except Stocker.DoesNotExist:
-                    pass
+            self._restore_reservations(assoc)
             assoc.estConfirme = False
             assoc.date_confirme = None
             assoc.magasin_reserve = None
