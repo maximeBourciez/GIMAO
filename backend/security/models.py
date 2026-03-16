@@ -36,7 +36,7 @@ def create_token(user):
     ApiToken.objects.create(
         token_hash=token_hash,
         user=user,
-        valid_until=timezone.now() + timedelta(days=14)
+        valid_until=timezone.now() + timedelta(days=1)
     )
 
     return token

@@ -1,5 +1,6 @@
 
 
+import hashlib
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -19,7 +20,7 @@ from .serializers import (
     PermissionSerializer
 )
 from gimao.viewsets import GimaoModelViewSet
-from security.models import create_token
+from security.models import ApiToken, create_token
 
 
 # ==================== ROLE VIEWSET ====================
@@ -268,6 +269,28 @@ class UtilisateurViewSet(GimaoModelViewSet):
             "permissions": PermissionSerializer(user.role.permissions.all(), many=True).data
         }, status=status.HTTP_200_OK)
 
+
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+
+        auth = request.headers.get("Authorization")
+
+        if not auth or not auth.startswith("Bearer "):
+            return Response({"detail": "Token manquant"}, status=401)
+
+        token = auth.split(" ")[1]
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+        try:
+            api_token = ApiToken.objects.get(token_hash=token_hash)
+
+            api_token.is_revoked = True
+            api_token.save()
+
+        except ApiToken.DoesNotExist:
+            pass  # On ne révèle rien pour la sécurité
+
+        return Response({"detail": "Déconnexion réussie"}, status=status.HTTP_200_OK)
 
 # ==================== LOG VIEWSET ====================
 
