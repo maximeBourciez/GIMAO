@@ -2,7 +2,7 @@
   <v-card class="rounded-lg pa-4 h-100" elevation="1">
     <div class="mb-4">
       <h1 class="text-h4 text-primary">BT en attente de mise de côté</h1>
-      <p class="text-subtitle-1 text-grey mb-0">
+      <p class="text-subtitle-1 stock-summary mb-0">
         {{ pendingBons.length }} BT en attente, {{ reservedBons.length }} BT mis de côté, {{ recoveredBons.length }} BT récupérés
       </p>
     </div>
@@ -33,7 +33,7 @@
                 {{ pendingBons.length }} BT
               </v-chip>
             </div>
-            <v-icon size="20" color="grey-darken-1">
+            <v-icon size="20" class="section-toggle-icon">
               {{ isSectionCollapsed('pending') ? 'mdi-chevron-down' : 'mdi-chevron-up' }}
             </v-icon>
           </button>
@@ -137,7 +137,7 @@
                                 icon
                                 size="small"
                                 variant="text"
-                                color="grey-darken-1"
+                                class="stock-icon-button"
                                 :loading="distributingId === `${bt.id}-${cons.consommable}`"
                                 @click="requestDistribute(bt, cons)"
                               >
@@ -172,7 +172,7 @@
                 {{ reservedBons.length }} BT
               </v-chip>
             </div>
-            <v-icon size="20" color="grey-darken-1">
+            <v-icon size="20" class="section-toggle-icon">
               {{ isSectionCollapsed('reserved') ? 'mdi-chevron-down' : 'mdi-chevron-up' }}
             </v-icon>
           </button>
@@ -203,7 +203,7 @@
                       <v-list-item v-for="cons in getAllConsommables(bt)" :key="cons.consommable"
                         class="consommable-item px-0">
                         <template #prepend>
-                          <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
+                          <v-icon class="mr-3 stock-muted-icon">mdi-package-variant</v-icon>
                         </template>
                         <div class="consommable-body">
                           <div class="consommable-main">
@@ -238,7 +238,7 @@
                                 icon
                                 size="small"
                                 variant="text"
-                                color="grey-darken-1"
+                                class="stock-icon-button"
                                 :loading="distributingId === `${bt.id}-${cons.consommable}`"
                                 @click="requestDistribute(bt, cons)"
                               >
@@ -275,7 +275,7 @@
                 {{ recoveredBons.length }} BT
               </v-chip>
             </div>
-            <v-icon size="20" color="grey-darken-1">
+            <v-icon size="20" class="section-toggle-icon">
               {{ isSectionCollapsed('recovered') ? 'mdi-chevron-down' : 'mdi-chevron-up' }}
             </v-icon>
           </button>
@@ -306,7 +306,7 @@
                       <v-list-item v-for="cons in getAllConsommables(bt)" :key="cons.consommable"
                         class="consommable-item px-0">
                         <template #prepend>
-                          <v-icon color="grey" class="mr-3">mdi-package-variant</v-icon>
+                          <v-icon class="mr-3 stock-muted-icon">mdi-package-variant</v-icon>
                         </template>
 
                         <v-list-item-title class="text-body-2">
@@ -334,7 +334,7 @@
                                 icon
                                 size="small"
                                 variant="text"
-                                color="grey-darken-1"
+                                class="stock-icon-button"
                                 :loading="distributingId === `${bt.id}-${cons.consommable}`"
                                 @click="requestDistribute(bt, cons)"
                               >
@@ -375,7 +375,7 @@
       <v-card-title class="pa-4 pb-2">
         Choisir un magasin pour chaque pièce
       </v-card-title>
-      <v-card-subtitle class="px-4 pb-0 text-caption text-grey">
+      <v-card-subtitle class="px-4 pb-0 text-caption stock-subtitle">
         Le premier magasin disponible est présélectionné. Vous pouvez le modifier avant de confirmer.
       </v-card-subtitle>
       <v-card-text class="pa-4">
@@ -426,7 +426,7 @@
       <v-card-title class="pa-5 pb-2">
         Ajuster la mise de côté
       </v-card-title>
-      <v-card-subtitle v-if="magasinPendingAction.cons" class="px-5 pb-0 text-body-2 text-grey-darken-1">
+      <v-card-subtitle v-if="magasinPendingAction.cons" class="px-5 pb-0 text-body-2 magasin-dialog-subtitle">
         {{ magasinPendingAction.cons.designation }} - Quantité demandée : {{ magasinPendingAction.cons.quantite }}
       </v-card-subtitle>
       <v-card-text class="pa-5 pt-4">
@@ -450,7 +450,7 @@
           >
             <div class="magasin-allocation-item__header">
               <span class="magasin-allocation-item__title">{{ magasin.nom }}</span>
-              <v-chip size="x-small" color="grey" variant="tonal">
+              <v-chip size="x-small" class="stock-neutral-chip" variant="tonal">
                 Disponible : {{ magasin.quantite }}
               </v-chip>
             </div>
@@ -493,7 +493,7 @@
         <v-icon color="warning" size="22" class="mr-2">mdi-alert-circle</v-icon>
         Stock insuffisant
       </v-card-title>
-      <v-card-subtitle class="px-4 pb-2 text-caption text-grey">
+      <v-card-subtitle class="px-4 pb-2 text-caption stock-subtitle">
         {{ stockIssueMessage || 'Impossible de mettre de côté les pièces suivantes' }}
       </v-card-subtitle>
       <v-card-text class="pa-4 pt-2">
@@ -502,7 +502,7 @@
             :key="`${item.consommable_id}-${item.magasin_id || 'global'}-${index}`"
             class="px-0 stock-issue-item">
             <v-list-item-title class="text-body-2 d-flex align-center">
-              <v-icon size="18" color="grey" class="mr-2">mdi-package-variant</v-icon>
+              <v-icon size="18" class="mr-2 stock-muted-icon">mdi-package-variant</v-icon>
               {{ item.designation || ('Consommable #' + item.consommable_id) }}
             </v-list-item-title>
             <v-list-item-subtitle class="text-caption d-flex align-center ga-2">
@@ -512,7 +512,7 @@
               <v-chip size="x-small" color="warning" variant="tonal">
                 Disponible : {{ item.available }}
               </v-chip>
-              <v-chip v-if="item.magasin_nom" size="x-small" color="grey" variant="tonal">
+              <v-chip v-if="item.magasin_nom" size="x-small" class="stock-neutral-chip" variant="tonal">
                 Magasin : {{ item.magasin_nom }}
               </v-chip>
             </v-list-item-subtitle>
@@ -1383,6 +1383,20 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.bt-list,
+.bt-section,
+.reservation-list,
+.magasin-summary,
+.magasin-dialog-actions,
+.bulk-reserve-list,
+.magasin-allocation-list {
+  --stock-border-color: rgba(var(--v-theme-on-surface), 0.12);
+  --stock-divider-color: rgba(var(--v-theme-on-surface), 0.08);
+  --stock-muted-color: rgba(var(--v-theme-on-surface), 0.68);
+  --stock-soft-surface: rgba(var(--v-theme-on-surface), 0.03);
+  --stock-hover-surface: rgba(var(--v-theme-primary), 0.06);
+}
+
 .bt-list {
   display: flex;
   flex-direction: column;
@@ -1423,18 +1437,18 @@ onMounted(() => {
 .section-title {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6B7280;
+  color: var(--stock-muted-color);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .bt-item {
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--stock-border-color);
   border-radius: 8px !important;
 }
 
 .bt-item:hover {
-  border-color: #05004E;
+  border-color: rgba(var(--v-theme-primary), 0.4);
 }
 
 .bt-info {
@@ -1446,17 +1460,17 @@ onMounted(() => {
 .bt-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #05004E;
+  color: rgba(var(--v-theme-on-surface), 0.92);
   white-space: normal;
 }
 
 .bt-date {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: var(--stock-muted-color);
 }
 
 .consommable-item {
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid var(--stock-divider-color);
   border-radius: 10px;
   margin-bottom: 6px;
   padding-inline: 8px !important;
@@ -1468,7 +1482,7 @@ onMounted(() => {
 }
 
 .consommable-item--reserved {
-  background-color: #F4FBF6;
+  background-color: rgba(var(--v-theme-success), 0.08);
 }
 
 .consommable-item :deep(.v-list-item__content) {
@@ -1496,12 +1510,12 @@ onMounted(() => {
 }
 
 .consommable-title {
-  color: #20324F;
+  color: rgba(var(--v-theme-on-surface), 0.9);
   font-weight: 500;
 }
 
 .consommable-meta {
-  color: #667085;
+  color: var(--stock-muted-color);
 }
 
 .consommable-status {
@@ -1516,13 +1530,13 @@ onMounted(() => {
 }
 
 .consommable-status--reserved {
-  background: #E8F5ED;
-  color: #17663B;
+  background: rgba(var(--v-theme-success), 0.14);
+  color: rgb(var(--v-theme-success));
 }
 
 .consommable-status--pending {
-  background: #EEF4FF;
-  color: #2457C5;
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
 }
 
 .consommable-status--icon {
@@ -1541,6 +1555,23 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.stock-summary,
+.stock-subtitle,
+.magasin-dialog-subtitle,
+.section-toggle-icon,
+.stock-icon-button {
+  color: var(--stock-muted-color) !important;
+}
+
+.stock-muted-icon {
+  color: var(--stock-muted-color) !important;
+}
+
+.stock-neutral-chip {
+  background: rgba(var(--v-theme-on-surface), 0.08) !important;
+  color: var(--stock-muted-color) !important;
+}
+
 .magasin-dialog-actions {
   align-items: center;
   display: flex;
@@ -1556,7 +1587,8 @@ onMounted(() => {
 }
 
 .bulk-reserve-item {
-  border: 1px solid #E5E7EB;
+  background: var(--stock-soft-surface);
+  border: 1px solid var(--stock-border-color);
   border-radius: 10px;
   padding: 12px;
 }
@@ -1571,7 +1603,7 @@ onMounted(() => {
 }
 
 .bulk-reserve-item__title {
-  color: #20324F;
+  color: rgba(var(--v-theme-on-surface), 0.9);
   font-size: 0.95rem;
   font-weight: 500;
 }
@@ -1589,8 +1621,8 @@ onMounted(() => {
 }
 
 .magasin-allocation-item {
-  background: #F8FAFC;
-  border: 1px solid #E5E7EB;
+  background: var(--stock-soft-surface);
+  border: 1px solid var(--stock-border-color);
   border-radius: 10px;
   padding: 14px;
 }
@@ -1605,7 +1637,7 @@ onMounted(() => {
 }
 
 .magasin-allocation-item__title {
-  color: #20324F;
+  color: rgba(var(--v-theme-on-surface), 0.9);
   font-size: 0.95rem;
   font-weight: 500;
 }
@@ -1621,7 +1653,7 @@ onMounted(() => {
 }
 
 .stock-issue-item {
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid var(--stock-divider-color);
   padding-bottom: 8px;
   margin-bottom: 8px;
 }
@@ -1633,7 +1665,7 @@ onMounted(() => {
 }
 
 .border-t {
-  border-top: 1px solid #E5E7EB;
+  border-top: 1px solid var(--stock-border-color);
 }
 
 @media (max-width: 960px) {
