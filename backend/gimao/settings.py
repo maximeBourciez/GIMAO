@@ -192,4 +192,5 @@ CRONJOBS = [
     ('0 0 * * *', 'tasks.updateBtStatus.update_bt_status'),
     ('0 3 * * *', 'tasks.counterCron.update_counter'),
     ('0 0 * * *', 'tasks.updateCalendarDates.update_calendar_counters'),
+    ('0 0 * * *', 'tasks.deletedExpiredTokens.delete_useless_tokens'),
 ]
