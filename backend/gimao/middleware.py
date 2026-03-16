@@ -2,6 +2,11 @@ import hashlib
 from django.http import JsonResponse
 from security.models import ApiToken
 
+ROUTES_WITHOUT_AUTH = [
+    "/api/utilisateurs/login/",
+    "/api/utilisateurs/definir_mot_de_passe/",
+    "/api/utilisateurs/exists/"
+]
 
 class ApiTokenMiddleware:
 
@@ -12,7 +17,7 @@ class ApiTokenMiddleware:
 
         if request.path.startswith("/api/"):
 
-            if request.path in ["/api/utilisateurs/login/", "/api/utilisateurs/definir-mot-de-passe/", "/api/utilisateurs/exists/"]:
+            if request.path in ROUTES_WITHOUT_AUTH:
                 return self.get_response(request)
 
             auth = request.headers.get("Authorization")

@@ -4,6 +4,7 @@ export default createStore({
 
     state: {
         user: null,
+        token: null,
         isAuthenticated: false,
         authTimestamp: null,
     },
@@ -31,8 +32,10 @@ export default createStore({
 
         logout(state) {
             state.user = null;
+            state.token = null;
             state.isAuthenticated = false;
             state.authTimestamp = null;
+            localStorage.removeItem("token");
             localStorage.removeItem("user");
             localStorage.removeItem("authTimestamp");
         },
@@ -41,19 +44,22 @@ export default createStore({
     actions: {
         initAuth({ commit }) {
             const user = localStorage.getItem("user");
+            const token = localStorage.getItem("token");
             const timestamp = localStorage.getItem("authTimestamp");
 
-            if (user && timestamp) {
+            if (user && token) {
                 try {
+                    const parsedTimestamp = Number.parseInt(timestamp || "", 10);
                     commit("restoreAuth", {
                         user: JSON.parse(user),
-                        timestamp: parseInt(timestamp),
+                        timestamp: Number.isFinite(parsedTimestamp) ? parsedTimestamp : null,
                     });
                 } catch (e) {
                     console.error(
                         "Erreur lors du chargement de l'utilisateur:",
                         e,
                     );
+                    localStorage.removeItem("token");
                     localStorage.removeItem("user");
                     localStorage.removeItem("authTimestamp");
                 }
@@ -71,6 +77,9 @@ export default createStore({
         userRole: (state) => state.user?.role?.nomRole || null,
         authenticationDate: (state) =>
             state.authTimestamp ? new Date(state.authTimestamp * 1000) : null,
+        hasValidAuthentication: (state) => {
+            return state.isAuthenticated && !!localStorage.getItem("token");
+        },
         userPermissions: (state) => state.user?.permissions_names || [],
         hasPermission: (state, getters) => (perm) => {
             if (!state.isAuthenticated) return false;
@@ -81,6 +90,6 @@ export default createStore({
     modules: {},
 });
 
-export function checkAuthValidity(store) {
-  return Math.floor(Date.now() / 1000) - parseInt(localStorage.getItem('authTimestamp') || '0') < 24 * 60 * 60; // 7 jours en secondes : 24 * 60 * 60
+export function checkAuthValidity(_store) {
+    return !!localStorage.getItem('token');
 }
