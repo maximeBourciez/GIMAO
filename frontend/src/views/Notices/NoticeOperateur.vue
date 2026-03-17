@@ -13,6 +13,7 @@
       <v-tab value="modification">Modifier une DI</v-tab>
       <v-tab value="equipements">Équipements</v-tab>
       <v-tab value="bt">Bons de travail</v-tab>
+      <v-tab value="connexion">Connexion</v-tab>
     </v-tabs>
 
     <v-window v-model="tab">
@@ -24,7 +25,7 @@
         <CreationDITab />
       </v-window-item>
 
-      <!-- <v-window-item value="suivi">
+      <v-window-item value="suivi">
         <SuiviDITab />
       </v-window-item>
 
@@ -37,8 +38,12 @@
       </v-window-item>
 
       <v-window-item value="bt">
-        <BTTab />
-      </v-window-item> -->
+        <ConnexionTab />
+      </v-window-item> 
+
+      <v-window-item value="connexion">
+        <ConnexionTab />
+      </v-window-item>
     </v-window>
   </div>
 </template>
@@ -48,10 +53,10 @@ import { ref } from "vue";
 
 import DashboardTab from "./Dashboard/DashboardTab.vue";
 import CreationDITab from "./DI/CreationDITab.vue";
-// import SuiviDITab from "./tabs/SuiviDITab.vue";
-// import ModificationDITab from "./tabs/ModificationDITab.vue";
-// import EquipementsTab from "./tabs/EquipementsTab.vue";
-// import BTTab from "./tabs/BTTab.vue";
+import SuiviDITab from "./DI/SuiviDITab.vue";
+import ModificationDITab from "./DI/ModificationDITab.vue";
+import EquipementsTab from "./Equipments/EquipementsTab.vue";
+import ConnexionTab from "./Auth/ConnexionTab.vue";
 
 const tab = ref("dashboard");
 </script>

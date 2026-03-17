@@ -1,14 +1,23 @@
 <template>
   <div>
     <div class="text-body-1 font-weight-bold mb-2">
-      Votre tableau de bord
+      Tableau de bord
     </div>
 
-    <div class="text-body-2">
-      - À la connexion, votre tableau de bord affiche :<br />
-      &nbsp;&nbsp;• <strong>Vos demandes d'intervention</strong> : celles que vous avez créées, avec leur état actuel.<br />
-      &nbsp;&nbsp;• <strong>Liste des équipements</strong> du parc que vous pouvez consulter.<br />
-      - Des statistiques sur vos demandes sont affichées en haut de page.
+    <div class="text-body-2 mb-4">
+      Après la connexion, votre tableau de bord s’affiche automatiquement.
+      Il centralise les informations utiles à votre activité :
+      <br /><br />
+      • Des indicateurs et statistiques visibles en haut de l’écran<br />
+      • L’accès rapide à vos demandes d’intervention<br />
+      • Les actions principales disponibles pour votre rôle<br /><br />
+      Le contenu dépend des droits accordés à votre compte.
     </div>
+
+    <ZoomImage src="/images/dashboard.png" alt="Tableau de bord" />
   </div>
 </template>
+
+<script setup>
+import ZoomImage from "../common/ZoomImage.vue";
+</script>
