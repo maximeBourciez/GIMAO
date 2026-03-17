@@ -1,0 +1,18 @@
+[run]
+omit =
+    # Infrastructure Django - pas du code métier
+    manage.py
+    */wsgi.py
+    */settings*.py
+    */apps.py
+    */admin.py
+    # Migrations auto-générées
+    */migrations/*
+    # Fichiers de tests eux-mêmes
+    tests/*
+    */tests.py
+    # Commandes de gestion (wrappers)
+    */management/commands/*
+
+[report]
+skip_empty = True
