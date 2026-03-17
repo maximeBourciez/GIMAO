@@ -35,8 +35,14 @@ def create_initial_data():
         TypeDocument.objects.get_or_create(nomTypeDocument=doc_type)
 
     # Création des permissions
-    for perm_name in perms_data.perms:
-        Permission.objects.get_or_create(nomPermission=perm_name)
+    for perm_name, description in perms_data.perms.items():
+        perm, created = Permission.objects.get_or_create(
+            nomPermission=perm_name
+        )
+
+        if perm.description != description:
+            perm.description = description
+            perm.save()
 
     # Assignation des permissions aux rôles
     for role_name, perm_list in perms_data.perms_map.items():
