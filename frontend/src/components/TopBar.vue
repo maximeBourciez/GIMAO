@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- App Bar -->
-    <v-app-bar app color="white" elevation="1">
+    <v-app-bar app :color="isDarkTheme ? 'surface' : 'white'" elevation="1">
       <v-app-bar-nav-icon @click="drawer = !drawer" />
 
       <v-toolbar-title class="font-weight-bold">
@@ -9,6 +9,16 @@
       </v-toolbar-title>
 
       <v-spacer />
+
+      <v-btn
+        icon
+        variant="text"
+        class="mr-2"
+        :title="themeToggleLabel"
+        @click="handleThemeToggle"
+      >
+        <v-icon>{{ themeToggleIcon }}</v-icon>
+      </v-btn>
 
       <!-- User avatar -->
       <v-avatar size="36" color="grey-lighten-3" class="mr-2">
@@ -74,6 +84,8 @@
 
 <script>
 import { MEDIA_BASE_URL, BASE_URL } from "@/utils/constants";
+import vuetify from "@/plugins/vuetify";
+import { toggleTheme } from "@/utils/theme";
 
 export default {
   name: "TopBar",
@@ -90,7 +102,7 @@ export default {
         { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)", requiresPermission: "bt:viewList" },
         { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes", requiresPermission: "user:viewList" },
         { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", requiresPermission: "stock:view" },
-        { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", requiresPermission: "loc:viewList" }
+        { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", requiresPermission: "menu:dataManagement" }
       ]
     };
   },
@@ -98,6 +110,18 @@ export default {
   computed: {
     pageTitle() {
       return this.$route.meta?.title || this.appTitle;
+    },
+
+    isDarkTheme() {
+      return vuetify.theme.global.current.value.dark;
+    },
+
+    themeToggleIcon() {
+      return this.isDarkTheme ? 'mdi-weather-sunny' : 'mdi-weather-night';
+    },
+
+    themeToggleLabel() {
+      return this.isDarkTheme ? 'Activer le mode clair' : 'Activer le mode sombre';
     },
 
     user() {
@@ -159,6 +183,10 @@ export default {
   },
 
   methods: {
+    handleThemeToggle() {
+      toggleTheme();
+    },
+
     isActive(routeName) {
       return this.$route.name === routeName;
     },
@@ -203,6 +231,29 @@ export default {
   color: white;
 }
 
+/* Textes et icônes dans le drawer */
+.v-list-item-title {
+  color: var(--text-color) !important;
+}
+
+.v-list-item-subtitle {
+  color: var(--text-color) !important;
+  opacity: 0.7;
+}
+
+.v-list-item:not(.active-item) .v-icon {
+  color: var(--text-color) !important;
+}
+
+.v-list-item:not(.active-item):hover {
+  background-color: var(--hover-color);
+}
+
+.v-list-item:not(.active-item):hover .v-list-item-title,
+.v-list-item:not(.active-item):hover .v-icon {
+  color: var(--text-color) !important;
+}
+
 .disabled-item {
   pointer-events: none;
   opacity: 0.5;
@@ -210,6 +261,6 @@ export default {
 }
 
 .logout-item:hover {
-  background-color: #f5f5f5;
+  background-color: var(--hover-color);
 }
 </style>

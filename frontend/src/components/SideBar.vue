@@ -99,7 +99,7 @@ export default {
                 { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)", requiresPermission: "bt:viewList" },
                 { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes", requiresPermission: "user:viewList" },
                 { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", requiresPermission: "stock:view" },
-                { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", requiresPermission: "loc:viewList" }
+                { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", requiresPermission: "menu:dataManagement" }
             ]
         };
     },
@@ -226,18 +226,29 @@ export default {
    ITEM NORMAL
 ========================= */
 .v-list-item-title {
-    color: #151d48 !important;
+    color: var(--text-color) !important;
+}
+
+/* Icônes des items normaux */
+.v-list-item:not(.active-item) .v-icon {
+    color: var(--text-color) !important;
+}
+
+/* Sous-titre (rôle utilisateur) */
+.v-list-item-subtitle {
+    color: var(--text-color) !important;
+    opacity: 0.7;
 }
 
 /* Hover item NON actif */
 .v-list-item:not(.active-item):hover {
-    background-color: #f5f5f5;
+    background-color: var(--hover-color);
 }
 
 /* Forcer couleur texte au hover (mini ou normal) */
 .v-list-item:not(.active-item):hover .v-list-item-title,
 .v-list-item:not(.active-item):hover .v-icon {
-    color: #151d48 !important;
+    color: var(--text-color) !important;
 }
 
 /* =========================
@@ -253,7 +264,7 @@ export default {
    LOGOUT
 ========================= */
 .logout-item:hover {
-    background-color: #f5f5f5;
+    background-color: var(--hover-color);
 }
 
 .user-info-item {

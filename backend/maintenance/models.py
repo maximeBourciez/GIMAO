@@ -6,8 +6,9 @@ from equipement.models import Equipement, Compteur
 from utilisateur.models import Utilisateur
 from stock.models import Consommable
 from donnees.models import Fabricant, Fournisseur, Document
+from gimao.mixins import ArchivableMixin
 
-class DemandeIntervention(models.Model):
+class DemandeIntervention(ArchivableMixin, models.Model):
     """Demande d'intervention sur un équipement"""
     STATUT_CHOICES = [
         ('EN_ATTENTE', 'En attente'),
@@ -53,7 +54,7 @@ class DemandeIntervention(models.Model):
             return f"{self.nom} - Équipement supprimé (id={self.equipement_id})"
 
 
-class BonTravail(models.Model):
+class BonTravail(ArchivableMixin, models.Model):
     """Bon de travail généré suite à une demande d'intervention"""
     STATUT_CHOICES = [
         ('EN_ATTENTE', 'En attente'),
@@ -83,6 +84,16 @@ class BonTravail(models.Model):
     )
     commentaire = models.TextField(blank=True, null=True)
     commentaire_refus_cloture = models.TextField(blank=True, null=True)
+
+    pieces_recuperees = models.BooleanField(
+        default=False,
+        help_text="Indique si toutes les pieces ont ete recuperees pour ce BT"
+    )
+    date_recuperation = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Date a laquelle les pieces ont ete recuperees"
+    )
     
     # Relations
     demande_intervention = models.ForeignKey(
@@ -296,6 +307,22 @@ class BonTravailConsommable(models.Model):
         validators=[MinValueValidator(0)],
         default=0,
         help_text="Quantité utilisée pour ce bon"
+    )
+    estConfirme = models.BooleanField(
+        default=False,
+        help_text="Indique si le consommable a été donné"
+    )
+    date_confirme = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Date à laquelle le consommable a été distribué"
+    )
+    magasin_reserve = models.ForeignKey(
+        'stock.Magasin',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Magasin d ou le consommable a ete mis de cote"
     )
     
     class Meta:

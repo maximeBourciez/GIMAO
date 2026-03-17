@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+// Utils
+import store, { checkAuthValidity } from '@/store'
 // ---------------------------------------------------------------
 // AUTH
 import Login from '@/views/Auth/Login.vue'
@@ -62,6 +64,10 @@ import EditModelEquipment from '@/views/DataManagement/EquipmentsModels/EditMode
 import CounterDetail from '@/views/Equipments/Counters/CounterDetail.vue'
 import EditSupplier from '@/views/DataManagement/Suppliers/EditSupplier.vue'
 
+// ---------------------------------------------------------------
+// ROLES ET PERMISSIONS
+import RoleList from '@/views/Users/RoleList.vue'
+import UserPermissions from '@/views/Users/UserPermissions.vue'
 
 const routes = [
   // Auth routes (publiques)
@@ -85,6 +91,21 @@ const routes = [
     component: Dashboard,
     meta: { title: 'Tableau de Bord' }
   },
+  //  ROLES ET PERMISSIONS
+  {
+    path: '/RoleList',
+    name: 'RoleList',
+    component: RoleList,
+    meta: { title: 'Gestion des rôles', requiresPermissions: ['role:viewList'] }
+  },
+  {
+    path: '/UserPermissions/:id',
+    name: 'UserPermissions',
+    component: UserPermissions,
+    props: true,
+    meta: { title: 'Permissions utilisateur', requiresPermissions: ['user:edit'] }
+  },
+  // 
 
   {
     path: '/UserList',
@@ -274,7 +295,8 @@ const routes = [
     path: '/DataManagement',
     name: 'DataManagement',
     component: DataManagement,
-    meta: { title: 'Gestion des données', requiresPermissions: ['loc:viewList'] }
+    // meta: { title: 'Gestion des données', requiresPermissions: ['loc:viewList'] }
+    meta: { title: 'Gestion des données', requiresPermissions: ['menu:dataManagement'] }
   },
 
   // Bon de travail ---------------------------------------------------------------
@@ -460,8 +482,19 @@ router.beforeEach((to, from, next) => {
   const userRaw = localStorage.getItem('user')
   const isAuthenticated = !!userRaw
 
+  if (!store.getters.isAuthenticated) {
+    store.dispatch('initAuth')
+  }
+
   if (to.meta.public) {
     next()
+    return
+  } 
+
+  // Vérification validité auth
+  if (!checkAuthValidity(store)) {
+    store.commit('logout')
+    next({ path: '/login', state: { message: 'Votre session a expiré. Veuillez vous reconnecter.' } })   
     return
   }
 

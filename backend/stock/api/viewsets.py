@@ -15,9 +15,10 @@ from stock.api.serializers import (
     EstCompatibleSerializer
 )
 from gimao.viewsets import GimaoModelViewSet
+from gimao.mixins import ArchivableViewSetMixin
 
 
-class MagasinViewSet(GimaoModelViewSet):
+class MagasinViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     """ViewSet pour la gestion des magasins avec CRUD complet"""
     queryset = Magasin.objects.all()
     serializer_class = MagasinSerializer
@@ -43,7 +44,7 @@ class MagasinViewSet(GimaoModelViewSet):
         return super().create(request, *args, **kwargs)
 
 
-class ConsommableViewSet(GimaoModelViewSet):
+class ConsommableViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     """ViewSet pour la gestion des consommables avec CRUD complet et filtrage par magasin"""
     queryset = Consommable.objects.all().prefetch_related('stocks', 'fournitures', 'stocks__magasin')
     serializer_class = ConsommableSerializer

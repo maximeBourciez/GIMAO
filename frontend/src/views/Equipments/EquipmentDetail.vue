@@ -178,13 +178,39 @@
   </BaseDetailView>
 
   <!-- Bouton flottant en bas à droite -->
-  <v-btn v-if="showEditButton" color="primary" size="large" icon class="floating-edit-button" elevation="4"
-    @click="editCurrentEquip()">
-    <v-icon size="large">mdi-pencil</v-icon>
-    <v-tooltip activator="parent" location="left">
-      {{ editButtonText }}
-    </v-tooltip>
-  </v-btn>
+  <div class="floating-buttons" v-if="showEditButton">
+    <v-btn 
+      v-if="!equipement.archive"
+      color="warning" 
+      size="large" 
+      icon 
+      elevation="4"
+      class="mb-3 d-block"
+      @click="showArchiveDialog = true"
+    >
+      <v-icon size="large">mdi-archive-arrow-down</v-icon>
+      <v-tooltip activator="parent" location="left">
+        Archiver l'équipement
+      </v-tooltip>
+    </v-btn>
+
+    <v-btn color="primary" size="large" icon elevation="4" class="d-block"
+      @click="editCurrentEquip()">
+      <v-icon size="large">mdi-pencil</v-icon>
+      <v-tooltip activator="parent" location="left">
+        {{ editButtonText }}
+      </v-tooltip>
+    </v-btn>
+  </div>
+
+  <ConfirmationModal v-model="showArchiveDialog"
+    title="Confirmer l'archivage"
+    message="Êtes-vous sûr de vouloir archiver cet équipement ?
+          Il ne sera plus visible dans la liste des équipements."
+    confirmText="Archiver"
+    @confirm="archiveEquipment"
+    @cancel="showArchiveDialog = false"
+  />
 
   <!-- Dialog pour ajouter un compteur -->
   <v-dialog v-model="showCounterDialog" max-width="600px" @click:outside="closeCounterDialog">
@@ -211,6 +237,7 @@ import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
 import DocumentList from '@/components/DocumentList.vue';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';
 import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, TABLE_HEADERS } from '@/utils/constants';
@@ -226,6 +253,28 @@ const errorMessage = ref('');
 const successMessage = ref('');
 const showEditButton = ref(store.getters.hasPermission('eq:edit'));
 const editButtonText = ref('Modifier l\'équipement');
+
+// Archive
+const showArchiveDialog = ref(false);
+const archiving = ref(false);
+
+const archiveEquipment = async () => {
+  archiving.value = true;
+  try {
+    await api.patch(`equipements/${route.params.id}/set-archive/`, { archive: true });
+    successMessage.value = 'Équipement archivé avec succès';
+    showArchiveDialog.value = false;
+    setTimeout(() => {
+      router.push({ name: 'EquipmentList' });
+    }, 1000);
+  } catch (error) {
+    console.error("Erreur lors de l'archivage:", error);
+    errorMessage.value = "Erreur lors de l'archivage de l'équipement";
+    showArchiveDialog.value = false;
+  } finally {
+    archiving.value = false;
+  }
+};
 
 // Dialog compteur
 const showCounterDialog = ref(false);
@@ -482,7 +531,8 @@ const editCurrentEquip = () => [
   display: block;
   font-weight: 600;
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-color);
+  opacity: 0.7;
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -490,22 +540,21 @@ const editCurrentEquip = () => [
 
 .detail-value {
   font-size: 1rem;
-  color: #333;
+  color: var(--text-color);
   padding: 8px 0;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.text-primary {
-  color: #05004E;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
 }
 
 /*****************
   Bouton flottant
 *****************/
-.floating-edit-button {
+.floating-buttons {
   position: fixed !important;
   bottom: 24px;
   right: 24px;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>

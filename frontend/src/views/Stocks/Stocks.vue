@@ -1,6 +1,6 @@
 <template>
   <ConsommableList
-    title="Gestion des Consommables"
+    title="Gestion des consommables"
     create-button-text="Ajouter un consommable"
     @create="handleCreate"
     @row-click="handleRowClick"

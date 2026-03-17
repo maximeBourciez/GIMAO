@@ -13,7 +13,7 @@ def update_calendar_counters():
     au même format de stockage (nombre de jours depuis 1/1/1).
     """
     # Récupérer tous les compteurs calendaires
-    compteurs_calendaires = Compteur.objects.filter(type='Calendaire')
+    compteurs_calendaires = Compteur.objects.filter(type='Calendaire', equipement__archive=False)
     
     if not compteurs_calendaires.exists():
         print("Aucun compteur calendaire trouvé.")

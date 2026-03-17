@@ -34,7 +34,6 @@
               title="Liste des BT"
               :showSearch="true"
               :showCreateButton="false"
-              show-statut-filter
             />
 
             <v-btn
@@ -118,7 +117,6 @@
             title="Liste des BT"
             :showSearch="true"
             :showCreateButton="false"
-            show-statut-filter
           />
 
           <v-btn
@@ -177,7 +175,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
 
@@ -265,10 +263,6 @@ const handleRowClickEquipment = (equipment) => {
 };
 
 const statsFull = computed(() => isResponsable.value);
-
-onMounted(() => {
-  console.log("Perms: ", store.getters.userPermissions);
-});
 </script>
 
 <style scoped>
