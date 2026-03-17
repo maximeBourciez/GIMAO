@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import check_password, make_password
 
-from utilisateur.models import Role, Utilisateur, Log, Permission, UtilisateurPermission
+from utilisateur.models import Role, Utilisateur, Log, Permission, UtilisateurPermission, RolePermission
 from .serializers import (
     RoleSerializer,
     UtilisateurSerializer,
@@ -29,6 +29,27 @@ class RoleViewSet(GimaoModelViewSet):
     queryset = Role.objects.all().order_by('nomRole')
     serializer_class = RoleSerializer
 
+    @action(detail=True, methods=['post'])
+    def dupliquer(self, request, pk=None):
+        role = self.get_object()
+        nouveau_nom = request.data.get('nomRole', f'Copie de {role.nomRole}')
+        
+        # Vérifier que le nom n'existe pas déjà
+        if Role.objects.filter(nomRole=nouveau_nom).exists():
+            return Response(
+                {"detail": f"Un rôle avec le nom '{nouveau_nom}' existe déjà."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Créer le nouveau rôle
+        nouveau_role = Role.objects.create(nomRole=nouveau_nom)
+        
+        # Copier les permissions
+        for rp in RolePermission.objects.filter(role=role):
+            RolePermission.objects.create(role=nouveau_role, permission=rp.permission)
+        
+        serializer = self.get_serializer(nouveau_role)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # ==================== PERMISSION VIEWSET ====================
 
@@ -173,24 +194,41 @@ class UtilisateurViewSet(GimaoModelViewSet):
         user = self.get_object()
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         ancien = serializer.validated_data['ancien_motDePasse']
         nouveau = serializer.validated_data['nouveau_motDePasse']
 
+        # Récupérer l'utilisateur connecté depuis le thread local
+        from utilisateur.middleware import get_thread_user
+        current_user = get_thread_user()
+
+        is_self = current_user and current_user.pk == user.pk
+
+        if current_user and not is_self:
+            # Vérifier la permission user:edit
+            perms_perso = UtilisateurPermission.objects.filter(
+                utilisateur=current_user,
+                permission__nomPermission='user:edit'
+            ).exists()
+            perms_role = RolePermission.objects.filter(
+                role=current_user.role,
+                permission__nomPermission='user:edit'
+            ).exists()
+            if perms_perso or perms_role:
+                user.set_password(nouveau)
+                user.save()
+                return Response({"message": "Mot de passe mis à jour avec succès"}, status=status.HTTP_200_OK)
+
         if not user.has_usable_password():
             return Response(
-                {"detail": "Cet utilisateur n'a pas encore de mot de passe. Utilisez l'endpoint pour définir un mot de passe."},
+                {"detail": "Cet utilisateur n'a pas encore de mot de passe."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         if not user.check_password(ancien):
             return Response({"detail": "Ancien mot de passe incorrect"}, status=status.HTTP_400_BAD_REQUEST)
-
         user.set_password(nouveau)
         user.save()
-
         return Response({"message": "Mot de passe mis à jour avec succès"}, status=status.HTTP_200_OK)
-
+        
     # ---------- PERMISSIONS PERSONNALISÉES (SCRUM-159) ----------
 
     @action(detail=True, methods=['get'])
