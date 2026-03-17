@@ -17,9 +17,17 @@ class DemandeIntervention(ArchivableMixin, models.Model):
         ('TRANSFORMEE', 'Transformée'),
     ]
     
+    STATUTS_EQUIPEMENT_CHOICES = [
+        ('EN_FONCTIONNEMENT', 'En fonctionnement'),
+        ('DEGRADE', 'Dégradé'),
+        ('A_LARRET', 'A l\'arrêt'),
+        ('HORS_SERVICE', 'Hors service'),
+    ]
+    
     commentaire = models.TextField(blank=True, null=True)
     nom = models.CharField(max_length=255)
     statut = models.CharField(max_length=50, choices=STATUT_CHOICES)
+    statut_suppose = models.CharField(max_length=50, choices=STATUTS_EQUIPEMENT_CHOICES, default="EN_FONCTIONNEMENT")
     date_creation = models.DateTimeField()
     date_changementStatut = models.DateTimeField()
     
