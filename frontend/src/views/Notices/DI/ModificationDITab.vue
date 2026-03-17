@@ -14,12 +14,13 @@
             
         </div>
 
-        <ZoomImage src="/images/edit-di.png" alt="Modification DI" /> 
+        <ZoomImage :src="require('@/assets/images/notices/DI/detail-di-edit.png')" alt="Modification DI" /> 
 
         <div class="text-body-2 mb-4">
             Après avoir effectué vos modifications, cliquez sur « Enregistrer les modifications ». Vous serez alors
             redirigé vers la page de détails mise à jour de votre DI.
         </div>
+        <ZoomImage :src="require('@/assets/images/notices/DI/modif-di.png')" alt="Modification DI" /> 
 
     </v-container>
 </template>

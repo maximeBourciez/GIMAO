@@ -11,21 +11,32 @@
       notamment contenir des notices ou des manuels d’utilisation utiles.
     </div>
 
-    <ZoomImage src="/images/equipement-detail.png" alt="Détail équipement" />
+    <ZoomImage :src="require('@/assets/images/notices/equips/detail-operateur.png')" alt="Détail équipement" v-if="role === 'Opérateur'"/>
 
-    <div class="text-body-2 mb-4">
-      En bas à gauche de la page, vous pouvez trouver les dits documents associés à l’équipement. Cliquez sur un
-      document pour l’ouvrir et le consulter.
+    <div class="text-body-1 font-weight-bold mb-2">
+      En bas de la colonne droite, vous pourrez trouver les dits documents associés à l’équipement, s’ils ont été renseignés par vos supérieurs.
     </div>
+
+    <ZoomImage :src="require('@/assets/images/notices/equips/docs.png')" alt="Détail équipement" />
 
     <div class="text-body-2 mb-4">
       Depuis cette page, vous pouvez également signaler une défaillance en cliquant sur le bouton <strong>Créer
         une DI</strong>. Le formulaire de création de DI s’ouvre alors avec l’équipement déjà sélectionné, ce qui
       facilite le signalement.
     </div>
+
+    <ZoomImage :src="require('@/assets/images/notices/equips/creer-di.png')" alt="Signalement depuis détail équipement"/>
   </div>
 </template>
 
 <script setup>
 import ZoomImage from "../common/ZoomImage.vue";
+
+const props = defineProps({
+  role: {
+    type: String,
+    default: "Opérateur"
+  }
+});
+
 </script>

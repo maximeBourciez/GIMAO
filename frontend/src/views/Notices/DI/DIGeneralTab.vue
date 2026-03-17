@@ -8,7 +8,7 @@
         </v-expansion-panel-title>
 
         <v-expansion-panel-text>
-          <SuiviDITab />
+          <SuiviDITab :role="props.role" />
         </v-expansion-panel-text>
       </v-expansion-panel>
 
@@ -58,7 +58,7 @@ const roleIsAbove = (minRole) => {
 
 <style scoped>
 .doc-page {
-  max-width: 80%;
+  max-width: 90%;
   margin: auto;
     margin-bottom: 2rem;
 }

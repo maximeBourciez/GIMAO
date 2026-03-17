@@ -8,7 +8,7 @@
       </v-expansion-panel-title>
 
       <v-expansion-panel-text>
-        <EquipmentsListTab/>
+        <EquipmentsListTab :role="props.role" />
       </v-expansion-panel-text>
     </v-expansion-panel>
 

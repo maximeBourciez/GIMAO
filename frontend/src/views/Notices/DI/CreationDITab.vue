@@ -10,7 +10,7 @@
     </p>
 
     <ZoomImage
-      :src="require('@/assets/images/notices/DI/creer-di.png')"
+      :src="require('@/assets/images/notices/DI/liste-di.png')"
       alt="Bouton créer DI"
     />
 
@@ -49,7 +49,6 @@ import ZoomImage from "../common/ZoomImage.vue";
 <style scoped>
 .doc-page {
   max-width: 900px;
-  margin: auto;
   line-height: 1.6;
 }
 

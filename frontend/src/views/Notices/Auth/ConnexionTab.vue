@@ -18,13 +18,17 @@
                     &nbsp;&nbsp;• Cliquez sur <strong>Se connecter</strong>
                 </div>
 
-                <ZoomImage src="/images/login.png" alt="Page de connexion" />
+                <ZoomImage :src="require('@/assets/images/notices/auth/login-1.png')" alt="Page de connexion" />
 
                 <div class="text-body-2 mb-4">
                     <strong>Première connexion :</strong><br /><br />
                     Lors de votre première connexion, vous devrez définir un mot de passe afin de sécuriser votre
                     compte.
                 </div>
+
+                <ZoomImage :src="require('@/assets/images/notices/auth/login-3.png')" alt="Définition du mot de passe" />
+
+                <v-divider class="my-4" />
 
                 <div class="text-body-2 mb-4">
                     <strong>Connexion classique :</strong><br /><br />
@@ -34,6 +38,8 @@
                     &nbsp;&nbsp;• Saisissez votre mot de passe<br />
                     &nbsp;&nbsp;• Cliquez à nouveau sur <strong>Se connecter</strong>
                 </div>
+
+                <ZoomImage :src="require('@/assets/images/notices/auth/login-2.png')" alt="Connexion classique" />
 
                 <div class="text-body-2">
                     Une fois connecté, vous accédez à votre <strong>tableau de bord</strong>, adapté à votre rôle.
@@ -58,7 +64,8 @@
                     Vous serez alors automatiquement déconnecté de l’application.
                 </div>
 
-                <ZoomImage src="/images/logout.png" alt="Bouton déconnexion" />
+                <ZoomImage :src="require('@/assets/images/notices/auth/logout-opérateur.png')" alt="Bouton déconnexion" v-if="!hasMenu"/>
+                <ZoomImage :src="require('@/assets/images/notices/auth/logout.png')" alt="Bouton déconnexion" v-else/>
             </v-expansion-panel-text>
         </v-expansion-panel>
 
@@ -67,6 +74,13 @@
 
 <script setup>
 import ZoomImage from "../common/ZoomImage.vue";
+
+const props = defineProps({
+    hasMenu: {
+        type: Boolean,
+        default: false
+    }
+});
 </script>
 
 <style scoped>
