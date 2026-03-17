@@ -13,10 +13,18 @@
       d’Intervention (DI). Lors du signalement, vous pourrez sélectionner le nouvel état correspondant à la situation.
     </div>
 
-    <ZoomImage src="/images/equipements-list.png" alt="Liste des équipements" />
+    <ZoomImage :src="require('@/assets/images/notices/equips/list-operateur.png')" alt="Liste des équipements" v-if="props.role === 'Opérateur'" />
   </div>
 </template>
 
 <script setup>
 import ZoomImage from "../common/ZoomImage.vue";
+
+const props = defineProps({
+  role: {
+    type: String,
+    default: "Opérateur"
+  }
+});
+
 </script>

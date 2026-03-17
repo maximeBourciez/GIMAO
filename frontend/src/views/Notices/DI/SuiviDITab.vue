@@ -10,6 +10,9 @@
             Cette liste vous aide également à suivre l’état d’avancement de vos demandes afin, si nécessaire, de les
             compléter ou de les modifier.
 
+            <ZoomImage :src="require('@/assets/images/notices/Dashboard/opérateur.png')" v-if="role === 'Opérateur'" />
+            <!-- <ZoomImage :src="require('@/assets/images/notices/DI/liste-di.png')" v-else/> -->
+
             <br /><br />
 
             Les Demandes d’Intervention peuvent apparaître sous différents statuts.
@@ -40,4 +43,17 @@
 
 <script setup>
 import ZoomImage from "../common/ZoomImage.vue";
+
+const props = defineProps({
+    role: {
+        type: String,
+        default: "Opérateur"
+    }
+});
+
+const roles = ["Opérateur", "Technicien", "Responsable GMAO0"]
+
+const roleIsAbove = (role) => {
+    return roles.indexOf(props.role) >= roles.indexOf(role);
+}
 </script>

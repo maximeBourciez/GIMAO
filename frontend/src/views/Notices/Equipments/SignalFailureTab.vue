@@ -10,7 +10,7 @@
       Le fonctionnement de ce formulaire est détaillé dans la section Demande d’Intervention > Création d’une DI.
     </div>
 
-    <ZoomImage src="/images/defaillance.png" alt="Signaler une défaillance" />
+    <ZoomImage :src="require('@/assets/images/notices/equips/creer-di.png')" alt="Signalement depuis détail équipement"/>
   </div>
 </template>
 
