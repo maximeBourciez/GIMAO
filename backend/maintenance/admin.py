@@ -12,12 +12,21 @@ class BonTravailConsommableInline(admin.TabularInline):
 	extra = 0
 
 
+class BonTravailConsommableReservationInline(admin.TabularInline):
+	model = BonTravailConsommableReservation
+	extra = 0
+
+
 @admin.register(BonTravail)
 class BonTravailAdmin(admin.ModelAdmin):
 	inlines = [BonTravailDocumentInline, BonTravailConsommableInline]
 
+@admin.register(BonTravailConsommable)
+class BonTravailConsommableAdmin(admin.ModelAdmin):
+	inlines = [BonTravailConsommableReservationInline]
+
 admin.site.register(BonTravailDocument)
-admin.site.register(BonTravailConsommable)
+admin.site.register(BonTravailConsommableReservation)
 
 admin.site.register(TypePlanMaintenance)
 admin.site.register(PlanMaintenance)
