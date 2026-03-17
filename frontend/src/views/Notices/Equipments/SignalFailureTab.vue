@@ -5,12 +5,9 @@
     </div>
 
     <div class="text-body-2 mb-4">
-      Depuis la fiche d’un équipement, vous pouvez signaler une défaillance.
-      <br /><br />
-      • Cliquez sur <strong>Créer une DI</strong><br />
-      • Le formulaire est pré-rempli avec l’équipement sélectionné<br />
-      • Complétez les informations<br />
-      • Cliquez sur <strong>Valider</strong>
+      Depuis la fiche d’un équipement, vous pouvez déclarer une nouvelle défaillance. En cliquant sur le bouton «
+      Signaler une défaillance », vous serez redirigé vers le formulaire de création d’une Demande d’Intervention (DI).
+      Le fonctionnement de ce formulaire est détaillé dans la section Demande d’Intervention > Création d’une DI.
     </div>
 
     <ZoomImage src="/images/defaillance.png" alt="Signaler une défaillance" />

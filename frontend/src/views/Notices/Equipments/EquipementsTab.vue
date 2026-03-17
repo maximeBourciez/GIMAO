@@ -1,19 +1,19 @@
 <template>
-  <v-expansion-panels multiple variant="accordion">
+  <v-expansion-panels multiple variant="accordion" class="doc-page">
 
     <!-- 🔹 LISTE -->
-    <v-expansion-panel>
+    <v-expansion-panel v-if="roleIsAbove('Opérateur')" >
       <v-expansion-panel-title>
         Liste des équipements
       </v-expansion-panel-title>
 
       <v-expansion-panel-text>
-        <EquipmentsListTab />
+        <EquipmentsListTab/>
       </v-expansion-panel-text>
     </v-expansion-panel>
 
     <!-- 🔹 DÉTAIL -->
-    <v-expansion-panel>
+    <v-expansion-panel v-if="roleIsAbove('Opérateur')">
       <v-expansion-panel-title>
         Détails d’un équipement
       </v-expansion-panel-title>
@@ -24,7 +24,7 @@
     </v-expansion-panel>
 
     <!-- 🔹 DÉFAILLANCE -->
-    <v-expansion-panel>
+    <v-expansion-panel v-if="roleIsAbove('Opérateur')">
       <v-expansion-panel-title>
         Signaler une défaillance
       </v-expansion-panel-title>
@@ -55,3 +55,12 @@ const roleIsAbove = (minRole) => {
   return roles.indexOf(props.role) >= roles.indexOf(minRole);
 };
 </script>
+
+<style scoped>
+.doc-page {
+  max-width: 80%;
+  margin: auto;
+  margin-bottom: 2rem;
+}
+
+</style>

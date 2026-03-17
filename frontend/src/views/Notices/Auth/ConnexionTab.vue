@@ -1,5 +1,5 @@
 <template>
-    <v-expansion-panels multiple variant="accordion">
+    <v-expansion-panels multiple variant="accordion" class="doc-page">
 
         <!-- 🔹 CONNEXION -->
         <v-expansion-panel>
@@ -68,3 +68,11 @@
 <script setup>
 import ZoomImage from "../common/ZoomImage.vue";
 </script>
+
+<style scoped>
+.doc-page {
+  max-width: 80%;
+  margin: auto;
+  margin-bottom: 2rem;
+}
+</style>

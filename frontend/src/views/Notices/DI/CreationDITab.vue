@@ -26,6 +26,15 @@
     />
 
     <p>
+      Les différents champs du formulaire ont la signification suivante :<br />
+      <strong>Nom</strong> : description synthétique de la panne ou du problème constaté.<br />
+      <strong>Équipement</strong> : équipement concerné par la défaillance.<br />
+      <strong>Statut supposé</strong> : nouvel état proposé pour l’équipement à la suite du signalement.<br />
+      <strong>Commentaires</strong> : espace permettant d’apporter des précisions sur l’incident, par exemple les circonstances ou les éléments observés.<br />
+      <strong>Documents</strong> : possibilité d’ajouter des fichiers (par exemple des photos). Veillez à sélectionner le type de document approprié et à lui attribuer un nom explicite.
+    </p>
+
+    <p>
       Pour lui donner ces informations, il vous suffit de remplir les champs
       demandés, puis de cliquer sur <strong>"Valider"</strong>.
     </p>
