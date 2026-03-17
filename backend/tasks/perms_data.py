@@ -1,12 +1,12 @@
 perms = [
     # Demandes d'intervention
-    'di:viewList', 'di:viewDetail', 'di:create', 'di:editCreated', 'di:editAll', 'di:delete', 'di:accept', 'di:transform', 'di:refuse', 'di:export',
+    'di:viewList', 'di:viewDetail', 'di:create', 'di:editCreated', 'di:editAll', 'di:delete', 'di:accept', 'di:transform', 'di:refuse', 'di:export', 'di:archive',
 
     # Demandes d'intervention
-    'bt:viewList', 'bt:viewDetail', 'bt:create', 'bt:editAll', 'bt:editAssigned', 'bt:delete', 'bt:start', 'bt:end', 'bt:refuse', 'bt:refuseClosure', 'bt:acceptClosure', 'bt:acceptConsumableRequest', 'bt:export',
+    'bt:viewList', 'bt:viewDetail', 'bt:create', 'bt:editAll', 'bt:editAssigned', 'bt:delete', 'bt:start', 'bt:end', 'bt:refuse', 'bt:refuseClosure', 'bt:acceptClosure', 'bt:acceptConsumableRequest', 'bt:export', 'bt:archive',
 
     # Equipements
-    'eq:viewList', 'eq:viewDetail', 'eq:create', 'eq:edit', 'eq:delete', 'eq:export',
+    'eq:viewList', 'eq:viewDetail', 'eq:create', 'eq:edit', 'eq:delete', 'eq:export', 'eq:archive',
 
     # Compteurs
     'cp:viewList', 'cp:viewDetail', 'cp:create', 'cp:edit', 'cp:delete', 'cp:export',
@@ -16,8 +16,8 @@ perms = [
 
     # Gestion des stocks
     'stock:view', 'stock:export',
-    'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
-    'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export',
+    'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export', 'cons:archive',
+    'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export', 'mag:archive',
 
     # Gestion des utilisateurs
     'user:viewList', 'user:viewDetail', 'user:create', 'user:edit', 'user:disable', 'user:enable', 'user:delete', 'user:export',
@@ -26,10 +26,10 @@ perms = [
     'role:viewList', 'role:viewDetail', 'role:create', 'role:edit', 'role:delete', 'role:export',
 
     # Données secondaires
-    'loc:viewList', 'loc:viewDetail', 'loc:create', 'loc:edit', 'loc:delete', 'loc:export',
-    'sup:viewList', 'sup:viewDetail', 'sup:create', 'sup:edit', 'sup:delete', 'sup:export',
-    'man:viewList', 'man:viewDetail', 'man:create', 'man:edit', 'man:delete', 'man:export',
-    'eqmod:viewList', 'eqmod:viewDetail', 'eqmod:create', 'eqmod:edit', 'eqmod:delete', 'eqmod:export',
+    'loc:viewList', 'loc:viewDetail', 'loc:create', 'loc:edit', 'loc:delete', 'loc:export', 'loc:archive',
+    'sup:viewList', 'sup:viewDetail', 'sup:create', 'sup:edit', 'sup:delete', 'sup:export', 'sup:archive',
+    'man:viewList', 'man:viewDetail', 'man:create', 'man:edit', 'man:delete', 'man:export', 'man:archive',
+    'eqmod:viewList', 'eqmod:viewDetail', 'eqmod:create', 'eqmod:edit', 'eqmod:delete', 'eqmod:export', 'eqmod:archive',
 
     # Export de données
     'export:view', 
