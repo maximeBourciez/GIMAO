@@ -1,23 +1,57 @@
 <template>
-  <div>
-    <div class="text-body-1 font-weight-bold mb-2">
-      Équipements
-    </div>
+  <v-expansion-panels multiple variant="accordion">
 
-    <div class="text-body-2 mb-4">
-      Vous pouvez consulter les équipements disponibles dans l’application.
-      <br /><br />
-      • Accédez à la liste des équipements<br />
-      • Cliquez sur un équipement pour voir ses détails<br />
-      • Consultez ses informations et son état<br /><br />
-      Depuis un équipement, vous pouvez également signaler une défaillance.
-    </div>
+    <!-- 🔹 LISTE -->
+    <v-expansion-panel>
+      <v-expansion-panel-title>
+        Liste des équipements
+      </v-expansion-panel-title>
 
-    <ZoomImage src="/images/equipements.png" alt="Liste équipements" />
-    <ZoomImage src="/images/equipement-detail.png" alt="Détail équipement" />
-  </div>
+      <v-expansion-panel-text>
+        <EquipmentsListTab />
+      </v-expansion-panel-text>
+    </v-expansion-panel>
+
+    <!-- 🔹 DÉTAIL -->
+    <v-expansion-panel>
+      <v-expansion-panel-title>
+        Détails d’un équipement
+      </v-expansion-panel-title>
+
+      <v-expansion-panel-text>
+        <EquipmentDetailTab />
+      </v-expansion-panel-text>
+    </v-expansion-panel>
+
+    <!-- 🔹 DÉFAILLANCE -->
+    <v-expansion-panel>
+      <v-expansion-panel-title>
+        Signaler une défaillance
+      </v-expansion-panel-title>
+
+      <v-expansion-panel-text>
+        <SignalFailureTab />
+      </v-expansion-panel-text>
+    </v-expansion-panel>
+
+  </v-expansion-panels>
 </template>
 
 <script setup>
-import ZoomImage from "../common/ZoomImage.vue";
+import EquipmentsListTab from "./EquipmentsListTab.vue";
+import EquipmentDetailTab from "./EquipmentDetailTab.vue";
+import SignalFailureTab from "./SignalFailureTab.vue";
+
+const props = defineProps({
+  role: {
+    type: String,
+    default: "Opérateur"
+  }
+});
+
+const roles = ["Opérateur", "Technicien", "Responsable GMAO"];
+
+const roleIsAbove = (minRole) => {
+  return roles.indexOf(props.role) >= roles.indexOf(minRole);
+};
 </script>
