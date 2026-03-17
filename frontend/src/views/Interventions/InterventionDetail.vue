@@ -537,9 +537,8 @@ const formattedEquipement = computed(() => {
 
 const canClose = computed(
   () =>
-    !!intervention.value &&
-    !intervention.value.date_cloture &&
-    intervention.value.statut === "TERMINE" &&
+    !intervention.value?.date_cloture &&
+    intervention.value?.statut !== "CLOTURE" &&
     store.getters.hasPermission("bt:acceptClosure")
 );
 const canStart = computed(
