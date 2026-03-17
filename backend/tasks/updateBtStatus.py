@@ -14,11 +14,11 @@ def update_bt_status():
     """ 
 
     bons_travail = BonTravail.objects.filter(
-        date_prevue__lt=timezone.now(),
-        date_debut__isnull=True,
-        archive=False,
-        statut__notin=['EN_RETARD', 'TERMINE', 'CLOTURE']
-    )
+    date_prevue__lt=timezone.now(),
+    date_debut__isnull=True,
+    archive=False,
+    ).exclude(statut__in=['EN_RETARD', 'TERMINE', 'CLOTURE'])
+    
     updated_bts = 0
     for bt in bons_travail:
         bt.statut = 'EN_RETARD'
