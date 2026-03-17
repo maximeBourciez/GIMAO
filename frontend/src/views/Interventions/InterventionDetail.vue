@@ -359,9 +359,9 @@
   </BaseDetailView>
 
     <!-- Boutons flottants -->
-    <div class="floating-buttons" v-if="canUserEditBT">
+    <div class="floating-buttons">
       <v-btn
-        v-if="!intervention?.archive"
+        v-if="!intervention?.archive && store.getters.hasPermission('bt:archive')"
         color="warning"
         size="large"
         icon
@@ -382,6 +382,7 @@
         elevation="4"
         class="d-block"
         @click="goToEditIntervention"
+         v-if="canUserEditBT"
       >
         <v-icon size="large">mdi-pencil</v-icon>
         <v-tooltip activator="parent" location="left">

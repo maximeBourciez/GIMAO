@@ -178,9 +178,9 @@
   </BaseDetailView>
 
   <!-- Bouton flottant en bas à droite -->
-  <div class="floating-buttons" v-if="showEditButton">
+  <div class="floating-buttons">
     <v-btn 
-      v-if="!equipement.archive"
+      v-if="!equipement.archive && store.getters.hasPermission('eq:archive')"
       color="warning" 
       size="large" 
       icon 
@@ -195,7 +195,7 @@
     </v-btn>
 
     <v-btn color="primary" size="large" icon elevation="4" class="d-block"
-      @click="editCurrentEquip()">
+      @click="editCurrentEquip()" v-if="showEditButton">
       <v-icon size="large">mdi-pencil</v-icon>
       <v-tooltip activator="parent" location="left">
         {{ editButtonText }}
