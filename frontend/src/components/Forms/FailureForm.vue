@@ -1,60 +1,28 @@
 <template>
-    <BaseForm
-        v-model="formData"
-        :title="title"
-        :validation-schema="validationSchema"
-        :loading="loading"
-        :error-message="errorMessage"
-        :success-message="successMessage"
-        :handleSubmit="save"
-        :custom-cancel-action="close"
-        :submit-button-text="submitButtonText"
-        elevation="0"
-    >
+    <BaseForm v-model="formData" :title="title" :validation-schema="validationSchema" :loading="loading"
+        :error-message="errorMessage" :success-message="successMessage" :handleSubmit="save"
+        :custom-cancel-action="close" :submit-button-text="submitButtonText" elevation="0">
         <v-row dense>
             <v-col cols="12">
-                <FormField
-                    v-model="formData.nom"
-                    field-name="nom"
-                    label="Nom de la demande d'intervention"
-                    placeholder="Saisir le nom de la demande"
-                />
+                <FormField v-model="formData.nom" field-name="nom" label="Nom de la demande d'intervention"
+                    placeholder="Saisir le nom de la demande" />
             </v-col>
 
             <v-col cols="12">
-                <FormSelect
-                    v-model="formData.equipement_id"
-                    field-name="equipement_id"
-                    label="Équipement"
-                    :items="equipments"
-                    item-title="designation"
-                    item-value="id"
-                    placeholder="Sélectionner un équipement"
-                    :disabled="isEdit"
-                />
+                <FormSelect v-model="formData.equipement_id" field-name="equipement_id" label="Équipement"
+                    :items="equipments" item-title="designation" item-value="id"
+                    placeholder="Sélectionner un équipement" :disabled="isEdit" />
             </v-col>
 
             <v-col cols="12">
-                <FormSelect
-                    v-model="formData.statut_suppose"
-                    field-name="statut_suppose"
-                    label="Statut supposé de l'équipement"
-                    :items="statutOptions"
-                    item-title="title"
-                    item-value="value"
-                    placeholder="Sélectionner le statut supposé de l'équipement"
-                />
+                <FormSelect v-model="formData.statut_suppose" field-name="statut_suppose"
+                    label="Statut supposé de l'équipement" :items="statutOptions" item-title="title" item-value="value"
+                    placeholder="Sélectionner le statut supposé de l'équipement" />
             </v-col>
 
             <v-col cols="12">
-                <FormTextarea
-                    v-model="formData.commentaire"
-                    field-name="commentaire"
-                    label="Commentaires"
-                    placeholder="Ajouter des détails ou une description..."
-                    rows="5"
-                    counter="300"
-                />
+                <FormTextarea v-model="formData.commentaire" field-name="commentaire" label="Commentaires"
+                    placeholder="Ajouter des détails ou une description..." rows="5" counter="300" />
             </v-col>
 
             <!-- Documents -->
