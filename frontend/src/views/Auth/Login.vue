@@ -5,29 +5,17 @@
         <v-card class="pa-6">
 
           <v-alert v-if="message" type="warning" class="mb-3">
-                {{ message }}
-              </v-alert>
+            {{ message }}
+          </v-alert>
 
           <v-card-title class="text-center text-h5 mb-4"> Connexion GIMAO </v-card-title>
 
           <v-card-text>
             <v-form @submit.prevent="login">
-              <FormField
-                class="mb-4"
-                v-model="nomUtilisateur"
-                label="Nom d'utilisateur"
-                type="text"
-                required
-              />
+              <FormField class="mb-4" v-model="nomUtilisateur" label="Nom d'utilisateur" type="text" required />
 
-              <FormField
-                class="mb-4"
-                v-if="showPasswordField"
-                v-model="motDePasse"
-                label="Mot de passe"
-                type="password"
-                required
-              />
+              <FormField class="mb-4" v-if="showPasswordField" v-model="motDePasse" label="Mot de passe" type="password"
+                required />
 
               <v-alert v-if="error" type="error" class="mb-3">
                 {{ error }}
@@ -97,6 +85,10 @@ const loginWithPassword = async () => {
 
     // Connexion réussie
     store.commit("setUser", response.utilisateur);
+    store.commit("setToken", response.token);
+
+    localStorage.setItem("token", response.token);
+
     router.push("/");
   } catch (err) {
     if (err.response?.detail) {

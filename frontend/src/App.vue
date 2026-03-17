@@ -92,26 +92,12 @@ const handleThemeToggle = () => {
   toggleTheme()
 }
 
-/**
- * Vérification de l'authentification
- */
-const checkIfAuthIsValid = () => {
-  if (store.getters.isAuthenticated && !store.getters.hasValidAuthentication) {
-    store.commit('logout')
-    localStorage.removeItem('user')
-
-    // Rediriger vers la page de connexion
-    router.push('/');
-  }
-}
 
 /**
  * Lifecycle
  */
 onMounted(() => {
   store.dispatch('initAuth')
-
-  checkIfAuthIsValid();
 
   checkIfMobile()
   window.addEventListener('resize', checkIfMobile)

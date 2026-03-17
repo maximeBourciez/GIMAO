@@ -48,6 +48,19 @@ services:
     networks:
       - gimao_network
 
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "8080:80"
+    networks:
+      - gimao_network
+    depends_on:
+      - db
+
   nginx:
     image: nginx:alpine
     ports:
