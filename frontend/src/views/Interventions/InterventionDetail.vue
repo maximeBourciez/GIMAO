@@ -438,8 +438,8 @@
 
     <!-- Refuser la clôture : formulaire (commentaire obligatoire) -->
     <v-dialog v-model="showRefuseClose" max-width="600" scrollable>
-      <v-card>
-        <v-card-text class="pa-6">
+      <v-card class="rounded-xl intervention-dialog-card">
+        <v-card-text class="pa-6 refuse-close-dialog__body">
           <BaseForm
             v-model="refuseCloseFormData"
             title="Refuser la clôture"
@@ -454,6 +454,10 @@
             :handleSubmit="refuseCloseBonTravail"
             @clear-error="errorMessage = ''"
             @clear-success="successMessage = ''"
+            container-class="dialog-form-shell"
+            card-class="dialog-form-card"
+            title-class="dialog-form-title"
+            content-class="dialog-form-content"
             elevation="0"
           >
             <template #default>
@@ -923,6 +927,37 @@ onMounted(fetchData);
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+.intervention-dialog-card {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  box-shadow: 0 22px 50px rgba(10, 15, 30, 0.18);
+}
+
+.refuse-close-dialog__body {
+  background: transparent;
+}
+
+.refuse-close-dialog__body :deep(.dialog-form-shell) {
+  padding: 0;
+}
+
+.refuse-close-dialog__body :deep(.dialog-form-card) {
+  background: rgba(var(--v-theme-on-surface), 0.02);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.refuse-close-dialog__body :deep(.dialog-form-title) {
+  color: rgba(var(--v-theme-on-surface), 0.96);
+  font-weight: 600;
+  padding: 24px 24px 10px;
+}
+
+.refuse-close-dialog__body :deep(.dialog-form-content) {
+  color: rgba(var(--v-theme-on-surface), 0.82);
+  padding-top: 12px;
 }
 
 .text-pre {

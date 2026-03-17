@@ -371,14 +371,14 @@
     @cancel="confirmRecupereDialog = false" />
 
   <v-dialog v-model="bulkReserveDialog" max-width="720">
-    <v-card class="rounded-lg">
-      <v-card-title class="pa-4 pb-2">
+    <v-card class="rounded-xl stock-dialog-card">
+      <v-card-title class="pa-4 pb-2 stock-dialog-title">
         Choisir un magasin pour chaque pièce
       </v-card-title>
       <v-card-subtitle class="px-4 pb-0 text-caption stock-subtitle">
         Le premier magasin disponible est présélectionné. Vous pouvez le modifier avant de confirmer.
       </v-card-subtitle>
-      <v-card-text class="pa-4">
+      <v-card-text class="pa-4 stock-dialog-body">
         <div class="bulk-reserve-list">
           <div
             v-for="item in bulkReserveItems"
@@ -405,7 +405,7 @@
           </div>
         </div>
       </v-card-text>
-      <v-card-actions class="pa-4 pt-0 d-flex justify-end ga-2">
+      <v-card-actions class="pa-4 pt-0 d-flex justify-end ga-2 stock-dialog-actions">
         <v-btn variant="outlined" @click="cancelBulkReserve">
           Annuler
         </v-btn>
@@ -422,14 +422,14 @@
   </v-dialog>
 
   <v-dialog v-model="magasinDialog" max-width="760">
-    <v-card class="rounded-lg magasin-dialog-card">
-      <v-card-title class="pa-5 pb-2">
+    <v-card class="rounded-xl magasin-dialog-card stock-dialog-card">
+      <v-card-title class="pa-5 pb-2 stock-dialog-title">
         Ajuster la mise de côté
       </v-card-title>
       <v-card-subtitle v-if="magasinPendingAction.cons" class="px-5 pb-0 text-body-2 magasin-dialog-subtitle">
         {{ magasinPendingAction.cons.designation }} - Quantité demandée : {{ magasinPendingAction.cons.quantite }}
       </v-card-subtitle>
-      <v-card-text class="pa-5 pt-4">
+      <v-card-text class="pa-5 pt-4 stock-dialog-body">
         <div class="magasin-summary mb-5">
           <v-chip size="small" color="info" variant="tonal">
             Demande : {{ magasinNeededQuantity }}
@@ -488,16 +488,16 @@
   </v-dialog>
 
   <v-dialog v-model="stockIssueDialog" max-width="560">
-    <v-card class="rounded-lg">
-      <v-card-title class="pa-4 pb-2 d-flex align-center">
+    <v-card class="rounded-xl stock-dialog-card">
+      <v-card-title class="pa-4 pb-2 d-flex align-center stock-dialog-title">
         <v-icon color="warning" size="22" class="mr-2">mdi-alert-circle</v-icon>
         Stock insuffisant
       </v-card-title>
       <v-card-subtitle class="px-4 pb-2 text-caption stock-subtitle">
         {{ stockIssueMessage || 'Impossible de mettre de côté les pièces suivantes' }}
       </v-card-subtitle>
-      <v-card-text class="pa-4 pt-2">
-        <v-list density="compact" class="py-0">
+      <v-card-text class="pa-4 pt-2 stock-dialog-body">
+        <v-list density="compact" class="py-0 stock-issue-list">
           <v-list-item v-for="(item, index) in stockIssueItems"
             :key="`${item.consommable_id}-${item.magasin_id || 'global'}-${index}`"
             class="px-0 stock-issue-item">
@@ -519,7 +519,7 @@
           </v-list-item>
         </v-list>
       </v-card-text>
-      <v-card-actions class="pa-4 pt-0 d-flex justify-end">
+      <v-card-actions class="pa-4 pt-0 d-flex justify-end stock-dialog-actions">
         <v-btn variant="outlined" @click="stockIssueDialog = false">Fermer</v-btn>
       </v-card-actions>
     </v-card>
@@ -1388,6 +1388,8 @@ onMounted(() => {
 .reservation-list,
 .magasin-summary,
 .magasin-dialog-actions,
+.stock-dialog-card,
+.stock-dialog-actions,
 .bulk-reserve-list,
 .magasin-allocation-list {
   --stock-border-color: rgba(var(--v-theme-on-surface), 0.12);
@@ -1395,6 +1397,33 @@ onMounted(() => {
   --stock-muted-color: rgba(var(--v-theme-on-surface), 0.68);
   --stock-soft-surface: rgba(var(--v-theme-on-surface), 0.03);
   --stock-hover-surface: rgba(var(--v-theme-primary), 0.06);
+}
+
+.stock-dialog-card {
+  border: 1px solid var(--stock-border-color);
+  box-shadow: 0 22px 50px rgba(10, 15, 30, 0.18);
+  overflow: hidden;
+}
+
+.stock-dialog-title {
+  color: rgba(var(--v-theme-on-surface), 0.96);
+  font-weight: 600;
+}
+
+.stock-dialog-body {
+  color: rgba(var(--v-theme-on-surface), 0.8);
+}
+
+.stock-dialog-actions {
+  border-top: 1px solid var(--stock-divider-color);
+}
+
+.stock-dialog-card :deep(.v-field) {
+  background: rgba(var(--v-theme-on-surface), 0.02);
+}
+
+.stock-dialog-card :deep(.v-list) {
+  background: transparent;
 }
 
 .bt-list {
@@ -1656,6 +1685,10 @@ onMounted(() => {
   border-bottom: 1px solid var(--stock-divider-color);
   padding-bottom: 8px;
   margin-bottom: 8px;
+}
+
+.stock-issue-list {
+  background: transparent;
 }
 
 .stock-issue-item:last-child {
