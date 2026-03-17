@@ -16,7 +16,6 @@ class RoleFactory(DjangoModelFactory):
         model = Role
     
     nomRole = factory.Sequence(lambda n: f"Role_{n}")
-    rang = 10
 
 
 class UtilisateurFactory(DjangoModelFactory):
