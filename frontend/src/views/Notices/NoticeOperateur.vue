@@ -8,9 +8,7 @@
     <!-- Onglets -->
     <v-tabs v-model="tab" class="mb-4">
       <v-tab value="dashboard">Tableau de bord</v-tab>
-      <v-tab value="creation">Créer une DI</v-tab>
-      <v-tab value="suivi">Suivi des DI</v-tab>
-      <v-tab value="modification">Modifier une DI</v-tab>
+      <v-tab value="di">Demandes d'intervention</v-tab>
       <v-tab value="equipements">Équipements</v-tab>
       <v-tab value="bt">Bons de travail</v-tab>
       <v-tab value="connexion">Connexion</v-tab>
@@ -21,16 +19,8 @@
         <DashboardTab />
       </v-window-item>
 
-      <v-window-item value="creation">
-        <CreationDITab />
-      </v-window-item>
-
-      <v-window-item value="suivi">
-        <SuiviDITab />
-      </v-window-item>
-
-      <v-window-item value="modification">
-        <ModificationDITab />
+      <v-window-item value="di">
+        <DIGeneralTab />
       </v-window-item>
 
       <v-window-item value="equipements">
@@ -52,9 +42,7 @@
 import { ref } from "vue";
 
 import DashboardTab from "./Dashboard/DashboardTab.vue";
-import CreationDITab from "./DI/CreationDITab.vue";
-import SuiviDITab from "./DI/SuiviDITab.vue";
-import ModificationDITab from "./DI/ModificationDITab.vue";
+import DIGeneralTab from "./DI/DIGeneralTab.vue";
 import EquipementsTab from "./Equipments/EquipementsTab.vue";
 import ConnexionTab from "./Auth/ConnexionTab.vue";
 
