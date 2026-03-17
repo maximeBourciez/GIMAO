@@ -89,6 +89,11 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
+    statut_suppose = serializers.ChoiceField(
+        choices=DemandeIntervention.STATUTS_EQUIPEMENT_CHOICES,
+        required=True
+    )
+    
     class Meta:
         model = DemandeIntervention
         fields = [
@@ -96,6 +101,7 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
             'nom',
             'commentaire',
             'statut',
+            'statut_suppose',
             'date_creation',
             'date_changementStatut',
             'equipement',

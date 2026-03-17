@@ -232,10 +232,18 @@ class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             statut='EN_ATTENTE'
         )
 
+        statut_equipement = request.data.get('statut_equipement')
+        if statut_equipement and statut_equipement.strip():
+            from equipement.models import StatutEquipement
+            StatutEquipement.objects.create(
+                equipement=demande.equipement,
+                statut=statut_equipement
+            )
+
         demande.statut = 'TRANSFORMEE'
         demande.date_changementStatut = timezone.now()
         demande.save()
-        serializer = self.get_serializer(bon_travail)
+        serializer = BonTravailSerializer(bon_travail, context=self.get_serializer_context())
         return Response(serializer.data)
 
     @transaction.atomic
@@ -285,6 +293,7 @@ class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             nom=data["nom"],
             commentaire=data.get("commentaire", ""),
             statut="EN_ATTENTE",
+            statut_suppose=data.get("statut_suppose"),
             date_creation=timezone.now(),
             date_changementStatut=timezone.now(),
             utilisateur=utilisateur,
@@ -381,6 +390,7 @@ class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             'nom',
             'commentaire',
             'statut',
+            'statut_suppose',
             'equipement_id',
             'utilisateur_id',
         ]
@@ -742,6 +752,7 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 nom=data.get('nom') or '',
                 commentaire=data.get('commentaire', ''),
                 statut='TRANSFORMEE',
+                statut_suppose=data.get('statut_suppose'),
                 date_creation=timezone.now(),
                 date_changementStatut=timezone.now(),
                 utilisateur=utilisateur,
