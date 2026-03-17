@@ -8,8 +8,7 @@ def create_initial_data():
     roles = ['Responsable GMAO', 'Technicien', 'Magasinier', 'Opérateur']
     for role_name in roles:
         Role.objects.get_or_create(
-            nomRole=role_name,
-            defaults={'rang': 10 - (roles.index(role_name) * 2)}
+            nomRole=role_name
         )
 
     # Création des types de plans de maintenance par défaut
