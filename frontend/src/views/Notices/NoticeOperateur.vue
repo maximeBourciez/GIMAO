@@ -7,33 +7,30 @@
 
     <!-- Onglets -->
     <v-tabs v-model="tab" class="mb-4">
+      <v-tab value="connexion">Connexion</v-tab>
       <v-tab value="dashboard">Tableau de bord</v-tab>
       <v-tab value="di">Demandes d'intervention</v-tab>
       <v-tab value="equipements">Équipements</v-tab>
-      <v-tab value="bt">Bons de travail</v-tab>
-      <v-tab value="connexion">Connexion</v-tab>
     </v-tabs>
 
     <v-window v-model="tab">
+      <v-window-item value="connexion">
+        <ConnexionTab />
+      </v-window-item>
+
       <v-window-item value="dashboard">
         <DashboardTab />
       </v-window-item>
 
       <v-window-item value="di">
-        <DIGeneralTab />
+        <DIGeneralTab :role="Opérateur"/>
       </v-window-item>
 
       <v-window-item value="equipements">
         <EquipementsTab />
       </v-window-item>
 
-      <v-window-item value="bt">
-        <ConnexionTab />
-      </v-window-item> 
-
-      <v-window-item value="connexion">
-        <ConnexionTab />
-      </v-window-item>
+      
     </v-window>
   </div>
 </template>

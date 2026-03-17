@@ -1,6 +1,6 @@
 <template>
   <v-container class="doc-page">
-    <h1>Créer une DI</h1>
+    <h4>Créer une DI</h4>
 
     <p>
       Si vous souhaitez signaler une nouvelle défaillance sur un équipement,
