@@ -12,12 +12,14 @@
               <v-chip size="x-small" variant="tonal" color="primary" class="ml-2">
                 {{ utilisateur.role?.nomRole }}
               </v-chip>
-              <v-chip v-if="utilisateur.a_permissions_personnalisees" size="x-small" variant="tonal" color="warning" class="ml-1">
+              <v-chip v-if="utilisateur.a_permissions_personnalisees" size="x-small" variant="tonal" color="warning"
+                class="ml-1">
                 Permissions personnalisées
               </v-chip>
             </p>
           </div>
-          <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'UserDetail', params: { id: userId } })">
+          <v-btn variant="text" prepend-icon="mdi-arrow-left"
+            @click="$router.push({ name: 'UserDetail', params: { id: userId } })">
             Retour
           </v-btn>
         </div>
@@ -29,12 +31,14 @@
         </v-alert>
 
         <!-- Erreur globale -->
-        <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4" closable @click:close="errorMessage = ''">
+        <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4" closable
+          @click:close="errorMessage = ''">
           {{ errorMessage }}
         </v-alert>
 
         <!-- Succès -->
-        <v-alert v-if="successMessage" type="success" variant="tonal" class="mb-4" closable @click:close="successMessage = ''">
+        <v-alert v-if="successMessage" type="success" variant="tonal" class="mb-4" closable
+          @click:close="successMessage = ''">
           {{ successMessage }}
         </v-alert>
 
@@ -46,13 +50,10 @@
               <div>
                 <p class="text-body-1 font-weight-medium mb-1">
                   Source des permissions actuelles :
-                  <v-chip
-                    :color="utilisateur.a_permissions_personnalisees ? 'warning' : 'primary'"
-                    variant="tonal"
-                    size="small"
-                    class="ml-1"
-                  >
-                    {{ utilisateur.a_permissions_personnalisees ? 'Personnalisées' : `Rôle : ${utilisateur.role?.nomRole}` }}
+                  <v-chip :color="utilisateur.a_permissions_personnalisees ? 'warning' : 'primary'" variant="tonal"
+                    size="small" class="ml-1">
+                    {{ utilisateur.a_permissions_personnalisees ? 'Personnalisées' : `Rôle :
+                    ${utilisateur.role?.nomRole}` }}
                   </v-chip>
                 </p>
                 <p class="text-body-2 text-medium-emphasis">
@@ -60,22 +61,12 @@
                 </p>
               </div>
               <div class="d-flex gap-2 flex-wrap">
-                <v-btn
-                  variant="outlined"
-                  color="secondary"
-                  size="small"
-                  prepend-icon="mdi-content-copy"
-                  @click="copyFromRole"
-                >
+                <v-btn variant="outlined" color="secondary" size="small" prepend-icon="mdi-content-copy"
+                  @click="copyFromRole">
                   Copier depuis le rôle
                 </v-btn>
-                <v-btn
-                  color="primary"
-                  size="small"
-                  prepend-icon="mdi-content-save"
-                  :loading="saving"
-                  @click="savePermissions"
-                >
+                <v-btn color="primary" size="small" prepend-icon="mdi-content-save" :loading="saving"
+                  @click="savePermissions">
                   Enregistrer
                 </v-btn>
               </div>
@@ -83,57 +74,39 @@
           </v-sheet>
 
           <!-- Recherche -->
-          <v-text-field
-            v-model="searchPerm"
-            placeholder="Rechercher une permission..."
-            prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-            density="compact"
-            clearable
-            class="mb-4"
-          />
+          <v-text-field v-model="searchPerm" placeholder="Rechercher une permission..." prepend-inner-icon="mdi-magnify"
+            variant="outlined" density="compact" clearable class="mb-4" />
 
           <!-- Permissions groupées par module -->
-         <!-- Permissions groupées par module -->
-<div v-for="(perms, module) in filteredPermissionsByModule" :key="module" class="mb-2">
-  <v-expansion-panels variant="accordion">
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        <div class="d-flex align-center" style="gap: 12px;">
-          <v-checkbox
-            :model-value="isModuleFullySelected(perms)"
-            :indeterminate="isModulePartiallySelected(perms)"
-            density="compact"
-            hide-details
-            color="primary"
-            @update:model-value="toggleModule(perms, $event)"
-            @click.stop
-          />
-          <span class="font-weight-medium">{{ moduleLabel(module) }}</span>
-          <v-chip size="x-small" color="primary" variant="tonal">
-            {{ perms.filter(p => selectedIds.includes(p.id)).length }}/{{ perms.length }}
-          </v-chip>
-        </div>
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <div class="d-flex flex-column" style="gap: 4px;">
-          <div v-for="perm in perms" :key="perm.id" class="d-flex align-center">
-            <v-checkbox
-              :model-value="selectedIds.includes(perm.id)"
-              :label="permActionLabel(perm.nomPermission)"
-              density="compact"
-              hide-details
-              color="primary"
-              @update:model-value="togglePermission(perm.id, $event)"
-            />
+          <div v-for="(perms, module) in filteredPermissionsByModule" :key="module" class="mb-2">
+            <v-expansion-panels variant="accordion">
+              <v-expansion-panel>
+                <v-expansion-panel-title>
+                  <div class="d-flex align-center" style="gap: 12px;">
+                    <v-checkbox :model-value="isModuleFullySelected(perms)"
+                      :indeterminate="isModulePartiallySelected(perms)" density="compact" hide-details color="primary"
+                      @update:model-value="toggleModule(perms, $event)" @click.stop />
+                    <span class="font-weight-medium">{{ moduleLabel(module) }}</span>
+                    <v-chip size="x-small" color="primary" variant="tonal">
+                      {{perms.filter(p => selectedIds.includes(p.id)).length}}/{{ perms.length }}
+                    </v-chip>
+                  </div>
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <div class="d-flex flex-column" style="gap: 4px;">
+                    <div v-for="perm in perms" :key="perm.id" class="d-flex align-center">
+                      <v-checkbox :model-value="selectedIds.includes(perm.id)"
+                        :label="perm.description" density="compact" hide-details color="primary"
+                        @update:model-value="togglePermission(perm.id, $event)" />
+                    </div>
+                  </div>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
           </div>
-        </div>
-      </v-expansion-panel-text>
-    </v-expansion-panel>
-  </v-expansion-panels>
-</div>
 
-          <p v-if="Object.keys(filteredPermissionsByModule).length === 0" class="text-body-2 text-medium-emphasis text-center mt-4">
+          <p v-if="Object.keys(filteredPermissionsByModule).length === 0"
+            class="text-body-2 text-medium-emphasis text-center mt-4">
             Aucune permission trouvée.
           </p>
 
@@ -182,7 +155,7 @@ const fetchData = async () => {
     ])
 
     utilisateur.value = userRes
-    console.log('userRes:', JSON.stringify(userRes)) 
+    console.log('userRes:', JSON.stringify(userRes))
     allPermissions.value = Array.isArray(permsRes) ? permsRes : []
     selectedIds.value = (userPermsRes.permissions || []).map(p => p.id)
   } catch (e) {
@@ -202,7 +175,7 @@ const permissionsByModule = computed(() => {
   for (const perm of allPermissions.value) {
     // if (perm.nomPermission.startsWith('dash:display')) continue
     if (perm.nomPermission === 'export:view') continue
-    if (perm.nomPermission.endsWith(':export')) continue  
+    if (perm.nomPermission.endsWith(':export')) continue
     const module = getModule(perm.nomPermission)
     if (!groups[module]) groups[module] = []
     groups[module].push(perm)
