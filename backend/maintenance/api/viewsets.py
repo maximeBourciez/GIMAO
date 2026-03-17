@@ -1399,12 +1399,20 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         for source in (getattr(request, 'data', None), getattr(request, 'POST', None), getattr(raw_request, 'POST', None)):
             if source is None:
                 continue
+            try:
+                has_repartition = 'repartition' in source
+            except TypeError:
+                has_repartition = False
             getter = getattr(source, 'get', None)
             if callable(getter):
-                candidates.append(getter('repartition'))
+                value = getter('repartition')
+                if value is not None:
+                    candidates.append(value)
             getlist = getattr(source, 'getlist', None)
-            if callable(getlist):
-                candidates.append(getlist('repartition'))
+            if callable(getlist) and has_repartition:
+                values = getlist('repartition')
+                if values:
+                    candidates.append(values)
 
         try:
             raw_body = request.body.decode('utf-8').strip()
@@ -1412,15 +1420,14 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             raw_body = ''
 
         if raw_body:
-            candidates.append(raw_body)
-
             try:
                 body_json = json.loads(raw_body)
             except ValueError:
                 body_json = None
 
             if isinstance(body_json, dict):
-                candidates.append(body_json.get('repartition'))
+                if 'repartition' in body_json:
+                    candidates.append(body_json.get('repartition'))
             elif isinstance(body_json, list):
                 candidates.append(body_json)
 
