@@ -1,11 +1,19 @@
 import pytest
+import json
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIRequestFactory
 
 from maintenance.api.viewsets import BonTravailViewSet
-from maintenance.models import BonTravailConsommable, BonTravailConsommableReservation
+from donnees.models import Document, TypeDocument
+from maintenance.models import (
+    BonTravail,
+    BonTravailConsommable,
+    BonTravailConsommableReservation,
+    DemandeIntervention,
+)
 from stock.models import Magasin, Stocker
-from tests.factories import BonTravailFactory, ConsommableFactory
+from tests.factories import BonTravailFactory, ConsommableFactory, EquipementFactory, UtilisateurFactory
 
 
 @pytest.fixture
@@ -669,3 +677,121 @@ def test_should_return_400_when_stock_is_split_across_stores_without_single_matc
 
     assert response.status_code == 400
     assert "réparti sur plusieurs magasins" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_create_di_bt_and_document_with_create_with_di(api_factory):
+    utilisateur = UtilisateurFactory()
+    equipement = EquipementFactory()
+    type_document = TypeDocument.objects.create(nomTypeDocument="Notice")
+    file_0 = SimpleUploadedFile("notice.txt", b"abc", content_type="text/plain")
+
+    view = BonTravailViewSet.as_view({"post": "create_with_di"})
+    request = api_factory.post(
+        "/api/maintenance/bons-travail/create_with_di/",
+        {
+            "nom": "Intervention create_with_di",
+            "commentaire": "Commentaire test",
+            "statut_suppose": "EN_FONCTIONNEMENT",
+            "equipement_id": str(equipement.pk),
+            "utilisateur_id": str(utilisateur.pk),
+            "type": "CORRECTIF",
+            "documents": json.dumps([
+                {
+                    "nomDocument": "Notice BT",
+                    "typeDocument_id": type_document.pk,
+                }
+            ]),
+            "document_0": file_0,
+        },
+        format="multipart",
+    )
+
+    response = view(request)
+
+    assert response.status_code == 201
+    assert DemandeIntervention.objects.count() == 1
+    assert BonTravail.objects.count() == 1
+    assert Document.objects.count() == 1
+
+    di = DemandeIntervention.objects.get()
+    bt = BonTravail.objects.get()
+    doc = Document.objects.get()
+
+    assert di.statut == "TRANSFORMEE"
+    assert di.utilisateur_id == utilisateur.pk
+    assert di.equipement_id == equipement.pk
+    assert bt.demande_intervention_id == di.pk
+    assert bt.responsable_id == utilisateur.pk
+    assert bt.documents.filter(pk=doc.pk).exists()
+
+
+@pytest.mark.django_db
+def test_should_rollback_create_with_di_when_document_type_is_missing(api_factory):
+    utilisateur = UtilisateurFactory()
+    equipement = EquipementFactory()
+    file_0 = SimpleUploadedFile("notice.txt", b"abc", content_type="text/plain")
+
+    view = BonTravailViewSet.as_view({"post": "create_with_di"})
+    request = api_factory.post(
+        "/api/maintenance/bons-travail/create_with_di/",
+        {
+            "nom": "Intervention invalide",
+            "commentaire": "Rollback attendu",
+            "statut_suppose": "EN_FONCTIONNEMENT",
+            "equipement_id": str(equipement.pk),
+            "utilisateur_id": str(utilisateur.pk),
+            "type": "CORRECTIF",
+            "documents": json.dumps([
+                {
+                    "nomDocument": "Doc sans type",
+                }
+            ]),
+            "document_0": file_0,
+        },
+        format="multipart",
+    )
+
+    response = view(request)
+
+    assert response.status_code == 400
+    assert DemandeIntervention.objects.count() == 0
+    assert BonTravail.objects.count() == 0
+    assert Document.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_partial_update_modifies_demande_or_equipement(api_factory):
+    bon = BonTravailFactory()
+
+    view = BonTravailViewSet.as_view({"patch": "partial_update"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/",
+        {"equipement_id": 12345},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "interdite" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_set_date_assignation_when_assigne_ids_change_in_partial_update(api_factory):
+    bon = BonTravailFactory(date_assignation=None)
+    technicien = UtilisateurFactory()
+
+    view = BonTravailViewSet.as_view({"patch": "partial_update"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/",
+        {"utilisateur_assigne_ids": [technicien.pk]},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    bon.refresh_from_db()
+
+    assert response.status_code == 200
+    assert bon.utilisateur_assigne.filter(pk=technicien.pk).exists()
+    assert bon.date_assignation is not None
