@@ -2001,6 +2001,11 @@ class PlanMaintenanceViewSet(GimaoModelViewSet):
                     field_name = field_path.replace('planMaintenance.', '')
                     if field_name == 'type_id':
                         field_name = 'type_plan_maintenance_id'
+
+                    # Les consommables sont traités plus bas dans un bloc dédié.
+                    # Ne pas tenter d'assigner directement le M2M.
+                    if field_name == 'consommables':
+                        continue
                     
                     # Vérifier si le champ existe dans le modèle
                     if hasattr(plan, field_name):

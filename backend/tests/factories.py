@@ -2,7 +2,7 @@ import factory
 from factory.django import DjangoModelFactory
 from django.utils import timezone
 
-from utilisateur.models import Role, Utilisateur
+from utilisateur.models import Role, Utilisateur, Permission
 from equipement.models import Equipement, Compteur, ModeleEquipement, FamilleEquipement, Declencher
 from donnees.models import Lieu, Fabricant, Fournisseur
 from maintenance.models import PlanMaintenance, TypePlanMaintenance, DemandeIntervention, BonTravail, PlanMaintenanceConsommable
@@ -29,6 +29,13 @@ class UtilisateurFactory(DjangoModelFactory):
     email = factory.Sequence(lambda n: f"jean.dupont{n}@gimao.local")
     actif = True
     role = factory.SubFactory(RoleFactory)
+
+
+class PermissionFactory(DjangoModelFactory):
+    class Meta:
+        model = Permission
+
+    nomPermission = factory.Sequence(lambda n: f"perm_{n}")
 
 
 # ==========================================

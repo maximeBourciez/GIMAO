@@ -1,13 +1,15 @@
 import datetime
 from decimal import Decimal
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from tests.factories import RoleFactory, UtilisateurFactory
 from utilisateur.middleware import set_thread_user
 from utilisateur.models import Log
-from utilisateur.signals import get_safe_app_user, make_serializable
+from utilisateur.signals import capture_old_state, get_safe_app_user, log_delete, log_save, make_serializable
 
 
 @pytest.mark.django_db
@@ -27,6 +29,18 @@ def test_make_serializable_handles_common_types():
     assert serialized["datetime"].startswith("2026-03-17T10:30:00")
     assert serialized["list"][0] == "1.5"
     assert serialized["list"][1] == role.pk
+
+
+@pytest.mark.django_db
+def test_make_serializable_handles_field_file_values():
+    user = UtilisateurFactory(
+        photoProfil=SimpleUploadedFile("avatar.txt", b"abc", content_type="text/plain")
+    )
+
+    serialized = make_serializable(user.photoProfil)
+
+    assert "utilisateur_photos/" in serialized
+    assert serialized.endswith(".txt")
 
 
 @pytest.mark.django_db
@@ -130,8 +144,6 @@ def test_log_model_is_ignored_by_signals_to_avoid_recursion():
 
 @pytest.mark.django_db
 def test_log_save_fallbacks_to_request_user_utilisateur_when_no_thread_user():
-    from unittest.mock import patch
-
     Log.objects.all().delete()
     app_user = UtilisateurFactory()
 
@@ -149,8 +161,6 @@ def test_log_save_fallbacks_to_request_user_utilisateur_when_no_thread_user():
 
 @pytest.mark.django_db
 def test_log_save_fallbacks_to_request_user_username_mapping_when_no_utilisateur_attr():
-    from unittest.mock import patch
-
     Log.objects.all().delete()
     app_user = UtilisateurFactory(nomUtilisateur="mapped_signals_user")
 
@@ -168,8 +178,6 @@ def test_log_save_fallbacks_to_request_user_username_mapping_when_no_utilisateur
 
 @pytest.mark.django_db
 def test_log_delete_uses_username_mapping_when_authenticated_user_has_no_utilisateur_attr():
-    from unittest.mock import patch
-
     Log.objects.all().delete()
     app_user = UtilisateurFactory(nomUtilisateur="mapped_delete_user")
     role_to_delete = RoleFactory(nomRole="RoleDeleteFallback")
@@ -181,3 +189,42 @@ def test_log_delete_uses_username_mapping_when_authenticated_user_has_no_utilisa
 
     entry = Log.objects.filter(type="suppression", nomTable="gimao_role").latest("date")
     assert entry.utilisateur_id == app_user.pk
+
+
+@pytest.mark.django_db
+def test_capture_old_state_ignores_missing_instance_without_crashing():
+    role = RoleFactory.build()
+    role.pk = 999999
+
+    capture_old_state(RoleFactory._meta.model, role)
+
+    assert not hasattr(role, "_old_state")
+
+
+@pytest.mark.django_db
+def test_log_save_fallback_request_errors_are_ignored():
+    role = RoleFactory.build(nomRole="NoCrash")
+    role.pk = 1234
+    role._meta = RoleFactory._meta.model._meta
+
+    with patch("utilisateur.middleware.get_current_request", side_effect=RuntimeError("boom")):
+        with patch("utilisateur.signals.Log.objects.create") as mock_create:
+            log_save(RoleFactory._meta.model, role, created=True)
+
+    assert mock_create.called
+
+
+@pytest.mark.django_db
+def test_log_save_does_not_crash_when_log_creation_fails():
+    role = RoleFactory()
+
+    with patch("utilisateur.signals.Log.objects.create", side_effect=RuntimeError("db fail")):
+        log_save(RoleFactory._meta.model, role, created=False)
+
+
+@pytest.mark.django_db
+def test_log_delete_does_not_crash_when_log_creation_fails():
+    role = RoleFactory()
+
+    with patch("utilisateur.signals.Log.objects.create", side_effect=RuntimeError("db fail")):
+        log_delete(RoleFactory._meta.model, role)

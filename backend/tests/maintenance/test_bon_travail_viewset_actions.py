@@ -795,3 +795,297 @@ def test_should_set_date_assignation_when_assigne_ids_change_in_partial_update(a
     assert response.status_code == 200
     assert bon.utilisateur_assigne.filter(pk=technicien.pk).exists()
     assert bon.date_assignation is not None
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_assigne_a_without_utilisateur_id(api_factory):
+    view = BonTravailViewSet.as_view({"get": "assigne_a"})
+    request = api_factory.get("/api/maintenance/bons-travail/assigne_a/")
+
+    response = view(request)
+
+    assert response.status_code == 400
+    assert "utilisateur_id" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_filter_assigned_bons_by_utilisateur(api_factory):
+    technicien = UtilisateurFactory()
+    other = UtilisateurFactory()
+    bt_target = BonTravailFactory()
+    bt_other = BonTravailFactory()
+    bt_target.utilisateur_assigne.add(technicien)
+    bt_other.utilisateur_assigne.add(other)
+
+    view = BonTravailViewSet.as_view({"get": "assigne_a"})
+    request = api_factory.get(
+        "/api/maintenance/bons-travail/assigne_a/",
+        {"utilisateur_id": technicien.pk},
+    )
+
+    response = view(request)
+
+    assert response.status_code == 200
+    ids = [item["id"] for item in response.data]
+    assert ids == [bt_target.id]
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_delink_document_without_document_id(api_factory):
+    bon = BonTravailFactory()
+
+    view = BonTravailViewSet.as_view({"patch": "delink_document"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/delink_document/",
+        {},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "document_id" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_return_404_when_delink_document_not_linked(api_factory):
+    bon = BonTravailFactory()
+
+    view = BonTravailViewSet.as_view({"patch": "delink_document"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/delink_document/",
+        {"document_id": 999999},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 404
+    assert "n'est pas lié" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_delink_document_from_bon_travail(api_factory):
+    bon = BonTravailFactory()
+    type_document = TypeDocument.objects.create(nomTypeDocument="Notice")
+    document = Document.objects.create(
+        nomDocument="Doc BT",
+        cheminAcces=SimpleUploadedFile("doc.txt", b"abc", content_type="text/plain"),
+        typeDocument=type_document,
+    )
+    bon.documents.add(document)
+
+    view = BonTravailViewSet.as_view({"patch": "delink_document"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/delink_document/",
+        {"document_id": document.pk},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    bon.refresh_from_db()
+
+    assert response.status_code == 200
+    assert bon.documents.filter(pk=document.pk).exists() is False
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_ajouter_document_without_document_id(api_factory):
+    bon = BonTravailFactory()
+
+    view = BonTravailViewSet.as_view({"post": "ajouter_document"})
+    request = api_factory.post(
+        f"/api/maintenance/bons-travail/{bon.pk}/ajouter_document/",
+        {},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "document_id" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_ajouter_document_with_non_integer_id(api_factory):
+    bon = BonTravailFactory()
+
+    view = BonTravailViewSet.as_view({"post": "ajouter_document"})
+    request = api_factory.post(
+        f"/api/maintenance/bons-travail/{bon.pk}/ajouter_document/",
+        {"document_id": "abc"},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "entier" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_ajouter_document_with_unknown_document(api_factory):
+    bon = BonTravailFactory()
+
+    view = BonTravailViewSet.as_view({"post": "ajouter_document"})
+    request = api_factory.post(
+        f"/api/maintenance/bons-travail/{bon.pk}/ajouter_document/",
+        {"document_id": 999999},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "introuvable" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_add_document_to_bon_travail(api_factory):
+    bon = BonTravailFactory()
+    type_document = TypeDocument.objects.create(nomTypeDocument="Notice")
+    document = Document.objects.create(
+        nomDocument="Doc BT",
+        cheminAcces=SimpleUploadedFile("doc2.txt", b"abc", content_type="text/plain"),
+        typeDocument=type_document,
+    )
+
+    view = BonTravailViewSet.as_view({"post": "ajouter_document"})
+    request = api_factory.post(
+        f"/api/maintenance/bons-travail/{bon.pk}/ajouter_document/",
+        {"document_id": document.pk},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    bon.refresh_from_db()
+
+    assert response.status_code == 200
+    assert bon.documents.filter(pk=document.pk).exists()
+
+
+@pytest.mark.django_db
+def test_should_be_idempotent_when_adding_already_linked_document(api_factory):
+    bon = BonTravailFactory()
+    type_document = TypeDocument.objects.create(nomTypeDocument="Notice")
+    document = Document.objects.create(
+        nomDocument="Doc BT",
+        cheminAcces=SimpleUploadedFile("doc3.txt", b"abc", content_type="text/plain"),
+        typeDocument=type_document,
+    )
+    bon.documents.add(document)
+
+    view = BonTravailViewSet.as_view({"post": "ajouter_document"})
+    request = api_factory.post(
+        f"/api/maintenance/bons-travail/{bon.pk}/ajouter_document/",
+        {"document_id": document.pk},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 200
+    assert bon.documents.filter(pk=document.pk).count() == 1
+
+
+@pytest.mark.django_db
+def test_should_list_stock_without_termine_and_cloture(api_factory):
+    bt_en_attente = BonTravailFactory(statut="EN_ATTENTE")
+    bt_en_cours = BonTravailFactory(statut="EN_COURS")
+    BonTravailFactory(statut="TERMINE")
+    BonTravailFactory(statut="CLOTURE")
+
+    view = BonTravailViewSet.as_view({"get": "list_stock"})
+    request = api_factory.get("/api/maintenance/bons-travail/list_stock/")
+
+    response = view(request)
+
+    assert response.status_code == 200
+    ids = {item["id"] for item in response.data}
+    assert bt_en_attente.id in ids
+    assert bt_en_cours.id in ids
+    assert len(ids) == 2
+
+
+@pytest.mark.django_db
+def test_should_set_archive_flag_via_set_archive_action(api_factory):
+    bon = BonTravailFactory(archive=False)
+
+    view = BonTravailViewSet.as_view({"patch": "set_archive"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/set-archive/",
+        {"archive": True},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    bon.refresh_from_db()
+
+    assert response.status_code == 200
+    assert response.data["archive"] is True
+    assert bon.archive is True
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_set_archive_without_archive_value(api_factory):
+    bon = BonTravailFactory(archive=False)
+
+    view = BonTravailViewSet.as_view({"patch": "set_archive"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/set-archive/",
+        {},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "archive" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_exclude_archived_bons_from_list(api_factory):
+    visible = BonTravailFactory(archive=False, statut="EN_ATTENTE")
+    BonTravailFactory(archive=True, statut="EN_ATTENTE")
+
+    view = BonTravailViewSet.as_view({"get": "list"})
+    request = api_factory.get("/api/maintenance/bons-travail/")
+
+    response = view(request)
+
+    assert response.status_code == 200
+    ids = {item["id"] for item in response.data}
+    assert visible.id in ids
+    assert len(ids) == 1
+
+
+@pytest.mark.django_db
+def test_should_exclude_cloture_from_list_by_default(api_factory):
+    bt_open = BonTravailFactory(statut="EN_COURS")
+    BonTravailFactory(statut="CLOTURE")
+
+    view = BonTravailViewSet.as_view({"get": "list"})
+    request = api_factory.get("/api/maintenance/bons-travail/")
+
+    response = view(request)
+
+    assert response.status_code == 200
+    ids = {item["id"] for item in response.data}
+    assert bt_open.id in ids
+    assert len(ids) == 1
+
+
+@pytest.mark.django_db
+def test_should_include_cloture_when_cloture_query_param_is_true(api_factory):
+    bt_open = BonTravailFactory(statut="EN_COURS")
+    bt_closed = BonTravailFactory(statut="CLOTURE")
+
+    view = BonTravailViewSet.as_view({"get": "list"})
+    request = api_factory.get("/api/maintenance/bons-travail/", {"cloture": "true"})
+
+    response = view(request)
+
+    assert response.status_code == 200
+    ids = {item["id"] for item in response.data}
+    assert bt_open.id in ids
+    assert bt_closed.id in ids
