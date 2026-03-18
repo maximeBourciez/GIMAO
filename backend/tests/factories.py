@@ -5,7 +5,8 @@ from django.utils import timezone
 from utilisateur.models import Role, Utilisateur
 from equipement.models import Equipement, Compteur, ModeleEquipement, FamilleEquipement, Declencher
 from donnees.models import Lieu, Fabricant, Fournisseur
-from maintenance.models import PlanMaintenance, TypePlanMaintenance, DemandeIntervention, BonTravail
+from maintenance.models import PlanMaintenance, TypePlanMaintenance, DemandeIntervention, BonTravail, PlanMaintenanceConsommable
+from stock.models import Consommable
 
 # ==========================================
 # UTILISATEUR & ROLES
@@ -142,3 +143,19 @@ class BonTravailFactory(DjangoModelFactory):
     statut = 'EN_ATTENTE'
     demande_intervention = factory.SubFactory(DemandeInterventionFactory)
     responsable = factory.SubFactory(UtilisateurFactory)
+
+
+class ConsommableFactory(DjangoModelFactory):
+    class Meta:
+        model = Consommable
+
+    designation = factory.Sequence(lambda n: f"Consommable_{n}")
+
+
+class PlanMaintenanceConsommableFactory(DjangoModelFactory):
+    class Meta:
+        model = PlanMaintenanceConsommable
+
+    plan_maintenance = factory.SubFactory(PlanMaintenanceFactory)
+    consommable = factory.SubFactory(ConsommableFactory)
+    quantite_necessaire = 2

@@ -2,16 +2,18 @@ import pytest
 from django.utils import timezone
 
 from tasks.counterCron import update_counter
-from maintenance.models import DemandeIntervention, BonTravail
+from maintenance.models import DemandeIntervention, BonTravail, BonTravailConsommable
 from tests.factories import (
-    RoleFactory, 
-    UtilisateurFactory, 
-    EquipementFactory, 
-    PlanMaintenanceFactory, 
-    CompteurFactory, 
+    RoleFactory,
+    UtilisateurFactory,
+    EquipementFactory,
+    PlanMaintenanceFactory,
+    CompteurFactory,
     DeclencherFactory,
     DemandeInterventionFactory,
     BonTravailFactory,
+    ConsommableFactory,
+    PlanMaintenanceConsommableFactory,
 )
 
 @pytest.mark.django_db
@@ -135,3 +137,142 @@ def test_should_not_create_bt_when_counter_is_below_threshold():
     # THEN — aucune DI ni BT créé
     assert DemandeIntervention.objects.filter(equipement=equipement).count() == 0
     assert BonTravail.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_should_skip_counter_when_valeur_courante_is_none():
+    """
+    Un compteur avec valeurCourante=None doit être ignoré silencieusement.
+    Aucune DI ni BT ne doit être créé.
+    """
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    # GIVEN
+    RoleFactory(nomRole="Responsable GMAO")
+    UtilisateurFactory()
+
+    fake_counter = SimpleNamespace(
+        id=999,
+        valeurCourante=None,
+        declenchements=SimpleNamespace(all=lambda: []),
+    )
+
+    # WHEN
+    with patch("tasks.counterCron.Compteur.objects.filter", return_value=[fake_counter]):
+        update_counter()
+
+    # THEN — aucune action
+    assert DemandeIntervention.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_should_skip_declencher_when_parametres_are_none():
+    """
+    Si derniereIntervention, ecartInterventions ou prochaineMaintenance est None
+    dans le Declencher, le compteur doit être ignoré.
+    """
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    # GIVEN
+    RoleFactory(nomRole="Responsable GMAO")
+    UtilisateurFactory()
+
+    fake_declencher = SimpleNamespace(
+        planMaintenance=SimpleNamespace(nom="Plan test", commentaire=""),
+        derniereIntervention=None,
+        ecartInterventions=100.0,
+        prochaineMaintenance=100.0,
+    )
+    fake_counter = SimpleNamespace(
+        id=1000,
+        valeurCourante=90.0,
+        declenchements=SimpleNamespace(all=lambda: [fake_declencher]),
+    )
+
+    # WHEN
+    with patch("tasks.counterCron.Compteur.objects.filter", return_value=[fake_counter]):
+        update_counter()
+
+    # THEN
+    assert DemandeIntervention.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_should_not_create_bt_when_no_system_user_exists():
+    """
+    Si aucun utilisateur n'est trouvé par le cron (ni Responsable GMAO, ni fallback),
+    aucun BT ne doit être créé et une erreur doit être loggée.
+    On mock Utilisateur dans le module pour éviter les contraintes FK PROTECT.
+    """
+    from unittest.mock import patch, MagicMock
+
+    # GIVEN — compteur en alerte, équipement valide (un vrai user est en base pour les FK)
+    equipement = EquipementFactory()
+    plan = PlanMaintenanceFactory(equipement=equipement)
+    compteur = CompteurFactory(equipement=equipement, valeurCourante=90.0)
+    DeclencherFactory(
+        compteur=compteur,
+        planMaintenance=plan,
+        derniereIntervention=0,
+        ecartInterventions=100.0,
+        prochaineMaintenance=100.0,
+    )
+
+    # On simule que le cron ne trouve aucun utilisateur système
+    mock_empty_qs = MagicMock()
+    mock_empty_qs.first.return_value = None
+
+    # WHEN
+    with patch("tasks.counterCron.Utilisateur") as mock_utilisateur:
+        mock_utilisateur.objects.filter.return_value = mock_empty_qs
+        mock_utilisateur.objects.first.return_value = None
+        update_counter()
+
+    # THEN — pas de DI ni BT créé
+    assert DemandeIntervention.objects.filter(equipement=equipement).count() == 0
+    assert BonTravail.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_should_copy_plan_consommables_to_bt():
+    """
+    Quand un BT est créé automatiquement, les consommables du PlanMaintenance
+    doivent être copiés dans le BonTravailConsommable avec la bonne quantité.
+    """
+    # GIVEN
+    role_resp = RoleFactory(nomRole="Responsable GMAO")
+    UtilisateurFactory(role=role_resp)
+
+    equipement = EquipementFactory()
+    plan = PlanMaintenanceFactory(nom="Remplacement Filtre", equipement=equipement)
+
+    # 2 consommables associés au plan
+    conso1 = ConsommableFactory(designation="Filtre à huile")
+    conso2 = ConsommableFactory(designation="Joint")
+    PlanMaintenanceConsommableFactory(plan_maintenance=plan, consommable=conso1, quantite_necessaire=1)
+    PlanMaintenanceConsommableFactory(plan_maintenance=plan, consommable=conso2, quantite_necessaire=3)
+
+    compteur = CompteurFactory(equipement=equipement, valeurCourante=90.0)
+    DeclencherFactory(
+        compteur=compteur,
+        planMaintenance=plan,
+        derniereIntervention=0,
+        ecartInterventions=100.0,
+        prochaineMaintenance=100.0,
+    )
+
+    # WHEN
+    update_counter()
+
+    # THEN — le BT existe et contient les 2 consommables avec les bonnes quantités
+    bt = BonTravail.objects.filter(demande_intervention__equipement=equipement).first()
+    assert bt is not None
+
+    bt_conso = BonTravailConsommable.objects.filter(bon_travail=bt)
+    assert bt_conso.count() == 2
+
+    qtés = {bc.consommable.designation: bc.quantite_utilisee for bc in bt_conso}
+    assert qtés["Filtre à huile"] == 1
+    assert qtés["Joint"] == 3
