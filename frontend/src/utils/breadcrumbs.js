@@ -79,6 +79,7 @@ export const BREADCRUMBS = {
     ModelEquipmentDetail: "Modèle d'équipement",
     EditModelEquipment: "Modifier le modèle d'équipement",
 
+    // Calendrier 
     Calendar: "Calendrier"
 };
 
