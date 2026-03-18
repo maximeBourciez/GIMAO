@@ -233,3 +233,270 @@ def test_should_toggle_pieces_recuperees_and_recuperation_date(api_factory):
     assert response_false.status_code == 200
     assert bon.pieces_recuperees is False
     assert bon.date_recuperation is None
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_repartition_total_does_not_match_needed_quantity(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=4,
+    )
+    magasin = Magasin.objects.create(nom="Magasin A")
+    Stocker.objects.create(consommable=consommable, magasin=magasin, quantite=10)
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {
+            "consommable_id": consommable.pk,
+            "distribue": True,
+            "repartition": [{"magasin_id": magasin.pk, "quantite": 3}],
+        },
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "totaliser exactement 4" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_repartition_contains_duplicate_store(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=4,
+    )
+    magasin = Magasin.objects.create(nom="Magasin A")
+    Stocker.objects.create(consommable=consommable, magasin=magasin, quantite=10)
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {
+            "consommable_id": consommable.pk,
+            "distribue": True,
+            "repartition": [
+                {"magasin_id": magasin.pk, "quantite": 2},
+                {"magasin_id": magasin.pk, "quantite": 2},
+            ],
+        },
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "une seule fois" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_repartition_quantity_is_not_positive(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=2,
+    )
+    magasin = Magasin.objects.create(nom="Magasin A")
+    Stocker.objects.create(consommable=consommable, magasin=magasin, quantite=10)
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {
+            "consommable_id": consommable.pk,
+            "distribue": True,
+            "repartition": [{"magasin_id": magasin.pk, "quantite": 0}],
+        },
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "strictement positive" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_apply_repartition_split_and_create_reservations(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    assoc = BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=5,
+    )
+    magasin_a = Magasin.objects.create(nom="Magasin A")
+    magasin_b = Magasin.objects.create(nom="Magasin B")
+    stock_a = Stocker.objects.create(consommable=consommable, magasin=magasin_a, quantite=4)
+    stock_b = Stocker.objects.create(consommable=consommable, magasin=magasin_b, quantite=6)
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {
+            "consommable_id": consommable.pk,
+            "distribue": True,
+            "repartition": [
+                {"magasin_id": magasin_a.pk, "quantite": 2},
+                {"magasin_id": magasin_b.pk, "quantite": 3},
+            ],
+        },
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    assoc.refresh_from_db()
+    stock_a.refresh_from_db()
+    stock_b.refresh_from_db()
+
+    assert response.status_code == 200
+    assert assoc.estConfirme is True
+    assert assoc.date_confirme is not None
+    assert assoc.magasin_reserve_id is None
+    assert stock_a.quantite == 2
+    assert stock_b.quantite == 3
+    assert assoc.reservations.count() == 2
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_update_status_payload_has_no_statut(api_factory):
+    bon = BonTravailFactory(statut="EN_ATTENTE")
+
+    view = BonTravailViewSet.as_view({"patch": "updateStatus"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/updateStatus/",
+        {},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "statut" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_move_from_en_attente_to_en_cours_and_set_date_debut(api_factory):
+    bon = BonTravailFactory(statut="EN_ATTENTE", date_debut=None)
+
+    view = BonTravailViewSet.as_view({"patch": "updateStatus"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/updateStatus/",
+        {"statut": "EN_COURS"},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    bon.refresh_from_db()
+
+    assert response.status_code == 200
+    assert bon.statut == "EN_COURS"
+    assert bon.date_debut is not None
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_refusing_closure_without_comment(api_factory):
+    bon = BonTravailFactory(statut="TERMINE")
+
+    view = BonTravailViewSet.as_view({"patch": "updateStatus"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/updateStatus/",
+        {"statut": "EN_COURS"},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "commentaire de refus" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_reopen_terminated_bt_with_refusal_comment(api_factory):
+    bon = BonTravailFactory(
+        statut="TERMINE",
+        date_fin="2026-01-01T10:00:00Z",
+        date_cloture="2026-01-01T11:00:00Z",
+        commentaire_refus_cloture=None,
+    )
+
+    view = BonTravailViewSet.as_view({"patch": "updateStatus"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/updateStatus/",
+        {"statut": "EN_COURS", "commentaire_refus_cloture": "Manque une verification"},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    bon.refresh_from_db()
+
+    assert response.status_code == 200
+    assert bon.statut == "EN_COURS"
+    assert bon.date_fin is None
+    assert bon.date_cloture is None
+    assert bon.commentaire_refus_cloture == "Manque une verification"
+
+
+@pytest.mark.django_db
+def test_should_move_from_en_cours_to_termine_and_set_date_fin(api_factory):
+    bon = BonTravailFactory(statut="EN_COURS", date_fin=None)
+
+    view = BonTravailViewSet.as_view({"patch": "updateStatus"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/updateStatus/",
+        {"statut": "TERMINE"},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    bon.refresh_from_db()
+
+    assert response.status_code == 200
+    assert bon.statut == "TERMINE"
+    assert bon.date_fin is not None
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_trying_to_finish_bt_not_in_progress(api_factory):
+    bon = BonTravailFactory(statut="EN_ATTENTE")
+
+    view = BonTravailViewSet.as_view({"patch": "updateStatus"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/updateStatus/",
+        {"statut": "TERMINE"},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "en cours" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_cloture_and_fill_date_fin_if_missing(api_factory):
+    bon = BonTravailFactory(statut="TERMINE", date_fin=None, date_cloture=None)
+
+    view = BonTravailViewSet.as_view({"patch": "updateStatus"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/updateStatus/",
+        {"statut": "CLOTURE"},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    bon.refresh_from_db()
+
+    assert response.status_code == 200
+    assert bon.statut == "CLOTURE"
+    assert bon.date_cloture is not None
+    assert bon.date_fin is not None
