@@ -107,10 +107,10 @@ class UtilisateurViewSet(GimaoModelViewSet):
             }, status=status.HTTP_200_OK)
 
         if not motDePasse or motDePasse.strip() == '':
-            return Response({"detail": "Mot de passe requis"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Mot de passe requis", "error": True}, status=status.HTTP_403_FORBIDDEN)
 
         if not user.check_password(motDePasse):
-            return Response({"detail": "Mot de passe incorrect"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "Mot de passe incorrect", "error": True}, status=status.HTTP_403_FORBIDDEN)
 
         from django.utils import timezone
         user.derniereConnexion = timezone.now()
@@ -122,7 +122,8 @@ class UtilisateurViewSet(GimaoModelViewSet):
             "message": "Connexion réussie",
             "besoinDefinirMotDePasse": False,
             "utilisateur": UtilisateurSerializer(user).data,
-            "token": token
+            "token": token,
+            "error": False
         }, status=status.HTTP_200_OK)
 
     # ---------- DÉFINIR MOT DE PASSE (PREMIÈRE CONNEXION) ----------
