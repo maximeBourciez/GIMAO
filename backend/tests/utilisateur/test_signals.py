@@ -39,12 +39,13 @@ def test_get_safe_app_user_returns_none_for_invalid_inputs():
 
 @pytest.mark.django_db
 def test_get_safe_app_user_returns_none_for_deleted_user():
-    user = UtilisateurFactory()
-    user_id = user.pk
-    user.delete()
+    from unittest.mock import patch
 
-    assert get_safe_app_user(user) is None
-    assert user_id is not None
+    user = UtilisateurFactory()
+
+    with patch("utilisateur.signals.Utilisateur.objects.filter") as mock_filter:
+        mock_filter.return_value.exists.return_value = False
+        assert get_safe_app_user(user) is None
 
 
 @pytest.mark.django_db
