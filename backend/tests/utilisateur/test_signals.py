@@ -1,5 +1,6 @@
 import datetime
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 
@@ -125,3 +126,58 @@ def test_log_model_is_ignored_by_signals_to_avoid_recursion():
     )
 
     assert Log.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_log_save_fallbacks_to_request_user_utilisateur_when_no_thread_user():
+    from unittest.mock import patch
+
+    Log.objects.all().delete()
+    app_user = UtilisateurFactory()
+
+    request = SimpleNamespace(
+        user=SimpleNamespace(is_authenticated=True, utilisateur=app_user)
+    )
+
+    with patch("utilisateur.middleware.get_current_request", return_value=request):
+        role = RoleFactory(nomRole="RoleFallbackUtilisateur")
+
+    entry = Log.objects.filter(type="création", nomTable="gimao_role").latest("date")
+    assert entry.idCible["id"] == role.pk
+    assert entry.utilisateur_id == app_user.pk
+
+
+@pytest.mark.django_db
+def test_log_save_fallbacks_to_request_user_username_mapping_when_no_utilisateur_attr():
+    from unittest.mock import patch
+
+    Log.objects.all().delete()
+    app_user = UtilisateurFactory(nomUtilisateur="mapped_signals_user")
+
+    request = SimpleNamespace(
+        user=SimpleNamespace(is_authenticated=True, username="mapped_signals_user")
+    )
+
+    with patch("utilisateur.middleware.get_current_request", return_value=request):
+        role = RoleFactory(nomRole="RoleFallbackUsername")
+
+    entry = Log.objects.filter(type="création", nomTable="gimao_role").latest("date")
+    assert entry.idCible["id"] == role.pk
+    assert entry.utilisateur_id == app_user.pk
+
+
+@pytest.mark.django_db
+def test_log_delete_uses_username_mapping_when_authenticated_user_has_no_utilisateur_attr():
+    from unittest.mock import patch
+
+    Log.objects.all().delete()
+    app_user = UtilisateurFactory(nomUtilisateur="mapped_delete_user")
+    role_to_delete = RoleFactory(nomRole="RoleDeleteFallback")
+
+    django_user = SimpleNamespace(is_authenticated=True, username="mapped_delete_user")
+
+    with patch("utilisateur.signals.get_current_user", return_value=django_user):
+        role_to_delete.delete()
+
+    entry = Log.objects.filter(type="suppression", nomTable="gimao_role").latest("date")
+    assert entry.utilisateur_id == app_user.pk
