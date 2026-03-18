@@ -68,6 +68,7 @@
               color="warning"
               class="magasin-item-archive"
               @click.stop="handleArchiveMagasin(magasin)"
+              v-if="magasin && !magasin.archive && store.getters.hasPermission('mag:archive')"
             >
               <v-icon size="16">mdi-archive-outline</v-icon>
               <v-tooltip activator="parent" location="top">Archiver</v-tooltip>
@@ -92,6 +93,9 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useStore } from 'vuex';
+
+const store = useStore();
 
 const props = defineProps({
   magasins: {
