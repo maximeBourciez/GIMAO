@@ -500,3 +500,172 @@ def test_should_cloture_and_fill_date_fin_if_missing(api_factory):
     assert bon.statut == "CLOTURE"
     assert bon.date_cloture is not None
     assert bon.date_fin is not None
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_distribution_quantity_is_not_set(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=0,
+    )
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {"consommable_id": consommable.pk, "distribue": True},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "Quantite non renseignee" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_return_404_when_explicit_store_stock_is_missing(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=2,
+    )
+    magasin = Magasin.objects.create(nom="Magasin A")
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {
+            "consommable_id": consommable.pk,
+            "distribue": True,
+            "magasin_id": magasin.pk,
+        },
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 404
+    assert "Stock introuvable" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_explicit_store_has_insufficient_stock(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=4,
+    )
+    magasin = Magasin.objects.create(nom="Magasin A")
+    Stocker.objects.create(consommable=consommable, magasin=magasin, quantite=1)
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {
+            "consommable_id": consommable.pk,
+            "distribue": True,
+            "magasin_id": magasin.pk,
+        },
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "Stock insuffisant" in response.data["error"]
+    insuffisant = response.data["insuffisants"][0]
+    assert insuffisant["magasin_id"] == magasin.pk
+
+
+@pytest.mark.django_db
+def test_should_confirm_distribution_with_explicit_store_selection(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    assoc = BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=3,
+    )
+    magasin = Magasin.objects.create(nom="Magasin A")
+    stock = Stocker.objects.create(consommable=consommable, magasin=magasin, quantite=5)
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {
+            "consommable_id": consommable.pk,
+            "distribue": True,
+            "magasin_id": magasin.pk,
+        },
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+    assoc.refresh_from_db()
+    stock.refresh_from_db()
+
+    assert response.status_code == 200
+    assert assoc.estConfirme is True
+    assert assoc.magasin_reserve_id == magasin.pk
+    assert stock.quantite == 2
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_no_single_store_can_cover_and_total_is_insufficient(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=9,
+    )
+    magasin_a = Magasin.objects.create(nom="Magasin A")
+    magasin_b = Magasin.objects.create(nom="Magasin B")
+    Stocker.objects.create(consommable=consommable, magasin=magasin_a, quantite=2)
+    Stocker.objects.create(consommable=consommable, magasin=magasin_b, quantite=3)
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {"consommable_id": consommable.pk, "distribue": True},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert response.data["error"] == "Stock insuffisant"
+
+
+@pytest.mark.django_db
+def test_should_return_400_when_stock_is_split_across_stores_without_single_match(api_factory):
+    bon = BonTravailFactory()
+    consommable = ConsommableFactory()
+    BonTravailConsommable.objects.create(
+        bon_travail=bon,
+        consommable=consommable,
+        quantite_utilisee=6,
+    )
+    magasin_a = Magasin.objects.create(nom="Magasin A")
+    magasin_b = Magasin.objects.create(nom="Magasin B")
+    Stocker.objects.create(consommable=consommable, magasin=magasin_a, quantite=3)
+    Stocker.objects.create(consommable=consommable, magasin=magasin_b, quantite=4)
+
+    view = BonTravailViewSet.as_view({"patch": "update_consommable_distribution"})
+    request = api_factory.patch(
+        f"/api/maintenance/bons-travail/{bon.pk}/update_consommable_distribution/",
+        {"consommable_id": consommable.pk, "distribue": True},
+        format="json",
+    )
+
+    response = view(request, pk=bon.pk)
+
+    assert response.status_code == 400
+    assert "réparti sur plusieurs magasins" in response.data["error"]
