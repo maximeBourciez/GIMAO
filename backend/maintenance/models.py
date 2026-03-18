@@ -17,9 +17,17 @@ class DemandeIntervention(ArchivableMixin, models.Model):
         ('TRANSFORMEE', 'Transformée'),
     ]
     
+    STATUTS_EQUIPEMENT_CHOICES = [
+        ('EN_FONCTIONNEMENT', 'En fonctionnement'),
+        ('DEGRADE', 'Dégradé'),
+        ('A_LARRET', 'A l\'arrêt'),
+        ('HORS_SERVICE', 'Hors service'),
+    ]
+    
     commentaire = models.TextField(blank=True, null=True)
     nom = models.CharField(max_length=255)
     statut = models.CharField(max_length=50, choices=STATUT_CHOICES)
+    statut_suppose = models.CharField(max_length=50, choices=STATUTS_EQUIPEMENT_CHOICES, default="EN_FONCTIONNEMENT")
     date_creation = models.DateTimeField()
     date_changementStatut = models.DateTimeField()
     
@@ -333,3 +341,31 @@ class BonTravailConsommable(models.Model):
     
     def __str__(self):
         return f"{self.bon_travail} - {self.consommable} (x{self.quantite_utilisee})"
+
+
+class BonTravailConsommableReservation(models.Model):
+    """Repartition d'un consommable de BT sur un ou plusieurs magasins."""
+
+    bon_travail_consommable = models.ForeignKey(
+        BonTravailConsommable,
+        on_delete=models.CASCADE,
+        related_name='reservations'
+    )
+    magasin = models.ForeignKey(
+        'stock.Magasin',
+        on_delete=models.CASCADE,
+        related_name='reservations_bt'
+    )
+    quantite = models.IntegerField(
+        validators=[MinValueValidator(1)],
+        help_text="Quantite reservee dans ce magasin pour ce consommable"
+    )
+
+    class Meta:
+        db_table = 'gimao_bon_travail_consommable_reservation'
+        unique_together = ['bon_travail_consommable', 'magasin']
+        verbose_name = 'Reservation de consommable'
+        verbose_name_plural = 'Reservations de consommables'
+
+    def __str__(self):
+        return f"{self.bon_travail_consommable} - {self.magasin} (x{self.quantite})"

@@ -5,7 +5,8 @@ from maintenance.models import (
     TypePlanMaintenance,
     PlanMaintenance,
     PlanMaintenanceConsommable,
-    BonTravailConsommable
+    BonTravailConsommable,
+    BonTravailConsommableReservation
 )
 from equipement.models import Equipement, Compteur, StatutEquipement
 from utilisateur.models import Utilisateur
@@ -88,6 +89,11 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
+    statut_suppose = serializers.ChoiceField(
+        choices=DemandeIntervention.STATUTS_EQUIPEMENT_CHOICES,
+        required=True
+    )
+    
     class Meta:
         model = DemandeIntervention
         fields = [
@@ -95,6 +101,7 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
             'nom',
             'commentaire',
             'statut',
+            'statut_suppose',
             'date_creation',
             'date_changementStatut',
             'equipement',
@@ -298,7 +305,7 @@ class BonTravailListStockSerializer(serializers.ModelSerializer):
         """Retourne les consommables avec leur statut de distribution"""
         associations = BonTravailConsommable.objects.filter(
             bon_travail=obj
-        ).select_related('consommable')
+        ).select_related('consommable').prefetch_related('reservations__magasin')
         return [
             {
                 'consommable': assoc.consommable.id,
@@ -308,6 +315,14 @@ class BonTravailListStockSerializer(serializers.ModelSerializer):
                 'distribue': assoc.estConfirme,
                 'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
                 'magasin_reserve': assoc.magasin_reserve_id,
+                'magasins_reserves': [
+                    {
+                        'magasin_id': reservation.magasin_id,
+                        'magasin_nom': reservation.magasin.nom,
+                        'quantite': reservation.quantite,
+                    }
+                    for reservation in assoc.reservations.all()
+                ],
             }
             for assoc in associations
         ]

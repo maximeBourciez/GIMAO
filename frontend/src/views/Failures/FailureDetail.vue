@@ -24,6 +24,16 @@
           </div>
 
           <div class="detail-field">
+            <label class="detail-label">Statut supposé de l'équipement</label>
+            <div class="detail-value">
+              <v-chip v-if="data.statut_suppose" :color="data.statut_suppose ? EQUIPMENT_STATUS_COLORS[data.statut_suppose] : 'grey'" dark>
+                {{ EQUIPMENT_STATUS[data.statut_suppose] }}
+              </v-chip>
+              <span v-else>Non spécifié</span>
+            </div>
+          </div>
+
+          <div class="detail-field">
             <label class="detail-label">Créateur</label>
             <div class="detail-value">{{ data.utilisateur.prenom ?? ''}} {{data.utilisateur.nomFamille ?? '' }}</div>
           </div>
@@ -150,18 +160,38 @@
   />
 
   <!-- Modale de confirmation pour transformer la demande -->
-  <ConfirmationModal
-    v-model="showCreateInterventionModal"
-    type="success"
-    title="Transformer la demande"
-    message="Êtes-vous sûr de vouloir transformer cette demande d'intervention en bon de travail ? \n\nCette action changera le statut de la demande."
-    confirm-text="Transformer"
-    cancel-text="Annuler"
-    confirm-icon="mdi-check" 
-    :loading="createInterventionLoading"  
-    @confirm="handleCreateIntervention()"
-    @cancel="showCreateInterventionModal = false"
-  />
+  <v-dialog v-model="showCreateInterventionModal" max-width="500">
+    <v-card>
+      <v-card-title class="text-h5 bg-primary text-white pb-3">
+        Transformer la demande
+      </v-card-title>
+
+      <v-card-text class="pt-4">
+        <p class="mb-4">Êtes-vous sûr de vouloir transformer cette demande d'intervention en bon de travail ?<br/><br/>Cette action changera le statut de la demande.</p>
+        
+        <FormSelect
+          v-model="statutEquipementSelectionne"
+          field-name="statut_equipement"
+          label="Nouveau statut de l'équipement"
+          :items="statutOptions"
+          item-title="title"
+          item-value="value"
+          placeholder="Valider ou modifier le statut de l'équipement"
+        />
+      </v-card-text>
+
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
+        <v-btn color="grey" variant="text" @click="showCreateInterventionModal = false">
+          Annuler
+        </v-btn>
+        <v-btn color="primary" @click="handleCreateIntervention()" :loading="createInterventionLoading">
+          <v-icon left class="mr-1">mdi-check</v-icon>
+          Transformer
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 
   <!-- Modale d'archivage -->
   <ConfirmationModal
@@ -175,9 +205,9 @@
   />
 
   <!-- Boutons flottants -->
-  <div class="floating-buttons" v-if="canEditFailure">
+  <div class="floating-buttons">
     <v-btn
-      v-if="!defaillance?.archive"
+      v-if="!defaillance?.archive && store.getters.hasPermission('di:archive')"
       color="warning"
       size="large"
       icon
@@ -198,6 +228,7 @@
       elevation="4"
       class="d-block"
       @click="editCurrentFailure()"
+      v-if="canEditFailure"
     >
       <v-icon size="large">mdi-pencil</v-icon>
       <v-tooltip activator="parent" location="left">
@@ -211,10 +242,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
+import { FormSelect } from '@/components/common';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import DocumentList from '@/components/DocumentList.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL, MEDIA_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
+import { API_BASE_URL, MEDIA_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS, EQUIPMENT_STATUS, EQUIPMENT_STATUS_COLORS } from '@/utils/constants';
 import { useStore } from 'vuex';
 import { getStatusColor, getStatusLabel } from '@/utils/helpers';
 import { BASE_URL } from '../../utils/constants';
@@ -248,6 +280,12 @@ const createInterventionLoading = ref(false);
 
 const showArchiveDialog = ref(false);
 const archiving = ref(false);
+
+const statutOptions = Object.entries(EQUIPMENT_STATUS).map(([key, value]) => ({
+    title: value,
+    value: key
+}));
+const statutEquipementSelectionne = ref(null);
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Non spécifié';
@@ -377,7 +415,8 @@ const handleCreateIntervention = async () => {
   try {
     const response =await patchApi.post(`demandes-intervention/${route.params.id}/transform_to_bon_travail/`, 
       {
-        responsable: store.getters.currentUser.id
+        responsable: store.getters.currentUser.id,
+        statut_equipement: statutEquipementSelectionne.value
       }
     );
     successMessage.value = 'Demande d\'intervention transformée avec succès';
@@ -401,6 +440,7 @@ const openRejectModal = () => {
   showRejectModal.value = true;
 };
 const openCreateInterventionModal = () => {
+  statutEquipementSelectionne.value = defaillance.value?.statut_suppose || defaillance.value?.equipement?.dernier_statut?.statut;
   showCreateInterventionModal.value = true;
 };
 

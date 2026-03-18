@@ -1,5 +1,6 @@
 
 
+import hashlib
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -19,6 +20,7 @@ from .serializers import (
     PermissionSerializer
 )
 from gimao.viewsets import GimaoModelViewSet
+from security.models import ApiToken, create_token
 
 
 # ==================== ROLE VIEWSET ====================
@@ -105,19 +107,23 @@ class UtilisateurViewSet(GimaoModelViewSet):
             }, status=status.HTTP_200_OK)
 
         if not motDePasse or motDePasse.strip() == '':
-            return Response({"detail": "Mot de passe requis"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Mot de passe requis", "error": True}, status=status.HTTP_403_FORBIDDEN)
 
         if not user.check_password(motDePasse):
-            return Response({"detail": "Mot de passe incorrect"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "Mot de passe incorrect", "error": True}, status=status.HTTP_403_FORBIDDEN)
 
         from django.utils import timezone
         user.derniereConnexion = timezone.now()
         user.save(update_fields=['derniereConnexion'])
 
+        token = create_token(user)
+
         return Response({
             "message": "Connexion réussie",
             "besoinDefinirMotDePasse": False,
-            "utilisateur": UtilisateurSerializer(user).data
+            "utilisateur": UtilisateurSerializer(user).data,
+            "token": token,
+            "error": False
         }, status=status.HTTP_200_OK)
 
     # ---------- DÉFINIR MOT DE PASSE (PREMIÈRE CONNEXION) ----------
@@ -154,10 +160,12 @@ class UtilisateurViewSet(GimaoModelViewSet):
         from django.utils import timezone
         user.derniereConnexion = timezone.now()
         user.save()
+        token = create_token(user)
 
         return Response({
             "message": "Mot de passe défini avec succès. Vous pouvez maintenant vous connecter.",
-            "utilisateur": UtilisateurSerializer(user).data
+            "utilisateur": UtilisateurSerializer(user).data,
+            "token": token
         }, status=status.HTTP_200_OK)
 
     # ---------- CHANGEMENT DE MOT DE PASSE ----------
@@ -262,6 +270,28 @@ class UtilisateurViewSet(GimaoModelViewSet):
             "permissions": PermissionSerializer(user.role.permissions.all(), many=True).data
         }, status=status.HTTP_200_OK)
 
+
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+
+        auth = request.headers.get("Authorization")
+
+        if not auth or not auth.startswith("Bearer "):
+            return Response({"detail": "Token manquant"}, status=401)
+
+        token = auth.split(" ")[1]
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+        try:
+            api_token = ApiToken.objects.get(token_hash=token_hash)
+
+            api_token.is_revoked = True
+            api_token.save()
+
+        except ApiToken.DoesNotExist:
+            pass  # On ne révèle rien pour la sécurité
+
+        return Response({"detail": "Déconnexion réussie"}, status=status.HTTP_200_OK)
 
 # ==================== LOG VIEWSET ====================
 

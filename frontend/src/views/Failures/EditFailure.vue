@@ -84,7 +84,8 @@ const fetchFailureData = async () => {
       nom: response.nom || '',
       commentaire: response.commentaire || '',
       equipement_id: response.equipement?.id || null,
-      documents: documentsLines.length ? documentsLines : []
+      documents: documentsLines.length ? documentsLines : [],
+      statut_suppose: response.statut_suppose || '',
     }
   } catch (error) {
     console.error('Erreur lors de la récupération des données:', error)
