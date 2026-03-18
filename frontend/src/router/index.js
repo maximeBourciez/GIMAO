@@ -64,6 +64,10 @@ import EditModelEquipment from '@/views/DataManagement/EquipmentsModels/EditMode
 import CounterDetail from '@/views/Equipments/Counters/CounterDetail.vue'
 import EditSupplier from '@/views/DataManagement/Suppliers/EditSupplier.vue'
 
+// Dashboard
+import Calendar from '@/views/Calendar/Calendar.vue'
+
+
 // ---------------------------------------------------------------
 // ROLES ET PERMISSIONS
 import RoleList from '@/views/Users/RoleList.vue'
@@ -469,6 +473,14 @@ const routes = [
     name: 'EditModelEquipment',
     component: EditModelEquipment,
     meta: { title: 'Modifier modele equipement', requiresPermissions: ['eqmod:edit'] }
+  },
+
+  // Dashboard -------------------------------------------------------------------------
+  {
+    path: '/Calendar',
+    name: 'Calendar',
+    component: Calendar,
+    meta: { title: 'Calendrier', requiresPermissions: ['menu:calendar'] }
   }
 ]
 
