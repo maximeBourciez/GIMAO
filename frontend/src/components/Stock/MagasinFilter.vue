@@ -41,7 +41,7 @@
           >
             <v-icon 
               size="20" 
-              :color="magasin.estMobile ? 'orange' : 'blue'" 
+              :color="magasin.estMobile ? 'warning' : 'primary'" 
               class="mr-3"
             >
               {{ magasin.estMobile ? 'mdi-truck' : 'mdi-warehouse' }}
@@ -65,9 +65,10 @@
               icon
               size="x-small"
               variant="text"
-              color="orange"
+              color="warning"
               class="magasin-item-archive"
               @click.stop="handleArchiveMagasin(magasin)"
+              v-if="magasin && !magasin.archive && store.getters.hasPermission('mag:archive')"
             >
               <v-icon size="16">mdi-archive-outline</v-icon>
               <v-tooltip activator="parent" location="top">Archiver</v-tooltip>
@@ -92,6 +93,9 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useStore } from 'vuex';
+
+const store = useStore();
 
 const props = defineProps({
   magasins: {
@@ -137,20 +141,20 @@ const handleArchiveMagasin = (magasin) => {
   align-items: center;
   padding: 12px 16px;
   border-radius: 8px;
-  border: 1px solid #E5E7EB;
-  background: #FFFFFF;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  background: rgb(var(--v-theme-surface));
   transition: all 0.15s ease;
   gap: 8px;
 }
 
 .magasin-item:hover {
-  border-color: #05004E;
-  background: #FAFBFF;
+  border-color: rgba(var(--v-theme-primary), 0.4);
+  background: rgba(var(--v-theme-primary), 0.06);
 }
 
 .magasin-item--selected {
-  border-color: #05004E;
-  background: #F1F5FF;
+  border-color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.12);
 }
 
 .magasin-item-select {
@@ -170,13 +174,13 @@ const handleArchiveMagasin = (magasin) => {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #05004E;
+  color: rgba(var(--v-theme-on-surface), 0.92);
 }
 
 .magasin-item__count {
   display: block;
   font-size: 0.75rem;
-  color: #6B7280;
+  color: rgba(var(--v-theme-on-surface), 0.68);
   margin-top: 2px;
 }
 

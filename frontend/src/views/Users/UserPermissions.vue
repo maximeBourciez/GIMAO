@@ -12,12 +12,14 @@
               <v-chip size="x-small" variant="tonal" color="primary" class="ml-2">
                 {{ utilisateur.role?.nomRole }}
               </v-chip>
-              <v-chip v-if="utilisateur.a_permissions_personnalisees" size="x-small" variant="tonal" color="warning" class="ml-1">
+              <v-chip v-if="utilisateur.a_permissions_personnalisees" size="x-small" variant="tonal" color="warning"
+                class="ml-1">
                 Permissions personnalisées
               </v-chip>
             </p>
           </div>
-          <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="$router.push({ name: 'UserDetail', params: { id: userId } })">
+          <v-btn variant="text" prepend-icon="mdi-arrow-left"
+            @click="$router.push({ name: 'UserDetail', params: { id: userId } })">
             Retour
           </v-btn>
         </div>
@@ -29,12 +31,14 @@
         </v-alert>
 
         <!-- Erreur globale -->
-        <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4" closable @click:close="errorMessage = ''">
+        <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4" closable
+          @click:close="errorMessage = ''">
           {{ errorMessage }}
         </v-alert>
 
         <!-- Succès -->
-        <v-alert v-if="successMessage" type="success" variant="tonal" class="mb-4" closable @click:close="successMessage = ''">
+        <v-alert v-if="successMessage" type="success" variant="tonal" class="mb-4" closable
+          @click:close="successMessage = ''">
           {{ successMessage }}
         </v-alert>
 
@@ -46,13 +50,10 @@
               <div>
                 <p class="text-body-1 font-weight-medium mb-1">
                   Source des permissions actuelles :
-                  <v-chip
-                    :color="utilisateur.a_permissions_personnalisees ? 'warning' : 'primary'"
-                    variant="tonal"
-                    size="small"
-                    class="ml-1"
-                  >
-                    {{ utilisateur.a_permissions_personnalisees ? 'Personnalisées' : `Rôle : ${utilisateur.role?.nomRole}` }}
+                  <v-chip :color="utilisateur.a_permissions_personnalisees ? 'warning' : 'primary'" variant="tonal"
+                    size="small" class="ml-1">
+                    {{ utilisateur.a_permissions_personnalisees ? 'Personnalisées' : `Rôle :
+                    ${utilisateur.role?.nomRole}` }}
                   </v-chip>
                 </p>
                 <p class="text-body-2 text-medium-emphasis">
@@ -60,22 +61,12 @@
                 </p>
               </div>
               <div class="d-flex gap-2 flex-wrap">
-                <v-btn
-                  variant="outlined"
-                  color="secondary"
-                  size="small"
-                  prepend-icon="mdi-content-copy"
-                  @click="copyFromRole"
-                >
+                <v-btn variant="outlined" color="secondary" size="small" prepend-icon="mdi-content-copy"
+                  @click="copyFromRole">
                   Copier depuis le rôle
                 </v-btn>
-                <v-btn
-                  color="primary"
-                  size="small"
-                  prepend-icon="mdi-content-save"
-                  :loading="saving"
-                  @click="savePermissions"
-                >
+                <v-btn color="primary" size="small" prepend-icon="mdi-content-save" :loading="saving"
+                  @click="savePermissions">
                   Enregistrer
                 </v-btn>
               </div>
@@ -83,82 +74,63 @@
           </v-sheet>
 
           <!-- Recherche -->
-          <v-text-field
-            v-model="searchPerm"
-            placeholder="Rechercher une permission..."
-            prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-            density="compact"
-            clearable
-            class="mb-4"
-          />
+          <v-text-field v-model="searchPerm" placeholder="Rechercher une permission..." prepend-inner-icon="mdi-magnify"
+            variant="outlined" density="compact" clearable class="mb-4" />
 
           <!-- Permissions groupées par module -->
-<div v-for="(types, module) in filteredPermissionsByModule" :key="module" class="mb-2">
-  <v-expansion-panels variant="accordion">
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        <div class="d-flex align-center" style="gap: 12px;">
-          <v-checkbox
-            :model-value="isModuleFullySelected([...types.affichage, ...types.action])"
-            :indeterminate="isModulePartiallySelected([...types.affichage, ...types.action])"
-            density="compact"
-            hide-details
-            color="primary"
-            @update:model-value="toggleModule([...types.affichage, ...types.action], $event)"
-            @click.stop
-          />
-          <span class="font-weight-medium">{{ moduleLabel(module) }}</span>
-          <v-chip size="x-small" color="primary" variant="tonal">
-            {{ [...types.affichage, ...types.action].filter(p => selectedIds.includes(p.id)).length }}/{{ types.affichage.length + types.action.length }}
-          </v-chip>
-        </div>
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <!-- Permissions d'affichage -->
-        <div v-if="types.affichage.length > 0" class="mb-3">
-          <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center" style="gap: 6px;">
-            <v-icon size="14" color="blue">mdi-eye</v-icon>
-            AFFICHAGE
-          </div>
-          <div v-for="perm in types.affichage" :key="perm.id" class="d-flex align-center">
-            <v-checkbox
-              :model-value="selectedIds.includes(perm.id)"
-              :label="permActionLabel(perm.nomPermission)"
-              density="compact"
-              hide-details
-              color="blue"
-              @update:model-value="togglePermission(perm.id, $event)"
-            />
-          </div>
-        </div>
-        <!-- Permissions d'action -->
-        <div v-if="types.action.length > 0">
-          <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center" style="gap: 6px;">
-            <v-icon size="14" color="orange">mdi-lightning-bolt</v-icon>
-            ACTIONS
-          </div>
-          <div v-for="perm in types.action" :key="perm.id" class="d-flex align-center">
-            <v-checkbox
-              :model-value="selectedIds.includes(perm.id)"
-              :label="permActionLabel(perm.nomPermission)"
-              density="compact"
-              hide-details
-              color="orange"
-              :disabled="isPermDisabledByHierarchy(perm.nomPermission)"
-              @update:model-value="togglePermission(perm.id, $event)"
-            />
-          </div>
-        </div>
-      </v-expansion-panel-text>
-    </v-expansion-panel>
-  </v-expansion-panels>
-</div>
+          <div v-for="(types, module) in filteredPermissionsByModule" :key="module" class="mb-2">
+            <v-expansion-panels variant="accordion">
+              <v-expansion-panel>
+                <v-expansion-panel-title>
+                  <div class="d-flex align-center" style="gap: 12px;">
+                    <v-checkbox :model-value="isModuleFullySelected([...types.affichage, ...types.action])"
+                      :indeterminate="isModulePartiallySelected([...types.affichage, ...types.action])"
+                      density="compact" hide-details color="primary"
+                      @update:model-value="toggleModule([...types.affichage, ...types.action], $event)" @click.stop />
+                    <span class="font-weight-medium">{{ moduleLabel(module) }}</span>
+                    <v-chip size="x-small" color="primary" variant="tonal">
+                      {{[...types.affichage, ...types.action].filter(p => selectedIds.includes(p.id)).length}}/{{
+                        types.affichage.length + types.action.length }}
+                    </v-chip>
+                  </div>
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <!-- Permissions d'affichage -->
+                  <div v-if="types.affichage.length > 0" class="mb-3">
+                    <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center"
+                      style="gap: 6px;">
+                      <v-icon size="14" color="blue">mdi-eye</v-icon>
+                      AFFICHAGE
+                    </div>
+                    <div v-for="perm in types.affichage" :key="perm.id" class="d-flex align-center">
+                      <v-checkbox :model-value="selectedIds.includes(perm.id)"
+                        :label="perm.description" density="compact" hide-details color="blue"
+                        @update:model-value="togglePermission(perm.id, $event)" />
+                    </div>
+                  </div>
+                  <!-- Permissions d'action -->
+                  <div v-if="types.action.length > 0">
+                    <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center"
+                      style="gap: 6px;">
+                      <v-icon size="14" color="orange">mdi-lightning-bolt</v-icon>
+                      ACTIONS
+                    </div>
+                    <div v-for="perm in types.action" :key="perm.id" class="d-flex align-center">
+                      <v-checkbox :model-value="selectedIds.includes(perm.id)"
+                        :label="perm.description" density="compact" hide-details color="orange"
+                        :disabled="isPermDisabledByHierarchy(perm.nomPermission)"
+                        @update:model-value="togglePermission(perm.id, $event)" />
+                    </div>
 
-          <p v-if="Object.keys(filteredPermissionsByModule).length === 0" class="text-body-2 text-medium-emphasis text-center mt-4">
-            Aucune permission trouvée.
-          </p>
-
+                    <p v-if="Object.keys(filteredPermissionsByModule).length === 0"
+                      class="text-body-2 text-medium-emphasis text-center mt-4">
+                      Aucune permission trouvée.
+                    </p>
+                  </div>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </div>
         </template>
 
       </v-container>
@@ -204,22 +176,22 @@ const fetchData = async () => {
     ])
 
     utilisateur.value = userRes
-    console.log('userRes:', JSON.stringify(userRes)) 
+    console.log('userRes:', JSON.stringify(userRes))
     allPermissions.value = Array.isArray(permsRes) ? permsRes : []
     selectedIds.value = (userPermsRes.permissions || []).map(p => p.id)
 
-// Appliquer la hiérarchie au chargement
-for (const [parent, children] of Object.entries(PERM_HIERARCHY)) {
-  const parentPerm = allPermissions.value.find(p => p.nomPermission === parent)
-  if (parentPerm && selectedIds.value.includes(parentPerm.id)) {
-    for (const childName of children) {
-      const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
-      if (childPerm && !selectedIds.value.includes(childPerm.id)) {
-        selectedIds.value.push(childPerm.id)
+    // Appliquer la hiérarchie au chargement
+    for (const [parent, children] of Object.entries(PERM_HIERARCHY)) {
+      const parentPerm = allPermissions.value.find(p => p.nomPermission === parent)
+      if (parentPerm && selectedIds.value.includes(parentPerm.id)) {
+        for (const childName of children) {
+          const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
+          if (childPerm && !selectedIds.value.includes(childPerm.id)) {
+            selectedIds.value.push(childPerm.id)
+          }
+        }
       }
     }
-  }
-}
   } catch (e) {
     errorMessage.value = 'Erreur lors du chargement des données.'
   } finally {
@@ -249,7 +221,7 @@ const PERM_HIERARCHY = {
   'bt:editAll': ['bt:editAssigned'],
   'dash:stats.full': ['dash:stats.bt', 'dash:stats.di'],
   'dash:display.bt': ['dash:display.btAssigned'],   //quand on coche dash:display.bt (tous les BT), dash:display.btAssigned (BT assignés) se coche automatiquement et devient grisé et inversement
-  'dash:display.di': ['dash:display.diCreated'], 
+  'dash:display.di': ['dash:display.diCreated'],
 }
 
 const getPermType = (nomPermission) => {
@@ -317,117 +289,7 @@ const MODULE_LABELS = {
 
 const moduleLabel = (module) => MODULE_LABELS[module] || module
 
-const permActionLabel = (nomPermission) => {
-  const FULL_LABELS = {
-    // Demandes d'intervention
-    'di:viewList': 'Voir la liste des DI',
-    'di:viewDetail': "Voir le détail d\'une DI",
-    'di:create': 'Créer une DI',
-    'di:editCreated': 'Modifier ses propres DI',
-    'di:editAll': 'Modifier toutes les DI',
-    'di:delete': 'Supprimer une DI',
-    'di:accept': 'Accepter une DI',
-    'di:refuse': 'Refuser une DI',
-    'di:transform': 'Transformer une DI en BT',
-    // Bons de travail
-    'bt:viewList': 'Voir la liste des BT',
-    'bt:viewDetail': "Voir le détail d\'un BT",
-    'bt:create': 'Créer un BT',
-    'bt:editAll': 'Modifier tous les BT',
-    'bt:editAssigned': 'Modifier ses BT assignés',
-    'bt:delete': 'Supprimer un BT',
-    'bt:start': 'Démarrer un BT',
-    'bt:end': 'Clôturer un BT',
-    'bt:refuse': 'Refuser un BT',
-    'bt:refuseClosure': 'Refuser la clôture d\'un BT',
-    'bt:acceptClosure': 'Accepter la clôture d\'un BT',
-    'bt:acceptConsumableRequest': 'Valider une demande de consommable',
-    // Équipements
-    'eq:viewList': 'Voir la liste des équipements',
-    'eq:viewDetail': "Voir le détail d\'un équipement",
-    'eq:create': 'Créer un équipement',
-    'eq:edit': 'Modifier un équipement',
-    'eq:delete': 'Supprimer un équipement',
-    // Compteurs
-    'cp:viewList': 'Voir la liste des compteurs',
-    'cp:viewDetail': "Voir le détail d\'un compteur",
-    'cp:create': 'Créer un compteur',
-    'cp:edit': 'Modifier un compteur',
-    'cp:delete': 'Supprimer un compteur',
-    // Maintenances préventives
-    'mp:viewList': 'Voir la liste des maintenances préventives',
-    'mp:viewDetail': 'Voir le détail d\'une maintenance préventive',
-    'mp:create': 'Créer une maintenance préventive',
-    'mp:edit': 'Modifier une maintenance préventive',
-    'mp:delete': 'Supprimer une maintenance préventive',
-    // Stocks
-    'stock:view': 'Voir les stocks',
-    // Consommables
-    'cons:viewDetail': "Voir le détail d\'un consommable",
-    'cons:create': 'Créer un consommable',
-    'cons:edit': 'Modifier un consommable',
-    'cons:delete': 'Supprimer un consommable',
-    // Magasins
-    'mag:viewList': 'Voir la liste des magasins',
-    'mag:viewDetail': "Voir le détail d\'un magasin",
-    'mag:create': 'Créer un magasin',
-    'mag:edit': 'Modifier un magasin',
-    'mag:delete': 'Supprimer un magasin',
-    // Utilisateurs
-    'user:viewList': 'Voir la liste des utilisateurs',
-    'user:viewDetail': "Voir le détail d\'un utilisateur",
-    'user:create': 'Créer un utilisateur',
-    'user:edit': 'Modifier un utilisateur',
-    'user:disable': 'Désactiver un utilisateur',
-    'user:enable': 'Activer un utilisateur',
-    'user:delete': 'Supprimer un utilisateur',
-    // Rôles
-    'role:viewList': 'Voir la liste des rôles',
-    'role:viewDetail': "Voir le détail d\'un rôle",
-    'role:create': 'Créer un rôle',
-    'role:edit': 'Modifier un rôle',
-    'role:delete': 'Supprimer un rôle',
-    // Lieux
-    'loc:viewList': 'Voir la liste des lieux',
-    'loc:viewDetail': "Voir le détail d\'un lieu",
-    'loc:create': 'Créer un lieu',
-    'loc:edit': 'Modifier un lieu',
-    'loc:delete': 'Supprimer un lieu',
-    // Fournisseurs
-    'sup:viewList': 'Voir la liste des fournisseurs',
-    'sup:viewDetail': "Voir le détail d\'un fournisseur",
-    'sup:create': 'Créer un fournisseur',
-    'sup:edit': 'Modifier un fournisseur',
-    'sup:delete': 'Supprimer un fournisseur',
-    // Fabricants
-    'man:viewList': 'Voir la liste des fabricants',
-    'man:viewDetail': "Voir le détail d\'un fabricant",
-    'man:create': 'Créer un fabricant',
-    'man:edit': 'Modifier un fabricant',
-    'man:delete': 'Supprimer un fabricant',
-    // Modèles d'équipement
-    'eqmod:viewList': 'Voir la liste des modèles d\'équipement',
-    'eqmod:viewDetail': "Voir le détail d\'un modèle d\'équipement",
-    'eqmod:create': 'Créer un modèle d\'équipement',
-    'eqmod:edit': 'Modifier un modèle d\'équipement',
-    'eqmod:delete': 'Supprimer un modèle d\'équipement',
-    // Menu
-    'menu:view': 'Accéder au menu de navigation',
-    'menu:dataManagement': 'Accéder au menu Gestion des données',
-    // Dashboard
-    'dash:display.bt': 'Afficher les BT sur le dashboard',
-    'dash:display.btAssigned': 'Afficher ses BT assignés sur le dashboard',
-    'dash:display.di': 'Afficher les DI sur le dashboard',
-    'dash:display.diCreated': 'Afficher ses DI créées sur le dashboard',
-    'dash:display.eq': 'Afficher les équipements sur le dashboard',
-    'dash:display.mag': 'Afficher les magasins sur le dashboard',
-    'dash:display.vertical': 'Afficher le dashboard en mode vertical',
-    'dash:stats.bt': 'Voir les statistiques de ses BT',
-    'dash:stats.di': 'Voir les statistiques de ses DI',
-    'dash:stats.full': 'Voir toutes les statistiques',
-  }
-  return FULL_LABELS[nomPermission] || nomPermission
-}
+
 
 // ==================== SÉLECTION ====================
 const isModuleFullySelected = (perms) =>

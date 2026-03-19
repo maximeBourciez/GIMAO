@@ -18,65 +18,57 @@
         </v-alert>
 
         <!-- Erreur -->
-        <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4" closable @click:close="errorMessage = ''">
+        <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4" closable
+          @click:close="errorMessage = ''">
           {{ errorMessage }}
         </v-alert>
 
         <!-- Succès -->
-        <v-alert v-if="successMessage" type="success" variant="tonal" class="mb-4" closable @click:close="successMessage = ''">
+        <v-alert v-if="successMessage" type="success" variant="tonal" class="mb-4" closable
+          @click:close="successMessage = ''">
           {{ successMessage }}
         </v-alert>
 
         <!-- Liste des rôles -->
         <v-row>
-<v-col v-for="role in roles" :key="role.id" cols="12" md="6" lg="6">
-  <v-card elevation="2" rounded height="220">
-  <v-card-title class="pt-3 pb-1">
-    <span class="text-body-1 font-weight-bold">{{ role.nomRole }}</span>
-  </v-card-title>
+          <v-col v-for="role in roles" :key="role.id" cols="12" md="6" lg="6">
+            <v-card elevation="2" rounded height="220">
+              <v-card-title class="pt-3 pb-1">
+                <span class="text-body-1 font-weight-bold">{{ role.nomRole }}</span>
+              </v-card-title>
 
-  <v-card-text class="pb-1">
-    <p class="text-body-2 text-medium-emphasis mb-2">
-      {{ role.permissions?.length || 0 }} permission(s)
-    </p>
-    <div class="d-flex flex-wrap" style="gap: 6px; max-height: 60px; overflow: hidden;">
-      <v-chip
-        v-for="module in getModules(role.permissions)"
-        :key="module"
-        size="small"
-        variant="outlined"
-        color="secondary"
-      >
-        {{ module }}
-      </v-chip>
-    </div>
-<span
-  v-if="getModules(role.permissions).length > 1"
-  class="text-caption text-primary"
-  style="cursor: pointer;"
-  @click="openEditDialog(role)"
->
-  voir plus
-</span>
-  </v-card-text>
+              <v-card-text class="pb-1">
+                <p class="text-body-2 text-medium-emphasis mb-2">
+                  {{ role.permissions?.length || 0 }} permission(s)
+                </p>
+                <div class="d-flex flex-wrap" style="gap: 6px; max-height: 60px; overflow: hidden;">
+                  <v-chip v-for="module in getModules(role.permissions)" :key="module" size="small" variant="outlined"
+                    color="secondary">
+                    {{ module }}
+                  </v-chip>
+                </div>
+                <span v-if="getModules(role.permissions).length > 1" class="text-caption text-primary"
+                  style="cursor: pointer;" @click="openEditDialog(role)">
+                  voir plus
+                </span>
+              </v-card-text>
 
-  <v-card-actions class="mt-auto">
-    <v-spacer />
-    <v-btn size="small" variant="text" color="primary" prepend-icon="mdi-pencil" @click="openEditDialog(role)">
-      Modifier
-    </v-btn>
-    <v-btn size="small" variant="text" color="secondary" prepend-icon="mdi-content-copy" @click="dupliquerRole(role)">
-    Dupliquer
-  </v-btn>
-    <v-btn
-      v-if="!estRoleSysteme(role.nomRole)"
-      size="small" variant="text" color="error" prepend-icon="mdi-delete"
-      @click="confirmDelete(role)"
-    >
-      Supprimer
-    </v-btn>
-  </v-card-actions>
-</v-card>
+              <v-card-actions class="mt-auto">
+                <v-spacer />
+                <v-btn size="small" variant="text" color="primary" prepend-icon="mdi-pencil"
+                  @click="openEditDialog(role)">
+                  Modifier
+                </v-btn>
+                <v-btn size="small" variant="text" color="secondary" prepend-icon="mdi-content-copy"
+                  @click="dupliquerRole(role)">
+                  Dupliquer
+                </v-btn>
+                <v-btn v-if="!estRoleSysteme(role.nomRole)" size="small" variant="text" color="error"
+                  prepend-icon="mdi-delete" @click="confirmDelete(role)">
+                  Supprimer
+                </v-btn>
+              </v-card-actions>
+            </v-card>
           </v-col>
         </v-row>
 
@@ -105,29 +97,9 @@
             <h4 class="mb-3">Informations</h4>
             <v-row dense>
               <v-col cols="12" md="8">
-                <v-text-field
-                  v-model="form.nomRole"
-                  label="Nom du rôle"
-                  placeholder="Technicien, Responsable..."
-                  variant="outlined"
-                  density="comfortable"
-                  :error-messages="formErrors.nomRole"
-                />
+                <v-text-field v-model="form.nomRole" label="Nom du rôle" placeholder="Technicien, Responsable..."
+                  variant="outlined" density="comfortable" :error-messages="formErrors.nomRole" />
               </v-col>
-              <!-- <v-col cols="12" md="4">
-                 <v-text-field
-                  v-model.number="form.rang"
-                  label="Rang hiérarchique"
-                  placeholder="1, 2, 3..."
-                  type="number"
-                  min="1"
-                  variant="outlined"
-                  density="comfortable"
-                  hint="Plus petit = plus élevé"
-                  persistent-hint
-                  :error-messages="formErrors.rang"
-                /> 
-              </v-col> -->
             </v-row>
           </v-sheet>
 
@@ -141,77 +113,59 @@
             </div>
 
             <!-- Filtre par module -->
-            <v-text-field
-              v-model="searchPerm"
-              placeholder="Rechercher une permission..."
-              prepend-inner-icon="mdi-magnify"
-              variant="outlined"
-              density="compact"
-              clearable
-              class="mb-3"
-            />
+            <v-text-field v-model="searchPerm" placeholder="Rechercher une permission..."
+              prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" clearable class="mb-3" />
 
 
-<div v-for="(types, module) in filteredPermissionsByModule" :key="module" class="mb-2">
-  <v-expansion-panels variant="accordion">
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        <div class="d-flex align-center" style="gap: 12px;">
-          <v-checkbox
-            :model-value="isModuleFullySelected(module, [...types.affichage, ...types.action])"
-            :indeterminate="isModulePartiallySelected(module, [...types.affichage, ...types.action])"
-            density="compact"
-            hide-details
-            color="primary"
-            @update:model-value="toggleModule(module, [...types.affichage, ...types.action], $event)"
-            @click.stop
-          />
-          <span class="font-weight-medium">{{ moduleLabel(module) }}</span>
-          <v-chip size="x-small" color="primary" variant="tonal">
-            {{ [...types.affichage, ...types.action].filter(p => form.permissions_ids.includes(p.id)).length }}/{{ types.affichage.length + types.action.length }}
-          </v-chip>
-        </div>
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <!-- Permissions d'affichage -->
-        <div v-if="types.affichage.length > 0" class="mb-3">
-          <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center" style="gap: 6px;">
-            <v-icon size="14" color="blue">mdi-eye</v-icon>
-            AFFICHAGE
-          </div>
-          <div v-for="perm in types.affichage" :key="perm.id" class="d-flex align-center">
-            <v-checkbox
-              :model-value="form.permissions_ids.includes(perm.id)"
-              :label="permActionLabel(perm.nomPermission)"
-              density="compact"
-              hide-details
-              color="blue"
-              @update:model-value="togglePermission(perm.id, $event)"
-            />
-          </div>
-        </div>
-        <!-- Permissions d'action -->
-        <div v-if="types.action.length > 0">
-          <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center" style="gap: 6px;">
-            <v-icon size="14" color="orange">mdi-lightning-bolt</v-icon>
-            ACTIONS
-          </div>
-          <div v-for="perm in types.action" :key="perm.id" class="d-flex align-center">
-            <v-checkbox
-              :model-value="form.permissions_ids.includes(perm.id)"
-              :label="permActionLabel(perm.nomPermission)"
-              density="compact"
-              hide-details
-              color="orange"
-              :disabled="isPermDisabledByHierarchy(perm.nomPermission)"
-              @update:model-value="togglePermission(perm.id, $event)"
-            />
-          </div>
-        </div>
-      </v-expansion-panel-text>
-    </v-expansion-panel>
-  </v-expansion-panels>
-</div>
+            <div v-for="(types, module) in filteredPermissionsByModule" :key="module" class="mb-2">
+              <v-expansion-panels variant="accordion">
+                <v-expansion-panel>
+                  <v-expansion-panel-title>
+                    <div class="d-flex align-center" style="gap: 12px;">
+                      <v-checkbox :model-value="isModuleFullySelected(module, [...types.affichage, ...types.action])"
+                        :indeterminate="isModulePartiallySelected(module, [...types.affichage, ...types.action])"
+                        density="compact" hide-details color="primary"
+                        @update:model-value="toggleModule(module, [...types.affichage, ...types.action], $event)"
+                        @click.stop />
+                      <span class="font-weight-medium">{{ moduleLabel(module) }}</span>
+                      <v-chip size="x-small" color="primary" variant="tonal">
+                        {{[...types.affichage, ...types.action].filter(p => form.permissions_ids.includes(p.id)).length
+                        }}/{{ types.affichage.length + types.action.length }}
+                      </v-chip>
+                    </div>
+                  </v-expansion-panel-title>
+                  <v-expansion-panel-text>
+                    <!-- Permissions d'affichage -->
+                    <div v-if="types.affichage.length > 0" class="mb-3">
+                      <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center"
+                        style="gap: 6px;">
+                        <v-icon size="14" color="blue">mdi-eye</v-icon>
+                        AFFICHAGE
+                      </div>
+                      <div v-for="perm in types.affichage" :key="perm.id" class="d-flex align-center">
+                        <v-checkbox :model-value="form.permissions_ids.includes(perm.id)"
+                          :label="perm.description" density="compact" hide-details color="blue"
+                          @update:model-value="togglePermission(perm.id, $event)" />
+                      </div>
+                    </div>
+                    <!-- Permissions d'action -->
+                    <div v-if="types.action.length > 0">
+                      <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center"
+                        style="gap: 6px;">
+                        <v-icon size="14" color="orange">mdi-lightning-bolt</v-icon>
+                        ACTIONS
+                      </div>
+                      <div v-for="perm in types.action" :key="perm.id" class="d-flex align-center">
+                        <v-checkbox :model-value="form.permissions_ids.includes(perm.id)"
+                          :label="perm.description" density="compact" hide-details color="orange"
+                          :disabled="isPermDisabledByHierarchy(perm.nomPermission)"
+                          @update:model-value="togglePermission(perm.id, $event)" />
+                      </div>
+                    </div>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </div>
 
             <p v-if="Object.keys(filteredPermissionsByModule).length === 0" class="text-body-2 text-medium-emphasis">
               Aucune permission trouvée.
@@ -228,26 +182,16 @@
         <v-divider />
 
         <v-card-actions class="pa-4">
-  <v-spacer />
-  <v-btn variant="text" @click="closeDialog">Annuler</v-btn>
-  <v-btn
-    v-if="isEdit"
-    color="secondary"
-    variant="outlined"
-    :loading="saving"
-    prepend-icon="mdi-content-save-plus"
-    @click="saveAsNewRole"
-  >
-    Enregistrer comme nouveau rôle
-  </v-btn>
-  <v-btn
-    color="primary"
-    :loading="saving"
-    @click="saveRole"
-  >
-    {{ isEdit ? 'Enregistrer' : 'Créer' }}
-  </v-btn>
-</v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="closeDialog">Annuler</v-btn>
+          <v-btn v-if="isEdit" color="secondary" variant="outlined" :loading="saving"
+            prepend-icon="mdi-content-save-plus" @click="saveAsNewRole">
+            Enregistrer comme nouveau rôle
+          </v-btn>
+          <v-btn color="primary" :loading="saving" @click="saveRole">
+            {{ isEdit ? 'Enregistrer' : 'Créer' }}
+          </v-btn>
+        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -294,13 +238,13 @@ const editingRoleId = ref(null)
 
 const form = ref({
   nomRole: '',
-//   rang: 1,
+  //   rang: 1,
   permissions_ids: []
 })
 
 const formErrors = ref({
   nomRole: '',
-//   rang: ''
+  //   rang: ''
 })
 
 // Dialog suppression
@@ -356,7 +300,7 @@ const PERM_HIERARCHY = {
   'bt:editAll': ['bt:editAssigned'],
   'dash:stats.full': ['dash:stats.bt', 'dash:stats.di'],
   'dash:display.bt': ['dash:display.btAssigned'],   //quand on coche dash:display.bt (tous les BT), dash:display.btAssigned (BT assignés) se coche automatiquement et devient grisé et inversement
-  'dash:display.di': ['dash:display.diCreated'], 
+  'dash:display.di': ['dash:display.diCreated'],
 }
 
 const isPermDisabledByHierarchy = (nomPermission) => {
@@ -429,119 +373,6 @@ const MODULE_LABELS = {
 
 const moduleLabel = (module) => MODULE_LABELS[module] || module
 
-// Labels lisibles pour les actions
-
-const permActionLabel = (nomPermission) => {
-  const FULL_LABELS = {
-    // Demandes d'intervention
-    'di:viewList': 'Voir la liste des DI',
-    'di:viewDetail': "Voir le détail d\'une DI",
-    'di:create': 'Créer une DI',
-    'di:editCreated': 'Modifier ses propres DI',
-    'di:editAll': 'Modifier toutes les DI',
-    'di:delete': 'Supprimer une DI',
-    'di:accept': 'Accepter une DI',
-    'di:refuse': 'Refuser une DI',
-    'di:transform': 'Transformer une DI en BT',
-    // Bons de travail
-    'bt:viewList': 'Voir la liste des BT',
-    'bt:viewDetail': "Voir le détail d\'un BT",
-    'bt:create': 'Créer un BT',
-    'bt:editAll': 'Modifier tous les BT',
-    'bt:editAssigned': 'Modifier ses BT assignés',
-    'bt:delete': 'Supprimer un BT',
-    'bt:start': 'Démarrer un BT',
-    'bt:end': 'Clôturer un BT',
-    'bt:refuse': 'Refuser un BT',
-    'bt:refuseClosure': 'Refuser la clôture d\'un BT',
-    'bt:acceptClosure': 'Accepter la clôture d\'un BT',
-    'bt:acceptConsumableRequest': 'Valider une demande de consommable',
-    // Équipements
-    'eq:viewList': 'Voir la liste des équipements',
-    'eq:viewDetail': "Voir le détail d\'un équipement",
-    'eq:create': 'Créer un équipement',
-    'eq:edit': 'Modifier un équipement',
-    'eq:delete': 'Supprimer un équipement',
-    // Compteurs
-    'cp:viewList': 'Voir la liste des compteurs',
-    'cp:viewDetail': "Voir le détail d\'un compteur",
-    'cp:create': 'Créer un compteur',
-    'cp:edit': 'Modifier un compteur',
-    'cp:delete': 'Supprimer un compteur',
-    // Maintenances préventives
-    'mp:viewList': 'Voir la liste des maintenances préventives',
-    'mp:viewDetail': "Voir le détail d\'une maintenance préventive",
-    'mp:create': 'Créer une maintenance préventive',
-    'mp:edit': 'Modifier une maintenance préventive',
-    'mp:delete': 'Supprimer une maintenance préventive',
-    // Stocks
-    'stock:view': 'Voir les stocks',
-    // Consommables
-    'cons:viewDetail': "Voir le détail d\'un consommable",
-    'cons:create': 'Créer un consommable',
-    'cons:edit': 'Modifier un consommable',
-    'cons:delete': 'Supprimer un consommable',
-    // Magasins
-    'mag:viewList': 'Voir la liste des magasins',
-    'mag:viewDetail': "Voir le détail d\'un magasin",
-    'mag:create': 'Créer un magasin',
-    'mag:edit': 'Modifier un magasin',
-    'mag:delete': 'Supprimer un magasin',
-    // Utilisateurs
-    'user:viewList': 'Voir la liste des utilisateurs',
-    'user:viewDetail': "Voir le détail d\'un utilisateur",
-    'user:create': 'Créer un utilisateur',
-    'user:edit': 'Modifier un utilisateur',
-    'user:disable': 'Désactiver un utilisateur',
-    'user:enable': 'Activer un utilisateur',
-    'user:delete': 'Supprimer un utilisateur',
-    // Rôles
-    'role:viewList': 'Voir la liste des rôles',
-    'role:viewDetail': "Voir le détail d\'un rôle",
-    'role:create': 'Créer un rôle',
-    'role:edit': 'Modifier un rôle',
-    'role:delete': 'Supprimer un rôle',
-    // Lieux
-    'loc:viewList': 'Voir la liste des lieux',
-    'loc:viewDetail': "Voir le détail d\'un lieu",
-    'loc:create': 'Créer un lieu',
-    'loc:edit': 'Modifier un lieu',
-    'loc:delete': 'Supprimer un lieu',
-    // Fournisseurs
-    'sup:viewList': 'Voir la liste des fournisseurs',
-    'sup:viewDetail': "Voir le détail d\'un fournisseur",
-    'sup:create': 'Créer un fournisseur',
-    'sup:edit': 'Modifier un fournisseur',
-    'sup:delete': 'Supprimer un fournisseur',
-    // Fabricants
-    'man:viewList': 'Voir la liste des fabricants',
-    'man:viewDetail': "Voir le détail d\'un fabricant",
-    'man:create': 'Créer un fabricant',
-    'man:edit': 'Modifier un fabricant',
-    'man:delete': 'Supprimer un fabricant',
-    // Modèles d'équipement
-    'eqmod:viewList': 'Voir la liste des modèles d\'équipement',
-    'eqmod:viewDetail': "Voir le détail d\'un modèle d\'équipement",
-    'eqmod:create': 'Créer un modèle d\'équipement',
-    'eqmod:edit': 'Modifier un modèle d\'équipement',
-    'eqmod:delete': 'Supprimer un modèle d\'équipement',
-    // Menu
-    'menu:view': 'Accéder au menu de navigation',
-    'menu:dataManagement': 'Accéder au menu Gestion des données',
-    // Dashboard
-    'dash:display.bt': 'Afficher les BT sur le dashboard',
-    'dash:display.btAssigned': 'Afficher ses BT assignés sur le dashboard',
-    'dash:display.di': 'Afficher les DI sur le dashboard',
-    'dash:display.diCreated': 'Afficher ses DI créées sur le dashboard',
-    'dash:display.eq': 'Afficher les équipements sur le dashboard',
-    'dash:display.mag': 'Afficher les magasins sur le dashboard',
-    'dash:display.vertical': 'Afficher le dashboard en mode vertical',
-    'dash:stats.bt': 'Voir les statistiques de ses BT',
-    'dash:stats.di': 'Voir les statistiques de ses DI',
-    'dash:stats.full': 'Voir toutes les statistiques',
-  }
-  return FULL_LABELS[nomPermission] || nomPermission
-}
 
 // Gestion de la sélection par module
 const isModuleFullySelected = (module, perms) => {
@@ -648,7 +479,7 @@ const closeDialog = () => {
 // ==================== SAUVEGARDE ====================
 const validateForm = () => {
   let valid = true
-  formErrors.value = { nomRole:'' }
+  formErrors.value = { nomRole: '' }
 
   if (!form.value.nomRole.trim()) {
     formErrors.value.nomRole = 'Le nom du rôle est requis.'

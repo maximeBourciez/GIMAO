@@ -116,7 +116,7 @@
       <div class="floating-buttons">
         <!-- Bouton archiver -->
         <v-btn
-          v-if="consumable && !consumable.archive && store.getters.hasPermission('cons:edit')"
+          v-if="consumable && !consumable.archive && store.getters.hasPermission('cons:archive')"
           color="warning"
           size="large"
           icon
