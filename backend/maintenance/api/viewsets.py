@@ -1,6 +1,7 @@
 import ast
 import logging
 import os
+import traceback
 from urllib.parse import parse_qs
 from django.http import JsonResponse
 from rest_framework import viewsets, status
@@ -13,7 +14,7 @@ from django.utils import timezone
 from django.db import transaction
 import json
 from donnees.models import Document, TypeDocument
-from equipement.models import Equipement
+from equipement.models import Equipement, StatutEquipement
 from utilisateur.models import Utilisateur, Log
 from stock.models import Consommable, Stocker
 from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
@@ -752,7 +753,7 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 nom=data.get('nom') or '',
                 commentaire=data.get('commentaire', ''),
                 statut='TRANSFORMEE',
-                statut_suppose=data.get('statut_suppose'),
+                statut_suppose=data.get('statut_equipement'),
                 date_creation=timezone.now(),
                 date_changementStatut=timezone.now(),
                 utilisateur=utilisateur,
@@ -760,6 +761,13 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             )
             if not demande.nom:
                 raise ValidationError({'nom': 'Le nom est requis'})
+            print("Statut : " + str(demande.statut) + " - Statut supposé : " + str(demande.statut_suppose) )
+            if demande.statut_suppose:
+                StatutEquipement.objects.create(
+                    equipement=equipement,
+                    statut=demande.statut_suppose,
+                    dateChangement=timezone.now()
+                )
 
 
             # Créer BT via serializer (validation + sync consommables)
@@ -773,6 +781,15 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 # Responsable obligatoire: l'utilisateur qui crée le BT
                 'responsable_id': utilisateur.id,
             }
+
+            duree = data.get('duree_previsionnelle')
+
+            if duree:
+                # Si format HH:MM → on ajoute les secondes
+                if len(duree.split(':')) == 2:
+                    duree = f"{duree}:00"
+
+            bt_payload['duree_previsionnelle'] = duree
 
             # Champs optionnels (responsable non modifiable ici)
             if 'utilisateur_assigne_ids' in data:
@@ -833,6 +850,8 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             return Response(response_data, status=status.HTTP_201_CREATED)
         except Exception:
             # Best-effort: si des fichiers ont été sauvegardés avant l'erreur, tenter de les supprimer
+            print("Exception détectée, tentative de cleanup des fichiers créés..."
+            "Exception:", traceback.format_exc())
             for name in reversed(created_files):
                 try:
                     if name:
@@ -1004,6 +1023,7 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             'type',
             'date_assignation',
             'date_prevue',
+            'duree_previsionnelle',
             'date_cloture',
             'date_debut',
             'date_fin',
@@ -1027,6 +1047,22 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         consommables = self._parse_json_field(data, 'consommables', None)
         if consommables is not None:
             bt_payload['consommables'] = consommables
+
+
+        # Statut d'équipement
+        print(data);
+        nouveau_statut = data.get('statut_equipement');
+        if nouveau_statut is not None:
+            equipement = Equipement.objects.filter(id=data.get('equipement_id')).first() or instance.demande_intervention.equipement
+            dernier_statut_eq = equipement.get_dernier_statut();
+
+            if dernier_statut_eq == None or dernier_statut_eq != nouveau_statut:
+                StatutEquipement.objects.create(
+                    equipement=equipement,
+                    statut=nouveau_statut,
+                    dateChangement=timezone.now()
+                )
+                bt_payload['statut_equipement'] = nouveau_statut
 
         if bt_payload:
             # Normaliser le cas multipart (FormData) :

@@ -104,7 +104,8 @@ export default {
                 { name: "InterventionList", icon: "mdi-wrench", title: "Bons de travail (BT)", requiresPermission: "bt:viewList" },
                 { name: "UserList", icon: "mdi-account-cog", title: "Gestion des comptes", requiresPermission: "user:viewList" },
                 { name: "Stocks", icon: "mdi-package-variant-closed", title: "Stocks", requiresPermission: "stock:view" },
-                { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", requiresPermission: "menu:dataManagement" }
+                { name: "DataManagement", icon: "mdi-database-cog", title: "Gestion des données", requiresPermission: "menu:dataManagement" },
+                // { name: "Calendar", icon: "mdi-calendar-month", title: "Calendrier", requiresPermission: "menu:calendar" }
             ]
         };
     },

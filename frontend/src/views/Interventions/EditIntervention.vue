@@ -38,6 +38,8 @@ import { useStore } from 'vuex';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 import InterventionForm from '@/components/Forms/InterventionForm.vue';
+import { toTimeInputValue } from '@/utils/helpers';
+
 
 const route = useRoute();
 const router = useRouter();
@@ -98,6 +100,7 @@ const fetchBonTravail = async () => {
 			nom: bon?.nom ?? '',
 			type: bon?.type ?? 'CORRECTIF',
 			date_prevue: toDatetimeLocalValue(bon?.date_prevue),
+			duree_previsionnelle: toTimeInputValue(bon?.duree_previsionnelle),
 			commentaire: bon?.commentaire ?? '',
 			diagnostic: bon?.diagnostic ?? '',
 			responsable_id: bon?.responsable?.id ?? null,
