@@ -80,3 +80,25 @@ export function formatDateTime(dateString) {
     minute: "2-digit",
   });
 }
+
+
+
+/**
+ * Formate un timedelta (en secondes) en une chaîne lisible (ex: "1h 30m")
+ * @param {timedelta} hour - La durée à formater au format HH:MM:SS
+ * @returns {string} La durée formatée
+ */
+export function formatDuration(duration) {
+  if (!duration) return "Non spécifié";
+  const parts = duration.split(":").map(Number);
+  const hours = parts[0] || 0;
+  const minutes = parts[1] || 0;
+  const seconds = parts[2] || 0;
+
+  let result = "";
+  if (hours > 0) result += `${hours}h `;
+  if (minutes > 0) result += `${minutes}m `;
+  if (seconds > 0) result += `${seconds}s`;
+  
+  return result.trim();
+}

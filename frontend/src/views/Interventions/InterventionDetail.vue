@@ -47,7 +47,7 @@
 
           <div class="detail-field">
             <label class="detail-label">Durée prévue</label>
-            <div class="detail-value">{{ formatDateTime(data.duree_previsionnelle) }}</div>
+            <div class="detail-value">{{ formatDuration(data.duree_previsionnelle) }}</div>
           </div>
 
           <div class="detail-field">
@@ -356,7 +356,7 @@ import DocumentList from '@/components/DocumentList.vue';
 import { BaseForm, FormTextarea } from '@/components/common';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, BASE_URL, MEDIA_BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
-import { formatDateTime, getInterventionStatusColor, getStatusColor, getStatusLabel } from '@/utils/helpers';
+import { formatDateTime, formatDuration, getInterventionStatusColor, getStatusColor, getStatusLabel } from '@/utils/helpers';
 
 const router = useRouter();
 const route = useRoute();
