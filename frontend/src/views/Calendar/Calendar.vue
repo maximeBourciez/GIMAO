@@ -1,12 +1,7 @@
 <template>
     <v-container fluid class="calendar-container pa-4">
         <v-card class="pa-4 elevation-2 rounded-lg">
-            <v-tabs
-                v-model="mode"
-                class="mb-4"
-                color="primary"
-                grow
-            >
+            <v-tabs v-model="mode" class="mb-4" color="primary" grow>
                 <v-tab value="bt" class="text-none font-weight-medium">
                     <v-icon start>mdi-wrench</v-icon>
                     Bons de Travail
@@ -18,120 +13,92 @@
             </v-tabs>
 
             <div class="calendar-wrapper">
-                <vue-cal
-                    ref="vuecal"
-                    :events="currentEvents"
-                    :time-from="7 * 60"
-                    :time-to="20 * 60"
-                    :time-step="30"
-                    active-view="month"
-                    :disable-views="[]"
-                    locale="fr"
-                    :first-day-of-week="2"
-                    :on-event-click="onEventClick"
-                    :max-events-per-cell="3"
-                    events-on-month-view="short"
-                    :today-button="true"
-                    :click-to-navigate="false"
-                    show-week-numbers
-                    :time-cell-height="48"
-                    class="vuecal--custom"
-                />
+                <vue-cal ref="vuecal" :events="currentEvents" :time-from="7 * 60" :time-to="20 * 60" :time-step="30"
+                    active-view="month" :disable-views="[]" locale="fr" :first-day-of-week="2"
+                    :on-event-click="onEventClick" :max-events-per-cell="3" events-on-month-view="short"
+                    :today-button="true" :click-to-navigate="false" show-week-numbers :time-cell-height="48"
+                    class="vuecal--custom" />
             </div>
         </v-card>
     </v-container>
 </template>
 
-<script>
+<script setup>
+import { ref, computed } from 'vue'
 import VueCal from 'vue-cal'
 import 'vue-cal/dist/vuecal.css'
 
-export default {
-    name: 'CalendarView',
+const mode = ref('bt')
 
-    components: { VueCal },
-
-    data() {
-        return {
-            mode: 'bt',
-
-            eventsBT: [
-                {
-                    title: 'BT #101 - Pompe centrifuge',
-                    start: '2026-03-18 00:00',
-                    end: '2026-03-18 23:59',
-                    class: 'event-bt',
-                    id: 101,
-                },
-                {
-                    title: 'BT #102 - Electricité tableau',
-                    start: '2026-03-20 08:00',
-                    end: '2026-03-20 12:00',
-                    class: 'event-bt',
-                    id: 102,
-                },
-                {
-                    title: 'BT #103 - Fuite hydraulique',
-                    start: '2026-03-20 14:00',
-                    end: '2026-03-20 17:00',
-                    class: 'event-bt',
-                    id: 103,
-                },
-                {
-                    title: 'BT #104 - Remplacement vanne DN100',
-                    start: '2026-03-23 07:00',
-                    end: '2026-03-25 17:00',
-                    class: 'event-bt',
-                    id: 104,
-                },
-                {
-                    title: 'BT #105 - Inspection générale',
-                    start: '2026-03-26 08:00',
-                    end: '2026-03-27 16:00',
-                    class: 'event-bt',
-                    id: 105,
-                },
-            ],
-
-            eventsMaintenance: [
-                {
-                    title: 'MP-201 - Compresseur air',
-                    start: '2026-03-25 08:00',
-                    end: '2026-03-25 17:00',
-                    class: 'event-mp',
-                    id: 201,
-                },
-                {
-                    title: 'MP-202 - Climatisation bâtiment A',
-                    start: '2026-04-01 08:00',
-                    end: '2026-04-01 12:00',
-                    class: 'event-mp',
-                    id: 202,
-                },
-                {
-                    title: 'MP-203 - Graissage mensuel',
-                    start: '2026-03-17 08:00',
-                    end: '2026-03-19 17:00',
-                    class: 'event-mp',
-                    id: 203,
-                },
-            ],
-        }
+const eventsBT = [
+    {
+        title: 'BT #101 - Pompe centrifuge',
+        start: '2026-03-18 00:00',
+        end: '2026-03-18 23:59',
+        class: 'event-bt',
+        id: 101,
     },
-
-    computed: {
-        currentEvents() {
-            return this.mode === 'bt' ? this.eventsBT : this.eventsMaintenance
-        },
+    {
+        title: 'BT #102 - Electricité tableau',
+        start: '2026-03-20 08:00',
+        end: '2026-03-20 12:00',
+        class: 'event-bt',
+        id: 102,
     },
-
-    methods: {
-        onEventClick(event, e) {
-            e.stopPropagation()
-            // Remplacer par : this.$router.push(`/work-orders/${event.id}`)
-            console.log('Navigation vers :', event.id, event.title)
-        },
+    {
+        title: 'BT #103 - Fuite hydraulique',
+        start: '2026-03-20 14:00',
+        end: '2026-03-20 17:00',
+        class: 'event-bt',
+        id: 103,
     },
+    {
+        title: 'BT #104 - Remplacement vanne DN100',
+        start: '2026-03-23 07:00',
+        end: '2026-03-25 17:00',
+        class: 'event-bt',
+        id: 104,
+    },
+    {
+        title: 'BT #105 - Inspection générale',
+        start: '2026-03-26 08:00',
+        end: '2026-03-27 16:00',
+        class: 'event-bt',
+        id: 105,
+    },
+]
+
+const eventsMaintenance = [
+    {
+        title: 'MP-201 - Compresseur air',
+        start: '2026-03-25 08:00',
+        end: '2026-03-25 17:00',
+        class: 'event-mp',
+        id: 201,
+    },
+    {
+        title: 'MP-202 - Climatisation bâtiment A',
+        start: '2026-04-01 08:00',
+        end: '2026-04-01 12:00',
+        class: 'event-mp',
+        id: 202,
+    },
+    {
+        title: 'MP-203 - Graissage mensuel',
+        start: '2026-03-17 08:00',
+        end: '2026-03-19 17:00',
+        class: 'event-mp',
+        id: 203,
+    },
+]
+
+const currentEvents = computed(() => 
+    mode.value === 'bt' ? eventsBT : eventsMaintenance
+)
+
+const onEventClick = (event, e) => {
+    e.stopPropagation()
+    console.log('Navigation vers :', event.id, event.title)
 }
 </script>
 
@@ -150,10 +117,10 @@ export default {
 /* ─── Variables de base ─────────────────────────────────────── */
 :deep(.vuecal--custom) {
     /* Couleurs remapées sur les tokens Vuetify */
-    --vc-primary:          rgb(var(--v-theme-primary));
-    --vc-surface:          rgb(var(--v-theme-surface));
-    --vc-on-surface:       rgb(var(--v-theme-on-surface));
-    --vc-border:           rgba(var(--v-border-color), var(--v-border-opacity));
+    --vc-primary: rgb(var(--v-theme-primary));
+    --vc-surface: rgb(var(--v-theme-surface));
+    --vc-on-surface: rgb(var(--v-theme-on-surface));
+    --vc-border: rgba(var(--v-border-color), var(--v-border-opacity));
 
     font-family: 'Roboto', sans-serif;
     background: var(--vc-surface);
