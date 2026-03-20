@@ -102,3 +102,27 @@ export function formatDuration(duration) {
   
   return result.trim();
 }
+
+/**
+ * Convertit une durée au format "X jours Y:MM" en "HH:MM" pour les inputs de type time
+ * @param {string} value - La durée à convertir
+ * @returns {string} La durée au format "HH:MM" ou une chaîne vide si le format est invalide
+ */
+export const toTimeInputValue = (value) => {
+	if (value === null || value === undefined) return '';
+	const rawValue = String(value).trim();
+	if (!rawValue) return '';
+
+	const match = rawValue.match(/^(?:(\d+)\s+)?(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+	if (!match) return '';
+
+	const days = Number(match[1] || 0);
+	const hours = Number(match[2] || 0);
+	const minutes = Number(match[3] || 0);
+	if (!Number.isFinite(days) || !Number.isFinite(hours) || !Number.isFinite(minutes)) return '';
+
+	const totalHours = (days * 24) + hours;
+	if (totalHours > 23 || minutes > 59) return '';
+
+	return `${String(totalHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};

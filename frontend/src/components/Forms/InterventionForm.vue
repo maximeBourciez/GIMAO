@@ -125,6 +125,7 @@ import { BaseForm, FormField, FormSelect, FormTextarea } from '@/components/comm
 import DocumentForm from '@/components/Forms/DocumentForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, EQUIPMENT_STATUS } from '@/utils/constants';
+import { toTimeInputValue } from '@/utils/helpers';
 
 const props = defineProps({
 	title: {
@@ -198,25 +199,6 @@ const errorMessage = ref('');
 const successMessage = ref('');
 
 const DUREE_PREVISIONNELLE_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
-
-const toTimeInputValue = (value) => {
-	if (value === null || value === undefined) return '';
-	const rawValue = String(value).trim();
-	if (!rawValue) return '';
-
-	const match = rawValue.match(/^(?:(\d+)\s+)?(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/);
-	if (!match) return '';
-
-	const days = Number(match[1] || 0);
-	const hours = Number(match[2] || 0);
-	const minutes = Number(match[3] || 0);
-	if (!Number.isFinite(days) || !Number.isFinite(hours) || !Number.isFinite(minutes)) return '';
-
-	const totalHours = (days * 24) + hours;
-	if (totalHours > 23 || minutes > 59) return '';
-
-	return `${String(totalHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-};
 
 const normalizeDureePrevisionnelleForApi = (value) => {
 	if (value === null || value === undefined) return '';
@@ -360,6 +342,7 @@ const buildPatchPayload = (payload) => {
 	if ((payload?.diagnostic ?? '') !== (original?.diagnostic ?? '')) patch.diagnostic = payload.diagnostic;
 	if ((payload?.commentaire ?? '') !== (original?.commentaire ?? '')) patch.commentaire = payload.commentaire;
 	if ((payload?.responsable_id ?? null) !== (original?.responsable_id ?? null)) patch.responsable_id = payload.responsable_id;
+	if ((payload?.statut_equipement ?? null) !== (original?.statut_equipement ?? null)) patch.statut_equipement = payload.statut_equipement;
 
 	const currentDatePrevue = payload?.date_prevue || null;
 	const originalDatePrevue = original?.date_prevue || null;

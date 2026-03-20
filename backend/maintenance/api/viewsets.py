@@ -1023,6 +1023,7 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             'type',
             'date_assignation',
             'date_prevue',
+            'duree_previsionnelle',
             'date_cloture',
             'date_debut',
             'date_fin',
@@ -1046,6 +1047,22 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         consommables = self._parse_json_field(data, 'consommables', None)
         if consommables is not None:
             bt_payload['consommables'] = consommables
+
+
+        # Statut d'équipement
+        print(data);
+        nouveau_statut = data.get('statut_equipement');
+        if nouveau_statut is not None:
+            equipement = Equipement.objects.filter(id=data.get('equipement_id')).first() or instance.demande_intervention.equipement
+            dernier_statut_eq = equipement.get_dernier_statut();
+
+            if dernier_statut_eq == None or dernier_statut_eq != nouveau_statut:
+                StatutEquipement.objects.create(
+                    equipement=equipement,
+                    statut=nouveau_statut,
+                    dateChangement=timezone.now()
+                )
+                bt_payload['statut_equipement'] = nouveau_statut
 
         if bt_payload:
             # Normaliser le cas multipart (FormData) :
