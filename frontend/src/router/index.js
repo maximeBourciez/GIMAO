@@ -542,5 +542,9 @@ router.beforeEach((to, from, next) => {
 })
 
 
+router.afterEach((to) => {
+  document.title = to.meta.title ? `GIMAO - ${to.meta.title}` : 'GIMAO'
+})
+
 
 export default router
