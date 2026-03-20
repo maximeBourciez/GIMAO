@@ -103,49 +103,37 @@
 					Si l'utilisateur n'a jamais eu de mot de passe, laissez le champ "Ancien mot de passe" vide.
 				</p>
 				<v-row dense>
-					<v-col cols="12" md="4">
-						<FormField
-							v-model="passwordForm.ancien"
-							field-name="ancien"
-							label="Ancien mot de passe"
-							type="password"
-							placeholder="••••••••"
-						/>
-					</v-col>
+    <v-col v-if="isEditingSelf" cols="12" md="4">
+        <FormField
+            v-model="passwordForm.ancien"
+            field-name="ancien"
+            label="Ancien mot de passe"
+            type="password"
+            placeholder="••••••••"
+        />
+    </v-col>
+    <v-col cols="12" :md="isEditingSelf ? 4 : 6">
+        <FormField
+            v-model="passwordForm.nouveau"
+            field-name="nouveau"
+            label="Nouveau mot de passe"
+            type="password"
+            placeholder="••••••••"
+            :rules="nouveauMotDePasseRules"
+        />
+    </v-col>
+    <v-col cols="12" :md="isEditingSelf ? 4 : 6">
+        <FormField
+            v-model="passwordForm.confirmation"
+            field-name="confirmation"
+            label="Confirmer le mot de passe"
+            type="password"
+            placeholder="••••••••"
+            :rules="confirmationMotDePasseRules"
+        />
+    </v-col>
 
-					<v-col cols="12" md="4">
-						<FormField
-							v-model="passwordForm.nouveau"
-							field-name="nouveau"
-							label="Nouveau mot de passe"
-							type="password"
-							placeholder="••••••••"
-							:rules="nouveauMotDePasseRules"
-						/>
-					</v-col>
 
-					<v-col cols="12" md="4">
-						<FormField
-							v-model="passwordForm.confirmation"
-							field-name="confirmation"
-							label="Confirmer le mot de passe"
-							type="password"
-							placeholder="••••••••"
-							:rules="confirmationMotDePasseRules"
-						/>
-					</v-col>
-
-					<v-col cols="12" class="d-flex justify-end">
-						<v-btn
-							color="primary"
-							:loading="isChangingPassword"
-							:disabled="loading || isChangingPassword"
-							type="button"
-							@click="handlePasswordUpdate"
-						>
-							Mettre à jour le mot de passe
-						</v-btn>
-					</v-col>
 				</v-row>
 			</v-sheet>
 		</template>
@@ -320,11 +308,12 @@ const save = async () => {
 	successMessage.value = '';
 
 	// Vérification des changements en mode édition
-	if (props.isEdit && !hasChanges()) {
-		loading.value = false;
-		errorMessage.value = 'Aucune modification détectée.';
-		return;
-	}
+const passwordFilled = !!(passwordForm.value.nouveau && passwordForm.value.confirmation)
+if (props.isEdit && !hasChanges() && !passwordFilled) {
+    loading.value = false;
+    errorMessage.value = 'Aucune modification détectée.';
+    return;
+}
 
 	try {
 		const payloadHasFile = formData.value.photoProfil instanceof File;
@@ -358,13 +347,19 @@ const save = async () => {
 		}
 
 		if (props.isEdit) {
-			const updatedUser = await api.put(`utilisateurs/${props.userId}/`, payload);
-			emit('user-sync', updatedUser);
-			successMessage.value = 'Utilisateur modifié avec succès.';
-			setTimeout(() => {
-				emit('updated', updatedUser);
-			}, 800);
-		} else {
+const updatedUser = await api.put(`utilisateurs/${props.userId}/`, payload);
+emit('user-sync', updatedUser);
+successMessage.value = 'Utilisateur modifié avec succès.';
+
+// Mise à jour du mot de passe si les champs sont remplis
+if (passwordForm.value.nouveau && passwordForm.value.confirmation) {
+    await handlePasswordUpdate()
+}
+
+setTimeout(() => {
+    emit('updated', updatedUser);
+}, 800);
+	} else {
 			const created = await api.post('utilisateurs/', payload);
 			successMessage.value = 'Utilisateur créé avec succès.';
 			setTimeout(() => {
@@ -417,27 +412,34 @@ const handlePasswordUpdate = async () => {
 	}
 
 	isChangingPassword.value = true;
-	try {
-		if (ancien && ancien.trim() !== '') {
-			await api.post(`utilisateurs/${props.userId}/changer_mot_de_passe/`, {
-				ancien_motDePasse: ancien,
-				nouveau_motDePasse: nouveau,
-				nouveau_motDePasse_confirmation: confirmation,
-			});
-			successMessage.value = 'Mot de passe mis à jour avec succès.';
-		} else {
-			if (!formData.value.nomUtilisateur) {
-				errorMessage.value = "Nom d'utilisateur manquant : impossible de définir un mot de passe.";
-				return;
-			}
-
-			await api.post('utilisateurs/definir_mot_de_passe/', {
-				nomUtilisateur: formData.value.nomUtilisateur,
-				nouveau_motDePasse: nouveau,
-				nouveau_motDePasse_confirmation: confirmation,
-			});
-			successMessage.value = 'Mot de passe défini avec succès.';
-		}
+try {
+    if (!isEditingSelf.value) {
+        // Le responsable modifie un autre utilisateur — pas besoin de l'ancien mot de passe
+        await api.post(`utilisateurs/${props.userId}/changer_mot_de_passe/`, {
+            ancien_motDePasse: '',
+            nouveau_motDePasse: nouveau,
+            nouveau_motDePasse_confirmation: confirmation,
+        });
+        successMessage.value = 'Mot de passe mis à jour avec succès.';
+    } else if (ancien && ancien.trim() !== '') {
+        await api.post(`utilisateurs/${props.userId}/changer_mot_de_passe/`, {
+            ancien_motDePasse: ancien,
+            nouveau_motDePasse: nouveau,
+            nouveau_motDePasse_confirmation: confirmation,
+        });
+        successMessage.value = 'Mot de passe mis à jour avec succès.';
+    } else {
+        if (!formData.value.nomUtilisateur) {
+            errorMessage.value = "Nom d'utilisateur manquant : impossible de définir un mot de passe.";
+            return;
+        }
+        await api.post('utilisateurs/definir_mot_de_passe/', {
+            nomUtilisateur: formData.value.nomUtilisateur,
+            nouveau_motDePasse: nouveau,
+            nouveau_motDePasse_confirmation: confirmation,
+        });
+        successMessage.value = 'Mot de passe défini avec succès.';
+    }
 
 		passwordForm.value = { ancien: '', nouveau: '', confirmation: '' };
 	} catch (e) {

@@ -32,13 +32,23 @@ class GimaoModelViewSet(ModelViewSet):
                     pass
         
         # 2. From Auth Token
-        if not app_user and request.user and request.user.is_authenticated:
-            # Try to match Django User to app-level Utilisateur
-            if hasattr(request.user, 'utilisateur'):
-                 app_user = request.user.utilisateur
-            elif hasattr(request.user, 'username'):
-                 app_user = Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
+        # if not app_user and request.user and request.user.is_authenticated:
+        #     # Try to match Django User to app-level Utilisateur
+        #     if hasattr(request.user, 'utilisateur'):
+        #          app_user = request.user.utilisateur
+        #     elif hasattr(request.user, 'username'):
+        #          app_user = Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
 
+        if not app_user and hasattr(request, 'api_user'):
+            app_user = request.api_user
+
+        # 3. From Auth Token (ancien système)
+        if not app_user and request.user and request.user.is_authenticated:
+            if hasattr(request.user, 'utilisateur'):
+                app_user = request.user.utilisateur
+            elif hasattr(request.user, 'username'):
+                app_user = Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
+                
         # Save to thread local
         set_thread_user(app_user)
 
