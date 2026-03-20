@@ -1,6 +1,7 @@
 import ast
 import logging
 import os
+import traceback
 from urllib.parse import parse_qs
 from django.http import JsonResponse
 from rest_framework import viewsets, status
@@ -774,6 +775,15 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 'responsable_id': utilisateur.id,
             }
 
+            duree = data.get('duree_previsionnelle')
+
+            if duree:
+                # Si format HH:MM → on ajoute les secondes
+                if len(duree.split(':')) == 2:
+                    duree = f"{duree}:00"
+
+            bt_payload['duree_previsionnelle'] = duree
+
             # Champs optionnels (responsable non modifiable ici)
             if 'utilisateur_assigne_ids' in data:
                 bt_payload['utilisateur_assigne_ids'] = data.get('utilisateur_assigne_ids')
@@ -833,6 +843,8 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             return Response(response_data, status=status.HTTP_201_CREATED)
         except Exception:
             # Best-effort: si des fichiers ont été sauvegardés avant l'erreur, tenter de les supprimer
+            print("Exception détectée, tentative de cleanup des fichiers créés..."
+            "Exception:", traceback.format_exc())
             for name in reversed(created_files):
                 try:
                     if name:

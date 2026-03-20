@@ -1,9 +1,9 @@
 <template>
     <v-container fluid class="calendar-container pa-4">
         <v-card class="pa-4 elevation-2 rounded-lg">
-            <v-tabs 
-                v-model="mode" 
-                class="mb-4" 
+            <v-tabs
+                v-model="mode"
+                class="mb-4"
                 color="primary"
                 grow
             >
@@ -18,152 +18,124 @@
             </v-tabs>
 
             <div class="calendar-wrapper">
-                <FullCalendar :options="calendarOptions" />
+                <vue-cal
+                    ref="vuecal"
+                    :events="currentEvents"
+                    :time-from="7 * 60"
+                    :time-to="20 * 60"
+                    :time-step="30"
+                    active-view="month"
+                    :disable-views="[]"
+                    locale="fr"
+                    :first-day-of-week="2"
+                    :on-event-click="onEventClick"
+                    :max-events-per-cell="3"
+                    events-on-month-view="short"
+                    :today-button="true"
+                    :click-to-navigate="false"
+                    show-week-numbers
+                    :time-cell-height="48"
+                    class="vuecal--custom"
+                />
             </div>
         </v-card>
     </v-container>
 </template>
 
 <script>
-import FullCalendar from '@fullcalendar/vue3'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import interactionPlugin from '@fullcalendar/interaction'
-import frLocale from '@fullcalendar/core/locales/fr'
+import VueCal from 'vue-cal'
+import 'vue-cal/dist/vuecal.css'
 
 export default {
-    components: { FullCalendar },
+    name: 'CalendarView',
+
+    components: { VueCal },
 
     data() {
         return {
-            mode: "bt",
+            mode: 'bt',
 
             eventsBT: [
-                { 
-                    title: "🔧 BT #101 - Pompe", 
-                    start: "2026-03-18", 
-                    color: "#1976D2",
-                    extendedProps: { type: 'bt' }
+                {
+                    title: 'BT #101 - Pompe centrifuge',
+                    start: '2026-03-18 00:00',
+                    end: '2026-03-18 23:59',
+                    class: 'event-bt',
+                    id: 101,
                 },
-                { 
-                    title: "⚡ BT #102 - Électricité", 
-                    start: "2026-03-20 08:00", 
-                    end: "2026-03-20 12:00", 
-                    color: "#1976D2",
-                    extendedProps: { type: 'bt' }
+                {
+                    title: 'BT #102 - Electricité tableau',
+                    start: '2026-03-20 08:00',
+                    end: '2026-03-20 12:00',
+                    class: 'event-bt',
+                    id: 102,
                 },
-                { 
-                    title: "⚡ BT #102 - Électricité", 
-                    start: "2026-03-20 10:00", 
-                    end: "2026-03-20 12:00", 
-                    color: "#1976D2",
-                    extendedProps: { type: 'bt' }
+                {
+                    title: 'BT #103 - Fuite hydraulique',
+                    start: '2026-03-20 14:00',
+                    end: '2026-03-20 17:00',
+                    class: 'event-bt',
+                    id: 103,
                 },
-                { 
-                    title: "⚡ BT #102 - Électricité", 
-                    start: "2026-03-20 14:00", 
-                    end: "2026-03-20 17:00", 
-                    color: "#1976D2",
-                    extendedProps: { type: 'bt' }
+                {
+                    title: 'BT #104 - Remplacement vanne DN100',
+                    start: '2026-03-23 07:00',
+                    end: '2026-03-25 17:00',
+                    class: 'event-bt',
+                    id: 104,
                 },
-                { 
-                    title: "⚡ BT #102 - Électricité", 
-                    start: "2026-03-20 09:00", 
-                    end: "2026-03-20 17:00", 
-                    color: "#1976D2",
-                    extendedProps: { type: 'bt' }
-                }
+                {
+                    title: 'BT #105 - Inspection générale',
+                    start: '2026-03-26 08:00',
+                    end: '2026-03-27 16:00',
+                    class: 'event-bt',
+                    id: 105,
+                },
             ],
 
             eventsMaintenance: [
-                { 
-                    title: "🔧 Maintenance Compresseur", 
-                    start: "2026-03-25", 
-                    color: "#E53935",
-                    extendedProps: { type: 'maintenance' }
+                {
+                    title: 'MP-201 - Compresseur air',
+                    start: '2026-03-25 08:00',
+                    end: '2026-03-25 17:00',
+                    class: 'event-mp',
+                    id: 201,
                 },
-                { 
-                    title: "❄️ Maintenance Climatisation", 
-                    start: "2026-04-01", 
-                    color: "#E53935",
-                    extendedProps: { type: 'maintenance' }
-                }
-            ]
+                {
+                    title: 'MP-202 - Climatisation bâtiment A',
+                    start: '2026-04-01 08:00',
+                    end: '2026-04-01 12:00',
+                    class: 'event-mp',
+                    id: 202,
+                },
+                {
+                    title: 'MP-203 - Graissage mensuel',
+                    start: '2026-03-17 08:00',
+                    end: '2026-03-19 17:00',
+                    class: 'event-mp',
+                    id: 203,
+                },
+            ],
         }
     },
 
     computed: {
-        calendarOptions() {
-            return {
-                plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-                initialView: 'dayGridMonth',
-                locale: frLocale,
-                firstDay: 1, // Lundi
-                
-                // Gestion des heures
-                slotMinTime: "07:00:00",
-                slotMaxTime: "20:00:00",
-                slotDuration: '00:30:00',
-                slotLabelInterval: '01:00',
-                
-                // Dimensions
-                height: "auto",
-                contentHeight: "auto",
-                aspectRatio: 1.8,
-                
-                // Toolbar
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
+        currentEvents() {
+            return this.mode === 'bt' ? this.eventsBT : this.eventsMaintenance
+        },
+    },
 
-                // Limite à la période affichée
-                validRange: {
-                    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                    end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
-                },
-
-                // Événements dynamiques
-                events: this.mode === "bt" ? this.eventsBT : this.eventsMaintenance,
-
-                // Configuration des événements
-                editable: true,
-                selectable: true,
-                selectMirror: true,
-                dayMaxEvents: 3,
-                dayMaxEventRows: true,
-                weekNumbers: false,
-                
-                // Format des événements
-                eventDisplay: 'auto',
-                eventTimeFormat: {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                },
-                
-                // Gestion des conflits
-                eventOrder: 'start',
-                eventOrderStrict: false,
-                
-                // Classes CSS personnalisées
-                eventClassNames: (arg) => {
-                    return ['custom-event', `event-type-${arg.event.extendedProps.type || 'default'}`];
-                },
-                
-                // Gestion des dates vides
-                dayCellClassNames: (arg) => {
-                    return arg.isToday ? 'today-cell' : '';
-                }
-            }
-        }
-    }
+    methods: {
+        onEventClick(event, e) {
+            e.stopPropagation()
+            // Remplacer par : this.$router.push(`/work-orders/${event.id}`)
+            console.log('Navigation vers :', event.id, event.title)
+        },
+    },
 }
 </script>
 
 <style scoped>
-/* Utilisation des variables CSS Vuetify */
 .calendar-container {
     background: rgb(var(--v-theme-background)) !important;
     min-height: 100vh;
@@ -175,328 +147,217 @@ export default {
     overflow: hidden;
 }
 
-/* Styles de base du calendrier */
-:deep(.fc) {
-    --fc-border-color: rgba(var(--v-border-color), var(--v-border-opacity));
-    --fc-page-bg-color: rgb(var(--v-theme-surface));
-    --fc-neutral-bg-color: rgba(var(--v-theme-on-surface), 0.05);
-    --fc-event-bg-color: var(--v-primary-base);
-    --fc-event-border-color: var(--v-primary-base);
-    --fc-event-text-color: #FFFFFF;
-    --fc-today-bg-color: rgba(var(--v-theme-primary), 0.1);
-    --fc-button-text-color: #FFFFFF;
-    --fc-button-bg-color: rgb(var(--v-theme-primary));
-    --fc-button-border-color: rgb(var(--v-theme-primary));
-    --fc-button-hover-bg-color: rgb(var(--v-theme-primary-darken-1));
-    --fc-button-hover-border-color: rgb(var(--v-theme-primary-darken-1));
-    --fc-button-active-bg-color: rgb(var(--v-theme-primary-darken-2));
-    --fc-button-active-border-color: rgb(var(--v-theme-primary-darken-2));
-    
+/* ─── Variables de base ─────────────────────────────────────── */
+:deep(.vuecal--custom) {
+    /* Couleurs remapées sur les tokens Vuetify */
+    --vc-primary:          rgb(var(--v-theme-primary));
+    --vc-surface:          rgb(var(--v-theme-surface));
+    --vc-on-surface:       rgb(var(--v-theme-on-surface));
+    --vc-border:           rgba(var(--v-border-color), var(--v-border-opacity));
+
     font-family: 'Roboto', sans-serif;
-    background: rgb(var(--v-theme-surface));
-    border-radius: 12px;
-    padding: 20px;
+    background: var(--vc-surface);
+    border: none;
+    height: auto;
+    min-height: 600px;
 }
 
-/* En-tête du calendrier */
-:deep(.fc-toolbar-title) {
-    color: rgb(var(--v-theme-on-surface)) !important;
-    font-size: 1.5rem !important;
-    font-weight: 500 !important;
+/* ─── En-têtes jours ────────────────────────────────────────── */
+:deep(.vuecal--custom .vuecal__heading) {
+    background: var(--vc-primary);
+    color: rgb(var(--v-theme-on-primary));
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 0;
+    border: none;
+}
+
+/* ─── Titre mois / période ──────────────────────────────────── */
+:deep(.vuecal--custom .vuecal__title) {
+    color: var(--vc-on-surface);
+    font-size: 1.4rem;
+    font-weight: 500;
     text-transform: capitalize;
+    background: none;
+    border: none;
 }
 
-/* En-tête des jours de la semaine */
-:deep(.fc-col-header-cell) {
-    background: rgb(var(--v-theme-primary)) !important;
-    padding: 12px 0 !important;
-}
-
-:deep(.fc-col-header-cell-cushion) {
-    color: rgb(var(--v-theme-on-primary)) !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    text-decoration: none !important;
-}
-
-/* En-tête de la vue jour */
-:deep(.fc-timegrid-axis) {
-    background: rgb(var(--v-theme-primary)) !important;
-    color: rgb(var(--v-theme-on-primary)) !important;
-    font-weight: 600 !important;
-}
-
-:deep(.fc-timegrid-axis-cushion) {
-    color: rgb(var(--v-theme-on-primary)) !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-}
-
-/* Jours dans la grille */
-:deep(.fc-daygrid-day-number) {
-    color: rgb(var(--v-theme-on-surface)) !important;
-    font-weight: 500 !important;
-    font-size: 1rem !important;
-    padding: 8px !important;
-    text-decoration: none !important;
-}
-
-:deep(.fc-day-other .fc-daygrid-day-number) {
-    opacity: 0.6;
-    color: rgba(var(--v-theme-on-surface), 0.6) !important;
-}
-
-/* Cellules de jour */
-:deep(.fc-daygrid-day) {
-    border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)) !important;
-    transition: background-color 0.2s ease;
-}
-
-:deep(.fc-daygrid-day:hover) {
-    background-color: rgba(var(--v-theme-primary), 0.05) !important;
-}
-
-/* Jour actuel */
-:deep(.fc-day-today) {
-    background-color: rgba(var(--v-theme-primary), 0.1) !important;
-}
-
-:deep(.fc-day-today .fc-daygrid-day-number) {
-    color: rgb(var(--v-theme-primary)) !important;
-    font-weight: 700 !important;
-    background: rgba(var(--v-theme-primary), 0.1);
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
+:deep(.vuecal--custom .vuecal__title-bar) {
+    background: var(--vc-surface);
+    border-bottom: 1px solid var(--vc-border);
+    padding: 12px 16px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin: 4px auto;
+    justify-content: space-between;
+}
+
+/* ─── Boutons navigation ────────────────────────────────────── */
+:deep(.vuecal--custom .vuecal__arrow),
+:deep(.vuecal--custom .vuecal__today-btn),
+:deep(.vuecal--custom .vuecal__view-btn) {
+    background: var(--vc-primary);
+    color: rgb(var(--v-theme-on-primary));
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+:deep(.vuecal--custom .vuecal__arrow:hover),
+:deep(.vuecal--custom .vuecal__today-btn:hover),
+:deep(.vuecal--custom .vuecal__view-btn:hover) {
+    filter: brightness(1.12);
+    transform: translateY(-1px);
+}
+
+:deep(.vuecal--custom .vuecal__view-btn--active) {
+    filter: brightness(0.85);
+}
+
+/* ─── Cellules de jours ─────────────────────────────────────── */
+:deep(.vuecal--custom .vuecal__cell) {
+    border: 1px solid var(--vc-border);
+    background: var(--vc-surface);
+    transition: background-color 0.15s ease;
+    min-height: 80px;
+}
+
+:deep(.vuecal--custom .vuecal__cell:hover) {
+    background: rgba(var(--v-theme-primary), 0.04);
 }
 
 /* Week-end */
-:deep(.fc-day-sat), :deep(.fc-day-sun) {
-    background-color: rgba(var(--v-theme-on-surface), 0.02) !important;
+:deep(.vuecal--custom .vuecal__cell--weekend) {
+    background: rgba(var(--v-theme-on-surface), 0.02);
 }
 
-/* Événements */
-:deep(.fc-event) {
-    border-radius: 6px !important;
-    padding: 4px 8px !important;
-    margin: 2px 4px !important;
-    font-size: 0.85rem !important;
-    font-weight: 500 !important;
-    border: none !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    transition: all 0.2s ease !important;
-    cursor: pointer !important;
-    color: var(--text) !important;
+/* Jour actuel */
+:deep(.vuecal--custom .vuecal__cell--today) {
+    background: rgba(var(--v-theme-primary), 0.08) !important;
 }
 
-:deep(.fc-event:hover) {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    filter: brightness(1.1) !important;
+:deep(.vuecal--custom .vuecal__cell-date .today) {
+    background: var(--vc-primary);
+    color: rgb(var(--v-theme-on-primary));
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
 }
 
-:deep(.fc-event-title) {
-    font-weight: 500 !important;
-    white-space: normal !important;
-    line-height: 1.3 !important;
-    color: var(--text) !important;
+/* Jours hors mois courant */
+:deep(.vuecal--custom .vuecal__cell--out-of-scope) {
+    opacity: 0.45;
 }
 
-:deep(.fc-event-time) {
-    font-weight: 400 !important;
-    opacity: 0.9 !important;
-    margin-right: 4px !important;
+/* Numéros de jours */
+:deep(.vuecal--custom .vuecal__cell-date) {
+    color: var(--vc-on-surface);
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 6px 8px;
 }
 
-:deep(.fc-event-main) {
-    padding: 2px !important;
+/* ─── Événements ────────────────────────────────────────────── */
+:deep(.vuecal--custom .vuecal__event) {
+    border-radius: 6px;
+    padding: 3px 8px;
+    margin: 2px 3px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 1.4;
 }
 
-/* Types d'événements */
-:deep(.event-type-bt) {
-    border-left: 3px solid #0D47A1 !important;
+:deep(.vuecal--custom .vuecal__event:hover) {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
 }
 
-:deep(.event-type-maintenance) {
-    border-left: 3px solid #B71C1C !important;
+/* Classe Bons de Travail */
+:deep(.vuecal--custom .vuecal__event.event-bt) {
+    background: rgb(var(--v-theme-primary));
+    color: rgb(var(--v-theme-on-primary));
+    border-left: 3px solid rgba(0, 0, 0, 0.25);
 }
 
-/* Vue semaine / jour */
-:deep(.fc-timegrid-slot) {
-    height: 3em !important;
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.3) !important;
+/* Classe Maintenance Préventive */
+:deep(.vuecal--custom .vuecal__event.event-mp) {
+    background: #E53935;
+    color: #ffffff;
+    border-left: 3px solid #B71C1C;
 }
 
-:deep(.fc-timegrid-slot-label) {
-    font-size: 0.85rem !important;
-    color: rgb(var(--v-theme-on-surface)) !important;
-    font-weight: 500 !important;
+:deep(.vuecal--custom .vuecal__event-title) {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-:deep(.fc-timegrid-slot-label-cushion) {
-    color: rgb(var(--v-theme-on-surface)) !important;
-    font-weight: 500 !important;
+:deep(.vuecal--custom .vuecal__event-time) {
+    font-size: 0.75rem;
+    opacity: 0.85;
+    margin-right: 4px;
 }
 
-:deep(.fc-timegrid-axis) {
-    background: rgb(var(--v-theme-primary)) !important;
+/* ─── Slots horaires (vue semaine/jour) ─────────────────────── */
+:deep(.vuecal--custom .vuecal__time-cell) {
+    color: var(--vc-on-surface);
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-right: 1px solid var(--vc-border);
 }
 
-:deep(.fc-timegrid-axis-cushion) {
-    color: rgb(var(--v-theme-on-primary)) !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
+:deep(.vuecal--custom .vuecal__time-cell-line) {
+    border-color: var(--vc-border);
 }
 
-:deep(.fc-timegrid-now-indicator-line) {
-    border-color: rgb(var(--v-theme-primary)) !important;
-    border-width: 2px !important;
+/* Indicateur "maintenant" */
+:deep(.vuecal--custom .vuecal__now-line) {
+    border-color: var(--vc-primary);
+    border-width: 2px;
 }
 
-:deep(.fc-timegrid-now-indicator-arrow) {
-    border-color: rgb(var(--v-theme-primary)) !important;
-    color: rgb(var(--v-theme-primary)) !important;
-}
-
-/* Boutons de la toolbar */
-:deep(.fc-button) {
-    background: rgb(var(--v-theme-primary)) !important;
-    border-color: rgb(var(--v-theme-primary)) !important;
-    color: var(--text) !important;
-    text-transform: none !important;
-    font-weight: 600 !important;
-    padding: 8px 16px !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    transition: all 0.2s ease !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-:deep(.fc-button:hover) {
-    background: rgb(var(--v-theme-primary-darken-1)) !important;
-    border-color: rgb(var(--v-theme-primary-darken-1)) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-}
-
-:deep(.fc-button:disabled) {
-    opacity: 0.6 !important;
-    cursor: not-allowed !important;
-}
-
-:deep(.fc-button-primary:not(:disabled):active),
-:deep(.fc-button-primary:not(:disabled).fc-button-active) {
-    background: rgb(var(--v-theme-primary-darken-2)) !important;
-    border-color: rgb(var(--v-theme-primary-darken-2)) !important;
-}
-
-/* Icônes dans les boutons */
-:deep(.fc-icon) {
-    font-size: 1.2em !important;
-    color: #FFFFFF !important;
-}
-
-/* Texte des boutons de navigation */
-:deep(.fc-button .fc-icon) {
-    color: #FFFFFF !important;
-}
-
-:deep(.fc-button span) {
-    color: #FFFFFF !important;
-}
-
-/* Popover pour les événements multiples */
-:deep(.fc-more-popover) {
-    background: rgb(var(--v-theme-surface)) !important;
-    border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-:deep(.fc-more-popover .fc-popover-header) {
-    background: rgba(var(--v-theme-primary), 0.1) !important;
-    padding: 8px 12px !important;
-    border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)) !important;
-}
-
-:deep(.fc-more-popover .fc-popover-title) {
-    color: rgb(var(--v-theme-on-surface)) !important;
-    font-weight: 500 !important;
-}
-
-/* Vue par jour - en-tête */
-:deep(.fc-timegrid-col) {
-    background: rgb(var(--v-theme-surface)) !important;
-}
-
-:deep(.fc-timegrid-col .fc-col-header-cell) {
-    background: rgb(var(--v-theme-primary)) !important;
-}
-
-/* Adaptations pour le dark mode */
-:deep(.v-theme--dark) {
-    --fc-border-color: rgba(255, 255, 255, 0.12);
-    --fc-neutral-bg-color: rgba(255, 255, 255, 0.05);
-}
-
-:deep(.v-theme--dark .fc-day-today) {
-    background-color: rgba(var(--v-theme-primary), 0.15) !important;
-}
-
-:deep(.v-theme--dark .fc-day-sat),
-:deep(.v-theme--dark .fc-day-sun) {
-    background-color: rgba(255, 255, 255, 0.03) !important;
-}
-
-:deep(.v-theme--dark .fc-event) {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-}
-
-:deep(.v-theme--dark .fc-timegrid-slot-label) {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-:deep(.v-theme--dark .fc-daygrid-day-number) {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* Responsive */
+/* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
-    :deep(.fc) {
-        padding: 12px;
+    :deep(.vuecal--custom .vuecal__title-bar) {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 10px;
     }
-    
-    :deep(.fc-toolbar) {
-        flex-direction: column;
-        gap: 12px;
+
+    :deep(.vuecal--custom .vuecal__title) {
+        font-size: 1.1rem;
     }
-    
-    :deep(.fc-toolbar-title) {
-        font-size: 1.2rem !important;
+
+    :deep(.vuecal--custom .vuecal__arrow),
+    :deep(.vuecal--custom .vuecal__today-btn),
+    :deep(.vuecal--custom .vuecal__view-btn) {
+        padding: 4px 10px;
+        font-size: 0.8rem;
     }
-    
-    :deep(.fc-button) {
-        padding: 6px 12px !important;
-        font-size: 0.85rem !important;
+
+    :deep(.vuecal--custom .vuecal__event) {
+        font-size: 0.72rem;
+        padding: 2px 4px;
     }
-    
-    :deep(.fc-col-header-cell-cushion) {
-        font-size: 0.85rem !important;
-    }
-    
-    :deep(.fc-event) {
-        font-size: 0.75rem !important;
-        padding: 2px 4px !important;
+
+    :deep(.vuecal--custom .vuecal__cell) {
+        min-height: 56px;
     }
 }
 </style>

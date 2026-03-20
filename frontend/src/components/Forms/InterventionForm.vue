@@ -42,23 +42,21 @@
 					</v-col>
 
 					<v-col cols="12" md="6">
-						<FormSelect
-							v-model="formData.type"
-							field-name="type"
-							label="Type"
-							:items="typeItems"
-							item-title="label"
-							item-value="value"
-						/>
-					</v-col>
-
-					<v-col cols="12" md="6">
 						<FormField
 							v-model="formData.date_prevue"
 							field-name="date_prevue"
 							label="Date prévue"
 							type="datetime-local"
 							clearable
+						/>
+					</v-col>
+
+					<v-col cols="12" md="6">
+						<FormField
+							v-model="formData.duree_previsionnelle"
+							field-name="duree_previsionnelle"
+							label="Durée prévisionnelle"
+							type="time"
 						/>
 					</v-col>
 				</v-row>
@@ -252,6 +250,7 @@ const formData = ref({
 	nom: '',
 	type: 'CORRECTIF',
 	date_prevue: null,
+	duree_previsionnelle: '',
 	commentaire: '',
 	diagnostic: '',
 	responsable_id: null,
@@ -264,6 +263,43 @@ const originalFormData = ref(null);
 const loading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
+
+const DUREE_PREVISIONNELLE_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+
+const toTimeInputValue = (value) => {
+	if (value === null || value === undefined) return '';
+	const rawValue = String(value).trim();
+	if (!rawValue) return '';
+
+	const match = rawValue.match(/^(?:(\d+)\s+)?(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+	if (!match) return '';
+
+	const days = Number(match[1] || 0);
+	const hours = Number(match[2] || 0);
+	const minutes = Number(match[3] || 0);
+	if (!Number.isFinite(days) || !Number.isFinite(hours) || !Number.isFinite(minutes)) return '';
+
+	const totalHours = (days * 24) + hours;
+	if (totalHours > 23 || minutes > 59) return '';
+
+	return `${String(totalHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const normalizeDureePrevisionnelleForApi = (value) => {
+	if (value === null || value === undefined) return '';
+	const rawValue = String(value).trim();
+	if (!rawValue) return '';
+
+	if (DUREE_PREVISIONNELLE_REGEX.test(rawValue)) {
+		return `${rawValue}:00`;
+	}
+
+	if (/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(rawValue)) {
+		return rawValue;
+	}
+
+	return rawValue;
+};
 
 // Initialiser les données
 watch(() => props.initialData, (newData) => {
@@ -279,6 +315,7 @@ watch(() => props.initialData, (newData) => {
 			nom: newData.nom || '',
 			type: newData.type || 'CORRECTIF',
 			date_prevue: newData.date_prevue || null,
+			duree_previsionnelle: toTimeInputValue(newData.duree_previsionnelle),
 			commentaire: newData.commentaire || '',
 			diagnostic: newData.diagnostic || '',
 			responsable_id: newData.responsable_id || null,
@@ -397,6 +434,12 @@ const buildPatchPayload = (payload) => {
 			currentDatePrevue && String(currentDatePrevue).length === 16
 				? `${currentDatePrevue}:00`
 				: currentDatePrevue || null;
+	}
+
+	const currentDureePrevisionnelle = normalizeDureePrevisionnelleForApi(payload?.duree_previsionnelle || '');
+	const originalDureePrevisionnelle = normalizeDureePrevisionnelleForApi(original?.duree_previsionnelle || '');
+	if ((currentDureePrevisionnelle || null) !== (originalDureePrevisionnelle || null)) {
+		patch.duree_previsionnelle = currentDureePrevisionnelle || null;
 	}
 
 	const newIds = (Array.isArray(payload?.utilisateur_assigne_ids) ? payload.utilisateur_assigne_ids : [])
@@ -544,6 +587,7 @@ const save = async () => {
 					? `${formData.value.date_prevue}:00`
 					: (formData.value.date_prevue || '')
 			);
+			form.append('duree_previsionnelle', normalizeDureePrevisionnelleForApi(formData.value.duree_previsionnelle));
 			for (const id of (Array.isArray(formData.value?.utilisateur_assigne_ids) ? formData.value.utilisateur_assigne_ids : [])) {
 				const n = Number(id);
 				if (Number.isFinite(n) && n > 0) form.append('utilisateur_assigne_ids', String(n));
@@ -782,6 +826,7 @@ const validationSchema = computed(() => {
 		equipement_id: ['required'],
 		nom: ['required', { name: 'minLength', params: [2] }, { name: 'maxLength', params: [200] }],
 		type: ['required'],
+		duree_previsionnelle: ['required', { name: 'pattern', params: [DUREE_PREVISIONNELLE_REGEX], message: 'Format attendu HH:MM' }],
 		responsable_id: ['required'],
 		diagnostic: [
 			'required',
@@ -814,6 +859,9 @@ const isFormValidForSubmit = computed(() => {
 	if (datePrevue && typeof datePrevue !== 'string') return false;
 	// datetime-local renvoie typiquement 'YYYY-MM-DDTHH:mm'
 	if (datePrevue && String(datePrevue).length < 16) return false;
+
+	const dureePrevisionnelle = (formData.value?.duree_previsionnelle ?? '').toString().trim();
+	if (!DUREE_PREVISIONNELLE_REGEX.test(dureePrevisionnelle)) return false;
 
 	const lines = Array.isArray(formData.value?.consommables) ? formData.value.consommables : [];
 	for (let i = 0; i < lines.length; i++) {
