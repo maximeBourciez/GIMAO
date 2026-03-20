@@ -7,3 +7,4 @@ Pillow
 django-cors-headers>=4.0.0
 python-dotenv>=1.0.0
 drf-yasg>=1.21.7
+openpyxl>=3.1.0

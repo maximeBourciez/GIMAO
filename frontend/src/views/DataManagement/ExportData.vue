@@ -1,0 +1,390 @@
+<template>
+  <v-container fluid>
+    <v-card class="elevation-2 rounded-lg pa-6">
+      <h1 class="text-h4 font-weight-bold mb-6 text-center text-primary">Export de Données</h1>
+      
+      <v-form @submit.prevent="handleExport" ref="exportForm">
+        <v-row>
+          <!-- Type d'export -->
+          <v-col cols="12" md="6">
+            <FormSelect
+              v-model="form.exportType"
+              field-name="exportType"
+              :items="exportTypes"
+              item-title="label"
+              item-value="value"
+              label="Type de données à exporter"
+              @update:modelValue="onExportTypeChange"
+            />
+          </v-col>
+
+          <!-- Format de fichier -->
+          <v-col cols="12" md="6">
+            <FormSelect
+              v-model="form.fileType"
+              field-name="fileType"
+              :items="fileTypes"
+              item-title="title"
+              item-value="value"
+              label="Format de fichier"
+            />
+          </v-col>
+
+          <!-- Inclure les données archivées -->
+          <v-col cols="12" md="6">
+            <FormSelect
+              v-model="form.includeArchived"
+              field-name="includeArchived"
+              :items="archivedOptions"
+              item-title="label"
+              item-value="value"
+              label="Données archivées"
+            />
+          </v-col>
+          
+          <!-- Filtres conditionnels -->
+          <v-col cols="12" md="6" v-if="requiresEquipementId">
+            <FormSelect
+              v-model="form.equipementId"
+              field-name="equipementId"
+              :items="equipementList"
+              item-title="designation"
+              item-value="id"
+              :label="equipementIdLabel"
+              :loading="isFiltersLoading"
+            />
+          </v-col>
+
+          <v-col cols="12" md="6" v-if="requiresMagasinId">
+            <FormSelect
+              v-model="form.magasinId"
+              field-name="magasinId"
+              :items="magasinList"
+              item-title="nom"
+              item-value="id"
+              :label="magasinIdLabel"
+              :loading="isFiltersLoading"
+            />
+          </v-col>
+
+          <v-col cols="12" md="6" v-if="requiresUtilisateurId">
+            <FormSelect
+              v-model="form.utilisateurId"
+              field-name="utilisateurId"
+              :items="utilisateurList"
+              item-title="displayName"
+              item-value="id"
+              :label="utilisateurIdLabel"
+              :loading="isFiltersLoading"
+            />
+          </v-col>
+
+          <v-col cols="12" md="6" v-if="requiresConsoId">
+            <FormSelect
+              v-model="form.consoId"
+              field-name="consoId"
+              :items="consoList"
+              item-title="designation"
+              item-value="id"
+              :label="consoIdLabel"
+              :loading="isFiltersLoading"
+            />
+          </v-col>
+
+          <!-- Colonnes -->
+          <v-col cols="12">
+            <v-card elevation="1" class="rounded-lg mb-4">
+              <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
+                Champs spécifiques (Laisser vide pour tout exporter)
+              </v-card-title>
+              <v-divider></v-divider>
+              
+              <div class="pa-4">
+                <v-alert
+                  v-if="!form.exportType"
+                  type="info"
+                  variant="tonal"
+                  density="compact"
+                  class="mb-0"
+                >
+                  Veuillez sélectionner un type de données à exporter pour voir les champs disponibles.
+                </v-alert>
+
+                <div v-else-if="isFieldsLoading" class="d-flex justify-center py-4">
+                  <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                </div>
+
+                <template v-else>
+                  <div v-if="availableFields.length > 0">
+                    <div class="mb-4 d-flex align-center flex-wrap gap-2">
+                      <v-btn
+                        size="small"
+                        variant="tonal"
+                        color="primary"
+                        class="mr-2 text-none"
+                        @click="form.columns = availableFields.map(f => f.value)"
+                      >
+                        Tout sélectionner
+                      </v-btn>
+                      <v-btn
+                        size="small"
+                        variant="tonal"
+                        color="error"
+                        class="text-none"
+                        @click="form.columns = []"
+                      >
+                        Tout désélectionner
+                      </v-btn>
+                    </div>
+                    
+                    <v-row dense>
+                      <v-col
+                        cols="12" sm="6" md="4" lg="3"
+                        v-for="field in availableFields"
+                        :key="field.value"
+                      >
+                        <v-checkbox
+                          v-model="form.columns"
+                          :label="field.label"
+                          :value="field.value"
+                          hide-details
+                          density="compact"
+                          color="primary"
+                        ></v-checkbox>
+                      </v-col>
+                    </v-row>
+                  </div>
+                  
+                  <div v-else class="text-caption text-grey text-center py-4">
+                    Aucun champ spécifique trouvé pour ce type d'export.
+                  </div>
+                </template>
+              </div>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <v-row justify="center" class="mt-8 mb-2">
+          <v-btn color="primary" size="large" type="submit" prepend-icon="mdi-download" elevation="2" class="px-8 text-none">
+            Exporter les données
+          </v-btn>
+        </v-row>
+      </v-form>
+    </v-card>
+  </v-container>
+</template>
+
+<script setup>
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useApi } from '@/composables/useApi'
+import { API_BASE_URL } from '@/utils/constants'
+import http from '@/composables/http'
+import { FormSelect, FormField } from '@/components/Forms/inputType'
+
+const api = useApi()
+
+const availableFields = ref([])
+const isFieldsLoading = ref(false)
+const isFiltersLoading = ref(false)
+
+const equipementList = ref([])
+const magasinList = ref([])
+const utilisateurList = ref([])
+const consoList = ref([])
+
+onMounted(async () => {
+  isFiltersLoading.value = true
+  try {
+    const [eqRes, magRes, userRes, consoRes] = await Promise.all([
+      api.get('equipements/'),
+      api.get('magasins/'),
+      api.get('utilisateurs/'),
+      api.get('consommables/')
+    ])
+    equipementList.value = eqRes?.results || eqRes || []
+    magasinList.value = magRes?.results || magRes || []
+    const rawUsers = userRes?.results || userRes || []
+    utilisateurList.value = rawUsers.map(u => ({
+      ...u,
+      displayName: `${u.nomUtilisateur} (${u.prenom} ${u.nomFamille})`
+    }))
+    consoList.value = consoRes?.results || consoRes || []
+  } catch (error) {
+    console.error("Erreur de récupération des dépendances:", error)
+  } finally {
+    isFiltersLoading.value = false
+  }
+})
+
+const form = reactive({
+  exportType: null,
+  fileType: 'csv',
+  includeArchived: 'no',
+  columns: [],
+  equipementId: '',
+  magasinId: '',
+  utilisateurId: '',
+  consoId: '',
+})
+
+const fileTypes = [
+  { title: 'CSV', value: 'csv' },
+  { title: 'Excel (XLSX)', value: 'xlsx' },
+]
+
+const archivedOptions = [
+  { label: 'Uniquement les données actives', value: 'no' },
+  { label: 'Uniquement les données archivées', value: 'yes' },
+  { label: 'Tout inclure', value: 'both' },
+]
+
+const exportTypes = [
+  { label: 'Équipements', value: 'equipement' },
+  { label: 'Statuts des équipements', value: 'statut_equipement' },
+  { label: 'Bons de travail', value: 'bt' },
+  { label: 'Demandes d\'intervention', value: 'di' },
+  { label: 'Consommables', value: 'conso' },
+  { label: 'Historique d\'achat des consommables', value: 'historique_achat_conso' },
+  { label: 'Stocks en magasin', value: 'stock' },
+  { label: 'Magasins', value: 'magasins' },
+  { label: 'Historique de sortie des magasins', value: 'historique_sortie_magasin' },
+  { label: 'Logs système', value: 'logs' },
+  { label: 'Fournisseurs', value: 'fournisseur' },
+  { label: 'Fabricants', value: 'fabricant' },
+  { label: 'Modèles d\'équipements', value: 'modele_equipement' },
+  { label: 'Lieux', value: 'lieu' },
+  { label: 'Compteurs', value: 'compteur' },
+  { label: 'Maintenance préventive (Seuils)', value: 'maintenance_preventive' },
+  { label: 'Utilisateurs', value: 'users' },
+]
+
+const requiresEquipementId = computed(() => {
+  const types = ['statut_equipement', 'bt', 'di', 'compteur', 'maintenance_preventive']
+  return types.includes(form.exportType)
+})
+
+const requiresMagasinId = computed(() => {
+  const types = ['stock', 'historique_sortie_magasin']
+  return types.includes(form.exportType)
+})
+
+const requiresUtilisateurId = computed(() => {
+  const types = ['logs']
+  return types.includes(form.exportType)
+})
+
+const requiresConsoId = computed(() => {
+  const types = ['historique_achat_conso']
+  return types.includes(form.exportType)
+})
+
+const selectedLabel = computed(() => {
+  const found = exportTypes.find(t => t.value === form.exportType)
+  return found ? found.label : ''
+})
+
+const equipementIdLabel = computed(() =>
+  `ID de l'Équipement (Optionnel) - selectionne un ${selectedLabel.value}`
+)
+
+const magasinIdLabel = computed(() =>
+  `ID du Magasin (Optionnel) - selectionne un ${selectedLabel.value}`
+)
+
+const utilisateurIdLabel = computed(() =>
+  `ID de l'Utilisateur (Optionnel) - selectionne un ${selectedLabel.value}`
+)
+
+const consoIdLabel = computed(() =>
+  `ID du Consommable (Optionnel) - selectionne un ${selectedLabel.value}`
+)
+
+const onExportTypeChange = async () => {
+  // Reset columns when type changes
+  form.columns = []
+  
+  if (!form.exportType) {
+    availableFields.value = []
+    return
+  }
+
+  isFieldsLoading.value = true
+  try {
+    const response = await api.get('export/fields/', { exportType: form.exportType })
+    console.log(response)
+    if (response && response.fields) {
+      availableFields.value = response.fields
+    }
+  } catch (error) {
+    console.error("Erreur de la récupération des champs: ", error)
+    availableFields.value = []
+  } finally {
+    isFieldsLoading.value = false
+  }
+}
+
+const handleExport = async () => {
+  if (!form.exportType) {
+    alert("Veuillez sélectionner un type de données à exporter.")
+    return
+  }
+
+  const params = {}
+  params.exportType = form.exportType
+  params.fileType = form.fileType
+  params.includeArchived = form.includeArchived
+  
+  if (form.columns && form.columns.length > 0) {
+    params.columns = form.columns.join(',')
+  }
+
+  if (requiresEquipementId.value && form.equipementId) {
+    params.equipementId = form.equipementId
+  }
+  if (requiresMagasinId.value && form.magasinId) {
+    params.magasinId = form.magasinId
+  }
+  if (requiresUtilisateurId.value && form.utilisateurId) {
+    params.utilisateurId = form.utilisateurId
+  }
+  if (requiresConsoId.value && form.consoId) {
+    params.consoId = form.consoId
+  }
+
+  try {
+    const response = await http.get('export/', {
+      params,
+      responseType: 'blob'
+    })
+
+    let filename = `${form.exportType}.${form.fileType}`
+    const disposition = response.headers['content-disposition']
+    if (disposition && disposition.indexOf('attachment') !== -1) {
+      const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+      const matches = filenameRegex.exec(disposition)
+      if (matches != null && matches[1]) {
+        filename = matches[1].replace(/['"]/g, '')
+      }
+    }
+
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+  } catch (error) {
+    console.error("Erreur d'export :", error)
+    alert("Une erreur s'est produite lors de l'exportation des données.")
+  }
+}
+</script>
+
+<style scoped>
+.text-primary {
+  color: #05004E;
+}
+</style>

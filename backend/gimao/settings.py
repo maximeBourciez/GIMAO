@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'equipement',
     'maintenance',
     'tasks',
+    'exportData',
 ]
 
 MIDDLEWARE = [
