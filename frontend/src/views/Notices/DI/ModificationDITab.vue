@@ -1,15 +1,15 @@
 <template>
     <v-container class="doc-page">
         <h4>
-            Modifier une demande d’intervention
+            Modifier une demande d'intervention
         </h4>
 
         <div class="text-body-2 mb-4">
-            Une fois votre Demande d’Intervention créée, elle apparaît sur votre tableau de bord.
-            Si vous souhaitez la modifier, il vous suffit de cliquer dessus afin d’accéder à sa page de détails.
+            Une fois votre Demande d'Intervention créée, elle apparaît sur votre tableau de bord.
+            Si vous souhaitez la modifier, il vous suffit de cliquer dessus afin d'accéder à sa page de détails.
 
-            Depuis cette page, vous pouvez modifier les informations de votre demande à l’aide du bouton « Stylo »,
-            situé en bas à droite de l’écran.
+            Depuis cette page, vous pouvez modifier les informations de votre demande à l'aide du bouton « Stylo »,
+            situé en bas à droite de l'écran.
 
             
         </div>

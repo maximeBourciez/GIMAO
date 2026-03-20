@@ -1,10 +1,10 @@
 <template>
     <v-expansion-panels multiple variant="accordion" class="doc-page">
 
-      <!-- 🔹 CONSULTER DI -->
+      <!-- CONSULTER DI -->
       <v-expansion-panel v-if="roleIsAbove('Opérateur')">
         <v-expansion-panel-title>
-          Consulter vos demandes d’intervention
+          Consulter vos demandes d'intervention
         </v-expansion-panel-title>
 
         <v-expansion-panel-text>
@@ -12,10 +12,10 @@
         </v-expansion-panel-text>
       </v-expansion-panel>
 
-      <!-- 🔹 CRÉER DI -->
+      <!-- CRÉER DI -->
       <v-expansion-panel v-if="roleIsAbove('Opérateur')">
         <v-expansion-panel-title>
-          Créer une demande d’intervention
+          Créer une demande d'intervention
         </v-expansion-panel-title>
 
         <v-expansion-panel-text>
@@ -23,10 +23,10 @@
         </v-expansion-panel-text>
       </v-expansion-panel>
 
-      <!-- 🔹 MODIFIER DI -->
+      <!-- MODIFIER DI -->
       <v-expansion-panel v-if="roleIsAbove('Opérateur')">
         <v-expansion-panel-title>
-          Modifier une demande d’intervention
+          Modifier une demande d'intervention
         </v-expansion-panel-title>
 
         <v-expansion-panel-text>

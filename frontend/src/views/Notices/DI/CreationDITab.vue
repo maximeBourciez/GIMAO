@@ -2,42 +2,42 @@
   <v-container class="doc-page">
     <h4>Créer une DI</h4>
 
-    <p>
+    <div class="text-body-2 mb-4">
       Si vous souhaitez signaler une nouvelle défaillance sur un équipement,
       vous pouvez le faire directement depuis le tableau de bord.
       En effet, vous disposez d'un bouton <strong>"Créer une DI"</strong>
       qui permet le signalement de la défaillance.
-    </p>
+    </div>
 
     <ZoomImage
       :src="require('@/assets/images/notices/DI/liste-di.png')"
       alt="Bouton créer DI"
     />
 
-    <p>
+    <div class="text-body-2 mb-4">
       En cliquant dessus, vous serez redirigé vers un formulaire à remplir
       afin que vous puissiez fournir toutes les informations en votre
       possession au Responsable de la maintenance.
-    </p>
+    </div>
 
     <ZoomImage
       :src="require('@/assets/images/notices/DI/formulaire-di.png')"
       alt="Formulaire DI"
     />
 
-    <p>
+    <div class="text-body-2 mb-4">
       Les différents champs du formulaire ont la signification suivante :<br />
       <strong>Nom</strong> : description synthétique de la panne ou du problème constaté.<br />
       <strong>Équipement</strong> : équipement concerné par la défaillance.<br />
-      <strong>Statut supposé</strong> : nouvel état proposé pour l’équipement à la suite du signalement.<br />
-      <strong>Commentaires</strong> : espace permettant d’apporter des précisions sur l’incident, par exemple les circonstances ou les éléments observés.<br />
-      <strong>Documents</strong> : possibilité d’ajouter des fichiers (par exemple des photos). Veillez à sélectionner le type de document approprié et à lui attribuer un nom explicite.
-    </p>
+      <strong>Statut supposé</strong> : nouvel état proposé pour l'équipement à la suite du signalement.<br />
+      <strong>Commentaires</strong> : espace permettant d'apporter des précisions sur l'incident, par exemple les circonstances ou les éléments observés.<br />
+      <strong>Documents</strong> : possibilité d'ajouter des fichiers (par exemple des photos). Veillez à sélectionner le type de document approprié et à lui attribuer un nom explicite.
+    </div>
 
-    <p>
+    <div class="text-body-2 mb-4">
       Pour lui donner ces informations, il vous suffit de remplir les champs
       demandés, puis de cliquer sur <strong>"Valider"</strong>.
-    </p>
+    </div>
 
   </v-container>
 </template>

@@ -39,7 +39,7 @@
       - <strong>Modifier / Supprimer / Exporter</strong> : contrôle total sur tous les BT.
     </div>
 
-    <!-- Équipements -->
+    <!-- quipements -->
     <div class="text-body-1 font-weight-bold mt-4 mb-1">4) Équipements</div>
     <div class="text-body-2">
       - <strong>Créer</strong> : renseignez la désignation, la référence, le numéro de série, la localisation, le fabricant, le fournisseur, le modèle, la famille, et joignez des documents.<br />

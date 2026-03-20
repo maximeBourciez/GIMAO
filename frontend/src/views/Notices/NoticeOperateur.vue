@@ -19,7 +19,7 @@
       </v-window-item>
 
       <v-window-item value="dashboard">
-        <DashboardTab />
+        <DashboardTab role="Opérateur"/>
       </v-window-item>
 
       <v-window-item value="di">

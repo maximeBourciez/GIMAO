@@ -1,36 +1,25 @@
 <template>
   <v-expansion-panels multiple variant="accordion" class="doc-page">
 
-    <!-- LISTE -->
-    <v-expansion-panel v-if="roleIsAbove('Opérateur')" >
+    <!-- LISTE BT -->
+    <v-expansion-panel v-if="roleIsAbove('Opérateur')">
       <v-expansion-panel-title>
-        Liste des équipements
+        Consulter vos bons de travail
       </v-expansion-panel-title>
 
       <v-expansion-panel-text>
-        <EquipmentsListTab :role="props.role" />
+        <BTConsultTab />
       </v-expansion-panel-text>
     </v-expansion-panel>
 
-    <!-- DÉTAIL -->
-    <v-expansion-panel v-if="roleIsAbove('Opérateur')">
+    <!-- ASSIGNER / MODIFIER BT -->
+    <v-expansion-panel v-if="roleIsAbove('Technicien')">
       <v-expansion-panel-title>
-        Détails d'un équipement
+        Réaliser et documenter une intervention
       </v-expansion-panel-title>
 
       <v-expansion-panel-text>
-        <EquipmentDetailTab :role="role" />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
-
-    <!-- DÉFAILLANCE -->
-    <v-expansion-panel v-if="roleIsAbove('Opérateur')">
-      <v-expansion-panel-title>
-        Signaler une défaillance
-      </v-expansion-panel-title>
-
-      <v-expansion-panel-text>
-        <SignalFailureTab :role="role" />
+        <BTRealisationTab />
       </v-expansion-panel-text>
     </v-expansion-panel>
 
@@ -38,9 +27,8 @@
 </template>
 
 <script setup>
-import EquipmentsListTab from "./EquipmentsListTab.vue";
-import EquipmentDetailTab from "./EquipmentDetailTab.vue";
-import SignalFailureTab from "./SignalFailureTab.vue";
+import BTConsultTab from "./BTConsultTab.vue";
+import BTRealisationTab from "./BTRealisationTab.vue";
 
 const props = defineProps({
   role: {
@@ -58,9 +46,11 @@ const roleIsAbove = (minRole) => {
 
 <style scoped>
 .doc-page {
-  max-width: 80%;
+  max-width: 90%;
   margin: auto;
   margin-bottom: 2rem;
 }
-
+ul li {
+  margin-bottom: 8px;
+}
 </style>
