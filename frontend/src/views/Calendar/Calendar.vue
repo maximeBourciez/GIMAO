@@ -1,105 +1,198 @@
 <template>
     <v-container fluid class="calendar-container pa-4">
         <v-card class="pa-4 elevation-2 rounded-lg">
-            <v-tabs v-model="mode" class="mb-4" color="primary" grow>
+
+            <!-- Loader -->
+            <v-progress-linear
+                v-if="loading"
+                indeterminate
+                color="primary"
+                class="mb-2"
+            />
+
+            <!-- Tabs -->
+            <v-tabs
+                v-model="mode"
+                class="mb-4"
+                color="primary"
+                grow
+                @update:modelValue="handleNewMode"
+            >
                 <v-tab value="bt" class="text-none font-weight-medium">
                     <v-icon start>mdi-wrench</v-icon>
                     Bons de Travail
                 </v-tab>
+
                 <v-tab value="maintenance" class="text-none font-weight-medium">
                     <v-icon start>mdi-calendar-refresh</v-icon>
                     Maintenance Préventive
                 </v-tab>
             </v-tabs>
 
+            <!-- Calendrier -->
             <div class="calendar-wrapper">
-                <vue-cal ref="vuecal" :events="currentEvents" :time-from="7 * 60" :time-to="20 * 60" :time-step="30"
-                    active-view="month" :disable-views="[]" locale="fr" :first-day-of-week="2"
-                    :on-event-click="onEventClick" :max-events-per-cell="3" events-on-month-view="short"
-                    :today-button="true" :click-to-navigate="false" show-week-numbers :time-cell-height="48"
-                    class="vuecal--custom" />
+                <vue-cal
+                    ref="vuecal"
+                    :events="currentEvents"
+                    :time-from="7 * 60"
+                    :time-to="20 * 60"
+                    :time-step="30"
+                    active-view="month"
+                    locale="fr"
+                    :first-day-of-week="2"
+                    :on-event-click="onEventClick"
+                    :max-events-per-cell="3"
+                    events-on-month-view="short"
+                    :today-button="true"
+                    :click-to-navigate="false"
+                    show-week-numbers
+                    :time-cell-height="48"
+                    class="vuecal--custom"
+                />
             </div>
+
+            <!-- Message si aucun event -->
+            <v-alert
+                v-if="!loading && currentEvents.length === 0"
+                type="info"
+                variant="tonal"
+                class="mt-4"
+            >
+                Aucun événement à afficher
+            </v-alert>
+
         </v-card>
     </v-container>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import VueCal from 'vue-cal'
+import { API_BASE_URL } from '@/utils/constants'
+import { useApi } from '@/composables/useApi'
 import 'vue-cal/dist/vuecal.css'
 
+const api = useApi(API_BASE_URL);
+
+/**
+ * 🧭 Mode actif
+ */
 const mode = ref('bt')
 
-const eventsBT = [
-    {
-        title: 'BT #101 - Pompe centrifuge',
-        start: '2026-03-18 00:00',
-        end: '2026-03-18 23:59',
-        class: 'event-bt',
-        id: 101,
-    },
-    {
-        title: 'BT #102 - Electricité tableau',
-        start: '2026-03-20 08:00',
-        end: '2026-03-20 12:00',
-        class: 'event-bt',
-        id: 102,
-    },
-    {
-        title: 'BT #103 - Fuite hydraulique',
-        start: '2026-03-20 14:00',
-        end: '2026-03-20 17:00',
-        class: 'event-bt',
-        id: 103,
-    },
-    {
-        title: 'BT #104 - Remplacement vanne DN100',
-        start: '2026-03-23 07:00',
-        end: '2026-03-25 17:00',
-        class: 'event-bt',
-        id: 104,
-    },
-    {
-        title: 'BT #105 - Inspection générale',
-        start: '2026-03-26 08:00',
-        end: '2026-03-27 16:00',
-        class: 'event-bt',
-        id: 105,
-    },
-]
+/**
+ * 📊 Données
+ */
+const eventsBT = ref([])
+const eventsMaintenance = ref([])
 
-const eventsMaintenance = [
-    {
-        title: 'MP-201 - Compresseur air',
-        start: '2026-03-25 08:00',
-        end: '2026-03-25 17:00',
-        class: 'event-mp',
-        id: 201,
-    },
-    {
-        title: 'MP-202 - Climatisation bâtiment A',
-        start: '2026-04-01 08:00',
-        end: '2026-04-01 12:00',
-        class: 'event-mp',
-        id: 202,
-    },
-    {
-        title: 'MP-203 - Graissage mensuel',
-        start: '2026-03-17 08:00',
-        end: '2026-03-19 17:00',
-        class: 'event-mp',
-        id: 203,
-    },
-]
+/**
+ * 🧠 Cache (évite re-fetch)
+ */
+const loadedBT = ref(false)
+const loadedMaintenance = ref(false)
 
-const currentEvents = computed(() => 
-    mode.value === 'bt' ? eventsBT : eventsMaintenance
-)
+/**
+ * ⏳ Loading
+ */
+const loading = ref(false)
 
+/**
+ * 🔌 API BT
+ */
+const fetchBT = async () => {
+    loading.value = true
+    try {
+        const res = await api.get('bons-travail/calendar/')
+        const data = res.data
+
+        eventsBT.value = (data || []).map(e => ({
+            id: e.id,
+            title: e.title || e.nom || 'BT',
+            start: e.start || e.date_prevue,
+            end: e.end || e.date_prevue,
+            class: 'event-bt'
+        }))
+
+        loadedBT.value = true
+    } catch (e) {
+        console.error('Erreur BT', e)
+        eventsBT.value = []
+    } finally {
+        loading.value = false
+    }
+}
+
+/**
+ * 🔌 API Maintenance
+ */
+const fetchMaintenance = async () => {
+    loading.value = true
+    try {
+        const res = await api.get('maintenance/calendar/')
+        const data = res.data
+
+        eventsMaintenance.value = (data || []).map(e => ({
+            id: e.id,
+            title: e.title || 'Maintenance',
+            start: e.start || e.date_prevue,
+            end: e.end || e.date_prevue,
+            class: 'event-mp'
+        }))
+
+        loadedMaintenance.value = true
+    } catch (e) {
+        console.error('Erreur Maintenance', e)
+        eventsMaintenance.value = []
+    } finally {
+        loading.value = false
+    }
+}
+
+/**
+ * 🔄 Chargement intelligent
+ */
+const loadDataIfNeeded = async () => {
+    if (mode.value === 'bt' && !loadedBT.value) {
+        console.log("BT")
+        await fetchBT()
+    }
+
+    if (mode.value === 'maintenance' && !loadedMaintenance.value) {
+        console.log("Maintenance")
+        await fetchMaintenance()
+    }
+}
+
+/**
+ * 🔁 Changement d’onglet
+ */
+const handleNewMode = async () => {
+    await loadDataIfNeeded()
+}
+
+/**
+ * 📅 Events affichés
+ */
+const currentEvents = computed(() => {
+    return mode.value === 'bt'
+        ? eventsBT.value
+        : eventsMaintenance.value
+})
+
+/**
+ * 🖱️ Click event
+ */
 const onEventClick = (event, e) => {
     e.stopPropagation()
-    console.log('Navigation vers :', event.id, event.title)
+    console.log('Navigation vers :', event.id)
 }
+
+/**
+ * 🚀 Initialisation
+ */
+onMounted(() => {
+    loadDataIfNeeded()
+})
 </script>
 
 <style scoped>

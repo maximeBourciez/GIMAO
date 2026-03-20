@@ -1772,6 +1772,33 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         })
 
 
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        """Renvoie les BT avec id, nom, date_prevue, les techniciens assignés et l'équipement, pour alimenter un calendrier côté frontend."""
+        queryset = self.get_queryset().select_related('demande_intervention__equipement').prefetch_related('utilisateur_assigne').filter(date_prevue__isnull=False, statut__in=['EN_ATTENTE', 'EN_COURS', 'EN_RETARD'])
+        data = []
+        for bt in queryset:
+            data.append({
+                'id': bt.id,
+                'nom': bt.nom,
+                'date_prevue': bt.date_prevue,
+                'duree_previsionnelle': bt.duree_previsionnelle,
+                'equipement': {
+                    'id': bt.demande_intervention.equipement.id,
+                    'nom': bt.demande_intervention.equipement.designation,
+                } if bt.demande_intervention and bt.demande_intervention.equipement else None,
+                'techniciens': [
+                    {
+                        'id': user.id,
+                        'nom': user.get_full_name() or user.username,
+                    }
+                    for user in bt.utilisateur_assigne.all()
+                ]
+            })
+        return Response(data, status=status.HTTP_200_OK)
+        
+
+
 class TypePlanMaintenanceViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les types de plans de maintenance.
