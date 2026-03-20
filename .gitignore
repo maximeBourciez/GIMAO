@@ -37,3 +37,4 @@ venv/
 
 # distribution
 frontend/dist/*
+.vscode/
