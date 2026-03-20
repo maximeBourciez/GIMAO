@@ -62,6 +62,24 @@
 				</v-row>
 			</v-sheet>
 
+			<!-- Statut -->
+			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
+				<h4 class="mb-3">Nouveau statut de l'équipement</h4>
+
+				<v-row dense>
+					<v-col cols="12" md="6">
+						<FormSelect
+							v-model="formData.statut_equipement"
+							field-name="statut_equipement"
+							label="Statut de l'équipement"
+							:items="statusItems"
+							item-title="label"
+							item-value="value"
+						/>
+					</v-col>
+				</v-row>
+			</v-sheet>
+
 			<!-- Détails -->
 			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
 				<h4 class="mb-3">Détails</h4>
@@ -198,7 +216,7 @@ import { computed, reactive, watch, ref } from 'vue';
 import { BaseForm, FormField, FormSelect, FormTextarea } from '@/components/common';
 import DocumentForm from '@/components/Forms/DocumentForm.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, EQUIPMENT_STATUS } from '@/utils/constants';
 
 const props = defineProps({
 	title: {
@@ -243,6 +261,12 @@ const props = defineProps({
 	}
 });
 
+const statusItems = Object.entries(EQUIPMENT_STATUS).map(([key, label]) => ({
+	value: key,
+	label
+}));
+
+
 const emit = defineEmits(['created', 'updated', 'close']);
 
 const formData = ref({
@@ -255,6 +279,7 @@ const formData = ref({
 	diagnostic: '',
 	responsable_id: null,
 	utilisateur_assigne_ids: [],
+	statut_equipement: 'DEGRADE',
 	consommables: [],
 	documents: []
 });
@@ -319,6 +344,7 @@ watch(() => props.initialData, (newData) => {
 			commentaire: newData.commentaire || '',
 			diagnostic: newData.diagnostic || '',
 			responsable_id: newData.responsable_id || null,
+			statut_equipement: newData.statut_equipement || 'DEGRADE',
 			utilisateur_assigne_ids: newData.utilisateur_assigne_ids || [],
 			consommables: Array.isArray(newData.consommables) ? newData.consommables : [],
 			documents: Array.isArray(newData.documents) ? newData.documents : []
@@ -581,6 +607,7 @@ const save = async () => {
 			form.append('commentaire', (formData.value.commentaire || '').toString());
 			form.append('diagnostic', (formData.value.diagnostic || '').toString());
 			form.append('type', (formData.value.type || 'CORRECTIF').toString());
+			form.append('statut_equipement', (formData.value.statut_equipement || null));
 			form.append(
 				'date_prevue',
 				formData.value.date_prevue && String(formData.value.date_prevue).length === 16
@@ -826,7 +853,7 @@ const validationSchema = computed(() => {
 		equipement_id: ['required'],
 		nom: ['required', { name: 'minLength', params: [2] }, { name: 'maxLength', params: [200] }],
 		type: ['required'],
-		duree_previsionnelle: ['required', { name: 'pattern', params: [DUREE_PREVISIONNELLE_REGEX], message: 'Format attendu HH:MM' }],
+		duree_previsionnelle: [{ name: 'pattern', params: [DUREE_PREVISIONNELLE_REGEX], message: 'Format attendu HH:MM' }],
 		responsable_id: ['required'],
 		diagnostic: [
 			'required',
@@ -834,6 +861,7 @@ const validationSchema = computed(() => {
 			{ name: 'maxLength', params: [2000] }
 		],
 		commentaire: [{ name: 'maxLength', params: [2000] }],
+		statut_equipement: ['required'],
 	};
 
 	return schema;

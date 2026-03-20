@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.db import transaction
 import json
 from donnees.models import Document, TypeDocument
-from equipement.models import Equipement
+from equipement.models import Equipement, StatutEquipement
 from utilisateur.models import Utilisateur, Log
 from stock.models import Consommable, Stocker
 from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
@@ -753,7 +753,7 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 nom=data.get('nom') or '',
                 commentaire=data.get('commentaire', ''),
                 statut='TRANSFORMEE',
-                statut_suppose=data.get('statut_suppose'),
+                statut_suppose=data.get('statut_equipement'),
                 date_creation=timezone.now(),
                 date_changementStatut=timezone.now(),
                 utilisateur=utilisateur,
@@ -761,6 +761,13 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             )
             if not demande.nom:
                 raise ValidationError({'nom': 'Le nom est requis'})
+            print("Statut : " + str(demande.statut) + " - Statut supposé : " + str(demande.statut_suppose) )
+            if demande.statut_suppose:
+                StatutEquipement.objects.create(
+                    equipement=equipement,
+                    statut=demande.statut_suppose,
+                    dateChangement=timezone.now()
+                )
 
 
             # Créer BT via serializer (validation + sync consommables)
