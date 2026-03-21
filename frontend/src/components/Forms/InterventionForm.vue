@@ -769,6 +769,8 @@ const isFormValidForSubmit = computed(() => {
 	if (!responsableId) return false;
 	if (!diagnostic || diagnostic.length < 2 || diagnostic.length > 2000) return false;
 
+	
+
 	const commentaire = (formData.value?.commentaire ?? '').trim();
 	if (commentaire.length > 2000) return false;
 
@@ -776,11 +778,18 @@ const isFormValidForSubmit = computed(() => {
 	const datePrevue = formData.value?.date_prevue;
 	if (datePrevue && typeof datePrevue !== 'string') return false;
 	// datetime-local renvoie typiquement 'YYYY-MM-DDTHH:mm'
-	if (datePrevue && String(datePrevue).length < 16) return false;
+	if (datePrevue && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(datePrevue)) {
+		console.log('Date prévue invalide:', datePrevue);
+		return false;
+	}
 
 	const dureePrevisionnelle = (formData.value?.duree_previsionnelle ?? '').toString().trim();
 
-	if (dureePrevisionnelle && !DUREE_PREVISIONNELLE_REGEX.test(dureePrevisionnelle)) {
+	if (
+		dureePrevisionnelle &&
+		!(/^(?:[01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(dureePrevisionnelle))
+	) {
+		console.log('Duree previsionnelle invalide:', dureePrevisionnelle);
 		return false;
 	}
 

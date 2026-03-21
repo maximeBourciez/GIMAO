@@ -3,21 +3,10 @@
         <v-card class="pa-4 elevation-2 rounded-lg">
 
             <!-- Loader -->
-            <v-progress-linear
-                v-if="loading"
-                indeterminate
-                color="primary"
-                class="mb-2"
-            />
+            <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" />
 
             <!-- Tabs -->
-            <v-tabs
-                v-model="mode"
-                class="mb-4"
-                color="primary"
-                grow
-                @update:modelValue="handleNewMode"
-            >
+            <v-tabs v-model="mode" class="mb-4" color="primary" grow @update:modelValue="handleNewMode">
                 <v-tab value="bt" class="text-none font-weight-medium">
                     <v-icon start>mdi-wrench</v-icon>
                     Bons de Travail
@@ -31,36 +20,66 @@
 
             <!-- Calendrier -->
             <div class="calendar-wrapper">
-                <vue-cal
-                    ref="vuecal"
-                    :events="currentEvents"
-                    :time-from="7 * 60"
-                    :time-to="20 * 60"
-                    :time-step="30"
-                    active-view="month"
-                    locale="fr"
-                    :first-day-of-week="2"
-                    :on-event-click="onEventClick"
-                    :max-events-per-cell="3"
-                    events-on-month-view="short"
-                    :today-button="true"
-                    :click-to-navigate="false"
-                    show-week-numbers
-                    :time-cell-height="48"
-                    class="vuecal--custom"
-                />
+                <vue-cal ref="vuecal" :events="currentEvents" :time-from="7 * 60" :time-to="20 * 60" :time-step="30"
+                    active-view="month" locale="fr" :first-day-of-week="2" :on-event-click="onEventClick"
+                    :max-events-per-cell="3" events-on-month-view="short" :today-button="true"
+                    :click-to-navigate="false" show-week-numbers :time-cell-height="48" class="vuecal--custom"
+                    @view-change="({ view }) => currentView = view">
+                    <template #event="{ event }" >
+                        <!-- Vue mois : compact -->
+                        <template v-if="currentView === 'month'"  :style="{ backgroundColor: event.backgroundColor, color: event.color, borderLeftColor: event.backgroundColor }">
+                            <div class="event-content d-flex align-center gap-1">
+                                <span class="event-title">{{ event.title }}</span>
+                            </div>
+                        </template>
+
+                        <!-- Vue semaine / jour : détaillé -->
+                        <template v-else>
+                            <div class="event-content d-flex flex-column" :style="{ backgroundColor: event.backgroundColor, color: event.color }">
+                                <span class="event-title font-weight-medium">{{ event.title }}</span>
+
+                                <span v-if="event.start && event.end" class="event-time">
+                                    {{ new Date(event.start).toLocaleTimeString([], {
+                                        day: '2-digit', month: '2-digit',
+                                        hour: '2-digit', minute: '2-digit'
+                                    }) }}
+                                    -
+                                    {{ new Date(event.end).toLocaleTimeString([], {
+                                        day: '2-digit', month: '2-digit', hour:
+                                            '2-digit', minute: '2-digit'
+                                    }) }}
+                                </span>
+
+                                <span v-if="event.equipement" class="event-equipement">
+                                    <v-icon size="12">mdi-cog</v-icon>
+                                    {{ event.equipement.nom }}
+                                </span>
+
+                                <span v-if="event.techniciens?.length" class="event-techniciens">
+                                    <span v-if="currentView === 'week'">
+                                        <v-icon size="12">mdi-account</v-icon>
+                                        {{ event.techniciens.length > 1
+                                            ? event.techniciens.length + ' techniciens'
+                                            : event.techniciens[0].nom }}
+                                    </span>
+
+                                    <span v-else class="d-flex align-center gap-1">
+                                        <v-icon size="12">mdi-account</v-icon>
+                                        <span v-for="(t, i) in event.techniciens" :key="t.id">
+                                            {{ t.nom }}<span v-if="i < event.techniciens.length - 1">, </span>
+                                        </span>
+                                    </span>
+                                </span>
+                            </div>
+                        </template>
+                    </template>
+                </vue-cal>
             </div>
 
             <!-- Message si aucun event -->
-            <v-alert
-                v-if="!loading && currentEvents.length === 0"
-                type="info"
-                variant="tonal"
-                class="mt-4"
-            >
+            <v-alert v-if="!loading && currentEvents.length === 0" type="info" variant="tonal" class="mt-4">
                 Aucun événement à afficher
             </v-alert>
-
         </v-card>
     </v-container>
 </template>
@@ -70,48 +89,83 @@ import { ref, computed, onMounted } from 'vue'
 import VueCal from 'vue-cal'
 import { API_BASE_URL } from '@/utils/constants'
 import { useApi } from '@/composables/useApi'
+import { useRouter } from 'vue-router'
 import 'vue-cal/dist/vuecal.css'
 
 const api = useApi(API_BASE_URL);
+const router = useRouter();
+
+const currentView = ref('month')
+
+const technicienColors = new Map()
+const COLORS = [
+    '#E53935', '#8E24AA', '#1E88E5', '#00897B',
+    '#F4511E', '#6D4C41', '#039BE5', '#43A047',
+    '#FB8C00', '#3949AB', '#00ACC1', '#7CB342',
+]
+
+const getColorForTechnicien = (id) => {
+    if (!technicienColors.has(id)) {
+        technicienColors.set(id, COLORS[technicienColors.size % COLORS.length])
+    }
+    return technicienColors.get(id)
+}
 
 /**
- * 🧭 Mode actif
+ * Mode actif
  */
 const mode = ref('bt')
 
 /**
- * 📊 Données
+ * Donnees
  */
 const eventsBT = ref([])
 const eventsMaintenance = ref([])
 
 /**
- * 🧠 Cache (évite re-fetch)
+ * Cache (evite re-fetch)
  */
 const loadedBT = ref(false)
 const loadedMaintenance = ref(false)
 
 /**
- * ⏳ Loading
+ * Loading
  */
 const loading = ref(false)
 
-/**
- * 🔌 API BT
- */
 const fetchBT = async () => {
     loading.value = true
     try {
         const res = await api.get('bons-travail/calendar/')
-        const data = res.data
+        const data = res.data ?? res  // selon ce que retourne useApi
 
-        eventsBT.value = (data || []).map(e => ({
-            id: e.id,
-            title: e.title || e.nom || 'BT',
-            start: e.start || e.date_prevue,
-            end: e.end || e.date_prevue,
-            class: 'event-bt'
-        }))
+        eventsBT.value = (data || []).map(e => {
+            const start = e.start || e.date_prevue
+            const end = e.end && e.end !== e.start
+                ? e.end
+                : new Date(new Date(start).getTime() + 60 * 60 * 1000).toISOString()
+            const firstTechId = e.techniciens?.[0]?.id ?? null
+            const color = firstTechId ? getColorForTechnicien(firstTechId) : '#E53935'
+
+            return {
+                id: e.id,
+                title: e.nom || 'BT',
+                start: toVueCalDate(start),
+                end: toVueCalDate(end),
+                equipement: e.equipement ? {
+                    id: e.equipement.id,
+                    nom: e.equipement.nom
+                } : null,
+                techniciens: (e.techniciens || []).map(t => ({
+                    id: t.id,
+                    nom: t.nom
+                })),
+                class: 'event-bt',
+                route: { name: 'InterventionDetail', params: { id: e.id } },
+                backgroundColor: color,
+                color: '#fff',
+            }
+        })
 
         loadedBT.value = true
     } catch (e) {
@@ -123,7 +177,7 @@ const fetchBT = async () => {
 }
 
 /**
- * 🔌 API Maintenance
+ * API Maintenance
  */
 const fetchMaintenance = async () => {
     loading.value = true
@@ -149,7 +203,7 @@ const fetchMaintenance = async () => {
 }
 
 /**
- * 🔄 Chargement intelligent
+ * Chargement intelligent
  */
 const loadDataIfNeeded = async () => {
     if (mode.value === 'bt' && !loadedBT.value) {
@@ -164,14 +218,14 @@ const loadDataIfNeeded = async () => {
 }
 
 /**
- * 🔁 Changement d’onglet
+ * Changement d’onglet
  */
 const handleNewMode = async () => {
     await loadDataIfNeeded()
 }
 
 /**
- * 📅 Events affichés
+ * Events affiches
  */
 const currentEvents = computed(() => {
     return mode.value === 'bt'
@@ -180,18 +234,24 @@ const currentEvents = computed(() => {
 })
 
 /**
- * 🖱️ Click event
+ * Click event
  */
 const onEventClick = (event, e) => {
     e.stopPropagation()
-    console.log('Navigation vers :', event.id)
+    if (event.route) {
+        console.log('Navigating to:', event.route)
+        router.push({ name: 'InterventionDetail', params: { id: event.id } })
+    }
 }
 
+const toVueCalDate = (iso) => iso ? iso.replace('T', ' ').substring(0, 16) : null
+
+
 /**
- * 🚀 Initialisation
+ * Initialisation
  */
 onMounted(() => {
-    loadDataIfNeeded()
+    loadDataIfNeeded();
 })
 </script>
 
@@ -349,7 +409,6 @@ onMounted(() => {
 
 /* Classe Bons de Travail */
 :deep(.vuecal--custom .vuecal__event.event-bt) {
-    background: rgb(var(--v-theme-primary));
     color: rgb(var(--v-theme-on-primary));
     border-left: 3px solid rgba(0, 0, 0, 0.25);
 }

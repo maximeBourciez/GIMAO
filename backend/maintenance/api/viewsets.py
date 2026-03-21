@@ -1774,15 +1774,18 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
 
     @action(detail=False, methods=['get'])
     def calendar(self, request):
-        """Renvoie les BT avec id, nom, date_prevue, les techniciens assignés et l'équipement, pour alimenter un calendrier côté frontend."""
         queryset = self.get_queryset().select_related('demande_intervention__equipement').prefetch_related('utilisateur_assigne').filter(date_prevue__isnull=False, statut__in=['EN_ATTENTE', 'EN_COURS', 'EN_RETARD'])
+        bts = queryset.order_by('duree_previsionnelle')
         data = []
-        for bt in queryset:
+        for bt in bts:
+            start = bt.date_prevue
+            end = (bt.date_prevue + bt.duree_previsionnelle) if bt.duree_previsionnelle else bt.date_prevue
+
             data.append({
                 'id': bt.id,
                 'nom': bt.nom,
-                'date_prevue': bt.date_prevue,
-                'duree_previsionnelle': bt.duree_previsionnelle,
+                'start': start,
+                'end': end,
                 'equipement': {
                     'id': bt.demande_intervention.equipement.id,
                     'nom': bt.demande_intervention.equipement.designation,
@@ -1793,7 +1796,7 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                         'nom': user.get_full_name() or user.username,
                     }
                     for user in bt.utilisateur_assigne.all()
-                ]
+                ],
             })
         return Response(data, status=status.HTTP_200_OK)
         
