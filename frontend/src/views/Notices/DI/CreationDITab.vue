@@ -31,8 +31,15 @@
     </div>
 
     <ZoomImage
-      :src="require('@/assets/images/notices/DI/formulaire-di.png')"
+      :src="require('@/assets/images/notices/DI/creer-di.png')"
       alt="Formulaire DI"
+      v-if="role === 'Opérateur'"
+    />
+
+    <ZoomImage
+      :src="require('@/assets/images/notices/DI/creer-di-technicien.png')"
+      alt="Formulaire DI"
+      v-else
     />
 
     <div class="text-body-2 mb-4">

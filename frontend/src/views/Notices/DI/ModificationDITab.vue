@@ -12,7 +12,7 @@
             situé en bas à droite de l'écran.
         </div>
         <div class="text-body-2 mb-4" v-else>
-            Les Demandes d'Intervention sont consultables dans la rubrique correspondante ou depuis le tableau de bord.
+            Les Demandes d'Intervention sont consultables dans le menu correspondant.
             Si vous souhaitez en modifier une pour compléter les informations (statut, priorité, etc.), cliquez sur la ligne
             souhaitée pour accéder à sa page de détails.
 
@@ -20,13 +20,16 @@
             situé en bas à droite de l'écran.
         </div>
 
-        <ZoomImage :src="require('@/assets/images/notices/DI/detail-di-edit.png')" alt="Modification DI" /> 
+        <ZoomImage :src="require('@/assets/images/notices/DI/detail-di-edit.png')" alt="Modification DI" v-if="role === 'Opérateur'"/>
+        <ZoomImage :src="require('@/assets/images/notices/DI/detail-di-technicien-edit.png')" alt="Modification DI" v-else/> 
 
         <div class="text-body-2 mb-4">
             Après avoir effectué vos modifications, cliquez sur « Enregistrer les modifications ». Vous serez alors
             redirigé vers la page de détails mise à jour de votre DI.
         </div>
-        <ZoomImage :src="require('@/assets/images/notices/DI/modif-di.png')" alt="Modification DI" /> 
+        
+        <ZoomImage :src="require('@/assets/images/notices/DI/modif-di.png')" alt="Modification DI" v-if="role === 'Opérateur'"/> 
+        <ZoomImage :src="require('@/assets/images/notices/DI/modif-di-technicien.png')" alt="Modification DI" v-else/> 
 
     </v-container>
 </template>
