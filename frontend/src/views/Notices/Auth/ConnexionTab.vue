@@ -63,7 +63,7 @@
                 </div>
 
                 <ZoomImage :src="require('@/assets/images/notices/auth/logout-opérateur.png')" alt="Bouton déconnexion" v-if="!hasMenu"/>
-                <ZoomImage :src="require('@/assets/images/notices/auth/logout.png')" alt="Bouton déconnexion" v-else/>
+                <ZoomImage :src="require('@/assets/images/notices/auth/logout-technicien.png')" alt="Bouton déconnexion" v-else/>
             </v-expansion-panel-text>
         </v-expansion-panel>
 

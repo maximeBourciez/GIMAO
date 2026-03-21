@@ -51,7 +51,7 @@
     </div>
 
     <ZoomImage :src="require('@/assets/images/notices/Dashboard/opérateur.png')" alt="Tableau de bord" v-if="role === 'Opérateur'"/>
-    <ZoomImage :src="require('@/assets/images/notices/Dashboard/opérateur.png')" alt="Tableau de bord" v-if="role === 'Technicien' || role === 'Responsable GMAO'"/>
+    <ZoomImage :src="require('@/assets/images/notices/Dashboard/technicien.png')" alt="Tableau de bord" v-if="role === 'Technicien' || role === 'Responsable GMAO'"/>
   </div>
 </template>
 

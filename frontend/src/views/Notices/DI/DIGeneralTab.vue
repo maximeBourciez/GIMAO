@@ -3,8 +3,12 @@
 
       <!-- CONSULTER DI -->
       <v-expansion-panel v-if="roleIsAbove('Opérateur')">
-        <v-expansion-panel-title>
+        <v-expansion-panel-title v-if="role === 'Opérateur'">
           Consulter vos demandes d'intervention
+        </v-expansion-panel-title>
+
+        <v-expansion-panel-title v-if="roleIsAbove('Technicien')">
+          Consulter les demandes d'intervention
         </v-expansion-panel-title>
 
         <v-expansion-panel-text>
@@ -19,7 +23,7 @@
         </v-expansion-panel-title>
 
         <v-expansion-panel-text>
-          <CreationDITab />
+          <CreationDITab :role="role" />
         </v-expansion-panel-text>
       </v-expansion-panel>
 
@@ -30,7 +34,7 @@
         </v-expansion-panel-title>
 
         <v-expansion-panel-text>
-          <ModificationDITab />
+          <ModificationDITab :role="role" />
         </v-expansion-panel-text>
       </v-expansion-panel>
 

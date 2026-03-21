@@ -19,8 +19,8 @@
                 Elle regroupe toutes les défaillances signalées. Vous pouvez y consulter les détails de chaque demande et suivre leur état d'avancement afin de procéder aux réparations ou diagnostics nécessaires.
             </template>
 
-            <ZoomImage :src="require('@/assets/images/notices/Dashboard/opérateur.png')" v-if="role === 'Opérateur'" />
-            <!-- <ZoomImage :src="require('@/assets/images/notices/DI/liste-di.png')" v-else/> -->
+            <ZoomImage :src="require('@/assets/images/notices/DI/liste-di.png')" v-if="role === 'Opérateur'" />
+            <ZoomImage :src="require('@/assets/images/notices/DI/liste-di-technicien.png')" v-else/>
 
             <br /><br />
 
@@ -57,7 +57,7 @@ const props = defineProps({
     }
 });
 
-const roles = ["Opérateur", "Technicien", "Responsable GMAO0"]
+const roles = ["Opérateur", "Technicien", "Responsable GMAO"]
 
 const roleIsAbove = (role) => {
     return roles.indexOf(props.role) >= roles.indexOf(role);

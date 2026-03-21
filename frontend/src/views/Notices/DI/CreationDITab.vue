@@ -2,16 +2,26 @@
   <v-container class="doc-page">
     <h4>Créer une DI</h4>
 
-    <div class="text-body-2 mb-4">
+    <div class="text-body-2 mb-4" v-if="role === 'Opérateur'">
       Si vous souhaitez signaler une nouvelle défaillance sur un équipement,
       vous pouvez le faire directement depuis le tableau de bord.
       En effet, vous disposez d'un bouton <strong>"Créer une DI"</strong>
       qui permet le signalement de la défaillance.
     </div>
+    <div class="text-body-2 mb-4" v-else>
+      Si vous souhaitez signaler une nouvelle défaillance, vous pouvez le faire depuis la page des demandes d'interventions.
+      Pour cela, rendez-vous sur la page des demandes d'interventions et cliquez sur le bouton "+" en bas à droite.
+    </div>
 
     <ZoomImage
-      :src="require('@/assets/images/notices/DI/liste-di.png')"
+      :src="require('@/assets/images/notices/DI/liste-creer-di.png')"
       alt="Bouton créer DI"
+      v-if="role === 'Opérateur'"
+    />
+    <ZoomImage
+      :src="require('@/assets/images/notices/DI/liste-creer-di-technicien.png')"
+      alt="Bouton créer DI"
+      v-else
     />
 
     <div class="text-body-2 mb-4">
@@ -44,6 +54,13 @@
 
 <script setup>
 import ZoomImage from "../common/ZoomImage.vue";
+
+const props = defineProps({
+  role: {
+    type: String,
+    default: "Opérateur"
+  }
+});
 </script>
 
 <style scoped>
