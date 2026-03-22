@@ -25,53 +25,61 @@
                     :max-events-per-cell="3" events-on-month-view="short" :today-button="true"
                     :click-to-navigate="false" show-week-numbers :time-cell-height="48" class="vuecal--custom"
                     @view-change="({ view }) => currentView = view">
-                    <template #event="{ event }" >
-                        <!-- Vue mois : compact -->
-                        <template v-if="currentView === 'month'"  :style="{ backgroundColor: event.backgroundColor, color: event.color, borderLeftColor: event.backgroundColor }">
-                            <div class="event-content d-flex align-center gap-1">
-                                <span class="event-title">{{ event.title }}</span>
-                            </div>
-                        </template>
 
-                        <!-- Vue semaine / jour : détaillé -->
-                        <template v-else>
-                            <div class="event-content d-flex flex-column" :style="{ backgroundColor: event.backgroundColor, color: event.color }">
-                                <span class="event-title font-weight-medium">{{ event.title }}</span>
 
-                                <span v-if="event.start && event.end" class="event-time">
-                                    {{ new Date(event.start).toLocaleTimeString([], {
-                                        day: '2-digit', month: '2-digit',
-                                        hour: '2-digit', minute: '2-digit'
-                                    }) }}
-                                    -
-                                    {{ new Date(event.end).toLocaleTimeString([], {
-                                        day: '2-digit', month: '2-digit', hour:
-                                            '2-digit', minute: '2-digit'
-                                    }) }}
-                                </span>
+                    <template #event="{ event }">
+                        <div class="event-inner" :style="{
+                            '--bg-color': event.backgroundColor || '#1E88E5',
+                            backgroundColor: 'var(--bg-color)',
+                            color: event.color || '#fff'
+                        }">
+                            <!-- Vue mois -->
+                            <template v-if="currentView === 'month'">
+                                <div class="event-content d-flex align-center gap-1">
+                                    <span class="event-title">{{ event.title }}</span>
+                                </div>
+                            </template>
 
-                                <span v-if="event.equipement" class="event-equipement">
-                                    <v-icon size="12">mdi-cog</v-icon>
-                                    {{ event.equipement.nom }}
-                                </span>
+                            <!-- Vue semaine / jour -->
+                            <template v-else>
+                                <div class="event-content d-flex flex-column">
+                                    <span class="event-title font-weight-medium">{{ event.title }}</span>
 
-                                <span v-if="event.techniciens?.length" class="event-techniciens">
-                                    <span v-if="currentView === 'week'">
-                                        <v-icon size="12">mdi-account</v-icon>
-                                        {{ event.techniciens.length > 1
-                                            ? event.techniciens.length + ' techniciens'
-                                            : event.techniciens[0].nom }}
+                                    <span v-if="event.start && event.end" class="event-time">
+                                        {{ new Date(event.start).toLocaleTimeString([], {
+                                            day: '2-digit', month: '2-digit',
+                                            hour: '2-digit', minute: '2-digit'
+                                        }) }}
+                                        -
+                                        {{ new Date(event.end).toLocaleTimeString([], {
+                                            day: '2-digit', month: '2-digit', hour:
+                                                '2-digit', minute: '2-digit'
+                                        }) }}
                                     </span>
 
-                                    <span v-else class="d-flex align-center gap-1">
-                                        <v-icon size="12">mdi-account</v-icon>
-                                        <span v-for="(t, i) in event.techniciens" :key="t.id">
-                                            {{ t.nom }}<span v-if="i < event.techniciens.length - 1">, </span>
+                                    <span v-if="event.equipement" class="event-equipement">
+                                        <v-icon size="12">mdi-cog</v-icon>
+                                        {{ event.equipement.nom }}
+                                    </span>
+
+                                    <span v-if="event.techniciens?.length" class="event-techniciens">
+                                        <span v-if="currentView === 'week'">
+                                            <v-icon size="12">mdi-account</v-icon>
+                                            {{ event.techniciens.length > 1
+                                                ? event.techniciens.length + ' techniciens'
+                                                : event.techniciens[0].nom }}
+                                        </span>
+
+                                        <span v-else class="event-techniciens">
+                                            <v-icon size="12">mdi-account</v-icon>
+                                            <span v-for="(t, i) in event.techniciens" :key="t.id">
+                                                {{ t.nom }}<span v-if="i < event.techniciens.length - 1">, </span>
+                                            </span>
                                         </span>
                                     </span>
-                                </span>
-                            </div>
-                        </template>
+                                </div>
+                            </template>
+                        </div>
                     </template>
                 </vue-cal>
             </div>
@@ -137,7 +145,7 @@ const fetchBT = async () => {
     loading.value = true
     try {
         const res = await api.get('bons-travail/calendar/')
-        const data = res.data ?? res  // selon ce que retourne useApi
+        const data = res.data ?? res
 
         eventsBT.value = (data || []).map(e => {
             const start = e.start || e.date_prevue
@@ -146,6 +154,9 @@ const fetchBT = async () => {
                 : new Date(new Date(start).getTime() + 60 * 60 * 1000).toISOString()
             const firstTechId = e.techniciens?.[0]?.id ?? null
             const color = firstTechId ? getColorForTechnicien(firstTechId) : '#E53935'
+
+            // Log pour vérifier la couleur
+            console.log(`BT ${e.id} - Tech: ${e.techniciens?.[0]?.nom || 'Aucun'}, Color: ${color}`)
 
             return {
                 id: e.id,
@@ -162,7 +173,7 @@ const fetchBT = async () => {
                 })),
                 class: 'event-bt',
                 route: { name: 'InterventionDetail', params: { id: e.id } },
-                backgroundColor: color,
+                backgroundColor: color,  // Cette propriété doit être utilisée
                 color: '#fff',
             }
         })
@@ -321,6 +332,7 @@ onMounted(() => {
     color: rgb(var(--v-theme-on-primary));
     border: none;
     border-radius: 8px;
+    margin: 0 4px;
     padding: 6px 14px;
     font-weight: 600;
     font-size: 0.85rem;
@@ -389,7 +401,7 @@ onMounted(() => {
 /* ─── Événements ────────────────────────────────────────────── */
 :deep(.vuecal--custom .vuecal__event) {
     border-radius: 6px;
-    padding: 3px 8px;
+    padding: 0px;
     margin: 2px 3px;
     font-size: 0.8rem;
     font-weight: 500;
@@ -402,23 +414,26 @@ onMounted(() => {
     line-height: 1.4;
 }
 
+.event-inner {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    border-radius: 6px;
+    padding: 2px 6px;
+    box-sizing: border-box;
+}
+
+.event-content {
+    width: 100%;
+}
+
 :deep(.vuecal--custom .vuecal__event:hover) {
     transform: translateY(-1px);
     filter: brightness(1.08);
 }
 
-/* Classe Bons de Travail */
-:deep(.vuecal--custom .vuecal__event.event-bt) {
-    color: rgb(var(--v-theme-on-primary));
-    border-left: 3px solid rgba(0, 0, 0, 0.25);
-}
-
-/* Classe Maintenance Préventive */
-:deep(.vuecal--custom .vuecal__event.event-mp) {
-    background: #E53935;
-    color: #ffffff;
-    border-left: 3px solid #B71C1C;
-}
 
 :deep(.vuecal--custom .vuecal__event-title) {
     font-weight: 500;
