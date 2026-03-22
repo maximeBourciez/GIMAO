@@ -2274,3 +2274,38 @@ class DashboardStatsViewset(viewsets.ViewSet):
         return list(user.role.permissions.filter(
             nomPermission__startswith='dash'
         ).values_list('nomPermission', flat=True))
+
+
+
+class MaintenanceCalendarViewSet(viewsets.ViewSet):
+
+    def list(self, request):
+        """ Récupère tous les déclenchmenets de compteurs calendaires"""
+        from equipement.models import Declencher
+
+        declenchements = Declencher.objects.select_related('planMaintenance', 'compteur').all()
+        data = []
+        for decl in declenchements:
+            plan = decl.planMaintenance
+            equipement = plan.equipement if plan else None
+            data.append({
+                'id': decl.id,
+                'derniereIntervention': decl.derniereIntervention,
+                'prochaineMaintenance': decl.prochaineMaintenance,
+                'ecartInterventions': decl.ecartInterventions,
+                'estGlissant': decl.estGlissant,
+                'compteur': {
+                    'id': decl.compteur_id,
+                    'nom': decl.compteur.nomCompteur if decl.compteur else None,
+                } if decl.compteur else None,
+                'planMaintenance': {
+                    'id': plan.id,
+                    'nom': plan.nom,
+                } if plan else None,
+                'equipement': {
+                    'id': equipement.id,
+                    'nom': equipement.designation,
+                } if equipement else None,
+            })
+        
+        return Response(data, status=status.HTTP_200_OK)

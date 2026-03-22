@@ -20,6 +20,12 @@
 
             <!-- Calendrier -->
             <div class="calendar-wrapper">
+
+                <div v-if="mode === 'maintenance'" class="mb-3 px-2">
+                    <FormSelect v-model="equipmentSelected" field-name="equipment_filter" :items="equipmentsOptions"
+                        item-title="nom" item-value="id" label="Filtrer par équipement" clearable />
+                </div>
+
                 <vue-cal ref="vuecal" :events="currentEvents" :time-from="7 * 60" :time-to="20 * 60" :time-step="30"
                     active-view="month" locale="fr" :first-day-of-week="2" :on-event-click="onEventClick"
                     :max-events-per-cell="3" events-on-month-view="short" :today-button="true"
@@ -93,11 +99,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import VueCal from 'vue-cal'
 import { API_BASE_URL } from '@/utils/constants'
 import { useApi } from '@/composables/useApi'
 import { useRouter } from 'vue-router'
+import FormSelect from '@/components/Forms/inputType/FormSelect.vue'
 import 'vue-cal/dist/vuecal.css'
 
 const api = useApi(API_BASE_URL);
@@ -140,6 +147,28 @@ const loadedMaintenance = ref(false)
  * Loading
  */
 const loading = ref(false)
+
+const sortEventsByStartDate = (events = []) => {
+    return [...events].sort((a, b) => {
+        const aTime = a?.start ? new Date(a.start).getTime() : 0
+        const bTime = b?.start ? new Date(b.start).getTime() : 0
+        return aTime - bTime
+    })
+}
+
+const getFilteredMaintenanceEvents = (selectedEquipmentId) => {
+    if (!selectedEquipmentId) {
+        return sortEventsByStartDate(eventsMaintenance.value)
+    }
+
+    const selectedId = Number(selectedEquipmentId)
+    const filtered = eventsMaintenance.value.filter((event) => {
+        const eventEquipmentId = event.equipement?.id ?? event.equipement_id ?? null
+        return Number(eventEquipmentId) === selectedId
+    })
+
+    return sortEventsByStartDate(filtered)
+}
 
 const fetchBT = async () => {
     loading.value = true
@@ -193,16 +222,42 @@ const fetchBT = async () => {
 const fetchMaintenance = async () => {
     loading.value = true
     try {
-        const res = await api.get('maintenance/calendar/')
-        const data = res.data
+        const res = await api.get('maintenance/')
+        const data = res ?? []
 
-        eventsMaintenance.value = (data || []).map(e => ({
-            id: e.id,
-            title: e.title || 'Maintenance',
-            start: e.start || e.date_prevue,
-            end: e.end || e.date_prevue,
-            class: 'event-mp'
-        }))
+        eventsMaintenance.value = (data || []).map(e => {
+            const dateMaintenance = e.prochaineMaintenance;
+
+            if (!dateMaintenance) {
+                return null
+            }
+
+            const maintenanceDate = dateFromOrdinal(dateMaintenance)
+            const dateOnly = toDateOnlyString(maintenanceDate)
+            if (!dateOnly) {
+                return null
+            }
+
+            // Les dates de maintenance sont souvent sans heure: on force un créneau visible
+            // dans la plage 07:00 -> 20:00 de VueCal pour les vues semaine/jour.
+            const start = `${dateOnly} 08:00`
+            const end = `${dateOnly} 09:00`
+            const uniqueId = `${e.id ?? e.planMaintenance?.id ?? e.equipement?.id}-${dateMaintenance}`
+
+            return {
+                id: uniqueId,
+                title: e.planMaintenance.nom,
+                start,
+                end,
+                equipement: {
+                    id: e.equipement.id,
+                    nom: e.equipement.designation
+                },
+                equipement_id: e.equipement.id,
+                class: 'event-mp',
+                route: {name: 'CounterDetail', params: { id: e.compteur.id }},
+            }
+        }).filter(Boolean)
 
         loadedMaintenance.value = true
     } catch (e) {
@@ -210,6 +265,47 @@ const fetchMaintenance = async () => {
         eventsMaintenance.value = []
     } finally {
         loading.value = false
+    }
+}
+
+
+const dateFromOrdinal = (ordinal) => {
+    if (!ordinal && ordinal !== 0) return null;
+
+    const ORDINAL_EPOCH = 719162; // 1970-01-01
+    const daysFromEpoch = ordinal - ORDINAL_EPOCH;
+    const date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
+
+    return date;
+};
+
+const toDateOnlyString = (value) => {
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+        return null
+    }
+
+    const year = value.getUTCFullYear()
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(value.getUTCDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+}
+
+/**
+ * API Equipements (pour filtre)
+ */
+const equipmentSelected = ref(null)
+const equipmentsOptions = ref([])
+const fetchEquipments = async () => {
+    try {
+        const res = await api.get('equipements/')
+        const data = res ?? []
+        equipmentsOptions.value = (data || []).map(e => ({
+            id: e.id,
+            nom: e.designation
+        }))
+    } catch (e) {
+        console.error('Erreur Equipements', e)
+        equipmentsOptions.value = []
     }
 }
 
@@ -225,6 +321,7 @@ const loadDataIfNeeded = async () => {
     if (mode.value === 'maintenance' && !loadedMaintenance.value) {
         console.log("Maintenance")
         await fetchMaintenance()
+        await fetchEquipments()
     }
 }
 
@@ -241,7 +338,25 @@ const handleNewMode = async () => {
 const currentEvents = computed(() => {
     return mode.value === 'bt'
         ? eventsBT.value
-        : eventsMaintenance.value
+        : getFilteredMaintenanceEvents(equipmentSelected.value)
+})
+
+watch(equipmentSelected, (selectedEquipmentId) => {
+    if (mode.value !== 'maintenance') {
+        return
+    }
+
+    const filteredEvents = getFilteredMaintenanceEvents(selectedEquipmentId)
+    if (!selectedEquipmentId) {
+        console.log(`[Maintenance] Aucun filtre équipement. ${filteredEvents.length} événement(s) affiché(s).`, filteredEvents)
+        return
+    }
+
+    const selectedEquipment = equipmentsOptions.value.find(e => Number(e.id) === Number(selectedEquipmentId))
+    console.log(
+        `[Maintenance] Filtre équipement: ${selectedEquipment?.nom || selectedEquipmentId}. ${filteredEvents.length} événement(s) trouvé(s).`,
+        filteredEvents
+    )
 })
 
 /**
@@ -251,11 +366,29 @@ const onEventClick = (event, e) => {
     e.stopPropagation()
     if (event.route) {
         console.log('Navigating to:', event.route)
-        router.push({ name: 'InterventionDetail', params: { id: event.id } })
+        router.push(event.route).catch(err => {
+            console.error('Navigation error:', err)
+        })
     }
 }
 
-const toVueCalDate = (iso) => iso ? iso.replace('T', ' ').substring(0, 16) : null
+const toVueCalDate = (value) => {
+    if (!value) return null
+
+    if (value instanceof Date) {
+        if (Number.isNaN(value.getTime())) return null
+        return value.toISOString().replace('T', ' ').substring(0, 16)
+    }
+
+    if (typeof value === 'string') {
+        if (!value.trim()) return null
+        if (value.includes('T')) return value.replace('T', ' ').substring(0, 16)
+        if (value.length === 10) return `${value} 00:00`
+        return value.substring(0, 16)
+    }
+
+    return null
+}
 
 
 /**
