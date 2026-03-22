@@ -113,18 +113,31 @@ const route = useRoute();
 
 const currentView = ref('month')
 
-const technicienColors = new Map()
+const entityColors = {
+    technicien: new Map(),
+    equipement: new Map()
+}
 const COLORS = [
     '#E53935', '#8E24AA', '#1E88E5', '#00897B',
     '#F4511E', '#6D4C41', '#039BE5', '#43A047',
     '#FB8C00', '#3949AB', '#00ACC1', '#7CB342',
 ]
 
-const getColorForTechnicien = (id) => {
-    if (!technicienColors.has(id)) {
-        technicienColors.set(id, COLORS[technicienColors.size % COLORS.length])
+const getColorForEntity = (entityType, entityId, fallback = '#1E88E5') => {
+    if (!entityId && entityId !== 0) {
+        return fallback
     }
-    return technicienColors.get(id)
+
+    const registry = entityColors[entityType]
+    if (!registry) {
+        return fallback
+    }
+
+    if (!registry.has(entityId)) {
+        registry.set(entityId, COLORS[registry.size % COLORS.length])
+    }
+
+    return registry.get(entityId)
 }
 
 /**
@@ -168,7 +181,7 @@ const fetchBT = async () => {
                 ? e.end
                 : new Date(new Date(start).getTime() + 60 * 60 * 1000).toISOString()
             const firstTechId = e.techniciens?.[0]?.id ?? null
-            const color = firstTechId ? getColorForTechnicien(firstTechId) : '#E53935'
+            const color = getColorForEntity('technicien', firstTechId, '#E53935')
 
             // Log pour vérifier la couleur
             console.log(`BT ${e.id} - Tech: ${e.techniciens?.[0]?.nom || 'Aucun'}, Color: ${color}`)
@@ -229,6 +242,8 @@ const fetchMaintenance = async () => {
             const start = `${dateOnly} 08:00`
             const end = `${dateOnly} 09:00`
             const uniqueId = `${e.id ?? e.planMaintenance?.id ?? e.equipement?.id}-${dateMaintenance}`
+            const equipementId = e.equipement?.id ?? null
+            const equipmentColor = getColorForEntity('equipement', equipementId, '#1E88E5')
 
             return {
                 id: uniqueId,
@@ -242,6 +257,8 @@ const fetchMaintenance = async () => {
                 equipement_id: e.equipement.id,
                 class: 'event-mp',
                 route: {name: 'CounterDetail', params: { id: e.compteur.id }},
+                backgroundColor: equipmentColor,
+                color: '#fff'
             }
         }).filter(Boolean)
 
