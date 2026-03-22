@@ -148,26 +148,11 @@ const loadedMaintenance = ref(false)
  */
 const loading = ref(false)
 
-const sortEventsByStartDate = (events = []) => {
-    return [...events].sort((a, b) => {
-        const aTime = a?.start ? new Date(a.start).getTime() : 0
-        const bTime = b?.start ? new Date(b.start).getTime() : 0
-        return aTime - bTime
-    })
-}
-
-const getFilteredMaintenanceEvents = (selectedEquipmentId) => {
-    if (!selectedEquipmentId) {
-        return sortEventsByStartDate(eventsMaintenance.value)
+const getFilteredMaintenanceEvents = (equipmentId) => {
+    if (!equipmentId) {
+        return eventsMaintenance.value
     }
-
-    const selectedId = Number(selectedEquipmentId)
-    const filtered = eventsMaintenance.value.filter((event) => {
-        const eventEquipmentId = event.equipement?.id ?? event.equipement_id ?? null
-        return Number(eventEquipmentId) === selectedId
-    })
-
-    return sortEventsByStartDate(filtered)
+    return eventsMaintenance.value.filter(e => Number(e.equipement_id) === Number(equipmentId))
 }
 
 const fetchBT = async () => {
