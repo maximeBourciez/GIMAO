@@ -1,7 +1,8 @@
 <template>
   <div class="py-2">
     <div class="text-body-2 mb-4">
-      Cette notice présente les fonctionnalités communes à tous les utilisateurs : connexion, navigation, profil et bonnes pratiques.
+      Cette notice présente les fonctionnalités communes à tous les utilisateurs : connexion, navigation, profil et bonnes pratiques.<br/>
+      Veuillez consulter la notice concernant votre utilisation de l'application dans le menu à gauche (Opérateur, Technicien, Responsable GMAO ou Magasinier) pour des instructions plus précises et détaillées.
     </div>
 
     <!-- Connexion -->

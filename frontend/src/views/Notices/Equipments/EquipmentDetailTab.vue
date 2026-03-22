@@ -11,14 +11,15 @@
       notamment contenir des notices ou des manuels d'utilisation utiles.
     </div>
 
-    <ZoomImage :src="require('@/assets/images/notices/equips/detail-operateur.png')" alt="Détail équipement" v-if="props.role === 'Opérateur'"/>
-    <!-- <ZoomImage :src="require('@/assets/images/notices/equips/detail-technicien.png')" alt="Détail équipement" v-if="roleIsAbove('Technicien')"/> -->
+    <ZoomImage :src="require('@/assets/images/notices/equips/detail-eq-operateur.png')" alt="Détail équipement" v-if="props.role === 'Opérateur'"/>
+    <ZoomImage :src="require('@/assets/images/notices/equips/detail-eq-technicien.png')" alt="Détail équipement" v-else/>
 
     <div class="text-body-1 font-weight-bold mb-2">
       En bas de la colonne gauche, vous pourrez trouver les dits documents associés à l'équipement, s'ils ont été renseignés par vos supérieurs.
     </div>
 
-    <ZoomImage :src="require('@/assets/images/notices/equips/docs.png')" alt="Détail équipement" />
+    <ZoomImage :src="require('@/assets/images/notices/equips/detail-eq-docs-operateur.png')" alt="Détail équipement" v-if="role === 'Opérateur'"/>
+    <ZoomImage :src="require('@/assets/images/notices/equips/detail-eq-docs-technicien.png')" alt="Détail équipement" v-else/>
 
     <div class="text-body-2 mb-4">
       Depuis cette page, vous pouvez également signaler une défaillance en cliquant sur le bouton <strong>Créer
@@ -26,14 +27,15 @@
       facilite le signalement.
     </div>
 
-    <ZoomImage :src="require('@/assets/images/notices/equips/creer-di.png')" alt="Signalement depuis détail équipement"/>
+    <ZoomImage :src="require('@/assets/images/notices/equips/detail-eq-creer-di-operateur.png')" alt="Signalement depuis détail équipement" v-if="role === 'Opérateur'"/>
+    <ZoomImage :src="require('@/assets/images/notices/equips/detail-eq-creer-di-technicien.png')" alt="Signalement depuis détail équipement" v-else/>
 
     <div v-if="roleIsAbove('Technicien')" class="mt-4">
       <div class="text-body-1 font-weight-bold mb-2">
         Modification et compteurs
       </div>
       <div class="text-body-2 mb-4">
-        - Vous pouvez <strong>modifier</strong> un équipement : mettre à jour son état, sa localisation, ses informations.<br />
+        <!-- - Vous pouvez <strong>modifier</strong> un équipement : mettre à jour son état, sa localisation, ses informations.<br /> -->
         - Vous avez accès aux <strong>compteurs</strong> de chaque équipement : consultez et modifiez les valeurs (heures, km, cycles…).
       </div>
     </div>
