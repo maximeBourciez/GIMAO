@@ -103,12 +103,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import VueCal from 'vue-cal'
 import { API_BASE_URL } from '@/utils/constants'
 import { useApi } from '@/composables/useApi'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import FormSelect from '@/components/Forms/inputType/FormSelect.vue'
 import 'vue-cal/dist/vuecal.css'
 
 const api = useApi(API_BASE_URL);
 const router = useRouter();
+const route = useRoute();
 
 const currentView = ref('month')
 
@@ -317,6 +318,21 @@ const handleNewMode = async () => {
     await loadDataIfNeeded()
 }
 
+const initializeCalendarFromRoute = async () => {
+    const routeMode = String(route.query.mode || '').toLowerCase()
+    const routeEquipmentId = route.query.equipmentId ?? route.query.equipementId ?? null
+
+    if (routeMode === 'maintenance' || routeEquipmentId) {
+        mode.value = 'maintenance'
+    }
+
+    await loadDataIfNeeded()
+
+    if (mode.value === 'maintenance' && routeEquipmentId !== null && routeEquipmentId !== undefined && routeEquipmentId !== '') {
+        equipmentSelected.value = Number(routeEquipmentId)
+    }
+}
+
 /**
  * Events affiches
  */
@@ -380,7 +396,7 @@ const toVueCalDate = (value) => {
  * Initialisation
  */
 onMounted(() => {
-    loadDataIfNeeded();
+    initializeCalendarFromRoute();
 })
 </script>
 

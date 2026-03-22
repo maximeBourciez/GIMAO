@@ -36,7 +36,7 @@ perms = {
     'eq:delete': 'Supprimer un équipement',
     'eq:export': 'Exporter les équipements',
     'eq:archive': 'Archiver un équipement',
-    'eq:view.calendar': 'Voir le calendrier des maintenances d’un équipement',
+    'eq:maintenance.calendar': 'Voir le calendrier des maintenances d’un équipement',
 
     # Compteurs
     'cp:viewList': 'Voir la liste des compteurs',
