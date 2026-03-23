@@ -1,9 +1,12 @@
+
+
+import hashlib
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import check_password, make_password
 
-from utilisateur.models import Role, Utilisateur, Log
+from utilisateur.models import Role, Utilisateur, Log, Permission, UtilisateurPermission, RolePermission
 from .serializers import (
     RoleSerializer,
     UtilisateurSerializer,
@@ -13,20 +16,57 @@ from .serializers import (
     LogSerializer,
     LoginSerializer,
     ChangePasswordSerializer,
-    DefinirMotDePasseSerializer
+    DefinirMotDePasseSerializer,
+    PermissionSerializer
 )
+from gimao.viewsets import GimaoModelViewSet
+from security.models import ApiToken, create_token
 
 
 # ==================== ROLE VIEWSET ====================
 
-class RoleViewSet(viewsets.ModelViewSet):
-    queryset = Role.objects.all().order_by('rang')
+class RoleViewSet(GimaoModelViewSet):
+    queryset = Role.objects.all().order_by('nomRole')
     serializer_class = RoleSerializer
+
+    @action(detail=True, methods=['post'])
+    def dupliquer(self, request, pk=None):
+        role = self.get_object()
+        nouveau_nom = request.data.get('nomRole', f'Copie de {role.nomRole}')
+        
+        # Vérifier que le nom n'existe pas déjà
+        if Role.objects.filter(nomRole=nouveau_nom).exists():
+            return Response(
+                {"detail": f"Un rôle avec le nom '{nouveau_nom}' existe déjà."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Créer le nouveau rôle
+        nouveau_role = Role.objects.create(nomRole=nouveau_nom)
+        
+        # Copier les permissions
+        for rp in RolePermission.objects.filter(role=role):
+            RolePermission.objects.create(role=nouveau_role, permission=rp.permission)
+        
+        serializer = self.get_serializer(nouveau_role)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# ==================== PERMISSION VIEWSET ====================
+
+class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet en lecture seule pour lister toutes les permissions disponibles.
+    Utilisé par les pages de gestion des rôles et des permissions utilisateur.
+    GET /api/permissions/
+    GET /api/permissions/{id}/
+    """
+    queryset = Permission.objects.all().order_by('nomPermission')
+    serializer_class = PermissionSerializer
 
 
 # ==================== UTILISATEUR VIEWSET ====================
 
-class UtilisateurViewSet(viewsets.ModelViewSet):
+class UtilisateurViewSet(GimaoModelViewSet):
     queryset = Utilisateur.objects.all().order_by('id')
 
     def get_serializer_class(self):
@@ -43,7 +83,6 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
         return UtilisateurSerializer
 
     # ---------- LOGIN ----------
-    # Vérifie l'existence de l'utilisateur
     @action(detail=False, methods=['post'])
     def exists(self, request):
         """
@@ -63,7 +102,6 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
 
         return Response({"existe": exists, "message": message}, status=status.HTTP_200_OK)
 
-    # Connexion
     @action(detail=False, methods=['post'])
     def login(self, request):
         """
@@ -90,19 +128,23 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_200_OK)
 
         if not motDePasse or motDePasse.strip() == '':
-            return Response({"detail": "Mot de passe requis"}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({"detail": "Mot de passe requis", "error": True}, status=status.HTTP_403_FORBIDDEN)
+
         if not user.check_password(motDePasse):
-            return Response({"detail": "Mot de passe incorrect"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "Mot de passe incorrect", "error": True}, status=status.HTTP_403_FORBIDDEN)
 
         from django.utils import timezone
         user.derniereConnexion = timezone.now()
         user.save(update_fields=['derniereConnexion'])
 
+        token = create_token(user)
+
         return Response({
             "message": "Connexion réussie",
             "besoinDefinirMotDePasse": False,
-            "utilisateur": UtilisateurSerializer(user).data
+            "utilisateur": UtilisateurSerializer(user).data,
+            "token": token,
+            "error": False
         }, status=status.HTTP_200_OK)
 
     # ---------- DÉFINIR MOT DE PASSE (PREMIÈRE CONNEXION) ----------
@@ -110,7 +152,6 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
     def definir_mot_de_passe(self, request):
         """
         Permet à un utilisateur sans mot de passe de définir son mot de passe lors de sa première connexion.
-        Conditions : pas de mot de passe ET jamais connecté (derniereConnexion == null)
         """
         serializer = DefinirMotDePasseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -128,7 +169,7 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
                 {"detail": "Cet utilisateur a déjà un mot de passe. Utilisez l'endpoint de changement de mot de passe."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if not user.premiere_connexion():
             return Response(
                 {"detail": "Cet utilisateur s'est déjà connecté. Utilisez l'endpoint de changement de mot de passe."},
@@ -136,14 +177,16 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
             )
 
         user.set_password(nouveau_motDePasse)
-        
+
         from django.utils import timezone
         user.derniereConnexion = timezone.now()
         user.save()
+        token = create_token(user)
 
         return Response({
             "message": "Mot de passe défini avec succès. Vous pouvez maintenant vous connecter.",
-            "utilisateur": UtilisateurSerializer(user).data
+            "utilisateur": UtilisateurSerializer(user).data,
+            "token": token
         }, status=status.HTTP_200_OK)
 
     # ---------- CHANGEMENT DE MOT DE PASSE ----------
@@ -152,28 +195,144 @@ class UtilisateurViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         ancien = serializer.validated_data['ancien_motDePasse']
         nouveau = serializer.validated_data['nouveau_motDePasse']
 
+        # Récupérer l'utilisateur connecté depuis le thread local
+        from utilisateur.middleware import get_thread_user
+        current_user = get_thread_user()
+
+        is_self = current_user and current_user.pk == user.pk
+
+        if current_user and not is_self:
+            # Vérifier la permission user:edit
+            perms_perso = UtilisateurPermission.objects.filter(
+                utilisateur=current_user,
+                permission__nomPermission='user:edit'
+            ).exists()
+            perms_role = RolePermission.objects.filter(
+                role=current_user.role,
+                permission__nomPermission='user:edit'
+            ).exists()
+            if perms_perso or perms_role:
+                user.set_password(nouveau)
+                user.save()
+                return Response({"message": "Mot de passe mis à jour avec succès"}, status=status.HTTP_200_OK)
+
         if not user.has_usable_password():
             return Response(
-                {"detail": "Cet utilisateur n'a pas encore de mot de passe. Utilisez l'endpoint pour définir un mot de passe."},
+                {"detail": "Cet utilisateur n'a pas encore de mot de passe."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not user.check_password(ancien):
+            return Response({"detail": "Ancien mot de passe incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(nouveau)
+        user.save()
+        return Response({"message": "Mot de passe mis à jour avec succès"}, status=status.HTTP_200_OK)
+        
+    # ---------- PERMISSIONS PERSONNALISÉES (SCRUM-159) ----------
+
+    @action(detail=True, methods=['get'])
+    def permissions(self, request, pk=None):
+        """
+        Retourne les permissions d'un utilisateur.
+        Si des permissions personnalisées existent, elles sont retournées.
+        Sinon, les permissions du rôle sont retournées.
+
+        GET /api/utilisateurs/{id}/permissions/
+        """
+        user = self.get_object()
+        perms_perso = user.permissions_personnalisees.select_related('permission').all()
+
+        if perms_perso.exists():
+            permissions = [up.permission for up in perms_perso]
+            source = "personnalisees"
+        else:
+            permissions = list(user.role.permissions.all()) if user.role else []
+            source = "role"
+
+        return Response({
+            "source": source,
+            "permissions": PermissionSerializer(permissions, many=True).data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def definir_permissions(self, request, pk=None):
+        """
+        Définit les permissions personnalisées d'un utilisateur.
+        Remplace toutes les permissions personnalisées existantes.
+
+        POST /api/utilisateurs/{id}/definir_permissions/
+        Body: { "permissions_ids": [1, 2, 3] }
+        """
+        user = self.get_object()
+        permissions_ids = request.data.get('permissions_ids', [])
+
+        if not isinstance(permissions_ids, list):
+            return Response(
+                {"detail": "permissions_ids doit être une liste"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if not user.check_password(ancien):
-            return Response({"detail": "Ancien mot de passe incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+        # Vérifier que toutes les permissions existent
+        permissions = Permission.objects.filter(id__in=permissions_ids)
+        if len(permissions) != len(permissions_ids):
+            return Response(
+                {"detail": "Une ou plusieurs permissions sont introuvables"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        user.set_password(nouveau)
-        user.save()
+        # Supprimer les anciennes permissions personnalisées et les remplacer
+        UtilisateurPermission.objects.filter(utilisateur=user).delete()
+        for perm in permissions:
+            UtilisateurPermission.objects.create(utilisateur=user, permission=perm)
 
-        return Response({"message": "Mot de passe mis à jour avec succès"}, status=status.HTTP_200_OK)
+        return Response({
+            "message": f"{len(permissions)} permissions personnalisées définies pour {user.nomUtilisateur}",
+            "permissions": PermissionSerializer(permissions, many=True).data
+        }, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'])
+    def reinitialiser_permissions(self, request, pk=None):
+        """
+        Supprime les permissions personnalisées d'un utilisateur.
+        L'utilisateur retrouve les permissions de son rôle.
+
+        POST /api/utilisateurs/{id}/reinitialiser_permissions/
+        """
+        user = self.get_object()
+        count = UtilisateurPermission.objects.filter(utilisateur=user).delete()[0]
+
+        return Response({
+            "message": f"Permissions personnalisées supprimées. {user.nomUtilisateur} utilise maintenant les permissions du rôle '{user.role.nomRole}'.",
+            "permissions": PermissionSerializer(user.role.permissions.all(), many=True).data
+        }, status=status.HTTP_200_OK)
+
+
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+
+        auth = request.headers.get("Authorization")
+
+        if not auth or not auth.startswith("Bearer "):
+            return Response({"detail": "Token manquant"}, status=401)
+
+        token = auth.split(" ")[1]
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+        try:
+            api_token = ApiToken.objects.get(token_hash=token_hash)
+
+            api_token.is_revoked = True
+            api_token.save()
+
+        except ApiToken.DoesNotExist:
+            pass  # On ne révèle rien pour la sécurité
+
+        return Response({"detail": "Déconnexion réussie"}, status=status.HTTP_200_OK)
 
 # ==================== LOG VIEWSET ====================
 
 class LogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Log.objects.all().order_by('-date')
     serializer_class = LogSerializer
-

@@ -54,13 +54,12 @@ watch(route, () => {
         route: route.path,
         id: showId ? (route.params.id ?? null) : null,
     })
-    console.log("saving breadcrumb", route.path)
 
     localStorage.setItem('breadcrumb', JSON.stringify(breadcrumbs.value));
 }, { immediate: true })
 
 function makeBreadcrumbLabel(crumb, index) {
-    return `${BREADCRUMBS[crumb.name]} ${crumb.id ? `#${crumb.id}` : ''} ${index === breadcrumbs.length - 1 ? '' : '>' }`
+    return `${BREADCRUMBS[crumb.name]} ${crumb.id ? `#${crumb.id}` : ''} ${index === breadcrumbs.value.length - 1 ? '' : '>' }`
 }
 </script>
 
@@ -69,9 +68,9 @@ function makeBreadcrumbLabel(crumb, index) {
 .breadcrumb {
     padding: 0 0 8px 0;
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--text-color);
+    opacity: 0.7;
     margin: 10px 0px 10px 15px;
-    /* gris doux */
 }
 
 .breadcrumb .v-breadcrumbs-item {
@@ -80,14 +79,13 @@ function makeBreadcrumbLabel(crumb, index) {
 }
 
 .breadcrumb .v-breadcrumbs-item:not(.v-breadcrumbs-item--disabled):hover {
-    color: #1976d2;
-    /* primary Vuetify */
+    color: rgb(var(--v-theme-primary));
     text-decoration: underline;
 }
 
 .breadcrumb .v-breadcrumbs-item--disabled {
-    color: #111827;
-    /* plus foncé pour la page courante */
+    color: var(--text-color);
+    opacity: 1;
     font-weight: 600;
     cursor: default;
 }

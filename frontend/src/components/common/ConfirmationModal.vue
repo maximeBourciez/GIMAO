@@ -2,33 +2,31 @@
   <v-dialog
     v-model="dialogVisible"
     max-width="450"
-    persistent
+    :persistent="persistent"
   >
-    <v-card class="rounded-lg">
-      <!-- Header -->
-      <v-card-title class="d-flex align-center pa-4" :class="headerClass">
-        <v-icon :color="iconColor" size="28" class="mr-3">{{ modalIcon }}</v-icon>
+    <v-card class="rounded-xl confirmation-modal-card">
+      <v-card-title class="confirmation-modal-header pa-4">
+        <span class="confirmation-modal-icon" :class="toneClass">
+          <v-icon :color="iconColor" size="24">{{ modalIcon }}</v-icon>
+        </span>
         <span class="modal-title">{{ title }}</span>
       </v-card-title>
 
-      <v-divider></v-divider>
+      <v-divider class="confirmation-modal-divider"></v-divider>
 
-      <!-- Content -->
-      <v-card-text class="pa-4">
+      <v-card-text class="confirmation-modal-body pa-4">
         <p class="modal-message mb-0">{{ formattedMessage }}</p>
         <slot name="content"></slot>
       </v-card-text>
 
-      <v-divider></v-divider>
+      <v-divider class="confirmation-modal-divider"></v-divider>
 
-      <!-- Actions -->
-      <v-card-actions class="pa-4 d-flex justify-end">
+      <v-card-actions class="confirmation-modal-actions pa-4 d-flex justify-end">
         <v-btn
           variant="outlined"
-          color="grey-darken-1"
+          class="confirmation-modal-cancel mr-2"
           @click="handleCancel"
           :disabled="loading"
-          class="mr-2"
         >
           {{ cancelText }}
         </v-btn>
@@ -93,6 +91,11 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  // Allow closing by clicking outside when false
+  persistent: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -112,8 +115,8 @@ const typeConfig = {
   },
   warning: {
     icon: 'mdi-alert-circle-outline',
-    color: 'warning',
-    iconColor: 'warning'
+    color: 'primary',
+    iconColor: 'primary'
   },
   error: {
     icon: 'mdi-close-circle-outline',
@@ -129,7 +132,7 @@ const typeConfig = {
 
 const modalIcon = computed(() => typeConfig[props.type]?.icon || typeConfig.warning.icon);
 const iconColor = computed(() => typeConfig[props.type]?.iconColor || 'warning');
-const headerClass = computed(() => '');
+const toneClass = computed(() => `confirmation-modal-icon--${props.type}`);
 
 const confirmButtonColor = computed(() => {
   if (props.confirmColor) return props.confirmColor;
@@ -152,16 +155,71 @@ const handleCancel = () => {
 </script>
 
 <style scoped>
+.confirmation-modal-card {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  box-shadow: 0 22px 50px rgba(10, 15, 30, 0.18);
+  overflow: hidden;
+}
+
+.confirmation-modal-header {
+  align-items: center;
+  background: rgba(var(--v-theme-on-surface), 0.02);
+  display: flex;
+  gap: 14px;
+}
+
+.confirmation-modal-icon {
+  align-items: center;
+  border-radius: 14px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.confirmation-modal-icon--success {
+  background: rgba(var(--v-theme-success), 0.14);
+}
+
+.confirmation-modal-icon--warning {
+  background: rgba(var(--v-theme-primary), 0.12);
+}
+
+.confirmation-modal-icon--error {
+  background: rgba(var(--v-theme-error), 0.14);
+}
+
+.confirmation-modal-icon--info {
+  background: rgba(var(--v-theme-info), 0.14);
+}
+
+.confirmation-modal-divider {
+  opacity: 0.7;
+}
+
 .modal-title {
   font-weight: 600;
   font-size: 1.125rem;
-  color: #05004E;
+  color: rgba(var(--v-theme-on-surface), 0.96);
+}
+
+.confirmation-modal-body {
+  color: rgba(var(--v-theme-on-surface), 0.76);
 }
 
 .modal-message {
   font-size: 0.95rem;
-  color: #3C3C3C;
+  color: inherit;
   line-height: 1.5;
   white-space: pre-line;
+}
+
+.confirmation-modal-actions {
+  gap: 12px;
+}
+
+.confirmation-modal-cancel {
+  color: rgba(var(--v-theme-on-surface), 0.8);
 }
 </style>

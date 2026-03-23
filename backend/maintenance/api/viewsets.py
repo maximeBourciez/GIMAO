@@ -1,4 +1,9 @@
+import ast
+import logging
 import os
+import traceback
+from urllib.parse import parse_qs
+from django.http import JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -9,10 +14,11 @@ from django.utils import timezone
 from django.db import transaction
 import json
 from donnees.models import Document, TypeDocument
-from equipement.models import Equipement
+from equipement.models import Equipement, StatutEquipement
 from utilisateur.models import Utilisateur, Log
-from stock.models import Consommable
+from stock.models import Consommable, Stocker
 from maintenance.models import DemandeIntervention, BonTravail, Utilisateur
+from gimao.viewsets import GimaoModelViewSet
 
 
 
@@ -23,6 +29,7 @@ from maintenance.models import (
     PlanMaintenance,
     PlanMaintenanceConsommable,
     BonTravailConsommable,
+    BonTravailConsommableReservation,
     BonTravailDocument,
     PlanMaintenanceDocument,
     DemandeInterventionDocument
@@ -32,14 +39,19 @@ from maintenance.api.serializers import (
     DemandeInterventionDetailSerializer,
     BonTravailSerializer,
     BonTravailDetailSerializer,
+    BonTravailListStockSerializer,
     TypePlanMaintenanceSerializer,
     PlanMaintenanceSerializer,
     PlanMaintenanceDetailSerializer,
     PlanMaintenanceConsommableSerializer
 )
+from gimao.viewsets import GimaoModelViewSet
+from gimao.mixins import ArchivableViewSetMixin
+
+logger = logging.getLogger(__name__)
 
 
-class DemandeInterventionViewSet(viewsets.ModelViewSet):
+class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     """
     ViewSet pour gérer les demandes d'intervention.
     
@@ -166,26 +178,6 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             )
             
         demande.documents.remove(document_id)
-
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        Log.objects.create(
-            type='archivage',
-            nomTable='demande_intervention',
-            idCible={'demande_intervention_id': demande.id},
-            champsModifies={
-                'documents': {
-                    'valArchivage': {
-                        'document_id': int(document_id),
-                    }
-                }
-            },
-            utilisateur_id=utilisateur_id,
-        )
         
         # On utilise le serializer détaillé pour renvoyer la liste des documents mise à jour
         serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
@@ -221,25 +213,6 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
         demande.documents.add(document_id)
         after_documents = list(demande.documents.order_by('id').values_list('id', flat=True))
 
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        Log.objects.create(
-            type='modification',
-            nomTable='demande_intervention',
-            idCible={'demande_intervention_id': demande.id},
-            champsModifies={
-                'documents': {
-                    'ancien': before_documents,
-                    'nouveau': after_documents,
-                }
-            },
-            utilisateur_id=utilisateur_id,
-        )
-
         serializer = DemandeInterventionDetailSerializer(demande, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -260,10 +233,18 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             statut='EN_ATTENTE'
         )
 
+        statut_equipement = request.data.get('statut_equipement')
+        if statut_equipement and statut_equipement.strip():
+            from equipement.models import StatutEquipement
+            StatutEquipement.objects.create(
+                equipement=demande.equipement,
+                statut=statut_equipement
+            )
+
         demande.statut = 'TRANSFORMEE'
         demande.date_changementStatut = timezone.now()
         demande.save()
-        serializer = self.get_serializer(bon_travail)
+        serializer = BonTravailSerializer(bon_travail, context=self.get_serializer_context())
         return Response(serializer.data)
 
     @transaction.atomic
@@ -313,6 +294,7 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             nom=data["nom"],
             commentaire=data.get("commentaire", ""),
             statut="EN_ATTENTE",
+            statut_suppose=data.get("statut_suppose"),
             date_creation=timezone.now(),
             date_changementStatut=timezone.now(),
             utilisateur=utilisateur,
@@ -409,6 +391,7 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             'nom',
             'commentaire',
             'statut',
+            'statut_suppose',
             'equipement_id',
             'utilisateur_id',
         ]
@@ -532,7 +515,7 @@ class DemandeInterventionViewSet(viewsets.ModelViewSet):
             raise
 
 
-class BonTravailViewSet(viewsets.ModelViewSet):
+class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     """
     ViewSet pour gérer les bons de travail.
     
@@ -554,33 +537,23 @@ class BonTravailViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
-        """Crée une entrée de log"""
-        Log.objects.create(
-            type=type_action,
-            nomTable=nom_table,
-            idCible=id_cible,
-            champsModifies=champs_modifies,
-            utilisateur_id=utilisateur_id
-        )
+        try:
+            utilisateur = None
+            if utilisateur_id:
+                try:
+                    utilisateur = Utilisateur.objects.get(pk=utilisateur_id)
+                except (Utilisateur.DoesNotExist, ValueError, TypeError):
+                    utilisateur = None
 
-    def _build_champs_modifies(self, bon_avant, bon_apres, fields):
-        def _to_json_value(value):
-            if value is None:
-                return None
-            if hasattr(value, 'isoformat'):
-                return value.isoformat()
-            return value
-
-        champs = {}
-        for field in fields:
-            avant = getattr(bon_avant, field, None)
-            apres = getattr(bon_apres, field, None)
-            if avant != apres:
-                champs[field] = {
-                    'ancien': _to_json_value(avant),
-                    'nouveau': _to_json_value(apres)
-                }
-        return champs
+            Log.objects.create(
+                type=type_action,
+                nomTable=nom_table,
+                idCible=id_cible,
+                champsModifies=champs_modifies,
+                utilisateur=utilisateur,
+            )
+        except Exception as error:
+            print(f"Erreur lors de la creation du log manuel: {error}")
 
     def _get_consommables_state(self, bon_travail_id):
         return list(
@@ -780,6 +753,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                 nom=data.get('nom') or '',
                 commentaire=data.get('commentaire', ''),
                 statut='TRANSFORMEE',
+                statut_suppose=data.get('statut_equipement'),
                 date_creation=timezone.now(),
                 date_changementStatut=timezone.now(),
                 utilisateur=utilisateur,
@@ -787,20 +761,14 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             )
             if not demande.nom:
                 raise ValidationError({'nom': 'Le nom est requis'})
+            print("Statut : " + str(demande.statut) + " - Statut supposé : " + str(demande.statut_suppose) )
+            if demande.statut_suppose:
+                StatutEquipement.objects.create(
+                    equipement=equipement,
+                    statut=demande.statut_suppose,
+                    dateChangement=timezone.now()
+                )
 
-            Log.objects.create(
-                type='creation',
-                nomTable='demande_intervention',
-                idCible={'demande_intervention_id': demande.id},
-                champsModifies={
-                    'nom': {'valCreation': demande.nom},
-                    'commentaire': {'valCreation': demande.commentaire},
-                    'statut': {'valCreation': demande.statut},
-                    'equipement_id': {'valCreation': demande.equipement_id},
-                    'utilisateur_id': {'valCreation': utilisateur.id},
-                },
-                utilisateur_id=utilisateur.id,
-            )
 
             # Créer BT via serializer (validation + sync consommables)
             bt_payload = {
@@ -813,6 +781,15 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                 # Responsable obligatoire: l'utilisateur qui crée le BT
                 'responsable_id': utilisateur.id,
             }
+
+            duree = data.get('duree_previsionnelle')
+
+            if duree:
+                # Si format HH:MM → on ajoute les secondes
+                if len(duree.split(':')) == 2:
+                    duree = f"{duree}:00"
+
+            bt_payload['duree_previsionnelle'] = duree
 
             # Champs optionnels (responsable non modifiable ici)
             if 'utilisateur_assigne_ids' in data:
@@ -858,65 +835,23 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                 )
                 created_files.append(document.cheminAcces.name)
 
-                Log.objects.create(
-                    type='creation',
-                    nomTable='document',
-                    idCible={'document_id': document.id},
-                    champsModifies={
-                        'nomDocument': {'valCreation': document.nomDocument},
-                        'typeDocument_id': {'valCreation': document.typeDocument_id},
-                        'cheminAcces': {'valCreation': getattr(document.cheminAcces, 'name', None)},
-                    },
-                    utilisateur_id=utilisateur.id,
-                )
 
                 BonTravailDocument.objects.create(
                     bon_travail=bon,
                     document=document,
                 )
 
-                Log.objects.create(
-                    type='creation',
-                    nomTable='bon_travail_document',
-                    idCible={'bon_travail_id': bon.id, 'document_id': document.id},
-                    champsModifies={
-                        'bon_travail_id': {'valCreation': bon.id},
-                        'document_id': {'valCreation': document.id},
-                    },
-                    utilisateur_id=utilisateur.id,
-                )
 
             # Refresh pour cohérence réponse
             bon.refresh_from_db()
             response_data = BonTravailDetailSerializer(bon, context={'request': request}).data
 
-            # Log création (même format que create())
-            champs_modifies = {
-                'nom': {'valCreation': response_data.get('nom')},
-                'type': {'valCreation': response_data.get('type')},
-                'diagnostic': {'valCreation': response_data.get('diagnostic')},
-                'commentaire': {'valCreation': response_data.get('commentaire')},
-                'statut': {'valCreation': response_data.get('statut')},
-                'date_prevue': {'valCreation': response_data.get('date_prevue')},
-                'date_assignation': {'valCreation': response_data.get('date_assignation')},
-                'demande_intervention_id': {'valCreation': response_data.get('demande_intervention')},
-                'responsable_id': {'valCreation': bon.responsable_id},
-                'utilisateur_assigne_ids': {'valCreation': self._get_utilisateur_assigne_ids(bon)},
-                'consommables': {'valCreation': self._get_consommables_state(bon.id)},
-                'documents': {'valCreation': self._get_documents_state(bon.id)},
-            }
-
-            self._create_log_entry(
-                type_action='creation',
-                nom_table='bon_travail',
-                id_cible={'bon_travail_id': bon.id},
-                champs_modifies=champs_modifies,
-                utilisateur_id=utilisateur.id,
-            )
 
             return Response(response_data, status=status.HTTP_201_CREATED)
         except Exception:
             # Best-effort: si des fichiers ont été sauvegardés avant l'erreur, tenter de les supprimer
+            print("Exception détectée, tentative de cleanup des fichiers créés..."
+            "Exception:", traceback.format_exc())
             for name in reversed(created_files):
                 try:
                     if name:
@@ -948,35 +883,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         response_serializer = self.get_serializer(bon)
         bon_data = response_serializer.data
-        champs_modifies = {
-            'nom': {'valCreation': bon_data.get('nom')},
-            'type': {'valCreation': bon_data.get('type')},
-            'diagnostic': {'valCreation': bon_data.get('diagnostic')},
-            'commentaire': {'valCreation': bon_data.get('commentaire')},
-            'statut': {'valCreation': bon_data.get('statut')},
-            'date_prevue': {'valCreation': bon_data.get('date_prevue')},
-            'date_assignation': {'valCreation': bon_data.get('date_assignation')},
-            'demande_intervention_id': {'valCreation': bon_data.get('demande_intervention')},
-            'responsable_id': {'valCreation': bon.responsable_id},
-            'utilisateur_assigne_ids': {'valCreation': self._get_utilisateur_assigne_ids(bon)},
-            'consommables': {'valCreation': self._get_consommables_state(bon.id)},
-            'documents': {'valCreation': self._get_documents_state(bon.id)},
-        }
 
-        # Qui a effectué l'action ? (fallbacks)
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        self._create_log_entry(
-            type_action='creation',
-            nom_table='bon_travail',
-            id_cible={'bon_travail_id': bon.id},
-            champs_modifies=champs_modifies,
-            utilisateur_id=utilisateur_id
-        )
 
         return Response(bon_data, status=status.HTTP_201_CREATED)
 
@@ -1047,20 +954,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         bon.save()
 
-        champs_modifies = self._build_champs_modifies(
-            bon_avant,
-            bon,
-            fields=['statut', 'date_debut', 'date_fin', 'date_cloture', 'commentaire_refus_cloture']
-        )
-        if champs_modifies:
-            self._create_log_entry(
-                type_action='modification',
-                nom_table='bon_travail',
-                id_cible=bon.id,
-                champs_modifies=champs_modifies,
-                utilisateur_id=utilisateur_id
-            )
-
         serializer = self.get_serializer(bon)
         return Response(serializer.data)
 
@@ -1130,6 +1023,7 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             'type',
             'date_assignation',
             'date_prevue',
+            'duree_previsionnelle',
             'date_cloture',
             'date_debut',
             'date_fin',
@@ -1153,6 +1047,22 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         consommables = self._parse_json_field(data, 'consommables', None)
         if consommables is not None:
             bt_payload['consommables'] = consommables
+
+
+        # Statut d'équipement
+        print(data);
+        nouveau_statut = data.get('statut_equipement');
+        if nouveau_statut is not None:
+            equipement = Equipement.objects.filter(id=data.get('equipement_id')).first() or instance.demande_intervention.equipement
+            dernier_statut_eq = equipement.get_dernier_statut();
+
+            if dernier_statut_eq == None or dernier_statut_eq != nouveau_statut:
+                StatutEquipement.objects.create(
+                    equipement=equipement,
+                    statut=nouveau_statut,
+                    dateChangement=timezone.now()
+                )
+                bt_payload['statut_equipement'] = nouveau_statut
 
         if bt_payload:
             # Normaliser le cas multipart (FormData) :
@@ -1249,24 +1159,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                             if uploaded_file is not None and new_name:
                                 new_file_names_to_delete_on_error.append(new_name)
 
-                            after = {
-                                'nomDocument': document.nomDocument,
-                                'typeDocument_id': document.typeDocument_id,
-                                'cheminAcces': getattr(document.cheminAcces, 'name', None),
-                            }
-
-                            if before != after:
-                                Log.objects.create(
-                                    type='modification',
-                                    nomTable='document',
-                                    idCible={'document_id': document.id},
-                                    champsModifies={
-                                        'nomDocument': {'ancien': before['nomDocument'], 'nouveau': after['nomDocument']},
-                                        'typeDocument_id': {'ancien': before['typeDocument_id'], 'nouveau': after['typeDocument_id']},
-                                        'cheminAcces': {'ancien': before['cheminAcces'], 'nouveau': after['cheminAcces']},
-                                    },
-                                    utilisateur_id=utilisateur_id,
-                                )
                         continue
 
                     # Nouveau document
@@ -1284,29 +1176,8 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                     if new_name:
                         new_file_names_to_delete_on_error.append(new_name)
 
-                    Log.objects.create(
-                        type='creation',
-                        nomTable='document',
-                        idCible={'document_id': document.id},
-                        champsModifies={
-                            'nomDocument': {'valCreation': document.nomDocument},
-                            'typeDocument_id': {'valCreation': document.typeDocument_id},
-                            'cheminAcces': {'valCreation': getattr(document.cheminAcces, 'name', None)},
-                        },
-                        utilisateur_id=utilisateur_id,
-                    )
 
                     BonTravailDocument.objects.create(bon_travail=bon_apres, document=document)
-                    Log.objects.create(
-                        type='creation',
-                        nomTable='bon_travail_document',
-                        idCible={'bon_travail_id': bon_apres.id, 'document_id': document.id},
-                        champsModifies={
-                            'bon_travail_id': {'valCreation': bon_apres.id},
-                            'document_id': {'valCreation': document.id},
-                        },
-                        utilisateur_id=utilisateur_id,
-                    )
 
             # Supprimer les anciens fichiers uniquement après commit
             if old_file_names_to_delete_on_commit:
@@ -1322,37 +1193,11 @@ class BonTravailViewSet(viewsets.ModelViewSet):
             # Recharger après documents
             bon_apres = BonTravail.objects.get(pk=instance.pk)
 
-            champs_modifies = {}
-
-            direct_fields = [
-                'nom',
-                'diagnostic',
-                'type',
-                'date_assignation',
-                'date_prevue',
-                'date_cloture',
-                'date_debut',
-                'date_fin',
-                'statut',
-                'commentaire',
-                'commentaire_refus_cloture',
-            ]
-            fields_to_check = [field for field in direct_fields if field in data]
-            if fields_to_check:
-                champs_modifies.update(self._build_champs_modifies(bon_avant, bon_apres, fields=fields_to_check))
-
-            if 'responsable_id' in data and bon_avant.responsable_id != bon_apres.responsable_id:
-                champs_modifies['responsable_id'] = {
-                    'ancien': bon_avant.responsable_id,
-                    'nouveau': bon_apres.responsable_id,
-                }
 
             if 'utilisateur_assigne_ids' in data:
                 avant_ids = avant_assigne_ids
                 apres_ids = list(bon_apres.utilisateur_assigne.values_list('id', flat=True))
                 if sorted(avant_ids) != sorted(apres_ids):
-                    old_date_assignation = bon_avant.date_assignation
-
                     # Si on change les assignés, on (re)met la date d'assignation à maintenant
                     # (uniquement si au moins un assigné est présent après la modif)
                     if bon_apres.utilisateur_assigne.exists():
@@ -1361,42 +1206,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
                         # Recharge pour garantir l'état DB (et avoir la valeur exacte renvoyée)
                         bon_apres = BonTravail.objects.get(pk=instance.pk)
 
-                    champs_modifies['utilisateur_assigne_ids'] = {
-                        'ancien': sorted(avant_ids),
-                        'nouveau': sorted(apres_ids),
-                    }
-
-                    # Ajouter la date d'assignation aux champs modifiés uniquement si on l'a modifiée
-                    if bon_apres.utilisateur_assigne.exists() and bon_apres.date_assignation != old_date_assignation:
-                        champs_modifies['date_assignation'] = {
-                            'ancien': old_date_assignation.isoformat() if old_date_assignation else None,
-                            'nouveau': bon_apres.date_assignation.isoformat() if bon_apres.date_assignation else None,
-                        }
-
-            if 'consommables' in data or 'consommables_ids' in data:
-                apres_consommables = self._get_consommables_state(bon_apres.id)
-                if avant_consommables != apres_consommables:
-                    champs_modifies['consommables'] = {
-                        'ancien': avant_consommables,
-                        'nouveau': apres_consommables,
-                    }
-
-            if documents_in_payload:
-                apres_documents = self._get_documents_state(bon_apres.id)
-                if avant_documents != apres_documents:
-                    champs_modifies['documents'] = {
-                        'ancien': avant_documents,
-                        'nouveau': apres_documents,
-                    }
-
-            if champs_modifies:
-                self._create_log_entry(
-                    type_action='modification',
-                    nom_table='bon_travail',
-                    id_cible={'bon_travail_id': bon_apres.id},
-                    champs_modifies=champs_modifies,
-                    utilisateur_id=utilisateur_id,
-                )
 
             serializer = self.get_serializer(bon_apres)
             return Response(serializer.data)
@@ -1450,24 +1259,6 @@ class BonTravailViewSet(viewsets.ModelViewSet):
 
         bon.documents.remove(document_id)
 
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-        self._create_log_entry(
-            type_action='archivage',
-            nom_table='bon_travail',
-            id_cible={'bon_travail_id': bon.id},
-            champs_modifies={
-                'documents': {
-                    'valArchivage': {
-                        'document_id': int(document_id),
-                    }
-                }
-            },
-            utilisateur_id=utilisateur_id,
-        )
 
         serializer = BonTravailDetailSerializer(bon, context={'request': request})
         return Response(serializer.data)
@@ -1502,30 +1293,486 @@ class BonTravailViewSet(viewsets.ModelViewSet):
         bon.documents.add(document_id)
         after_documents = self._get_documents_state(bon.id)
 
-        utilisateur_id = (
-            request.data.get('user')
-            or request.data.get('utilisateur_id')
-            or (request.user.id if getattr(request, 'user', None) and request.user.is_authenticated else None)
-        )
-
-        self._create_log_entry(
-            type_action='modification',
-            nom_table='bon_travail',
-            id_cible={'bon_travail_id': bon.id},
-            champs_modifies={
-                'documents': {
-                    'ancien': before_documents,
-                    'nouveau': after_documents,
-                },
-            },
-            utilisateur_id=utilisateur_id,
-        )
 
         serializer = BonTravailDetailSerializer(bon, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'])
+    def list_stock(self, request):
+        """Liste tous les BonTravail non CLOTURE et non TERMINE avec leurs consommables.
+        
+        Endpoint idéal pour le magasinier pour voir les BT en cours et les consommables à distribuer.
+        """
+        queryset = self.get_queryset().exclude(
+            statut__in=['CLOTURE', 'TERMINE']
+        ).select_related(
+            'demande_intervention',
+            'demande_intervention__equipement',
+            'responsable'
+        ).prefetch_related(
+            'utilisateur_assigne',
+            'documents',
+            'demande_intervention__documents',
+            'bontravailconsommable_set__consommable',
+            'bontravailconsommable_set__reservations__magasin'
+        )
+        
+        serializer = BonTravailListStockSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
 
-class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
+    def _serialize_reservations(self, assoc):
+        return [
+            {
+                'magasin_id': reservation.magasin_id,
+                'magasin_nom': reservation.magasin.nom,
+                'quantite': reservation.quantite,
+            }
+            for reservation in assoc.reservations.select_related('magasin').all()
+        ]
+
+    def _restore_reservations(self, assoc):
+        reservations = list(assoc.reservations.select_related('magasin').all())
+
+        if reservations:
+            for reservation in reservations:
+                stock, _ = Stocker.objects.get_or_create(
+                    consommable_id=assoc.consommable_id,
+                    magasin_id=reservation.magasin_id,
+                    defaults={'quantite': 0}
+                )
+                stock.quantite += int(reservation.quantite or 0)
+                stock.save(update_fields=['quantite'])
+
+            assoc.reservations.all().delete()
+            return
+
+        if assoc.magasin_reserve_id and assoc.quantite_utilisee:
+            try:
+                stock = Stocker.objects.get(
+                    consommable_id=assoc.consommable_id,
+                    magasin_id=assoc.magasin_reserve_id
+                )
+                stock.quantite += int(assoc.quantite_utilisee or 0)
+                stock.save(update_fields=['quantite'])
+            except Stocker.DoesNotExist:
+                pass
+
+    def _build_insufficient_stock_response(self, assoc, needed, stocks, error_message='Stock insuffisant'):
+        total_available = sum(int(stock.quantite or 0) for stock in stocks)
+
+        return Response(
+            {
+                'error': error_message,
+                'insuffisants': [{
+                    'consommable_id': assoc.consommable_id,
+                    'designation': assoc.consommable.designation,
+                    'needed': needed,
+                    'available': total_available,
+                    'stocks': [
+                        {
+                            'magasin_id': stock.magasin_id,
+                            'magasin_nom': stock.magasin.nom,
+                            'quantite': stock.quantite,
+                        }
+                        for stock in stocks
+                    ],
+                }],
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def _normalize_repartition(self, repartition):
+        current = repartition
+
+        for _ in range(6):
+            if current is None:
+                return None
+
+            if isinstance(current, bytes):
+                try:
+                    current = current.decode('utf-8')
+                except UnicodeDecodeError:
+                    return None
+                continue
+
+            if isinstance(current, dict):
+                return [current]
+
+            if isinstance(current, tuple):
+                current = list(current)
+                continue
+
+            if isinstance(current, list):
+                if len(current) == 1 and isinstance(current[0], str):
+                    current = current[0]
+                    continue
+                return current
+
+            if isinstance(current, str):
+                current = current.strip()
+                if not current:
+                    return None
+
+                if (
+                    len(current) >= 2
+                    and current[0] == current[-1]
+                    and current[0] in ("'", '"')
+                ):
+                    current = current[1:-1].strip()
+                    continue
+
+                for parser in (json.loads, ast.literal_eval):
+                    try:
+                        current = parser(current)
+                        break
+                    except (ValueError, SyntaxError, TypeError):
+                        continue
+                else:
+                    unescaped = current.replace('\\"', '"').replace("\\'", "'")
+                    if unescaped != current:
+                        current = unescaped
+                        continue
+                    return None
+                continue
+
+            return None
+
+        return current if isinstance(current, list) else None
+
+    def _extract_repartition(self, request):
+        candidates = []
+
+        raw_request = getattr(request, '_request', None)
+        for source in (getattr(request, 'data', None), getattr(request, 'POST', None), getattr(raw_request, 'POST', None)):
+            if source is None:
+                continue
+            try:
+                has_repartition = 'repartition' in source
+            except TypeError:
+                has_repartition = False
+            getter = getattr(source, 'get', None)
+            if callable(getter):
+                value = getter('repartition')
+                if value is not None:
+                    candidates.append(value)
+            getlist = getattr(source, 'getlist', None)
+            if callable(getlist) and has_repartition:
+                values = getlist('repartition')
+                if values:
+                    candidates.append(values)
+
+        try:
+            raw_body = request.body.decode('utf-8').strip()
+        except Exception:
+            raw_body = ''
+
+        if raw_body:
+            try:
+                body_json = json.loads(raw_body)
+            except ValueError:
+                body_json = None
+
+            if isinstance(body_json, dict):
+                if 'repartition' in body_json:
+                    candidates.append(body_json.get('repartition'))
+            elif isinstance(body_json, list):
+                candidates.append(body_json)
+
+            parsed_body = parse_qs(raw_body, keep_blank_values=True)
+            if 'repartition' in parsed_body:
+                candidates.append(parsed_body.get('repartition'))
+
+        for candidate in candidates:
+            normalized = self._normalize_repartition(candidate)
+            if normalized is not None:
+                return normalized
+
+        return None
+
+    def _apply_reservation_split(self, assoc, needed, repartition):
+        if not isinstance(repartition, list) or len(repartition) == 0:
+            return Response(
+                {'error': 'La repartition des magasins est invalide.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if assoc.estConfirme:
+            self._restore_reservations(assoc)
+
+        total_selected = 0
+        seen_magasins = set()
+        stock_updates = []
+
+        for item in repartition:
+            magasin_id = item.get('magasin_id', item.get('magasin'))
+            quantite = item.get('quantite')
+
+            try:
+                magasin_id = int(magasin_id)
+                quantite = int(quantite)
+            except (TypeError, ValueError):
+                return Response(
+                    {'error': 'Chaque ligne de repartition doit contenir un magasin_id et une quantite entiers.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if quantite <= 0:
+                return Response(
+                    {'error': 'Chaque quantite de repartition doit etre strictement positive.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if magasin_id in seen_magasins:
+                return Response(
+                    {'error': 'Un magasin ne peut etre present qu une seule fois dans la repartition.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            stock = Stocker.objects.select_related('magasin').filter(
+                consommable_id=assoc.consommable_id,
+                magasin_id=magasin_id
+            ).first()
+            if stock is None:
+                return Response(
+                    {'error': 'Stock introuvable pour un des magasins selectionnes.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            if stock.quantite < quantite:
+                return Response(
+                    {
+                        'error': 'Stock insuffisant',
+                        'insuffisants': [{
+                            'consommable_id': assoc.consommable_id,
+                            'designation': assoc.consommable.designation,
+                            'needed': quantite,
+                            'available': stock.quantite,
+                            'magasin_id': stock.magasin_id,
+                            'magasin_nom': stock.magasin.nom,
+                        }],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            seen_magasins.add(magasin_id)
+            total_selected += quantite
+            stock_updates.append((stock, quantite))
+
+        if total_selected != needed:
+            return Response(
+                {'error': f'La repartition doit totaliser exactement {needed}.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        assoc.reservations.all().delete()
+        reservations = []
+
+        for stock, quantite in stock_updates:
+            stock.quantite -= quantite
+            stock.save(update_fields=['quantite'])
+            reservations.append(
+                BonTravailConsommableReservation(
+                    bon_travail_consommable=assoc,
+                    magasin_id=stock.magasin_id,
+                    quantite=quantite
+                )
+            )
+
+        BonTravailConsommableReservation.objects.bulk_create(reservations)
+        assoc.magasin_reserve_id = stock_updates[0][0].magasin_id if len(stock_updates) == 1 else None
+
+        return None
+
+    @action(detail=True, methods=['patch'])
+    @transaction.atomic
+    def update_consommable_distribution(self, request, pk=None):
+        bon = self.get_object()
+        consommable_id = request.data.get('consommable_id')
+        distribue = request.data.get('distribue', False)
+        magasin_id = request.data.get('magasin_id')
+        repartition = self._extract_repartition(request)
+        logger.warning(
+            "update_consommable_distribution bt=%s consommable=%s magasin_id=%s raw_repartition=%r normalized_repartition=%r content_type=%s",
+            pk,
+            consommable_id,
+            magasin_id,
+            request.data.get('repartition', None),
+            repartition,
+            request.content_type,
+        )
+        
+        if not consommable_id:
+            return Response(
+                {'error': 'consommable_id requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            assoc = BonTravailConsommable.objects.get(
+                bon_travail=bon,
+                consommable_id=consommable_id
+            )
+        except BonTravailConsommable.DoesNotExist:
+            return Response(
+                {'error': 'Consommable non trouvé pour ce BT'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if distribue:
+            needed = int(assoc.quantite_utilisee or 0)
+            if needed <= 0:
+                return Response(
+                    {
+                        'error': 'Quantite non renseignee pour ce consommable.',
+                        'insuffisants': [{
+                            'consommable_id': assoc.consommable_id,
+                            'designation': assoc.consommable.designation,
+                            'needed': needed,
+                            'available': 0,
+                        }],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if repartition is not None:
+                error_response = self._apply_reservation_split(assoc, needed, repartition)
+                if error_response is not None:
+                    return error_response
+
+                assoc.estConfirme = True
+                assoc.date_confirme = timezone.now()
+                assoc.save()
+
+                return JsonResponse({
+                    'consommable_id': assoc.consommable_id,
+                    'distribue': assoc.estConfirme,
+                    'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
+                    'magasin_reserve': assoc.magasin_reserve_id,
+                    'magasins_reserves': self._serialize_reservations(assoc),
+                })
+
+            if needed > 0:
+                if magasin_id:
+                    try:
+                        stock = Stocker.objects.get(consommable_id=consommable_id, magasin_id=magasin_id)
+                    except Stocker.DoesNotExist:
+                        return Response(
+                            {'error': 'Stock introuvable pour ce magasin'},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+                    if stock.quantite < needed:
+                        return Response(
+                            {
+                                'error': 'Stock insuffisant',
+                                'insuffisants': [{
+                                    'consommable_id': assoc.consommable_id,
+                                    'designation': assoc.consommable.designation,
+                                    'needed': needed,
+                                    'available': stock.quantite,
+                                    'magasin_id': stock.magasin_id,
+                                    'magasin_nom': stock.magasin.nom,
+                                }],
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    stock.quantite -= needed
+                    stock.save()
+                    assoc.magasin_reserve_id = int(magasin_id)
+                else:
+                    all_stocks = list(
+                        Stocker.objects.select_related('magasin')
+                        .filter(consommable_id=consommable_id)
+                    )
+                    eligible = [stock for stock in all_stocks if stock.quantite >= needed]
+                    if len(eligible) == 0:
+                        total_available = sum(int(stock.quantite or 0) for stock in all_stocks)
+                        stocks = [
+                            {
+                                'magasin_id': stock.magasin_id,
+                                'magasin__nom': stock.magasin.nom,
+                                'quantite': stock.quantite,
+                            }
+                            for stock in all_stocks
+                        ]
+                        error_message = 'Stock insuffisant'
+                        if total_available >= needed and total_available > 0:
+                            error_message = 'Le stock existe mais il est réparti sur plusieurs magasins. Aucun magasin ne couvre seul la quantité demandée.'
+                        return Response(
+                            {
+                                'error': error_message,
+                                'insuffisants': [{
+                                    'consommable_id': assoc.consommable_id,
+                                    'designation': assoc.consommable.designation,
+                                    'needed': needed,
+                                    'available': total_available,
+                                    'stocks': stocks,
+                                }],
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    if len(eligible) > 1:
+                        magasins = [
+                            {'id': s.magasin_id, 'nom': s.magasin.nom, 'quantite': s.quantite}
+                            for s in eligible
+                        ]
+                        return Response(
+                            {'error': 'Selection magasin requise', 'needs_magasin_selection': True, 'magasins': magasins},
+                            status=status.HTTP_409_CONFLICT
+                        )
+                    stock = eligible[0]
+                    stock.quantite -= needed
+                    stock.save()
+                    assoc.magasin_reserve_id = stock.magasin_id
+
+            assoc.estConfirme = True
+            assoc.date_confirme = timezone.now()
+        else:
+            self._restore_reservations(assoc)
+            assoc.estConfirme = False
+            assoc.date_confirme = None
+            assoc.magasin_reserve = None
+        assoc.save()
+        
+        return JsonResponse({
+            'consommable_id': assoc.consommable_id,
+            'distribue': assoc.estConfirme,
+            'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
+            'magasin_reserve': assoc.magasin_reserve_id,
+            'magasins_reserves': self._serialize_reservations(assoc),
+        })
+
+    @action(detail=True, methods=['patch'])
+    @transaction.atomic
+    def cancel_mise_de_cote(self, request, pk=None):
+        bon = self.get_object()
+
+        assocs = BonTravailConsommable.objects.filter(bon_travail=bon)
+        for assoc in assocs:
+            self._restore_reservations(assoc)
+            assoc.estConfirme = False
+            assoc.date_confirme = None
+            assoc.magasin_reserve = None
+            assoc.save()
+
+        return JsonResponse({'ok': True})
+
+    @action(detail=True, methods=['patch'])
+    @transaction.atomic
+    def set_recupere(self, request, pk=None):
+        bon = self.get_object()
+        recupere = request.data.get('recupere', True)
+
+        bon.pieces_recuperees = bool(recupere)
+        bon.date_recuperation = timezone.now() if bon.pieces_recuperees else None
+        bon.save(update_fields=['pieces_recuperees', 'date_recuperation'])
+
+        return JsonResponse({
+            'pieces_recuperees': bon.pieces_recuperees,
+            'date_recuperation': bon.date_recuperation.isoformat() if bon.date_recuperation else None,
+        })
+
+
+class TypePlanMaintenanceViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les types de plans de maintenance.
     
@@ -1540,7 +1787,7 @@ class TypePlanMaintenanceViewSet(viewsets.ModelViewSet):
     serializer_class = TypePlanMaintenanceSerializer
 
 
-class PlanMaintenanceViewSet(viewsets.ModelViewSet):
+class PlanMaintenanceViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les plans de maintenance.
     
@@ -1565,8 +1812,6 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Utilise le serializer détaillé pour retrieve"""
-        if self.action == 'retrieve':
-            return PlanMaintenanceDetailSerializer
         return PlanMaintenanceSerializer
 
     @action(detail=False, methods=['get'])
@@ -1583,7 +1828,7 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
             )
         
         plans = self.queryset.filter(equipement_id=equipement_id)
-        serializer = self.get_serializer(plans, many=True)
+        serializer = self.get_serializer_class()(plans, many=True)
         return Response(serializer.data)
 
     @transaction.atomic
@@ -1760,7 +2005,8 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
             seuil_data = {}
         
         plan = self.get_object()
-        modifications_log = {}  # Pour regrouper toutes les modifications
+        plan = self.get_object()
+        has_changes = False  # Pour regrouper toutes les modifications
         
         # 1. Mettre à jour les champs simples du plan de maintenance
         simple_fields = ['nom', 'commentaire', 'necessiteHabilitationElectrique', 
@@ -1772,10 +2018,9 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                 new_value = data[field]
                 if old_value != new_value:
                     setattr(plan, field, new_value)
-                    modifications_log[field] = {
-                        'old': old_value,
-                        'new': new_value
-                    }
+                if old_value != new_value:
+                    setattr(plan, field, new_value)
+                    has_changes = True
         
         # 2. Gérer les modifications détectées depuis le frontend
         if changes:
@@ -1792,6 +2037,11 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                     field_name = field_path.replace('planMaintenance.', '')
                     if field_name == 'type_id':
                         field_name = 'type_plan_maintenance_id'
+
+                    # Les consommables sont traités plus bas dans un bloc dédié.
+                    # Ne pas tenter d'assigner directement le M2M.
+                    if field_name == 'consommables':
+                        continue
                     
                     # Vérifier si le champ existe dans le modèle
                     if hasattr(plan, field_name):
@@ -1804,24 +2054,14 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                         
                         if old_value != new_value:
                             setattr(plan, field_name, new_value)
-                            modifications_log[field_name] = {
-                                'old': old_value,
-                                'new': new_value
-                            }
+                        if old_value != new_value:
+                            setattr(plan, field_name, new_value)
+                            has_changes = True
         
         # Sauvegarder les modifications du plan
-        if modifications_log:
+        # Sauvegarder les modifications du plan
+        if has_changes:
             plan.save()
-            
-            # Créer un seul log pour toutes les modifications du plan
-            Log.objects.create(
-                utilisateur=request.user,
-                type_action='MODIFICATION',
-                idCible=plan.id,
-                champs_modifies=modifications_log,
-                date_action=timezone.now(),
-                modele_cible='PlanMaintenance'
-            )
         
         # 3. Mettre à jour les consommables si nécessaire
         if changes and 'planMaintenance.consommables' in changes:
@@ -1842,19 +2082,6 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                     consommable_id=cons.get('consommable_id'),
                     quantite_necessaire=cons.get('quantite', 1)
                 )
-            
-            # Log pour les consommables
-            Log.objects.create(
-                utilisateur=request.user,
-                type_action='MODIFICATION',
-                idCible=plan.id,
-                champs_modifies={'consommables': {
-                    'old': old_consommables,
-                    'new': new_consommables
-                }},
-                date_action=timezone.now(),
-                modele_cible='PlanMaintenance'
-            )
         
         # 4. Mettre à jour le déclenchement associé
         try:
@@ -1865,7 +2092,7 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                 declencher = Declencher.objects.filter(planMaintenance=plan).first()
                 
                 if declencher:
-                    declencher_modifications = {}
+                    declencher_has_changes = False
                     
                     # Mettre à jour les champs du déclenchement
                     fields_to_update = ['derniereIntervention', 'prochaineMaintenance', 
@@ -1877,43 +2104,19 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                             new_value = seuil_data[field]
                             if old_value != new_value:
                                 setattr(declencher, field, new_value)
-                                declencher_modifications[field] = {
-                                    'old': old_value,
-                                    'new': new_value
-                                }
+                            if old_value != new_value:
+                                setattr(declencher, field, new_value)
+                                declencher_has_changes = True
                     
                     # Sauvegarder les modifications du déclenchement
-                    if declencher_modifications:
+                    if declencher_has_changes:
                         declencher.save()
-                        
-                        # Log pour le déclenchement
-                        Log.objects.create(
-                            utilisateur=request.user,
-                            type_action='MODIFICATION',
-                            idCible=declencher.id,
-                            champs_modifies=declencher_modifications,
-                            date_action=timezone.now(),
-                            modele_cible='Declencher'
-                        )
                     
                     # Mettre à jour le compteur si changement
                     compteur_id = seuil_data.get('compteurId')
                     if compteur_id and declencher.compteur_id != compteur_id:
-                        old_compteur = declencher.compteur_id
                         declencher.compteur_id = compteur_id
                         declencher.save()
-                        
-                        Log.objects.create(
-                            utilisateur=request.user,
-                            type_action='MODIFICATION',
-                            idCible=declencher.id,
-                            champs_modifies={'compteur_id': {
-                                'old': old_compteur,
-                                'new': compteur_id
-                            }},
-                            date_action=timezone.now(),
-                            modele_cible='Declencher'
-                        )
         
         except Exception as e:
             print(f"Erreur lors de la mise à jour du déclenchement: {e}")
@@ -1952,19 +2155,6 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
                         plan_maintenance=plan,
                         document=document
                     )
-                
-                # Log pour l'ajout de documents
-                if uploaded_files:
-                    Log.objects.create(
-                        utilisateur=request.user,
-                        type_action='AJOUT_DOCUMENTS',
-                        idCible=plan.id,
-                        champs_modifies={
-                            'documents_ajoutes': len(uploaded_files)
-                        },
-                        date_action=timezone.now(),
-                        modele_cible='PlanMaintenance'
-                    )
         
         except Exception as e:
             print(f"Erreur lors de la création des documents: {e}")
@@ -1973,7 +2163,7 @@ class PlanMaintenanceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class PlanMaintenanceConsommableViewSet(viewsets.ModelViewSet):
+class PlanMaintenanceConsommableViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les associations consommables/plans de maintenance.
     
@@ -2007,28 +2197,28 @@ class DashboardStatsViewset(viewsets.ViewSet):
 
         if 'dash:stats.full' in perms:
             stats = [
-                {"label": "Nombre de DI", "value": DemandeIntervention.objects.filter(~Q(statut="TRANSFORMEE")).count()},
-                {"label": "DI en attente", "value": DemandeIntervention.objects.filter(statut="EN_ATTENTE").count()},
-                {"label": "DI acceptées", "value": DemandeIntervention.objects.filter(statut="ACCEPTEE").count()},
-                {"label": "Nombre de BT", "value": BonTravail.objects.filter(~Q(statut="CLOTURE")).count()},
-                {"label": "BT en retard", "value": BonTravail.objects.filter(statut="EN_RETARD").count()},
-                {"label": "BT en cours", "value": BonTravail.objects.filter(statut="EN_COURS").count()},
+                {"label": "Nombre de DI", "value": DemandeIntervention.objects.filter(~Q(statut="TRANSFORMEE"), archive=False).count()},
+                {"label": "DI en attente", "value": DemandeIntervention.objects.filter(statut="EN_ATTENTE", archive=False).count()},
+                {"label": "DI acceptées", "value": DemandeIntervention.objects.filter(statut="ACCEPTEE", archive=False).count()},
+                {"label": "Nombre de BT", "value": BonTravail.objects.filter(~Q(statut="CLOTURE"), archive=False).count()},
+                {"label": "BT en retard", "value": BonTravail.objects.filter(statut="EN_RETARD", archive=False).count()},
+                {"label": "BT en cours", "value": BonTravail.objects.filter(statut="EN_COURS", archive=False).count()},
             ]
 
         elif 'dash:stats.bt' in perms:
             bt = BonTravail.objects.filter(utilisateur_assigne=user)
             stats = [
-                {"label": "Vos BT", "value": bt.filter(~Q(statut="CLOTURE")).count()},
-                {"label": "Vos BT en cours", "value": bt.filter(statut="EN_COURS").count()},
-                {"label": "Vos BT terminés", "value": bt.filter(statut="TERMINE").count()},
+                {"label": "Vos BT", "value": bt.filter(~Q(statut="CLOTURE"), archive=False).count()},
+                {"label": "Vos BT en cours", "value": bt.filter(statut="EN_COURS", archive=False).count()},
+                {"label": "Vos BT terminés", "value": bt.filter(statut="TERMINE", archive=False).count()},
             ]
 
         elif 'dash:stats.di' in perms:
             di = DemandeIntervention.objects.filter(utilisateur=user)
             stats = [
-                {"label": "Vos DI", "value": DemandeIntervention.objects.filter(utilisateur=user).filter(~Q(statut="TRANSFORMEE")).count()},
-                {"label": "Vos DI en attente", "value": di.filter(statut="EN_ATTENTE").count()},
-                {"label": "Vos DI acceptées", "value": di.filter(statut="ACCEPTEE").count()},
+                {"label": "Vos DI", "value": DemandeIntervention.objects.filter(utilisateur=user).filter(~Q(statut="TRANSFORMEE"), archive=False).count()},
+                {"label": "Vos DI en attente", "value": di.filter(statut="EN_ATTENTE", archive=False).count()},
+                {"label": "Vos DI acceptées", "value": di.filter(statut="ACCEPTEE", archive=False).count()},
             ]
         else:
             return Response({"detail": "Invalid role"},
@@ -2039,10 +2229,18 @@ class DashboardStatsViewset(viewsets.ViewSet):
 
     def get_dashboard_permissions(self, user):
         """ Récupère les permissions de l'utilisateur pour les stats du dashboard """
-        perms = []
-
-        user_perms = user.role.permissions.filter(nomPermission__startswith='dash').values_list('nomPermission', flat=True)
-
-        perms = list(user_perms)
-
-        return perms
+        from utilisateur.models import UtilisateurPermission
+        
+        # Si l'utilisateur a des permissions personnalisées, les utiliser
+        perms_perso = UtilisateurPermission.objects.filter(
+            utilisateur=user,
+            permission__nomPermission__startswith='dash'
+        ).values_list('permission__nomPermission', flat=True)
+        
+        if perms_perso.exists():
+            return list(perms_perso)
+        
+        # Sinon, utiliser les permissions du rôle
+        return list(user.role.permissions.filter(
+            nomPermission__startswith='dash'
+        ).values_list('nomPermission', flat=True))

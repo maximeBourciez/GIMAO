@@ -2,6 +2,7 @@ from django.db import models
 from stock.models import Consommable
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
 from utilisateur.models import Utilisateur
+from gimao.mixins import ArchivableMixin
 
 
 
@@ -37,7 +38,7 @@ class FamilleEquipement(models.Model):
         verbose_name_plural = 'Familles d\'équipements'
 
 
-class Equipement(models.Model):
+class Equipement(ArchivableMixin, models.Model):
     """
     Représente un équipement physique.
     """
@@ -70,6 +71,10 @@ class Equipement(models.Model):
 
     def __str__(self):
         return f"{self.designation} ({self.numSerie})"
+
+    def get_dernier_statut(self):
+        dernier_statut = self.statuts.order_by('-dateChangement').first()
+        return dernier_statut.statut if dernier_statut else "Statut inconnu"
     
     class Meta:
         db_table = 'gimao_equipement'
@@ -118,7 +123,7 @@ class Compteur(models.Model):
     
 
     def __str__(self):
-        return f"Compteur {self.id} - {self.equipement.designation}"
+        return f"Compteur {self.id} - {self.equipement.designation} - Nom : {self.nomCompteur}"
     
     class Meta:
         db_table = 'gimao_compteur'
@@ -161,11 +166,31 @@ class Declencher(models.Model):
         related_name="declenchements"
     )
 
+    def ordinalToISOString(self, ordinal):
+        from datetime import date
+        try:
+            return date.fromordinal(int(ordinal)).isoformat()
+        except Exception:
+            return "—"
+
     def __str__(self):
-        return (
-            f"Déclenchement à {self.prochaineMaintenance} "
-            f"pour le compteur {self.compteur.id}"
-        )
+        if self.compteur.type == "Calendaire":
+            # Convertir les valeurs ordinales en format date pour l'affichage
+            valeurAfficheeProchaine = self.ordinalToISOString(self.prochaineMaintenance)
+
+            return(
+                f"{self.compteur.nomCompteur} - Seuil: {valeurAfficheeProchaine} "
+                f"(Dernière: {self.ordinalToISOString(self.derniereIntervention)}, Écart: {self.ecartInterventions} {self.compteur.unite},"
+                f" Glissant: {'Oui' if self.estGlissant else 'Non'})"
+            )
+
+        else:
+            valeurAfficheeProchaine = self.prochaineMaintenance
+            return (
+                f"{self.compteur.nomCompteur} - Seuil: {valeurAfficheeProchaine} {self.compteur.unite }"
+                f" (Dernière: {self.derniereIntervention} {self.compteur.unite}, Écart: {self.ecartInterventions} {self.compteur.unite},"
+                f" Glissant: {'Oui' if self.estGlissant else 'Non'})"
+            )
 
     class Meta:
         db_table = 'gimao_declencher'

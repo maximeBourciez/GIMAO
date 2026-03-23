@@ -5,7 +5,8 @@ from maintenance.models import (
     TypePlanMaintenance,
     PlanMaintenance,
     PlanMaintenanceConsommable,
-    BonTravailConsommable
+    BonTravailConsommable,
+    BonTravailConsommableReservation
 )
 from equipement.models import Equipement, Compteur, StatutEquipement
 from utilisateur.models import Utilisateur
@@ -88,6 +89,11 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
+    statut_suppose = serializers.ChoiceField(
+        choices=DemandeIntervention.STATUTS_EQUIPEMENT_CHOICES,
+        required=True
+    )
+    
     class Meta:
         model = DemandeIntervention
         fields = [
@@ -95,12 +101,14 @@ class DemandeInterventionSerializer(serializers.ModelSerializer):
             'nom',
             'commentaire',
             'statut',
+            'statut_suppose',
             'date_creation',
             'date_changementStatut',
             'equipement',
             'utilisateur',
             'utilisateur_id',
-            'equipement_id'
+            'equipement_id',
+            'archive'
         ]
         read_only_fields = ['id', 'date_creation', 'date_changementStatut', 'statut']
 
@@ -181,6 +189,7 @@ class BonTravailSerializer(serializers.ModelSerializer):
             'date_debut',
             'date_fin',
             'date_prevue',
+            'duree_previsionnelle',
             'statut',
             'commentaire',
             'commentaire_refus_cloture',
@@ -191,7 +200,8 @@ class BonTravailSerializer(serializers.ModelSerializer):
             'responsable_id',
             'utilisateur_assigne_ids',
             'consommables_ids',
-            'consommables'
+            'consommables',
+            'archive'
         ]
 
     def _sync_consommables(self, bon_travail, consommables_dict):
@@ -257,6 +267,66 @@ class BonTravailSerializer(serializers.ModelSerializer):
         bon = super().update(instance, validated_data)
         self._sync_consommables(bon, consommables_dict)
         return bon
+    
+class BonTravailListStockSerializer(serializers.ModelSerializer):
+    """Serializer pour la liste de BonTravail avec les consommables"""
+    demande_intervention = DemandeInterventionDetailSerializer(read_only=True)
+    responsable = UtilisateurSimpleSerializer(read_only=True)
+    utilisateur_assigne = UtilisateurSimpleSerializer(many=True, read_only=True)
+    documentsBT = DocumentSerializer(source='documents', many=True, read_only=True)
+    documentsDI = DocumentSerializer(source='demande_intervention.documents', many=True, read_only=True)
+    consommables = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = BonTravail
+        fields = [
+            'id',
+            'nom',
+            'diagnostic',
+            'type',
+            'date_assignation',
+            'date_cloture',
+            'date_debut',
+            'date_fin',
+            'date_prevue',
+            'statut',
+            'commentaire',
+            'commentaire_refus_cloture',
+            'pieces_recuperees',
+            'date_recuperation',
+            'documentsBT',
+            'documentsDI',
+            'consommables',
+            'demande_intervention',
+            'responsable',
+            'utilisateur_assigne'
+        ]
+    
+    def get_consommables(self, obj):
+        """Retourne les consommables avec leur statut de distribution"""
+        associations = BonTravailConsommable.objects.filter(
+            bon_travail=obj
+        ).select_related('consommable').prefetch_related('reservations__magasin')
+        return [
+            {
+                'consommable': assoc.consommable.id,
+                'designation': assoc.consommable.designation,
+                'image': assoc.consommable.lienImageConsommable.name.lstrip('/') if assoc.consommable.lienImageConsommable else None,
+                'quantite': assoc.quantite_utilisee,
+                'distribue': assoc.estConfirme,
+                'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
+                'magasin_reserve': assoc.magasin_reserve_id,
+                'magasins_reserves': [
+                    {
+                        'magasin_id': reservation.magasin_id,
+                        'magasin_nom': reservation.magasin.nom,
+                        'quantite': reservation.quantite,
+                    }
+                    for reservation in assoc.reservations.all()
+                ],
+            }
+            for assoc in associations
+        ]
 
 
 class BonTravailDetailSerializer(serializers.ModelSerializer):
@@ -280,6 +350,7 @@ class BonTravailDetailSerializer(serializers.ModelSerializer):
             'date_debut',
             'date_fin',
             'date_prevue',
+            'duree_previsionnelle',
             'statut',
             'commentaire',
             'commentaire_refus_cloture',
@@ -288,7 +359,8 @@ class BonTravailDetailSerializer(serializers.ModelSerializer):
             'consommables',
             'demande_intervention',
             'responsable',
-            'utilisateur_assigne'
+            'utilisateur_assigne',
+            'archive'
         ]
 
     def get_consommables(self, obj):
@@ -337,35 +409,32 @@ class PlanMaintenanceConsommableSerializer(serializers.ModelSerializer):
 
 class PlanMaintenanceSerializer(serializers.ModelSerializer):
     """Serializer pour PlanMaintenance"""
-    type_plan_maintenance = TypePlanMaintenanceSerializer(read_only=True)
-    equipement = EquipementSimpleSerializer(read_only=True)
-    
-    type_plan_maintenance_id = serializers.PrimaryKeyRelatedField(
-        queryset=TypePlanMaintenance.objects.all(),
-        source='type_plan_maintenance',
-        write_only=True
-    )
-    equipement_id = serializers.PrimaryKeyRelatedField(
-        queryset=Equipement.objects.all(),
-        source='equipement',
-        write_only=True
-    )
     documents = DocumentSerializer(many=True, read_only=True)
-    consommables = PlanMaintenanceConsommableSerializer(many=True, read_only=True)
+    consommables = serializers.SerializerMethodField()
+
+    type_id = serializers.IntegerField(
+        source='type_plan_maintenance.id',
+        read_only=True
+    )
     
     class Meta:
         model = PlanMaintenance
         fields = [
             'id',
             'nom',
-            'commentaire',
-            'type_plan_maintenance',
-            'equipement',
-            'type_plan_maintenance_id',
-            'equipement_id',
+            'type_id',
             'documents',
             'consommables'
         ]
+
+    def get_consommables(self, obj):
+        associations = PlanMaintenanceConsommable.objects.filter(
+            plan_maintenance=obj
+        ).select_related('consommable')
+        return [{
+            'consommable': assoc.consommable.id,
+            'quantite': assoc.quantite_necessaire
+        } for assoc in associations]
 
 
 class PlanMaintenanceDetailSerializer(serializers.ModelSerializer):

@@ -12,6 +12,12 @@ export const BREADCRUMBS = {
     EditUser: "Modifier un utilisateur",
     CreateUser: "Créer un utilisateur",
 
+    // Rôles
+    RoleList: "Gestion des rôles",
+    // Permissions utilisateur
+    UserPermissions: "Permissions",
+
+
     // Stocks & Consommables
     Stocks: "Magasin",
     CreateConsumable: "Créer un consommable",
@@ -75,11 +81,14 @@ export const BREADCRUMBS = {
 
     // Notices
     Notice: "Notices d'utilisation"
+    // Calendrier 
+    Calendar: "Calendrier"
 };
 
 export const HEADERS = [
     "Dashboard",
     "UserList",
+    "RoleList",
     "Stocks",
     "MagasinList",
     "ManufacturerList",
@@ -91,5 +100,6 @@ export const HEADERS = [
     "FailureList",
     "ModelEquipmentList",
     "Notice"
+    "Calendar"
 ]
 

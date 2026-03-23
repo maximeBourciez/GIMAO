@@ -112,18 +112,44 @@
         </v-col>
       </v-row>
 
-      <!-- Bouton flottant : modifier le BT -->
-      <v-btn
-        v-if="consumable && store.getters.hasPermission('cons:edit')"
-        color="primary"
-        size="large"
-        icon
-        elevation="4"
-        class="floating-edit-button"
-        @click="goToEditConsumable"
-      >
-        <v-icon>mdi-pencil</v-icon>
-      </v-btn>
+      <!-- Boutons flottants -->
+      <div class="floating-buttons">
+        <!-- Bouton archiver -->
+        <v-btn
+          v-if="consumable && !consumable.archive && store.getters.hasPermission('cons:archive')"
+          color="warning"
+          size="large"
+          icon
+          elevation="4"
+          @click="showArchiveDialog = true"
+        >
+          <v-icon>mdi-archive-arrow-down</v-icon>
+          <v-tooltip activator="parent" location="left">Archiver</v-tooltip>
+        </v-btn>
+
+        <!-- Bouton modifier -->
+        <v-btn
+          v-if="consumable && store.getters.hasPermission('cons:edit')"
+          color="primary"
+          size="large"
+          icon
+          elevation="4"
+          @click="goToEditConsumable"
+        >
+          <v-icon>mdi-pencil</v-icon>
+          <v-tooltip activator="parent" location="left">Modifier</v-tooltip>
+        </v-btn>
+      </div>
+
+      <!-- Dialog de confirmation d'archivage -->
+      <ConfirmationModal v-model="showArchiveDialog"
+      title="Confirmer l'archivage"
+      message="Êtes-vous sûr de vouloir archiver le consommable ?
+            Il ne sera plus visible dans la liste des consommables."
+      confirmText="Archiver"
+      @confirm="archiveConsumable"
+      @cancel="showArchiveDialog = false"
+      />
     </template>
     
     <template #additional-content>
@@ -151,6 +177,7 @@ import TransferStockForm from './TransferStockForm.vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 import { useStore } from 'vuex';
+import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -159,6 +186,8 @@ const consumable = ref(null);
 const loading = ref(false);
 const showAddPurchaseDialog = ref(false);
 const showTransferDialog = ref(false);
+const showArchiveDialog = ref(false);
+const archiving = ref(false);
 const store = useStore();
 
 
@@ -227,15 +256,31 @@ const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(price);
 };
 
+const archiveConsumable = async () => {
+  archiving.value = true;
+  try {
+    await api.patch(`consommables/${route.params.id}/set-archive/`, { archive: true });
+    showArchiveDialog.value = false;
+    router.push({ name: 'Stocks' });
+  } catch (error) {
+    console.error('Erreur archivage consommable', error);
+  } finally {
+    archiving.value = false;
+  }
+};
+
 onMounted(fetchConsumable);
 </script>
 
 <style scoped>
-.floating-edit-button {
+.floating-buttons {
   position: fixed !important;
   bottom: 24px;
   right: 24px;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>
 

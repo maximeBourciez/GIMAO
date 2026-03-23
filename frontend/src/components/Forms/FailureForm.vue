@@ -1,48 +1,28 @@
 <template>
-    <BaseForm
-        v-model="formData"
-        :title="title"
-        :validation-schema="validationSchema"
-        :loading="loading"
-        :error-message="errorMessage"
-        :success-message="successMessage"
-        :handleSubmit="save"
-        :custom-cancel-action="close"
-        :submit-button-text="submitButtonText"
-        elevation="0"
-    >
+    <BaseForm v-model="formData" :title="title" :validation-schema="validationSchema" :loading="loading"
+        :error-message="errorMessage" :success-message="successMessage" :handleSubmit="save"
+        :custom-cancel-action="close" :submit-button-text="submitButtonText" elevation="0">
         <v-row dense>
             <v-col cols="12">
-                <FormField
-                    v-model="formData.nom"
-                    field-name="nom"
-                    label="Nom de la demande d'intervention"
-                    placeholder="Saisir le nom de la demande"
-                />
+                <FormField v-model="formData.nom" field-name="nom" label="Nom de la demande d'intervention"
+                    placeholder="Saisir le nom de la demande" />
             </v-col>
 
             <v-col cols="12">
-                <FormSelect
-                    v-model="formData.equipement_id"
-                    field-name="equipement_id"
-                    label="Équipement"
-                    :items="equipments"
-                    item-title="designation"
-                    item-value="id"
-                    placeholder="Sélectionner un équipement"
-                    :disabled="isEdit"
-                />
+                <FormSelect v-model="formData.equipement_id" field-name="equipement_id" label="Équipement"
+                    :items="equipments" item-title="designation" item-value="id"
+                    placeholder="Sélectionner un équipement" :disabled="isEdit" />
             </v-col>
 
             <v-col cols="12">
-                <FormTextarea
-                    v-model="formData.commentaire"
-                    field-name="commentaire"
-                    label="Commentaires"
-                    placeholder="Ajouter des détails ou une description..."
-                    rows="5"
-                    counter="300"
-                />
+                <FormSelect v-model="formData.statut_suppose" field-name="statut_suppose"
+                    label="Statut supposé de l'équipement" :items="statutOptions" item-title="title" item-value="value"
+                    placeholder="Sélectionner le statut supposé de l'équipement" />
+            </v-col>
+
+            <v-col cols="12">
+                <FormTextarea v-model="formData.commentaire" field-name="commentaire" label="Commentaires"
+                    placeholder="Ajouter des détails ou une description..." rows="5" counter="300" />
             </v-col>
 
             <!-- Documents -->
@@ -63,7 +43,12 @@ import { ref, computed, watch } from 'vue'
 import { BaseForm, FormField, FormSelect, FormTextarea } from '@/components/common'
 import DocumentForm from '@/components/Forms/DocumentForm.vue'
 import { useApi } from '@/composables/useApi'
-import { API_BASE_URL } from '@/utils/constants'
+import { API_BASE_URL, EQUIPMENT_STATUS } from '@/utils/constants'
+
+const statutOptions = Object.entries(EQUIPMENT_STATUS).map(([key, value]) => ({
+    title: value,
+    value: key
+}))
 
 const props = defineProps({
     title: {
@@ -101,6 +86,7 @@ const emit = defineEmits(['created', 'updated', 'close'])
 const formData = ref({
     nom: '',
     equipement_id: null,
+    statut_suppose: '',
     commentaire: '',
     documents: [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
 })
@@ -108,6 +94,7 @@ const formData = ref({
 const validationSchema = computed(() => {
     const schema = {
         nom: ['required', { name: 'minLength', params: [2] }, { name: 'maxLength', params: [255] }],
+        statut_suppose: ['required']
     }
 
     if (!props.isEdit) {
@@ -131,6 +118,7 @@ watch(() => props.initialData, (newData) => {
         formData.value = {
             nom: newData.nom || '',
             equipement_id: newData.equipement_id || null,
+            statut_suppose: newData.statut_suppose,
             commentaire: newData.commentaire || '',
             documents: initialDocuments.length
                 ? initialDocuments
@@ -241,6 +229,8 @@ const save = async () => {
             const patch = {}
             if (!original || (formData.value.nom ?? '') !== (original.nom ?? '')) patch.nom = formData.value.nom
             if (!original || (formData.value.commentaire ?? '') !== (original.commentaire ?? '')) patch.commentaire = formData.value.commentaire || ''
+            if (!original || formData.value.statut_suppose !== original.statut_suppose) patch.statut_suppose = formData.value.statut_suppose
+
 
             const documentsChanged = haveDocumentsChanged(formData.value)
             if (Object.keys(patch).length === 0 && !documentsChanged) {
@@ -259,6 +249,7 @@ const save = async () => {
             const form = new FormData()
             if (patch.nom !== undefined) form.append('nom', (patch.nom || '').toString())
             if (patch.commentaire !== undefined) form.append('commentaire', (patch.commentaire || '').toString())
+            if (patch.statut_suppose !== undefined) form.append('statut_suppose', patch.statut_suppose)
             if (documentsChanged) {
                 const { documentsMeta, files } = buildDocumentsMetaAndFiles(formData.value.documents)
                 form.append('documents', JSON.stringify(documentsMeta))
@@ -291,6 +282,7 @@ const save = async () => {
             form.append('equipement_id', String(formData.value.equipement_id))
             form.append('nom', (formData.value.nom || '').toString())
             form.append('commentaire', (formData.value.commentaire || '').toString())
+            form.append('statut_suppose', formData.value.statut_suppose)
 
             const { documentsMeta, files } = buildDocumentsMetaAndFiles(formData.value.documents)
             form.append('documents', JSON.stringify(documentsMeta.map(({ document_id, ...rest }) => rest)))

@@ -1,3 +1,4 @@
+import datetime
 from rest_framework import serializers
 from django.db.models import Prefetch
 from equipement.models import Equipement, StatutEquipement, Constituer, ModeleEquipement, Compteur, FamilleEquipement, Declencher
@@ -116,6 +117,7 @@ class CompteurSerializer(serializers.ModelSerializer):
                     'nom': pm.nom,
                     'commentaire': pm.commentaire,
                     'type': pm.type_plan_maintenance.libelle if pm.type_plan_maintenance else None,
+                    'type_id': pm.type_plan_maintenance_id,
                     'necessiteHabilitationElectrique': pm.necessiteHabilitationElectrique,
                     'necessitePermisFeu': pm.necessitePermisFeu,
                     'consommables': [
@@ -131,7 +133,8 @@ class CompteurSerializer(serializers.ModelSerializer):
                             'id': rel.document.id,
                             'nom': rel.document.nomDocument,
                             'chemin': rel.document.cheminAcces.name if rel.document.cheminAcces else None,
-                            'type': rel.document.typeDocument.nomTypeDocument if rel.document.typeDocument else None
+                            'type': rel.document.typeDocument.nomTypeDocument if rel.document.typeDocument else None,
+                            'type_id': rel.document.typeDocument_id,
                         }
                         for rel in pm.planmaintenancedocument_set.all()
                     ]
@@ -195,7 +198,8 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             'dateMiseEnService', 'prixAchat', 'lienImage',
             'createurEquipement', 'x', 'y', 'fabricant', 'fournisseur',
             'lieu', 'modele', 'famille', 'dernier_statut',
-            'compteurs', 'documents', 'documents_equipement', 'consommables', 'bons_travail'
+            'compteurs', 'documents', 'documents_equipement', 'consommables', 'bons_travail',
+            'archive'
         ]
 
     def get_modele(self, obj):
@@ -360,7 +364,7 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             compteur_dict = {
                 'id': c.id,
                 'nom': c.nomCompteur,
-                'valeurCourante': c.valeurCourante,
+                'valeurCourante': self.get_valeur_courante(c),
                 'unite': c.unite,
                 'estPrincipal': c.estPrincipal,
                 'type': c.type
@@ -369,6 +373,20 @@ class EquipementAffichageSerializer(serializers.ModelSerializer):
             compteurs_data.append(compteur_dict)
         
         return compteurs_data
+    
+    def get_valeur_courante(self, compteur):
+        """Retourne la valeur courante formatée selon le type de compteur"""
+        if compteur.type == 'Calendaire':
+            # Convertir la valeur en date (en supposant que la valeur est en jours depuis une date de référence)
+            try:
+                base_date = datetime.datetime(1, 1, 1)  # Date de référence
+                delta = datetime.timedelta(days=int(compteur.valeurCourante - 1))
+                date_value = base_date + delta
+                return date_value.strftime('%Y-%m-%d')
+            except Exception:
+                return compteur.valeurCourante
+        else:
+            return compteur.valeurCourante
 
     def get_documents(self, obj):
         docs_Pm = PlanMaintenance.objects.filter(

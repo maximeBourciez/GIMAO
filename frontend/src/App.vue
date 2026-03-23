@@ -5,22 +5,34 @@
     <template v-if="!isPublicPage && userHasMenu  && !isNoticePage">
 
       <!-- Sidebar desktop -->
-      <Sidebar v-if="!isMobile" />
+      <Sidebar v-if="!isMobile && userHasMenu" />
 
       <!-- TopBar mobile (hamburger) -->
-      <TopBar v-if="isMobile" />
+      <TopBar v-if="isMobile && userHasMenu" />
 
       <!-- AppBar desktop -->
-      <v-app-bar v-if="!isMobile" app color="white" elevation="1">
+      <v-app-bar v-if="!isMobile" app :color="isDarkTheme ? 'surface' : 'white'" elevation="1">
         <v-toolbar-title class="font-weight-bold ml-4">
           {{ pageTitle }}
         </v-toolbar-title>
+
+        <v-spacer />
+
+        <v-btn
+          icon
+          variant="text"
+          class="mr-4"
+          :title="themeToggleLabel"
+          @click="handleThemeToggle"
+        >
+          <v-icon>{{ themeToggleIcon }}</v-icon>
+        </v-btn>
       </v-app-bar>
 
     </template>
 
     <v-main>
-      <Breadcrumb v-if="!isPublicPage && !isOperateur" />
+      <Breadcrumb v-if="!isPublicPage" />
       <router-view />
     </v-main>
 
@@ -55,6 +67,8 @@ import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '@/components/SideBar.vue'
 import TopBar from '@/components/TopBar.vue'
 import Breadcrumb from '@/components/Breadcrumb.vue'
+import vuetify from '@/plugins/vuetify'
+import { toggleTheme } from '@/utils/theme'
 
 const store = useStore()
 const route = useRoute()
@@ -74,8 +88,9 @@ const checkIfMobile = () => {
  */
 const userRole = computed(() => store.getters.userRole)
 
+
 const userHasMenu = computed(() => {
-  return store.getters.userPermissions.includes('menu:view')
+  return store.getters.hasPermission('menu:view') || store.getters.hasPermission('menu:dataManagement')
 })
 
 /**
@@ -87,6 +102,16 @@ const isPublicPage = computed(() => route.meta?.public === true)
  * Titre page
  */
 const pageTitle = computed(() => route.meta?.title || 'GIMAO')
+const isDarkTheme = computed(() => vuetify.theme.global.current.value.dark)
+const themeToggleIcon = computed(() => (isDarkTheme.value ? 'mdi-weather-sunny' : 'mdi-weather-night'))
+const themeToggleLabel = computed(() => (
+  isDarkTheme.value ? 'Activer le mode clair' : 'Activer le mode sombre'
+))
+
+const handleThemeToggle = () => {
+  toggleTheme()
+}
+
 
 const isNoticePage = computed(() => route.name === 'Notice')
 
@@ -108,25 +133,3 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', checkIfMobile)
 })
 </script>
-<style>
-.text-primary {
-  color: #05004E;
-}
-
-.text-dark {
-  color: #3C3C3C;
-}
-
-.v-card {
-  background-color: #FFFFFF;
-}
-
-.v-btn {
-  background-color: #F1F5FF;
-  border-radius: 50%;
-}
-
-h1 {
-  color: #05004E;
-}
-</style>

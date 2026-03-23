@@ -1,65 +1,43 @@
 <template>
-	<BaseForm
-		v-model="formData"
-		v-bind="mergedBaseFormProps"
-		:validation-schema="validationSchema"
-		:loading="loading"
-		:error-message="errorMessage"
-		:success-message="successMessage"
-		:custom-disabled="!isFormValidForSubmit"
-		:handleSubmit="save"
-		:custom-cancel-action="close"
-		actions-container-class="d-flex justify-end gap-2 mt-2"
-		submit-button-class="mt-2"
-		cancel-button-class="mt-2 mr-3"
-	>
+	<BaseForm v-model="formData" v-bind="mergedBaseFormProps" :validation-schema="validationSchema" :loading="loading"
+		:error-message="errorMessage" :success-message="successMessage" :custom-disabled="!isFormValidForSubmit"
+		:handleSubmit="save" :custom-cancel-action="close" actions-container-class="d-flex justify-end gap-2 mt-2"
+		submit-button-class="mt-2" cancel-button-class="mt-2 mr-3">
 		<template #default>
 			<!-- Informations générales -->
 			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
 				<h4 class="mb-3">Bon de travail</h4>
 				<v-row dense>
 					<v-col cols="12" md="6">
-						<FormSelect
-							v-model="formData.equipement_id"
-							field-name="equipement_id"
-							label="Équipement"
-							:items="equipments"
-							item-title="designation"
-							item-value="id"
-						:disabled="isEdit"
-						/>
+						<FormSelect v-model="formData.equipement_id" field-name="equipement_id" label="Équipement"
+							:items="equipments" item-title="designation" item-value="id" :disabled="isEdit" />
 					</v-col>
 
 					<v-col cols="12" md="6">
-						<FormField
-							v-model="formData.nom"
-							field-name="nom"
-							label="Nom du bon de travail"
-							placeholder="Saisir le nom"
-							:maxlength="MAX_NOM_LENGTH"
-							counter
-						/>
+						<FormField v-model="formData.nom" field-name="nom" label="Nom du bon de travail"
+							placeholder="Saisir le nom" :maxlength="MAX_NOM_LENGTH" counter />
 					</v-col>
 
 					<v-col cols="12" md="6">
-						<FormSelect
-							v-model="formData.type"
-							field-name="type"
-							label="Type"
-							:items="typeItems"
-							item-title="label"
-							item-value="value"
-						/>
+						<FormField v-model="formData.date_prevue" field-name="date_prevue" label="Date prévue"
+							type="datetime-local" clearable />
 					</v-col>
 
 					<v-col cols="12" md="6">
-						<FormField
-							v-model="formData.date_prevue"
-							field-name="date_prevue"
-							label="Date prévue"
-							type="datetime-local"
-							clearable
-						/>
+						<FormField v-model="formData.duree_previsionnelle" field-name="duree_previsionnelle"
+							label="Durée prévisionnelle" type="time" />
+					</v-col>
+				</v-row>
+			</v-sheet>
+
+			<!-- Statut -->
+			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
+				<h4 class="mb-3">Nouveau statut de l'équipement</h4>
+
+				<v-row dense>
+					<v-col cols="12" md="6">
+						<FormSelect v-model="formData.statut_equipement" field-name="statut_equipement"
+							label="Statut de l'équipement" :items="statusItems" item-title="label" item-value="value" />
 					</v-col>
 				</v-row>
 			</v-sheet>
@@ -69,27 +47,13 @@
 				<h4 class="mb-3">Détails</h4>
 				<v-row dense>
 					<v-col cols="12">
-						<FormTextarea
-							v-model="formData.diagnostic"
-							field-name="diagnostic"
-							label="Diagnostic"
-							placeholder="Saisir un diagnostic"
-							rows="2"
-							:maxlength="MAX_TEXT_LENGTH"
-							counter
-						/>
+						<FormTextarea v-model="formData.diagnostic" field-name="diagnostic" label="Diagnostic"
+							placeholder="Saisir un diagnostic" rows="2" :maxlength="MAX_TEXT_LENGTH" counter />
 					</v-col>
 
 					<v-col cols="12">
-						<FormTextarea
-							v-model="formData.commentaire"
-							field-name="commentaire"
-							label="Commentaire"
-							placeholder="Saisir un commentaire"
-							rows="4"
-							:maxlength="MAX_TEXT_LENGTH"
-							counter
-						/>
+						<FormTextarea v-model="formData.commentaire" field-name="commentaire" label="Commentaire"
+							placeholder="Saisir un commentaire" rows="4" :maxlength="MAX_TEXT_LENGTH" counter />
 					</v-col>
 				</v-row>
 			</v-sheet>
@@ -99,29 +63,14 @@
 				<h4 class="mb-3">Affectation</h4>
 				<v-row dense>
 					<v-col cols="12" md="6">
-						<FormSelect
-							v-model="formData.responsable_id"
-							field-name="responsable_id"
-							label="Responsable"
-							:items="responsableItems"
-							item-title="label"
-							item-value="id"
-							:disabled="true"
-						/>
+						<FormSelect v-model="formData.responsable_id" field-name="responsable_id" label="Responsable"
+							:items="responsableItems" item-title="label" item-value="id" :disabled="true" />
 					</v-col>
 
 					<v-col cols="12" md="6">
-						<FormSelect
-							v-model="formData.utilisateur_assigne_ids"
-							field-name="utilisateur_assigne_ids"
-							label="Techniciens assignés"
-							:items="assignableUserItems"
-							item-title="label"
-							item-value="id"
-							multiple
-							chips
-							clearable
-						/>
+						<FormSelect v-model="formData.utilisateur_assigne_ids" field-name="utilisateur_assigne_ids"
+							label="Techniciens assignés" :items="assignableUserItems" item-title="label" item-value="id"
+							multiple chips clearable />
 					</v-col>
 				</v-row>
 			</v-sheet>
@@ -135,60 +84,31 @@
 			<!-- Consommables -->
 			<v-sheet class="pa-4 mb-4" elevation="1" rounded>
 				<h4 class="mb-3">Consommables</h4>
-				<v-row
-					v-for="(c, index) in consommableLines"
-					:key="index"
-					dense
-					class="mb-2"
-				>
+				<v-row v-for="(c, index) in consommableLines" :key="index" dense class="mb-2">
 					<v-col cols="12" md="7">
-						<FormSelect
-							v-model="c.consommable_id"
-							:field-name="`consommable_${index}`"
-							label="Consommable"
-							:items="getAvailableConsommablesForIndex(index)"
-							item-title="designation"
-							item-value="id"
-							clearable
-							@focus="markTouched('consommable', index)"
+						<FormSelect v-model="c.consommable_id" :field-name="`consommable_${index}`" label="Consommable"
+							:items="getAvailableConsommablesForIndex(index)" item-title="designation" item-value="id"
+							clearable @focus="markTouched('consommable', index)"
 							:error="shouldShowConsommableError(index) && Boolean(getConsommableLineError(index))"
-							:error-messages="shouldShowConsommableError(index) && getConsommableLineError(index) ? [getConsommableLineError(index)] : []"
-						/>
+							:error-messages="shouldShowConsommableError(index) && getConsommableLineError(index) ? [getConsommableLineError(index)] : []" />
 					</v-col>
 
 					<v-col cols="10" md="4">
-						<FormField
-							v-model.number="c.quantite_utilisee"
-							:field-name="`quantite_utilisee_${index}`"
-							type="number"
-							label="Quantité"
-							placeholder="1"
-							min="0"
-							step="1"
-							@focus="markTouched('quantite', index)"
-							:error="Boolean(getQuantiteLineError(index))"
-							:error-messages="getQuantiteLineError(index) ? [getQuantiteLineError(index)] : []"
-						/>
+						<FormField v-model.number="c.quantite_utilisee" :field-name="`quantite_utilisee_${index}`"
+							type="number" label="Quantité" placeholder="1" min="0" step="1"
+							@focus="markTouched('quantite', index)" :error="Boolean(getQuantiteLineError(index))"
+							:error-messages="getQuantiteLineError(index) ? [getQuantiteLineError(index)] : []" />
 					</v-col>
 
 					<v-col cols="2" md="1" class="d-flex align-center justify-center">
-						<v-btn
-							icon="mdi-delete"
-							size="small"
-							color="error"
-							@click="removeConsommableLine(index)"
-						/>
+						<v-btn icon="mdi-delete" size="small" color="error" @click="removeConsommableLine(index)" />
 					</v-col>
 				</v-row>
 
 				<v-row dense>
 					<v-col cols="12">
-						<v-btn
-							color="primary"
-							variant="text"
-							prepend-icon="mdi-plus"
-							@click="addConsommableLine"
-						>
+						<v-btn variant="outlined" color="primary" size="small" @click="addConsommableLine">
+							<v-icon left>mdi-plus</v-icon>
 							Ajouter un consommable
 						</v-btn>
 					</v-col>
@@ -204,7 +124,8 @@ import { computed, reactive, watch, ref } from 'vue';
 import { BaseForm, FormField, FormSelect, FormTextarea } from '@/components/common';
 import DocumentForm from '@/components/Forms/DocumentForm.vue';
 import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, EQUIPMENT_STATUS } from '@/utils/constants';
+import { toTimeInputValue } from '@/utils/helpers';
 
 const props = defineProps({
 	title: {
@@ -249,6 +170,12 @@ const props = defineProps({
 	}
 });
 
+const statusItems = Object.entries(EQUIPMENT_STATUS).map(([key, label]) => ({
+	value: key,
+	label
+}));
+
+
 const emit = defineEmits(['created', 'updated', 'close']);
 
 const formData = ref({
@@ -256,18 +183,38 @@ const formData = ref({
 	nom: '',
 	type: 'CORRECTIF',
 	date_prevue: null,
+	duree_previsionnelle: '',
 	commentaire: '',
 	diagnostic: '',
 	responsable_id: null,
 	utilisateur_assigne_ids: [],
-	consommables: [{ consommable_id: null, quantite_utilisee: null }],
-	documents: [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
+	statut_equipement: 'DEGRADE',
+	consommables: [],
+	documents: []
 });
 
 const originalFormData = ref(null);
 const loading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
+
+const DUREE_PREVISIONNELLE_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+
+const normalizeDureePrevisionnelleForApi = (value) => {
+	if (value === null || value === undefined) return '';
+	const rawValue = String(value).trim();
+	if (!rawValue) return '';
+
+	if (DUREE_PREVISIONNELLE_REGEX.test(rawValue)) {
+		return `${rawValue}:00`;
+	}
+
+	if (/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(rawValue)) {
+		return rawValue;
+	}
+
+	return rawValue;
+};
 
 // Initialiser les données
 watch(() => props.initialData, (newData) => {
@@ -283,12 +230,14 @@ watch(() => props.initialData, (newData) => {
 			nom: newData.nom || '',
 			type: newData.type || 'CORRECTIF',
 			date_prevue: newData.date_prevue || null,
+			duree_previsionnelle: toTimeInputValue(newData.duree_previsionnelle) || null,
 			commentaire: newData.commentaire || '',
 			diagnostic: newData.diagnostic || '',
 			responsable_id: newData.responsable_id || null,
-			utilisateur_assigne_ids: Array.isArray(newData.utilisateur_assigne_ids) ? [...newData.utilisateur_assigne_ids] : [],
-			consommables: initialConsommables.length ? initialConsommables : [{ consommable_id: null, quantite_utilisee: null }],
-			documents: initialDocuments.length ? initialDocuments : [{ document_id: null, nomDocument: '', typeDocument_id: null, file: null }]
+			statut_equipement: newData.statut_equipement || 'DEGRADE',
+			utilisateur_assigne_ids: newData.utilisateur_assigne_ids || [],
+			consommables: Array.isArray(newData.consommables) ? newData.consommables : [],
+			documents: Array.isArray(newData.documents) ? newData.documents : []
 		};
 		// Sauvegarder l'état original pour comparaison
 		if (props.isEdit) {
@@ -393,6 +342,7 @@ const buildPatchPayload = (payload) => {
 	if ((payload?.diagnostic ?? '') !== (original?.diagnostic ?? '')) patch.diagnostic = payload.diagnostic;
 	if ((payload?.commentaire ?? '') !== (original?.commentaire ?? '')) patch.commentaire = payload.commentaire;
 	if ((payload?.responsable_id ?? null) !== (original?.responsable_id ?? null)) patch.responsable_id = payload.responsable_id;
+	if ((payload?.statut_equipement ?? null) !== (original?.statut_equipement ?? null)) patch.statut_equipement = payload.statut_equipement;
 
 	const currentDatePrevue = payload?.date_prevue || null;
 	const originalDatePrevue = original?.date_prevue || null;
@@ -401,6 +351,12 @@ const buildPatchPayload = (payload) => {
 			currentDatePrevue && String(currentDatePrevue).length === 16
 				? `${currentDatePrevue}:00`
 				: currentDatePrevue || null;
+	}
+
+	const currentDureePrevisionnelle = normalizeDureePrevisionnelleForApi(payload?.duree_previsionnelle || '');
+	const originalDureePrevisionnelle = normalizeDureePrevisionnelleForApi(original?.duree_previsionnelle || '');
+	if ((currentDureePrevisionnelle || null) !== (originalDureePrevisionnelle || null)) {
+		patch.duree_previsionnelle = currentDureePrevisionnelle || null;
 	}
 
 	const newIds = (Array.isArray(payload?.utilisateur_assigne_ids) ? payload.utilisateur_assigne_ids : [])
@@ -442,12 +398,12 @@ const haveDocumentsChanged = (payload) => {
 		if (!doc?.document_id) continue;
 		const original = originalDocs.find(o => o.document_id === doc.document_id);
 		if (!original) continue;
-		
-		const hasChanges = 
+
+		const hasChanges =
 			doc.nomDocument !== original.nomDocument ||
 			doc.typeDocument_id !== original.typeDocument_id ||
 			doc.file; // Nouveau fichier
-		
+
 		if (hasChanges) return true;
 	}
 
@@ -472,7 +428,7 @@ const save = async () => {
 			// Mode édition
 			const patch = buildPatchPayload(formData.value);
 			const documentsChanged = haveDocumentsChanged(formData.value);
-			
+
 			if (Object.keys(patch).length === 0 && !documentsChanged) {
 				successMessage.value = 'Aucune modification à enregistrer';
 				loading.value = false;
@@ -542,12 +498,14 @@ const save = async () => {
 			form.append('commentaire', (formData.value.commentaire || '').toString());
 			form.append('diagnostic', (formData.value.diagnostic || '').toString());
 			form.append('type', (formData.value.type || 'CORRECTIF').toString());
+			form.append('statut_equipement', (formData.value.statut_equipement || null));
 			form.append(
 				'date_prevue',
 				formData.value.date_prevue && String(formData.value.date_prevue).length === 16
 					? `${formData.value.date_prevue}:00`
 					: (formData.value.date_prevue || '')
 			);
+			form.append('duree_previsionnelle', normalizeDureePrevisionnelleForApi(formData.value.duree_previsionnelle));
 			for (const id of (Array.isArray(formData.value?.utilisateur_assigne_ids) ? formData.value.utilisateur_assigne_ids : [])) {
 				const n = Number(id);
 				if (Number.isFinite(n) && n > 0) form.append('utilisateur_assigne_ids', String(n));
@@ -642,40 +600,21 @@ const markTouched = (type, index) => {
 	if (type === 'quantite') touched.quantite[index] = true;
 };
 
-const ensureConsommablesLines = () => {
-	if (!formData.value) return;
-	if (!Array.isArray(formData.value.consommables)) {
-		formData.value.consommables = [];
-	}
-	if (formData.value.consommables.length === 0) {
-		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
-	}
-};
-
-watch(
-	() => formData.value,
-	() => {
-		ensureConsommablesLines();
-	},
-	{ immediate: true, deep: true }
-);
-
 const consommableLines = computed(() => {
-	ensureConsommablesLines();
-	return formData.value?.consommables || [];
+	return Array.isArray(formData.value?.consommables) ? formData.value.consommables : [];
 });
 
 const addConsommableLine = () => {
-	ensureConsommablesLines();
+	if (!Array.isArray(formData.value.consommables)) formData.value.consommables = [];
 	formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
 };
 
 const removeConsommableLine = (index) => {
-	ensureConsommablesLines();
+	if (!Array.isArray(formData.value.consommables)) formData.value.consommables = [];
 	formData.value.consommables.splice(index, 1);
-	if (formData.value.consommables.length === 0) {
-		formData.value.consommables.push({ consommable_id: null, quantite_utilisee: null });
-	}
+	// éviter les erreurs/touched décalés après suppression
+	touched.consommable = {};
+	touched.quantite = {};
 };
 
 watch(
@@ -812,6 +751,7 @@ const validationSchema = computed(() => {
 			{ name: 'maxLength', params: [2000] }
 		],
 		commentaire: [{ name: 'maxLength', params: [2000] }],
+		statut_equipement: ['required'],
 	};
 
 	return schema;
@@ -838,7 +778,12 @@ const isFormValidForSubmit = computed(() => {
 	// datetime-local renvoie typiquement 'YYYY-MM-DDTHH:mm'
 	if (datePrevue && String(datePrevue).length < 16) return false;
 
-	ensureConsommablesLines();
+	const dureePrevisionnelle = (formData.value?.duree_previsionnelle ?? '').toString().trim();
+
+	if (dureePrevisionnelle && !DUREE_PREVISIONNELLE_REGEX.test(dureePrevisionnelle)) {
+		return false;
+	}
+
 	const lines = Array.isArray(formData.value?.consommables) ? formData.value.consommables : [];
 	for (let i = 0; i < lines.length; i++) {
 		if (getConsommableLineError(i)) return false;
@@ -852,4 +797,3 @@ const isFormValidForSubmit = computed(() => {
 	return true;
 });
 </script>
-
