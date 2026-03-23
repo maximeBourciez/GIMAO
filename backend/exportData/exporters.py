@@ -61,11 +61,18 @@ class BaseExportStrategy:
             # 'both' means no filter
             
         qs = self.apply_filters(qs)
+        qs = self.apply_date_filters(qs)
         return qs
 
     def apply_filters(self, qs):
         """
         Hook for subclasses to override and apply specific filters (like equipementId).
+        """
+        return qs
+
+    def apply_date_filters(self, qs):
+        """
+        Hook for subclasses to override and apply specific date filters (startDate, endDate).
         """
         return qs
 
@@ -154,6 +161,27 @@ class StatutEquipementStrategy(BaseExportStrategy):
             qs = qs.filter(equipement_id=equipement_id)
         return qs
 
+    def apply_date_filters(self, qs):
+        start_date = self.params.get('startDate')
+        end_date = self.params.get('endDate')
+        if start_date and end_date:
+            if len(start_date) == 10: start_date += " 00:00:00"
+            if len(end_date) == 10: end_date += " 23:59:59"
+
+            equipements_in_range_ids = list(qs.filter(dateChangement__range=[start_date, end_date]).values_list('equipement_id', flat=True))
+            
+            latest_statut_data = StatutEquipement.objects.exclude(
+                equipement_id__in=equipements_in_range_ids
+            ).values('equipement_id').annotate(max_id=models.Max('id'))
+            
+            latest_statut_ids = [item['max_id'] for item in latest_statut_data if item['max_id']]
+            
+            qs = qs.filter(
+                models.Q(dateChangement__range=[start_date, end_date]) |
+                models.Q(id__in=latest_statut_ids)
+            )
+        return qs
+
 # 3. BonTravail (bt)
 @registerExporter('bt')
 class BonTravailStrategy(BaseExportStrategy):
@@ -165,6 +193,15 @@ class BonTravailStrategy(BaseExportStrategy):
             qs = qs.filter(demande_intervention__equipement_id=equipement_id)
         return qs
 
+    def apply_date_filters(self, qs):
+        start_date = self.params.get('startDate')
+        end_date = self.params.get('endDate')
+        if start_date and end_date:
+            if len(start_date) == 10: start_date += " 00:00:00"
+            if len(end_date) == 10: end_date += " 23:59:59"
+            qs = qs.filter(demande_intervention__date_changementStatut__range=[start_date, end_date])
+        return qs
+
 # 4. DemandeIntervention (di)
 @registerExporter('di')
 class DemandeInterventionStrategy(BaseExportStrategy):
@@ -174,6 +211,15 @@ class DemandeInterventionStrategy(BaseExportStrategy):
         equipement_id = self.params.get('equipementId')
         if equipement_id:
             qs = qs.filter(equipement_id=equipement_id)
+        return qs
+
+    def apply_date_filters(self, qs):
+        start_date = self.params.get('startDate')
+        end_date = self.params.get('endDate')
+        if start_date and end_date:
+            if len(start_date) == 10: start_date += " 00:00:00"
+            if len(end_date) == 10: end_date += " 23:59:59"
+            qs = qs.filter(date_creation__range=[start_date, end_date])
         return qs
 
 # 5. Consommable (conso)
@@ -190,6 +236,15 @@ class AchatConsommableStrategy(BaseExportStrategy):
         conso_id = self.params.get('consoId')
         if conso_id:
             qs = qs.filter(consommable_id=conso_id)
+        return qs
+
+    def apply_date_filters(self, qs):
+        start_date = self.params.get('startDate')
+        end_date = self.params.get('endDate')
+        if start_date and end_date:
+            if len(start_date) == 10: start_date += " 00:00:00"
+            if len(end_date) == 10: end_date += " 23:59:59"
+            qs = qs.filter(date_reference_prix__range=[start_date, end_date])
         return qs
 
 # 7. Stock (Stocker)
@@ -219,6 +274,15 @@ class SortieMagasinStrategy(BaseExportStrategy):
             qs = qs.filter(magasin_reserve_id=magasin_id)
         return qs
 
+    def apply_date_filters(self, qs):
+        start_date = self.params.get('startDate')
+        end_date = self.params.get('endDate')
+        if start_date and end_date:
+            if len(start_date) == 10: start_date += " 00:00:00"
+            if len(end_date) == 10: end_date += " 23:59:59"
+            qs = qs.filter(date_confirme__range=[start_date, end_date])
+        return qs
+
 # 10. Logs
 @registerExporter('logs')
 class LogStrategy(BaseExportStrategy):
@@ -228,6 +292,15 @@ class LogStrategy(BaseExportStrategy):
         utilisateur_id = self.params.get('utilisateurId')
         if utilisateur_id:
             qs = qs.filter(utilisateur_id=utilisateur_id)
+        return qs
+
+    def apply_date_filters(self, qs):
+        start_date = self.params.get('startDate')
+        end_date = self.params.get('endDate')
+        if start_date and end_date:
+            if len(start_date) == 10: start_date += " 00:00:00"
+            if len(end_date) == 10: end_date += " 23:59:59"
+            qs = qs.filter(date__range=[start_date, end_date])
         return qs
 
 # 11. Fournisseur
@@ -270,6 +343,22 @@ class SeuilStrategy(BaseExportStrategy):
         equipement_id = self.params.get('equipementId')
         if equipement_id:
             qs = qs.filter(compteur__equipement_id=equipement_id)
+        return qs
+
+    def apply_date_filters(self, qs):
+        start_date = self.params.get('startDate')
+        end_date = self.params.get('endDate')
+        if start_date and end_date:
+            from datetime import datetime
+            try:
+                start_ord = datetime.strptime(start_date[:10], '%Y-%m-%d').date().toordinal()
+                end_ord = datetime.strptime(end_date[:10], '%Y-%m-%d').date().toordinal()
+                qs = qs.filter(
+                    models.Q(compteur__type='Calendaire', prochaineMaintenance__range=[start_ord, end_ord]) |
+                    ~models.Q(compteur__type='Calendaire')
+                )
+            except ValueError:
+                pass
         return qs
 
 # 17. Utilisateurs

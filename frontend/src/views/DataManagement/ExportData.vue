@@ -41,7 +41,7 @@
               label="Données archivées"
             />
           </v-col>
-          
+
           <!-- Filtres conditionnels -->
           <v-col cols="12" md="6" v-if="requiresEquipementId">
             <FormSelect
@@ -89,6 +89,35 @@
               :label="consoIdLabel"
               :loading="isFiltersLoading"
             />
+          </v-col>
+
+          <!-- Période d'export (placée à la fin et alignée) -->
+          <v-col cols="12" v-if="requiresDateFilter">
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="form.startDate"
+                  label="Date de début (Optionnel)"
+                  type="date"
+                  variant="outlined"
+                  color="primary"
+                  density="comfortable"
+                  clearable
+                ></v-text-field>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="form.endDate"
+                  label="Date de fin (Optionnel)"
+                  type="date"
+                  variant="outlined"
+                  color="primary"
+                  density="comfortable"
+                  clearable
+                ></v-text-field>
+              </v-col>
+            </v-row>
           </v-col>
 
           <!-- Colonnes -->
@@ -225,6 +254,8 @@ const form = reactive({
   magasinId: '',
   utilisateurId: '',
   consoId: '',
+  startDate: '',
+  endDate: '',
 })
 
 const fileTypes = [
@@ -260,6 +291,11 @@ const exportTypes = [
 
 const requiresEquipementId = computed(() => {
   const types = ['statut_equipement', 'bt', 'di', 'compteur', 'maintenance_preventive']
+  return types.includes(form.exportType)
+})
+
+const requiresDateFilter = computed(() => {
+  const types = ['statut_equipement', 'bt', 'di', 'historique_achat_conso', 'historique_sortie_magasin', 'logs', 'maintenance_preventive']
   return types.includes(form.exportType)
 })
 
@@ -349,6 +385,11 @@ const handleExport = async () => {
   }
   if (requiresConsoId.value && form.consoId) {
     params.consoId = form.consoId
+  }
+  
+  if (requiresDateFilter.value) {
+    if (form.startDate) params.startDate = form.startDate
+    if (form.endDate) params.endDate = form.endDate
   }
 
   try {
