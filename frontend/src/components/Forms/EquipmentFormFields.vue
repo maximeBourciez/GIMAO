@@ -140,7 +140,17 @@
 
             <v-col cols="12">
                 <FormSelect v-model="modelValue.consommables" label="Consommables" :items="consumables"
-                    item-title="designation" item-value="id" multiple chips clearable />
+                    item-title="designation" item-value="id" multiple chips clearable>
+                    <template #append-item>
+                        <v-divider class="mt-2" />
+                        <v-list-item @click="$emit('open-consommable-dialog')">
+                            <template #prepend>
+                                <v-icon color="primary">mdi-plus</v-icon>
+                            </template>
+                            <v-list-item-title>Ajouter un consommable</v-list-item-title>
+                        </v-list-item>
+                    </template>
+                </FormSelect>
             </v-col>
         </template>
 
@@ -264,7 +274,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter', 'open-modele-dialog', 'open-fournisseur-dialog', 'open-fabricant-dialog', 'open-famille-dialog', 'open-lieu-dialog']);
+const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter', 'open-modele-dialog', 'open-fournisseur-dialog', 'open-fabricant-dialog', 'open-famille-dialog', 'open-lieu-dialog', 'open-consommable-dialog']);
 
 const handleFileUpload = (file) => {
     emit('file-upload', file);

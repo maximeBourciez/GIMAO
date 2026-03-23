@@ -25,12 +25,12 @@
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="1" :show-location="false"
-                    :show-status="false" :show-consommables="false" :show-counters="false" :show-general="true"
+                    :show-status="true" :show-consommables="false" :show-counters="false" :show-general="true"
                     :show-model-info="false" @file-upload="handleFileUpload" @location-created="handleLocationCreated"
                     @open-modele-dialog="showModeleDialog = true"
                     @open-fournisseur-dialog="showFournisseurDialog = true"
                     @open-fabricant-dialog="showFabricantDialog = true" @open-famille-dialog="showFamilleDialog = true"
-                    @open-lieu-dialog="handleOpenLieuDialog" />
+                    @open-lieu-dialog="handleOpenLieuDialog" @open-consommable-dialog="showConsommableDialog = true" />
                 </v-stepper-window-item>
 
                 <!-- Étape 2: Fournisseur et Fabricant -->
@@ -38,12 +38,12 @@
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
                     :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="2" :show-location="false"
-                    :show-status="false" :show-consommables="false" :show-counters="false" :show-general="false"
+                    :show-status="false" :show-consommables="true" :show-counters="false" :show-general="false"
                     :show-model-info="true" @file-upload="handleFileUpload" @location-created="handleLocationCreated"
                     @open-modele-dialog="showModeleDialog = true"
                     @open-fournisseur-dialog="showFournisseurDialog = true"
                     @open-fabricant-dialog="showFabricantDialog = true" @open-famille-dialog="showFamilleDialog = true"
-                    @open-lieu-dialog="handleOpenLieuDialog" />
+                    @open-lieu-dialog="handleOpenLieuDialog" @open-consommable-dialog="showConsommableDialog = true" />
                 </v-stepper-window-item>
 
                 <!-- Étape 3: Localisation -->
@@ -59,37 +59,8 @@
                     @open-lieu-dialog="handleOpenLieuDialog" />
                 </v-stepper-window-item>
 
-                <!-- Étape 4: Statut -->
+                <!-- Étape 4: Compteurs -->
                 <v-stepper-window-item :value="4">
-                  <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
-                    :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
-                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="4" :show-location="false"
-                    :show-consommables="false" :show-counters="false" :show-general="false" :show-model-info="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated"
-                    @open-modele-dialog="showModeleDialog = true"
-                    @open-fournisseur-dialog="showFournisseurDialog = true"
-                    @open-fabricant-dialog="showFabricantDialog = true" @open-famille-dialog="showFamilleDialog = true"
-                    @open-lieu-dialog="handleOpenLieuDialog" />
-                </v-stepper-window-item>
-
-                <!-- Étape 5: Consommables -->
-                <v-stepper-window-item :value="5">
-                  <v-select v-model="formData.consommables" :items="consumables" item-title="designation"
-                    item-value="id" multiple chips label="Consommables">
-                    <template #append-item>
-                      <v-divider />
-                      <v-list-item @click="showConsommableDialog = true">
-                        <template #prepend>
-                          <v-icon color="primary">mdi-plus</v-icon>
-                        </template>
-                        <v-list-item-title>Ajouter un consommable</v-list-item-title>
-                      </v-list-item>
-                    </template>
-                  </v-select>
-                </v-stepper-window-item>
-
-                <!-- Étape 6: Compteurs -->
-                <v-stepper-window-item :value="6">
                   <v-card variant="outlined" class="pa-4">
                     <v-card-title class="text-h6 font-weight-bold px-0 pb-4 d-flex align-center justify-space-between">
                       <span>Compteurs de l'équipement</span>
@@ -100,9 +71,9 @@
 
                     <v-card-text>
                       <!-- Liste des compteurs -->
-                      <div v-if="formData.compteurs && formData.compteurs.length > 0">
+                      <div v-if="visibleCounters.length > 0">
                         <v-row>
-                          <v-col v-for="(compteur, index) in formData.compteurs" :key="index" cols="12">
+                          <v-col v-for="(compteur, index) in visibleCounters" :key="index" cols="12">
                             <v-card variant="outlined" class="pa-4">
                               <div class="d-flex align-center justify-space-between mb-2">
                                 <div class="d-flex align-center gap-2">
@@ -154,30 +125,30 @@
                   </v-card>
                 </v-stepper-window-item>
 
-                <!-- Etape 7: Plans de maintenance -->
-                <v-stepper-window-item :value="7">
+                <!-- Etape 5: Définition des périodicités -->
+                <v-stepper-window-item :value="5">
                   <v-card variant="outlined" class="pa-4">
                     <v-card-title class="text-h6 font-weight-bold px-0 pb-4 d-flex align-center justify-space-between">
-                      <span>Plans de maintenance</span>
-                      <v-btn color="primary" size="small" @click="handlePlanAdd" prepend-icon="mdi-plus"
-                        :disabled="!formData.compteurs || formData.compteurs.length === 0">
-                        Ajouter un plan
+                      <span>Définition des périodicités</span>
+                      <v-btn color="primary" size="small" @click="openPeriodicMaintenanceDialog" prepend-icon="mdi-plus"
+                        :disabled="!hasCalendarCounter">
+                        Ajouter une périodicité
                       </v-btn>
                     </v-card-title>
 
                     <v-card-text>
                       <!-- Message si pas de compteurs -->
-                      <v-alert v-if="!formData.compteurs || formData.compteurs.length === 0" type="warning"
+                      <v-alert v-if="!hasCalendarCounter" type="warning"
                         variant="tonal" class="mb-4">
-                        <v-alert-title class="text-body-1">Compteurs requis</v-alert-title>
-                        Vous devez d'abord ajouter au moins un compteur à l'étape précédente pour pouvoir définir des
-                        plans de maintenance.
+                        <v-alert-title class="text-body-1">Compteur calendaire requis</v-alert-title>
+                        Un compteur calendaire est requis pour pouvoir définir des
+                        périodicités.
                       </v-alert>
 
-                      <!-- Liste des plans de maintenance -->
-                      <div v-if="formData.plansMaintenance && formData.plansMaintenance.length > 0">
+                      <!-- Liste des périodicités -->
+                      <div v-if="periodicMaintenancePlans.length > 0">
                         <v-row>
-                          <v-col v-for="(plan, index) in formData.plansMaintenance" :key="index" cols="12">
+                          <v-col v-for="(plan, index) in periodicMaintenancePlans" :key="index" cols="12">
                             <v-card variant="outlined" class="pa-4">
                               <div class="d-flex align-center justify-space-between mb-2">
                                 <div class="d-flex align-center gap-2">
@@ -189,7 +160,7 @@
                                 </div>
                                 <div class="d-flex gap-2">
                                   <v-btn icon="mdi-pencil" size="small" color="primary" variant="text"
-                                    @click="handlePlanEdit(plan)" />
+                                    @click="handlePeriodicPlanEdit(plan)" />
                                   <v-btn icon="mdi-delete" size="small" color="error" variant="text"
                                     @click="handlePlanDelete(plan)" />
                                 </div>
@@ -239,21 +210,95 @@
 
                         <v-alert type="info" variant="tonal" class="mt-4">
                           <v-icon>mdi-information</v-icon>
-                          Les plans de maintenance permettent de programmer les interventions préventives sur vos équipements.
+                          Les périodicités permettent de définir le rythme des interventions préventives.
                         </v-alert>
                       </div>
 
-                      <div v-else-if="formData.compteurs && formData.compteurs.length > 0"
+                      <div v-else-if="hasCalendarCounter"
                         class="text-center py-8 text-grey">
-                        <v-icon size="large" class="mb-2">mdi-clipboard-check</v-icon>
-                        <div class="text-h6 mb-2">Aucun plan de maintenance défini</div>
-                        <div class="text-body-1 mb-4">Ajoutez des plans de maintenance pour programmer les interventions
+                        <v-icon size="large" class="mb-2">mdi-calendar-clock</v-icon>
+                        <div class="text-h6 mb-2">Aucune périodicité définie</div>
+                        <div class="text-body-1 mb-4">Ajoutez des périodicités pour programmer les interventions
                           préventives
                         </div>
-                        <v-btn color="primary" @click="handlePlanAdd" prepend-icon="mdi-plus">
-                          Ajouter un plan de maintenance
+                        <v-btn color="primary" @click="openPeriodicMaintenanceDialog" prepend-icon="mdi-plus">
+                          Ajouter une périodicité
                         </v-btn>
                       </div>
+                    </v-card-text>
+                  </v-card>
+                </v-stepper-window-item>
+
+                <!-- Etape 6: Définition des seuils -->
+                <v-stepper-window-item :value="6">
+                  <v-card variant="outlined" class="pa-4">
+                    <v-card-title class="text-h6 font-weight-bold px-0 pb-4 d-flex align-center justify-space-between">
+                      <span>Définition des seuils</span>
+                      <v-btn color="primary" size="small" @click="openPreventiveMaintenanceDialog" prepend-icon="mdi-plus"
+                        :disabled="!hasUserCounters">
+                        Ajouter un seuil
+                      </v-btn>
+                    </v-card-title>
+
+                    <v-card-text>
+                      <v-alert type="info" variant="tonal" class="mb-4">
+                        <v-icon>mdi-information</v-icon>
+                        Créez ici les maintenances préventives non périodiques basées sur des seuils numériques.
+                      </v-alert>
+
+                      <div v-if="preventiveMaintenancePlans.length > 0">
+                        <v-row>
+                          <v-col v-for="(plan, index) in preventiveMaintenancePlans" :key="`review-${index}`" cols="12">
+                            <v-card variant="outlined" class="pa-4">
+                              <div class="d-flex align-center justify-space-between mb-2">
+                                <div class="d-flex align-center gap-2">
+                                  <v-icon color="primary">mdi-clipboard-check</v-icon>
+                                  <h3 class="text-h6">{{ plan.nom || 'Plan sans nom' }}</h3>
+                                  <v-chip v-if="plan.type_id" :color="getPlanTypeColor(plan)" size="small" label>
+                                    {{ getPlanTypeName(plan) }}
+                                  </v-chip>
+                                </div>
+                              </div>
+
+                              <v-divider class="my-3" />
+
+                              <v-row dense>
+                                <v-col cols="12" md="6">
+                                  <div class="text-caption text-grey">Compteur associé</div>
+                                  <div class="text-body-1">{{ getCounterName(plan.compteurIndex) }}</div>
+                                </v-col>
+                                <v-col cols="12" md="3">
+                                  <div class="text-caption text-grey">Intervalle</div>
+                                  <div class="text-body-1">{{ 
+                                    getCounterType(plan.compteurIndex) === 'Calendaire' 
+                                      ? getSeuilInterval(plan.seuil.ecartInterventions) 
+                                      : `${plan.seuil.ecartInterventions} ${getCounterUnit(plan.compteurIndex)}`
+                                   }}</div>
+                                </v-col>
+                                <v-col cols="12" md="3">
+                                  <div class="text-caption text-grey">Prochaine maintenance</div>
+                                  <div class="text-body-1">{{ 
+                                    getCounterType(plan.compteurIndex) === 'Calendaire' 
+                                      ? getSeuilNextMaintenance(plan.seuil.prochaineMaintenance) 
+                                      : `${plan.seuil.prochaineMaintenance} ${getCounterUnit(plan.compteurIndex)}`
+                                  }}</div>
+                                </v-col>
+                              </v-row>
+                            </v-card>
+                          </v-col>
+                        </v-row>
+                      </div>
+
+                      <div v-else class="text-center py-8 text-grey">
+                        <v-icon size="large" class="mb-2">mdi-clipboard-check-outline</v-icon>
+                        <div class="text-h6 mb-2">Aucune maintenance préventive à afficher</div>
+                        <div class="text-body-1 mb-4">Les opérations liées au calendrier ne sont pas affichées ici.</div>
+                        <v-btn color="primary" @click="openPreventiveMaintenanceDialog" prepend-icon="mdi-plus"
+                          :disabled="!hasUserCounters">
+                          Ajouter une maintenance préventive
+                        </v-btn>
+                      </div>
+
                     </v-card-text>
                   </v-card>
                 </v-stepper-window-item>
@@ -268,7 +313,7 @@
                     type="button"
                     variant="text"
                     color="primary"
-                    v-if="step < EQUIPMENT_CREATE_STEPS.length && !(step === 6 && !hasCounters)"
+                    v-if="step < EQUIPMENT_CREATE_STEPS.length && !(step === 4 && !hasUserCounters)"
                     @click="nextStep" :disabled="!canGoToNextStep(validation)">
                     Suivant
                   </v-btn>
@@ -301,6 +346,7 @@
           <MaintenancePlanInlineForm v-model="currentPlan" :isEditMode="isPlanEditMode"
             :counters="formData.compteurs" :typesPM="typesPM" :consumables="consumables"
             :typesDocuments="typesDocuments" :show-pm-selection="true" :existing-p-ms="existingPMs"
+            :counter-filter="maintenanceCounterFilter"
             @save="savePlan" @cancel="closePlanDialog" />
         </v-card-text>
       </v-card>
@@ -361,7 +407,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { BaseForm } from '@/components/common';
 import { API_BASE_URL, EQUIPMENT_CREATE_STEPS, COUNTER_UNITS } from '@/utils/constants';
 import { useEquipmentForm } from '@/composables/useEquipmentForm';
@@ -433,10 +479,67 @@ const showConsommableDialog = ref(false);
 const magasins = ref([]);
 const openedMaintenancePanels = ref([0]);
 
-const hasCounters = computed(() => (formData.value?.compteurs?.length ?? 0) > 0);
-// Affiche les actions (dont "Créer") à l'étape 6 si aucun compteur, sinon seulement à la dernière étape.
+const visibleCounters = computed(() =>
+  (formData.value?.compteurs || []).filter(counter => !counter?.isDefaultCalendar && counter?.type !== 'Calendaire')
+);
+
+const hasUserCounters = computed(() => visibleCounters.value.length > 0);
+const hasCalendarCounter = computed(() =>
+  (formData.value?.compteurs || []).some(counter => counter?.isDefaultCalendar || counter?.type === 'Calendaire')
+);
+
+const maintenanceCounterFilter = ref('calendar');
+
+const periodicMaintenancePlans = computed(() =>
+  (formData.value?.plansMaintenance || []).filter(plan => {
+    if (plan?.compteurIndex === null || plan?.compteurIndex === undefined) {
+      return false;
+    }
+
+    const counter = formData.value?.compteurs?.[plan.compteurIndex];
+    return !!(counter?.isDefaultCalendar || counter?.type === 'Calendaire');
+  })
+);
+
+const preventiveMaintenancePlans = computed(() =>
+  (formData.value?.plansMaintenance || []).filter(plan => {
+    if (plan?.compteurIndex === null || plan?.compteurIndex === undefined) {
+      return false;
+    }
+
+    const counter = formData.value?.compteurs?.[plan.compteurIndex];
+    return !(counter?.isDefaultCalendar || counter?.type === 'Calendaire');
+  })
+);
+
+const openPeriodicMaintenanceDialog = async () => {
+  maintenanceCounterFilter.value = 'calendar';
+  await nextTick();
+  handlePlanAdd();
+};
+
+const openPreventiveMaintenanceDialog = async () => {
+  maintenanceCounterFilter.value = 'numeric';
+  await nextTick();
+  handlePlanAdd();
+  const firstNumericCounterIndex = (formData.value?.compteurs || []).findIndex(
+    counter => !counter?.isDefaultCalendar && counter?.type !== 'Calendaire'
+  );
+  if (firstNumericCounterIndex >= 0) {
+    currentPlan.value.compteurIndex = firstNumericCounterIndex;
+  } else {
+    currentPlan.value.compteurIndex = null;
+  }
+};
+
+const handlePeriodicPlanEdit = (plan) => {
+  maintenanceCounterFilter.value = 'calendar';
+  handlePlanEdit(plan);
+};
+
+// Affiche les actions (dont "Créer") à l'étape 4 si aucun compteur utilisateur, sinon seulement à la dernière étape.
 const showFormActions = computed(() =>
-  step.value === EQUIPMENT_CREATE_STEPS.length || (step.value === 6 && !hasCounters.value)
+  step.value === EQUIPMENT_CREATE_STEPS.length || (step.value === 4 && !hasUserCounters.value)
 );
 
 // Helpers de navigation entre étapes
@@ -489,6 +592,7 @@ const validationSchema = {
     reference: ['required', { name: 'maxLength', params: [100] }],
     dateMiseEnService: ['required'],
     prixAchat: ['numeric', 'positive'],
+    statut: ['required'],
   },
   step2: {
 
@@ -501,14 +605,11 @@ const validationSchema = {
     lieu: ['required'],
   },
   step4: {
-    statut: ['required'],
+    // compteurs: ['required', { name: 'minItems', params: [1] }],
   },
   step5: {
   },
   step6: {
-    // compteurs: ['required', { name: 'minItems', params: [1] }],
-  },
-  step7: {
   },
 };
 
@@ -521,20 +622,20 @@ const handleSubmit = async () => {
   // }
 
   // Validation des compteurs
-  const invalidCounters = formData.value.compteurs.filter(c =>
-    !c.nom || !c.unite
+  const invalidCounters = (formData.value.compteurs || []).filter(c =>
+    !c?.isDefaultCalendar && (!c.nom || !c.unite)
   );
 
   if (invalidCounters.length > 0) {
     errorMessage.value = 'Tous les compteurs doivent avoir un nom et une unité';
-    step.value = 6;
+    step.value = 4;
     return;
   }
 
   // Validation que le statut est défini
   if (!formData.value.statut) {
     errorMessage.value = 'Le statut de l\'équipement est requis';
-    step.value = 4;
+    step.value = 1;
     return;
   }
 
@@ -620,7 +721,7 @@ const handleCounterAdd = () => {
   editingCounterIndex.value = -1;
   isCounterEditMode.value = false;
   currentCounter.value = getEmptyCounter();
-  currentCounter.value.estPrincipal = formData.value.compteurs.length === 0;
+  currentCounter.value.estPrincipal = visibleCounters.value.length === 0;
   showCounterDialog.value = true;
 };
 
@@ -732,12 +833,12 @@ const isStepEditable = (stepNumber) => {
 
 const canGoToNextStep = (validation) => {
   if (!validation) return true;
-  // Si aucun compteur, on ne va pas au step 7 (on crée directement au step 6).
-  if (step.value === 6 && !hasCounters.value) return false;
+  // Si aucun compteur, on ne va pas au step 5 (on crée directement au step 4).
+  if (step.value === 4 && !hasUserCounters.value) return false;
 
   // Si on a des compteurs, on empêche la navigation si un compteur est incomplet.
-  if (step.value === 6 && hasCounters.value) {
-    const hasInvalidCounter = (formData.value.compteurs || []).some(c => !c.nom || !c.unite);
+  if (step.value === 4 && hasUserCounters.value) {
+    const hasInvalidCounter = (formData.value.compteurs || []).some(c => !c?.isDefaultCalendar && (!c.nom || !c.unite));
     if (hasInvalidCounter) return false;
   }
   return validation.isStepValid(step.value, formData.value);
