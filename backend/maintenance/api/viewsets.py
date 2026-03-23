@@ -2283,7 +2283,11 @@ class MaintenanceCalendarViewSet(viewsets.ViewSet):
         """ Récupère tous les déclenchmenets de compteurs calendaires"""
         from equipement.models import Declencher
 
-        declenchements = Declencher.objects.select_related('planMaintenance', 'compteur').all()
+        declenchements = Declencher.objects.select_related(
+            'planMaintenance',
+            'planMaintenance__equipement',
+            'compteur'
+        ).filter(compteur__type='CALENDAIRE')
         data = []
         for decl in declenchements:
             plan = decl.planMaintenance
