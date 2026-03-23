@@ -40,6 +40,9 @@ import EditFailure from '@/views/Failures/EditFailure.vue'
 import AddDocumentFailure from '@/views/Failures/AddDocumentFailure.vue'
 
 // ------------------------------------------------------------------
+import NoticesHome from '@/views/Notices/NoticesHome.vue'
+
+// ------------------------------------------------------------------
 
 import DataManagement from '@/views/DataManagement/DataManagement.vue'
 
@@ -421,6 +424,14 @@ const routes = [
     meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:editCreated', 'di:editAll'], permissionMode: 'OR' }
   },
 
+  // Notices ------------------------------------------------------------------
+  {
+    path: '/Notice',
+    name: 'Notice',
+    component: NoticesHome,
+    meta: { title: "Notices d'utilisation", public: true }
+  },
+
   // Lieux ---------------------------------------------------------------
 
   {
@@ -487,6 +498,14 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes
+})
+
+// Titre d'onglet (document.title)
+const APP_TITLE = 'GIMAO'
+
+router.afterEach((to) => {
+  const pageTitle = to.meta?.title
+  document.title = pageTitle ? `${pageTitle} - ${APP_TITLE}` : APP_TITLE
 })
 
 // Protection des routes
