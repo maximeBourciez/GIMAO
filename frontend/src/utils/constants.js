@@ -31,7 +31,7 @@ export const EQUIPMENT_CREATE_STEPS = [
     "Lieu d'Installation",
     "Compteurs",
     "Définition des périodicités",
-    "Maintenances préventives",
+    "Définition des seuils",
 ];
 
 // ============================================

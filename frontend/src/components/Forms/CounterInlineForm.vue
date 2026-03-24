@@ -18,7 +18,7 @@
       </v-col>
 
       <v-col cols="12" md="6" v-if="!(isEditMode && counterLocal.type === 'Calendaire')">
-        <FormSelect v-model="counterLocal.type" field-name="type" label="Type de compteur" :disabled="isEditMode"
+        <FormSelect v-model="counterLocal.type" field-name="type" label="Type de compteur" :disabled="true"
           :items="counterTypeOptions" />
       </v-col>
 

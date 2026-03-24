@@ -20,7 +20,7 @@
               </v-stepper-header>
 
               <v-stepper-window v-model="step" :steps="EQUIPMENT_CREATE_STEPS.length" class="mb-8">
-                <!-- Étape 1: Informations générales -->
+                <!-- Étape 1: Informations générales  & Statut -->
                 <v-stepper-window-item :value="1">
                   <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
                     :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
@@ -291,11 +291,11 @@
 
                       <div v-else class="text-center py-8 text-grey">
                         <v-icon size="large" class="mb-2">mdi-clipboard-check-outline</v-icon>
-                        <div class="text-h6 mb-2">Aucune maintenance préventive à afficher</div>
+                        <div class="text-h6 mb-2">Aucun seuil à afficher</div>
                         <div class="text-body-1 mb-4">Les opérations liées au calendrier ne sont pas affichées ici.</div>
                         <v-btn color="primary" @click="openPreventiveMaintenanceDialog" prepend-icon="mdi-plus"
                           :disabled="!hasUserCounters">
-                          Ajouter une maintenance préventive
+                          Ajouter un seuil
                         </v-btn>
                       </div>
 

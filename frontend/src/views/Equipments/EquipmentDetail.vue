@@ -283,7 +283,8 @@ const fileredCounters = ref([]);
 
 const filteredCounters = computed(() => {
   if (!equipement.value.compteurs) return [];
-  return equipement.value.compteurs.filter(counter => counter.type !== 'Calendaire');
+  // return equipement.value.compteurs.filter(counter => counter.type !== 'Calendaire');
+  return equipement.value.compteurs;
 });
 
 const getEmptyCounter = () => ({

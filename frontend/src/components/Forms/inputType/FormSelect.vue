@@ -9,6 +9,7 @@
       :rules="fieldRules"
       variant="outlined"
       density="comfortable"
+      :disabled="disabled"
       hide-details="auto"
     >
       <!-- Slot personnalisé pour #no-data -->
