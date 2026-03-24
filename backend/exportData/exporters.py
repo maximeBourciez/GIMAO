@@ -178,11 +178,18 @@ class StatutEquipementStrategy(BaseExportStrategy):
     def apply_date_filters(self, qs):
         start_date = self.params.get('startDate')
         end_date = self.params.get('endDate')
-        if start_date and end_date:
-            if len(start_date) == 10: start_date += " 00:00:00"
-            if len(end_date) == 10: end_date += " 23:59:59"
+        if start_date or end_date:
+            if start_date and len(start_date) == 10: start_date += " 00:00:00"
+            if end_date and len(end_date) == 10: end_date += " 23:59:59"
 
-            equipements_in_range_ids = list(qs.filter(dateChangement__range=[start_date, end_date]).values_list('equipement_id', flat=True))
+            if start_date and end_date:
+                date_filter = models.Q(dateChangement__range=[start_date, end_date])
+            elif start_date:
+                date_filter = models.Q(dateChangement__gte=start_date)
+            else:
+                date_filter = models.Q(dateChangement__lte=end_date)
+
+            equipements_in_range_ids = list(qs.filter(date_filter).values_list('equipement_id', flat=True))
             
             latest_statut_data = StatutEquipement.objects.exclude(
                 equipement_id__in=equipements_in_range_ids
@@ -191,7 +198,7 @@ class StatutEquipementStrategy(BaseExportStrategy):
             latest_statut_ids = [item['max_id'] for item in latest_statut_data if item['max_id']]
             
             qs = qs.filter(
-                models.Q(dateChangement__range=[start_date, end_date]) |
+                date_filter |
                 models.Q(id__in=latest_statut_ids)
             )
         return qs
@@ -210,10 +217,16 @@ class BonTravailStrategy(BaseExportStrategy):
     def apply_date_filters(self, qs):
         start_date = self.params.get('startDate')
         end_date = self.params.get('endDate')
-        if start_date and end_date:
-            if len(start_date) == 10: start_date += " 00:00:00"
-            if len(end_date) == 10: end_date += " 23:59:59"
-            qs = qs.filter(demande_intervention__date_changementStatut__range=[start_date, end_date])
+        if start_date or end_date:
+            if start_date and len(start_date) == 10: start_date += " 00:00:00"
+            if end_date and len(end_date) == 10: end_date += " 23:59:59"
+            
+            if start_date and end_date:
+                qs = qs.filter(demande_intervention__date_changementStatut__range=[start_date, end_date])
+            elif start_date:
+                qs = qs.filter(demande_intervention__date_changementStatut__gte=start_date)
+            else:
+                qs = qs.filter(demande_intervention__date_changementStatut__lte=end_date)
         return qs
 
 # 4. DemandeIntervention (di)
@@ -230,10 +243,16 @@ class DemandeInterventionStrategy(BaseExportStrategy):
     def apply_date_filters(self, qs):
         start_date = self.params.get('startDate')
         end_date = self.params.get('endDate')
-        if start_date and end_date:
-            if len(start_date) == 10: start_date += " 00:00:00"
-            if len(end_date) == 10: end_date += " 23:59:59"
-            qs = qs.filter(date_creation__range=[start_date, end_date])
+        if start_date or end_date:
+            if start_date and len(start_date) == 10: start_date += " 00:00:00"
+            if end_date and len(end_date) == 10: end_date += " 23:59:59"
+            
+            if start_date and end_date:
+                qs = qs.filter(date_creation__range=[start_date, end_date])
+            elif start_date:
+                qs = qs.filter(date_creation__gte=start_date)
+            else:
+                qs = qs.filter(date_creation__lte=end_date)
         return qs
 
 # 5. Consommable (conso)
@@ -255,10 +274,16 @@ class AchatConsommableStrategy(BaseExportStrategy):
     def apply_date_filters(self, qs):
         start_date = self.params.get('startDate')
         end_date = self.params.get('endDate')
-        if start_date and end_date:
-            if len(start_date) == 10: start_date += " 00:00:00"
-            if len(end_date) == 10: end_date += " 23:59:59"
-            qs = qs.filter(date_reference_prix__range=[start_date, end_date])
+        if start_date or end_date:
+            if start_date and len(start_date) == 10: start_date += " 00:00:00"
+            if end_date and len(end_date) == 10: end_date += " 23:59:59"
+            
+            if start_date and end_date:
+                qs = qs.filter(date_reference_prix__range=[start_date, end_date])
+            elif start_date:
+                qs = qs.filter(date_reference_prix__gte=start_date)
+            else:
+                qs = qs.filter(date_reference_prix__lte=end_date)
         return qs
 
 # 7. Stock (Stocker)
@@ -291,10 +316,16 @@ class SortieMagasinStrategy(BaseExportStrategy):
     def apply_date_filters(self, qs):
         start_date = self.params.get('startDate')
         end_date = self.params.get('endDate')
-        if start_date and end_date:
-            if len(start_date) == 10: start_date += " 00:00:00"
-            if len(end_date) == 10: end_date += " 23:59:59"
-            qs = qs.filter(date_confirme__range=[start_date, end_date])
+        if start_date or end_date:
+            if start_date and len(start_date) == 10: start_date += " 00:00:00"
+            if end_date and len(end_date) == 10: end_date += " 23:59:59"
+            
+            if start_date and end_date:
+                qs = qs.filter(date_confirme__range=[start_date, end_date])
+            elif start_date:
+                qs = qs.filter(date_confirme__gte=start_date)
+            else:
+                qs = qs.filter(date_confirme__lte=end_date)
         return qs
 
 # 10. Logs
@@ -311,10 +342,16 @@ class LogStrategy(BaseExportStrategy):
     def apply_date_filters(self, qs):
         start_date = self.params.get('startDate')
         end_date = self.params.get('endDate')
-        if start_date and end_date:
-            if len(start_date) == 10: start_date += " 00:00:00"
-            if len(end_date) == 10: end_date += " 23:59:59"
-            qs = qs.filter(date__range=[start_date, end_date])
+        if start_date or end_date:
+            if start_date and len(start_date) == 10: start_date += " 00:00:00"
+            if end_date and len(end_date) == 10: end_date += " 23:59:59"
+            
+            if start_date and end_date:
+                qs = qs.filter(date__range=[start_date, end_date])
+            elif start_date:
+                qs = qs.filter(date__gte=start_date)
+            else:
+                qs = qs.filter(date__lte=end_date)
         return qs
 
 # 11. Fournisseur
@@ -362,17 +399,28 @@ class SeuilStrategy(BaseExportStrategy):
     def apply_date_filters(self, qs):
         start_date = self.params.get('startDate')
         end_date = self.params.get('endDate')
-        if start_date and end_date:
+        if start_date or end_date:
             from datetime import datetime
+            
+            start_ord = None
+            end_ord = None
             try:
-                start_ord = datetime.strptime(start_date[:10], '%Y-%m-%d').date().toordinal()
-                end_ord = datetime.strptime(end_date[:10], '%Y-%m-%d').date().toordinal()
-                qs = qs.filter(
-                    models.Q(compteur__type='Calendaire', prochaineMaintenance__range=[start_ord, end_ord]) |
-                    ~models.Q(compteur__type='Calendaire')
-                )
+                if start_date:
+                    start_ord = datetime.strptime(start_date[:10], '%Y-%m-%d').date().toordinal()
+                if end_date:
+                    end_ord = datetime.strptime(end_date[:10], '%Y-%m-%d').date().toordinal()
             except ValueError:
                 pass
+            
+            if start_ord or end_ord:
+                if start_ord and end_ord:
+                    cal_filter = models.Q(compteur__type='Calendaire', prochaineMaintenance__range=[start_ord, end_ord])
+                elif start_ord:
+                    cal_filter = models.Q(compteur__type='Calendaire', prochaineMaintenance__gte=start_ord)
+                else:
+                    cal_filter = models.Q(compteur__type='Calendaire', prochaineMaintenance__lte=end_ord)
+                
+                qs = qs.filter(cal_filter | ~models.Q(compteur__type='Calendaire'))
         return qs
 
 # 17. Utilisateurs
