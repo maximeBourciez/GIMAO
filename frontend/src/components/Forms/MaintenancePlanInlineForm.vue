@@ -78,11 +78,11 @@
     <div v-if="showPmSelection">
       <h4 class="mb-3 text-body-1 font-weight-bold">
         <v-icon left color="primary" size="small">mdi-clipboard-check</v-icon>
-        Plan de maintenance
+        Opération de maintenance
       </h4>
       <v-radio-group v-model="pmMode" inline hide-details class="mb-4">
-        <v-radio label="Sélectionner un PM existant" value="existing"></v-radio>
-        <v-radio label="Créer un nouveau PM" value="new"></v-radio>
+        <v-radio label="Sélectionner une opération de maintenance existante" value="existing"></v-radio>
+        <v-radio label="Créer une nouvelle opération de maintenance" value="new"></v-radio>
       </v-radio-group>
       <v-divider class="my-4"></v-divider>
     </div>
@@ -96,7 +96,7 @@
             :items="existingPMs"
             item-title="nom"
             item-value="id"
-            label="Sélectionner un plan de maintenance"
+            label="Sélectionner une opération de maintenance"
             variant="outlined"
             density="comfortable"
             clearable
@@ -147,11 +147,11 @@
       </v-alert>
     </div>
 
-    <!-- Section: Plan de maintenance (nouveau) -->
+    <!-- Section: Opération de maintenance (nouveau) -->
     <div v-if="!showPmSelection || pmMode === 'new'">
       <h4 class="mb-3 text-body-1 font-weight-bold">
         <v-icon left color="primary" size="small">mdi-clipboard-check</v-icon>
-        Informations du plan de maintenance
+        Informations de l'opération de maintenance
       </h4>
       <v-row dense>
         <v-col cols="12" md="6">
@@ -180,7 +180,7 @@
             label="Description"
             type="textarea"
             rows="2"
-            placeholder="Description du plan de maintenance"
+            placeholder="Description de l'opération de maintenance"
           />
         </v-col>
       </v-row>
