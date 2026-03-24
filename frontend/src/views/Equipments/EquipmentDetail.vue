@@ -90,7 +90,7 @@
               <v-divider></v-divider>
               <v-card-text>
 
-                <v-data-table v-if="data.compteurs && data.compteurs.length > 0" :items="data.compteurs"
+                <v-data-table v-if="filteredCounters" :items="filteredCounters"
                   :headers="TABLE_HEADERS.COUNTER" class="elevation-1" hide-default-footer>
 
                   <template #item.valeurCourante="{ item }">
@@ -279,6 +279,12 @@ const archiveEquipment = async () => {
 // Dialog compteur
 const showCounterDialog = ref(false);
 const currentCounter = ref(null);
+const fileredCounters = ref([]);
+
+const filteredCounters = computed(() => {
+  if (!equipement.value.compteurs) return [];
+  return equipement.value.compteurs.filter(counter => counter.type !== 'Calendaire');
+});
 
 const getEmptyCounter = () => ({
   nom: '',
