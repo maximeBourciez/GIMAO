@@ -304,7 +304,7 @@
                 </v-stepper-window-item>
 
                 <!-- Navigation -->
-                <v-row justify="space-between" class="mt-6 mb-2">
+                <v-row justify="space-between" class="mt-6 mb-2 px-4">
                   <v-btn type="button" variant="text" @click="prevStep" :disabled="step === 1">
                     Précédent
                   </v-btn>
