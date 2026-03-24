@@ -295,7 +295,8 @@ const MODULE_LABELS = {
   eqmod: 'Modèles d\'équipement',
   export: 'Export',
   menu: 'Menu',
-  dash: 'Dashboard'
+  dash: 'Dashboard',
+  export: 'Export'
 }
 
 const moduleLabel = (module) => MODULE_LABELS[module] || module
