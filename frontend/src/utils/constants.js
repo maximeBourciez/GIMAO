@@ -27,12 +27,11 @@ export const EQUIPMENT_STATUS_COLORS = {
 
 export const EQUIPMENT_CREATE_STEPS = [
     "Informations Générales",
-    "Modèle d'Équipement",
+    "Modèle d'Équipement et Consommables",
     "Lieu d'Installation",
-    "Statut de l'Équipement",
-    "Consommables",
     "Compteurs",
-    "Plans de Maintenance",
+    "Définition des périodicités",
+    "Définition des seuils",
 ];
 
 // ============================================

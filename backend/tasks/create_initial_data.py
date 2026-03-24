@@ -12,7 +12,7 @@ def create_initial_data():
         )
 
     # Création des types de plans de maintenance par défaut
-    types_plan_maintenance = ['Préventive', 'Corrective']
+    types_plan_maintenance = ['Préventive systématique', 'Préventive conditionnelle', 'Corrective']
     for type_name in types_plan_maintenance:
         TypePlanMaintenance.objects.get_or_create(libelle=type_name)
 
