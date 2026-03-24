@@ -35,7 +35,14 @@
 
             <v-col cols="12" md="6">
                 <FormFileInput label="Image de l'équipement" placeholder="Sélectionner une image" accept="image/*"
-                    prepend-inner-icon="mdi-camera" @update:model-value="handleFileUpload" :defaultPreviewImage="lienImageEquipement"/>
+                    prepend-inner-icon="mdi-camera" @update:model-value="handleFileUpload"
+                    :defaultPreviewImage="lienImageEquipement" />
+            </v-col>
+
+
+            <v-col cols="12" md="6" v-if="showStatus" class="mt-2">
+                <FormSelect v-model="modelValue.statut" field-name="statut" :step="step" label="Statut"
+                    :items="equipmentStatuses" item-title="label" item-value="value" />
             </v-col>
         </template>
 
@@ -109,7 +116,7 @@
         </template>
 
         <!-- Localisation et Statut -->
-        <template v-if="showLocation || showStatus">
+        <template v-if="showLocation">
             <v-col cols="12">
                 <v-divider class="my-4"></v-divider>
                 <v-card-subtitle class="text-h6 font-weight-bold px-0 pb-2">
@@ -118,14 +125,8 @@
             </v-col>
 
             <v-col v-if="showLocation" cols="12" :md="showStatus ? 6 : 12">
-                <LocationTreeView :items="locations" v-model:selected="modelValue.lieu"
-                    :show-create-button="true" @create="$emit('open-lieu-dialog', $event)"
-                    @created="handleLocationCreated" />
-            </v-col>
-
-            <v-col v-if="showStatus" cols="12" md="6">
-                <FormSelect v-model="modelValue.statut" field-name="statut" :step="step" label="Statut"
-                    :items="equipmentStatuses" item-title="label" item-value="value" />
+                <LocationTreeView :items="locations" v-model:selected="modelValue.lieu" :show-create-button="true"
+                    @create="$emit('open-lieu-dialog', $event)" @created="handleLocationCreated" />
             </v-col>
         </template>
 
@@ -140,7 +141,17 @@
 
             <v-col cols="12">
                 <FormSelect v-model="modelValue.consommables" label="Consommables" :items="consumables"
-                    item-title="designation" item-value="id" multiple chips clearable />
+                    item-title="designation" item-value="id" multiple chips clearable>
+                    <template #append-item>
+                        <v-divider class="mt-2" />
+                        <v-list-item @click="$emit('open-consommable-dialog')">
+                            <template #prepend>
+                                <v-icon color="primary">mdi-plus</v-icon>
+                            </template>
+                            <v-list-item-title>Ajouter un consommable</v-list-item-title>
+                        </v-list-item>
+                    </template>
+                </FormSelect>
             </v-col>
         </template>
 
@@ -167,7 +178,7 @@
                     </template>
                     <template #item.options="{ item }">
                         <div>
-                            {{ item.estPrincipal ? '   Principal' : '   Aucune' }}
+                            {{ item.estPrincipal ? ' Principal' : ' Aucune' }}
                         </div>
                     </template>
                     <template #item.planMaintenance="{ item }">
@@ -264,7 +275,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter', 'open-modele-dialog', 'open-fournisseur-dialog', 'open-fabricant-dialog', 'open-famille-dialog', 'open-lieu-dialog']);
+const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter', 'open-modele-dialog', 'open-fournisseur-dialog', 'open-fabricant-dialog', 'open-famille-dialog', 'open-lieu-dialog', 'open-consommable-dialog']);
 
 const handleFileUpload = (file) => {
     emit('file-upload', file);

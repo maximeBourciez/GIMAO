@@ -1,5 +1,6 @@
 <template>
   <v-form @submit.prevent="handleSave">
+
     <!-- Section: Configuration des seuils -->
     <div v-if="!hideSeuilSection">
       <h4 class="mb-3 text-body-1 font-weight-bold">
@@ -25,12 +26,13 @@
                 </template>
                 <v-list-item-title>
                   {{ item.raw.label }}
-                  <span v-if="item.raw.isPrincipal" class="text-caption text-primary ml-1"
-                    >(Principal)</span
-                  >
+                  <span v-if="item.raw.isPrincipal" class="text-caption text-primary ml-1">(Principal)</span>
                 </v-list-item-title>
-                <v-list-item-subtitle>
+                <v-list-item-subtitle v-if="item.raw.type !== 'Calendaire'">
                   {{ item.raw.currentValue }} {{ item.raw.unit }}
+                </v-list-item-subtitle>
+                <v-list-item-subtitle v-else>
+                  {{ ordinalToDisplay(item.raw.currentValue) ?? "—" }}
                 </v-list-item-subtitle>
               </v-list-item>
             </template>
@@ -43,78 +45,23 @@
             field-name="valeurCompteur"
             label="Valeur du compteur"
             :readonly="true"
-            :suffix="selectedCounterType === 'Calendaire' ? '': selectedCounterUnit"
+            :suffix="selectedCounterType === 'Calendaire' ? '' : selectedCounterUnit"
             :type="selectedCounterType === 'Calendaire' ? 'date' : 'text'"
           />
         </v-col>
+      </v-row>
 
-        <v-col cols="12" md="4">
-          <FormField
-            v-model="plan.seuil.derniereIntervention"
-            field-name="derniereIntervention"
-            :type="selectedCounterType === 'Calendaire' ? 'date' : 'number'"
-            label="Dernière intervention"
-            placeholder="0"
-            min="0"
-            @update:model-value="updateProchaineMaintenance"
-          />
-        </v-col>
+      <!-- Seuil numérique ou calendaire selon le type de compteur -->
+      <SeuilNumerique
+        v-if="selectedCounterType !== 'Calendaire'"
+        v-model="plan.seuil"
+      />
+      <SeuilCalendaire
+        v-else
+        v-model="plan.seuil"
+      />
 
-        <v-col cols="12" md="4" v-if="selectedCounterType !== 'Calendaire'">
-          <FormField
-            v-model="plan.seuil.ecartInterventions"
-            field-name="ecartInterventions"
-            type="number"
-            label="Écart entre interventions"
-            placeholder="0"
-            min="0"
-            @update:model-value="updateProchaineMaintenance"
-          />
-        </v-col>
-
-        <v-col cols="12" md="4" v-else>
-          <v-row dense>
-            <v-col cols="4">
-              <FormField
-                v-model="ecartCalendaire"
-                field-name="ecartInterventions"
-                type="number"
-                label="Écart"
-                placeholder="0"
-                min="0"
-                @update:model-value="updateProchaineMaintenance"
-              />
-            </v-col>
-            <v-col cols="8">
-              <FormSelect
-                v-model="uniteCalendaire"
-                field-name="uniteIntervalle"
-                label="Unité"
-                :items="[
-                  { label: 'Heures', value: 'hours' },
-                  { label: 'Jours', value: 'days' },
-                  { label: 'Semaines', value: 'weeks' },
-                  { label: 'Mois', value: 'months' },
-                  { label: 'Années', value: 'years' },
-                ]"
-                item-title="label"
-                item-value="value"
-                @update:model-value="updateProchaineMaintenance"
-              />
-            </v-col>
-          </v-row>
-        </v-col>
-
-        <v-col cols="12" md="4">
-          <FormField
-            v-model="plan.seuil.prochaineMaintenance"
-            field-name="prochaineMaintenance"
-            :type="selectedCounterType === 'Calendaire' ? 'date' : 'number'"
-            label="Prochaine maintenance"
-            :readonly="true"
-          />
-        </v-col>
-
+      <v-row dense class="mt-2">
         <v-col cols="12" md="4">
           <FormCheckbox
             v-model="plan.seuil.estGlissant"
@@ -131,13 +78,12 @@
     <div v-if="showPmSelection">
       <h4 class="mb-3 text-body-1 font-weight-bold">
         <v-icon left color="primary" size="small">mdi-clipboard-check</v-icon>
-        Plan de maintenance
+        Opération de maintenance
       </h4>
       <v-radio-group v-model="pmMode" inline hide-details class="mb-4">
-        <v-radio label="Sélectionner un PM existant" value="existing"></v-radio>
-        <v-radio label="Créer un nouveau PM" value="new"></v-radio>
+        <v-radio label="Sélectionner une opération de maintenance existante" value="existing"></v-radio>
+        <v-radio label="Créer une nouvelle opération de maintenance" value="new"></v-radio>
       </v-radio-group>
-
       <v-divider class="my-4"></v-divider>
     </div>
 
@@ -150,7 +96,7 @@
             :items="existingPMs"
             item-title="nom"
             item-value="id"
-            label="Sélectionner un plan de maintenance"
+            label="Sélectionner une opération de maintenance"
             variant="outlined"
             density="comfortable"
             clearable
@@ -158,16 +104,13 @@
             <template #item="{ props, item }">
               <v-list-item v-bind="props">
                 <template #title>{{ item.raw.nom }}</template>
-                <template #subtitle>{{
-                  getPMTypeLabel(item.raw.type_id ?? item.raw.type)
-                }}</template>
+                <template #subtitle>{{ getPMTypeLabel(item.raw.type_id ?? item.raw.type) }}</template>
               </v-list-item>
             </template>
           </v-select>
         </v-col>
       </v-row>
 
-      <!-- Aperçu du PM sélectionné -->
       <v-alert v-if="selectedExistingPM" type="info" class="mt-4" variant="tonal">
         <div class="text-subtitle-2 font-weight-bold mb-2">
           <v-icon left size="small">mdi-information</v-icon>
@@ -180,34 +123,19 @@
           </v-col>
           <v-col cols="12" md="6">
             <div class="text-caption">Type de maintenance</div>
-            <div class="font-weight-medium">
-              {{ getPMTypeLabel(selectedExistingPM.type_id) }}
-            </div>
+            <div class="font-weight-medium">{{ getPMTypeLabel(selectedExistingPM.type_id) }}</div>
           </v-col>
         </v-row>
-        <div
-          v-if="selectedExistingPM.description || selectedExistingPM.commentaire"
-          class="mt-2"
-        >
+        <div v-if="selectedExistingPM.description || selectedExistingPM.commentaire" class="mt-2">
           <div class="text-caption">Commentaire</div>
-          <div>
-            {{ selectedExistingPM.description || selectedExistingPM.commentaire }}
-          </div>
+          <div>{{ selectedExistingPM.description || selectedExistingPM.commentaire }}</div>
         </div>
         <div
-          v-if="
-            selectedExistingPM.necessiteHabilitationElectrique ||
-            selectedExistingPM.necessitePermisFeu
-          "
+          v-if="selectedExistingPM.necessiteHabilitationElectrique || selectedExistingPM.necessitePermisFeu"
           class="mt-2"
         >
           <div class="text-caption mb-1">Habilitations requises</div>
-          <v-chip
-            v-if="selectedExistingPM.necessiteHabilitationElectrique"
-            size="small"
-            color="orange"
-            class="mr-2"
-          >
+          <v-chip v-if="selectedExistingPM.necessiteHabilitationElectrique" size="small" color="orange" class="mr-2">
             <v-icon left size="small">mdi-flash</v-icon>
             Habilitation électrique
           </v-chip>
@@ -219,11 +147,11 @@
       </v-alert>
     </div>
 
-    <!-- Section: Plan de maintenance (nouveau) -->
+    <!-- Section: Opération de maintenance (nouveau) -->
     <div v-if="!showPmSelection || pmMode === 'new'">
       <h4 class="mb-3 text-body-1 font-weight-bold">
         <v-icon left color="primary" size="small">mdi-clipboard-check</v-icon>
-        Informations du plan de maintenance
+        Informations de l'opération de maintenance
       </h4>
       <v-row dense>
         <v-col cols="12" md="6">
@@ -235,7 +163,6 @@
             counter="100"
           />
         </v-col>
-
         <v-col cols="12" md="6">
           <FormSelect
             v-model="plan.type_id"
@@ -246,7 +173,6 @@
             item-value="id"
           />
         </v-col>
-
         <v-col cols="12">
           <FormField
             v-model="plan.description"
@@ -254,7 +180,7 @@
             label="Description"
             type="textarea"
             rows="2"
-            placeholder="Description du plan de maintenance"
+            placeholder="Description de l'opération de maintenance"
           />
         </v-col>
       </v-row>
@@ -266,7 +192,6 @@
         <v-icon left color="primary" size="small">mdi-package-variant</v-icon>
         Consommables nécessaires
       </h4>
-
       <v-row
         v-for="(conso, index) in plan.consommables"
         :key="index"
@@ -297,17 +222,11 @@
           ></v-text-field>
         </v-col>
         <v-col cols="12" md="1" class="text-center">
-          <v-btn
-            icon
-            size="small"
-            color="error"
-            @click="removeConsommable(index)"
-          >
+          <v-btn icon size="small" color="error" @click="removeConsommable(index)">
             <v-icon>mdi-delete</v-icon>
           </v-btn>
         </v-col>
       </v-row>
-
       <v-row dense>
         <v-col cols="12">
           <v-btn variant="outlined" color="primary" size="small" @click="addConsommable">
@@ -324,7 +243,6 @@
         <v-icon left color="primary" size="small">mdi-file-document</v-icon>
         Documents associés
       </h4>
-
       <DocumentForm v-model="documentFormModel" :type-documents="typesDocuments" />
 
       <v-divider class="my-4"></v-divider>
@@ -343,7 +261,6 @@
             color="orange"
           />
         </v-col>
-
         <v-col cols="12" md="6">
           <FormCheckbox
             v-model="plan.necessitePermisFeu"
@@ -368,9 +285,11 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted } from "vue";
+import { computed, ref, watch } from "vue";
 import { FormField, FormCheckbox, FormSelect } from "@/components/common";
 import DocumentForm from "@/components/Forms/DocumentForm.vue";
+import SeuilNumerique  from "@/components/Forms/Seuil/SeuilNumerique.vue";
+import SeuilCalendaire from "@/components/Forms/Seuil/SeuilCalendaire.vue";
 
 const props = defineProps({
   modelValue: {
@@ -401,6 +320,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  counterFilter: {
+    type: String,
+    default: "all",
+  },
   typesPM: {
     type: Array,
     default: () => [],
@@ -421,96 +344,179 @@ const localError = ref("");
 const pmMode = ref("new");
 const selectedExistingPMId = ref(null);
 
-// VAriables pour les compteurs calendaires
-const ecartCalendaire = ref(0);
-const uniteCalendaire = ref("days");
-
 const plan = computed({
   get: () => props.modelValue,
   set: (v) => emit("update:modelValue", v),
 });
 
-// Adapter vers le schéma attendu par DocumentForm.
-const documentFormModel = computed({
-  get: () => {
-    const base = Array.isArray(plan.value.documents) ? plan.value.documents : [];
-    return base.map((d) => ({
-      document_id: d.document_id ?? d.id ?? null,
-      nomDocument: d.nomDocument ?? d.nom ?? d.titre ?? "",
-      typeDocument_id: (() => {
-        const raw = d.typeDocument_id ?? d.type_id ?? d.type ?? null;
-        if (raw === null || raw === undefined || raw === "") return null;
-        return raw;
-      })(),
-      file: d.file ?? null,
-      existingFileName: d.existingFileName ?? d.path ?? null,
-    }));
-  },
-  set: (rows) => {
-    const base = Array.isArray(rows) ? rows : [];
-    const normalized = base.map((d) => ({
-      nom: d?.nomDocument ?? "",
-      type_id: d?.typeDocument_id ?? null,
-      file: d?.file ?? null,
-    }));
+// --- Compteurs ---
 
-    plan.value = {
-      ...plan.value,
-      documents: normalized,
-    };
-  },
-});
+const countersForSelect = computed(() =>
+  props.counters
+    .map((counter, index) => ({ counter, index }))
+    .filter(({ counter }) => {
+      const isCalendarCounter = counter?.isDefaultCalendar === true || counter?.type === 'Calendaire';
+      if (props.counterFilter === 'calendar') return isCalendarCounter;
+      if (props.counterFilter === 'numeric') return !isCalendarCounter;
+      return true;
+    })
+    .map(({ counter, index }) => ({
+      value: index,
+      label: counter.nom,
+      type: counter.type,
+      isPrincipal: counter.estPrincipal,
+      currentValue: counter.valeurCourante,
+      unit: counter.unite,
+    }))
+);
 
-// Transformer les compteurs pour le select
-const countersForSelect = computed(() => {
-  return props.counters.map((counter, index) => ({
-    value: index,
-    label: counter.nom,
-    isPrincipal: counter.estPrincipal,
-    currentValue: counter.valeurCourante,
-    unit: counter.unite,
-  }));
-});
-
-// Valeur et unité du compteur sélectionné
-const selectedCounterValue = computed(() => {
-  if (plan.value.compteurIndex === null || plan.value.compteurIndex === undefined)
-    return "—";
-  const counter = props.counters[plan.value.compteurIndex];
-
-  if(counter?.type === "Calendaire"){
-    return ordinalToISOString(counter.valeurCourante);
+watch(countersForSelect, (items) => {
+  if (!items.length) {
+    plan.value.compteurIndex = null;
+    return;
   }
-  return counter?.valeurCourante ?? "—";
+
+  const isCurrentStillAvailable = items.some(item => item.value === plan.value.compteurIndex);
+  if (!isCurrentStillAvailable) {
+    plan.value.compteurIndex = items[0].value;
+  }
+}, { immediate: true });
+
+watch(
+  () => props.counterFilter,
+  (mode) => {
+    if (mode !== 'numeric') return;
+    const selected = props.counters?.[plan.value.compteurIndex];
+    const selectedIsCalendar = selected?.isDefaultCalendar === true || selected?.type === 'Calendaire';
+    if (selectedIsCalendar) {
+      const firstNumeric = countersForSelect.value.find(item => {
+        const counter = props.counters?.[item.value];
+        return !(counter?.isDefaultCalendar === true || counter?.type === 'Calendaire');
+      });
+      plan.value.compteurIndex = firstNumeric ? firstNumeric.value : null;
+    }
+  },
+  { immediate: true }
+);
+
+const selectedCounter = computed(() => {
+  if (plan.value.compteurIndex === null || plan.value.compteurIndex === undefined) return null;
+  return props.counters[plan.value.compteurIndex] ?? null;
 });
 
-const selectedCounterUnit = computed(() => {
-  if (plan.value.compteurIndex === null || plan.value.compteurIndex === undefined)
-    return "";
-  const counter = props.counters[plan.value.compteurIndex];
-  return counter?.unite ?? "";
+const selectedCounterType = computed(() => selectedCounter.value?.type ?? "");
+const selectedCounterUnit = computed(() => selectedCounter.value?.unite ?? "");
+
+const selectedCounterValue = computed(() => {
+  if (!selectedCounter.value) return "—";
+  if (selectedCounterType.value === "Calendaire") {
+    return ordinalToISO(selectedCounter.value.valeurCourante);
+  }
+  return selectedCounter.value.valeurCourante ?? "—";
 });
 
-const selectedCounterType = computed(() => {
-  if (plan.value.compteurIndex === null || plan.value.compteurIndex === undefined)
-    return "";
-  const counter = props.counters[plan.value.compteurIndex];
-  return counter?.type ?? "";
-});
+// Utilitaire (lecture seule ici, la conversion onMounted vit dans SeuilCalendaire)
+const ordinalToISO = (ordinal) => {
+  if (!ordinal && ordinal !== 0) return null;
+  const ORDINAL_EPOCH = 719162;
+  const date = new Date(Date.UTC(1970, 0, 1 + (ordinal - ORDINAL_EPOCH)));
+  return date.toISOString().split("T")[0];
+};
 
-const selectedExistingPM = computed(() =>{
-  return props.existingPMs.find((pm) => pm.id === selectedExistingPMId.value);
-});
+const ordinalToDisplay = (ordinal) => {
+  const iso = ordinalToISO(ordinal);
+  if (!iso) return null;
+  const [year, month, day] = iso.split("-");
+  return `${day}/${month}/${year}`;
+};
+
+// --- PM existant ---
+
+const selectedExistingPM = computed(() =>
+  props.existingPMs.find((pm) => pm.id === selectedExistingPMId.value)
+);
 
 const getPMTypeLabel = (typeId) => {
   const type = props.typesPM.find((t) => t.id === typeId);
   return type ? type.libelle : "Non spécifié";
 };
 
-const isValid = computed(() => {
-  // Vérifier d'abord que le seuil est valide
-  const seuilValid = Number(plan.value.seuil?.ecartInterventions) > 0;
+const applyExistingPMToPlan = (pm) => {
+  if (!pm) return;
+  plan.value.id          = pm.id;
+  plan.value.nom         = pm.nom         ?? plan.value.nom;
+  plan.value.type_id     = pm.type_id     ?? pm.type ?? plan.value.type_id;
+  plan.value.description = pm.description ?? pm.commentaire ?? plan.value.description;
+  plan.value.necessiteHabilitationElectrique = !!pm.necessiteHabilitationElectrique;
+  plan.value.necessitePermisFeu              = !!pm.necessitePermisFeu;
+  plan.value.consommables = Array.isArray(pm.consommables)
+    ? pm.consommables.map((c) => ({
+        consommable_id:      c.consommable_id || c.id,
+        quantite_necessaire: c.quantite_necessaire || c.quantite || 1,
+      }))
+    : [];
+  plan.value.documents = Array.isArray(pm.documents)
+    ? pm.documents.map((d) => ({
+        nom:    d.nomDocument || d.nom || d.titre,
+        type_id: d.typeDocument_id || d.type_id || d.type,
+        file:   null,
+      }))
+    : [];
+  // seuil et compteurIndex intentionnellement préservés
+};
 
+watch(pmMode, (mode) => {
+  localError.value = "";
+  if (mode !== "existing") selectedExistingPMId.value = null;
+});
+
+watch(selectedExistingPMId, () => {
+  localError.value = "";
+  if (!props.showPmSelection || pmMode.value !== "existing") return;
+  if (selectedExistingPM.value) applyExistingPMToPlan(selectedExistingPM.value);
+});
+
+// --- Documents (adaptateur vers DocumentForm) ---
+
+const documentFormModel = computed({
+  get: () => {
+    const base = Array.isArray(plan.value.documents) ? plan.value.documents : [];
+    return base.map((d) => ({
+      document_id:      d.document_id ?? d.id ?? null,
+      nomDocument:      d.nomDocument ?? d.nom ?? d.titre ?? "",
+      typeDocument_id: (() => {
+        const raw = d.typeDocument_id ?? d.type_id ?? d.type ?? null;
+        return (raw === null || raw === undefined || raw === "") ? null : raw;
+      })(),
+      file:             d.file ?? null,
+      existingFileName: d.existingFileName ?? d.path ?? null,
+    }));
+  },
+  set: (rows) => {
+    const normalized = (Array.isArray(rows) ? rows : []).map((d) => ({
+      nom:    d?.nomDocument   ?? "",
+      type_id: d?.typeDocument_id ?? null,
+      file:   d?.file          ?? null,
+    }));
+    plan.value = { ...plan.value, documents: normalized };
+  },
+});
+
+// --- Consommables ---
+
+const addConsommable = () => {
+  if (!plan.value.consommables) plan.value.consommables = [];
+  plan.value.consommables.push({ consommable_id: null, quantite_necessaire: 1 });
+};
+
+const removeConsommable = (index) => {
+  plan.value.consommables.splice(index, 1);
+};
+
+// --- Validation ---
+
+const isValid = computed(() => {
+  const seuilValid = Number(plan.value.seuil?.ecartInterventions) > 0;
   if (!seuilValid) return false;
 
   if (props.showPmSelection && pmMode.value === "existing") {
@@ -522,156 +528,24 @@ const isValid = computed(() => {
   }
 
   return (
-    plan.value.nom &&
-    plan.value.nom.trim() !== "" &&
+    plan.value.nom?.trim() !== "" &&
     plan.value.type_id !== null &&
     plan.value.compteurIndex !== null &&
     plan.value.compteurIndex !== undefined
   );
 });
 
-const applyExistingPMToPlan = (pm) => {
-  console.log("Applying existing PM to plan. PM data:", pm);
-  if (!pm) return;
-  
-  console.log("Plan avant application:", plan.value);
-  console.log("PM sélectionné:", pm);
-  
-  // ✅ NE PAS réassigner plan.value directement
-  // Modifier les propriétés une par une pour garder la réactivité
-  
-  plan.value.id = pm.id;
-  plan.value.nom = pm.nom ?? plan.value.nom;
-  plan.value.type_id = pm.type_id ?? pm.type ?? plan.value.type_id;
-  plan.value.description = pm.description ?? pm.commentaire ?? plan.value.description;
-  plan.value.necessiteHabilitationElectrique = !!pm.necessiteHabilitationElectrique;
-  plan.value.necessitePermisFeu = !!pm.necessitePermisFeu;
-  
-  // Consommables
-  plan.value.consommables = Array.isArray(pm.consommables)
-    ? pm.consommables.map((c) => ({
-        consommable_id: c.consommable_id || c.id,
-        quantite_necessaire: c.quantite_necessaire || c.quantite || 1
-      }))
-    : [];
-  
-  // Documents
-  plan.value.documents = Array.isArray(pm.documents)
-    ? pm.documents.map((d) => ({
-        nom: d.nomDocument || d.nom || d.titre,
-        type_id: d.typeDocument_id || d.type_id || d.type,
-        file: null
-      }))
-    : [];
-  
-  // ⚠️ IMPORTANT : Conserver seuil et compteurIndex
-  // Ne pas écraser ces valeurs !
-  
-  console.log("Plan après application:", plan.value);
-};
-
-watch(pmMode, (mode) => {
-  localError.value = "";
-  if (mode !== "existing") {
-    selectedExistingPMId.value = null;
-    return;
-  } 
-});
-
-watch(selectedExistingPMId, () => {
-  localError.value = "";
-  if (!props.showPmSelection) return;
-  if (pmMode.value !== "existing") return;
-  if (!selectedExistingPM.value) {
-    return
-  };
-  applyExistingPMToPlan(selectedExistingPM.value);
-});
-
-// Calcul automatique de la prochaine maintenance
-const updateProchaineMaintenance = () => {
-  if (selectedCounterType.value === "Calendaire") {
-    const derniere = plan.value.seuil.derniereIntervention;
-    const ecart = Number(ecartCalendaire.value || 0);
-    const unite = uniteCalendaire.value;
-
-    if (!derniere || !ecart || !unite) {
-      plan.value.seuil.prochaineMaintenance = "";
-      return;
-    }
-
-    const dateDerniere = new Date(derniere);
-    let prochaineDate = new Date(dateDerniere);
-
-    switch (unite) {
-      case "days":
-        prochaineDate.setDate(prochaineDate.getDate() + ecart);
-        break;
-      case "weeks":
-        prochaineDate.setDate(prochaineDate.getDate() + ecart * 7);
-        break;
-      case "months":
-        prochaineDate.setMonth(prochaineDate.getMonth() + ecart);
-        break;
-      case "years":
-        prochaineDate.setFullYear(prochaineDate.getFullYear() + ecart);
-        break;
-      default:
-        plan.value.seuil.prochaineMaintenance = "";
-        return;
-    }
-
-    plan.value.seuil.prochaineMaintenance = prochaineDate.toISOString().split("T")[0];
-
-    // Stocker le delta en timestamp
-    plan.value.seuil.ecartInterventions = prochaineDate.getTime() - dateDerniere.getTime();
-
-  } else {
-    // Cas non calendaire
-    const derniere = Number(plan.value.seuil.derniereIntervention);
-    const ecart = Number(plan.value.seuil.ecartInterventions);
-    if (isNaN(derniere) || isNaN(ecart)) {
-      plan.value.seuil.prochaineMaintenance = "";
-      return;
-    }
-    plan.value.seuil.prochaineMaintenance = derniere + ecart;
-  }
-};
-
-
-// Gestion des consommables
-const addConsommable = () => {
-  if (!plan.value.consommables) {
-    plan.value.consommables = [];
-  }
-  plan.value.consommables.push({
-    consommable_id: null,
-    quantite_necessaire: 1,
-  });
-};
-
-const removeConsommable = (index) => {
-  plan.value.consommables.splice(index, 1);
-};
+// --- Actions ---
 
 const handleSave = () => {
-  console.log("Attempting to save plan:", plan.value);
   if (!isValid.value) {
-    localError.value =
-      "Veuillez remplir tous les champs obligatoires (nom, type et compteur)";
+    localError.value = "Veuillez remplir tous les champs obligatoires (nom, type et compteur)";
     return;
   }
   localError.value = "";
-
-  console.log("Saving plan with data:", {
-    pmMode: pmMode.value,
-    selectedExistingPMId: selectedExistingPMId.value,
-    planData: plan.value,
-  });
-  
   emit("save", {
     pmMode: pmMode.value,
-    selectedExistingPMId: selectedExistingPMId.value,  // Utilisez directement l'ID
+    selectedExistingPMId: selectedExistingPMId.value,
     planData: plan.value,
   });
 };
@@ -680,72 +554,4 @@ const handleCancel = () => {
   localError.value = "";
   emit("cancel");
 };
-
-// Fonction utilitaire
-const ordinalToISOString = (ordinal) => {
-  if (!ordinal && ordinal !== 0) return null;
-  
-  const ORDINAL_EPOCH = 719162; // 1970-01-01
-  const daysFromEpoch = ordinal - ORDINAL_EPOCH;
-  const date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
-  
-  return date.toISOString().split('T')[0]; // "YYYY-MM-DD"
-};
-
-onMounted(() => {
-  if (props.isEditMode && plan.value.seuil) {
-    console.log("Type PM : ", getPMTypeLabel( plan.value.type_id || plan.value.type));
-
-    if (selectedCounterType.value === "Calendaire") {
-      
-      // Convertir derniereIntervention (ordinal → ISO string)
-      if (plan.value.seuil.derniereIntervention && typeof plan.value.seuil.derniereIntervention === "number") {
-        plan.value.seuil.derniereIntervention = ordinalToISOString(
-          plan.value.seuil.derniereIntervention
-        );
-      }
-
-      
-      const currentVal = props.counters[plan.value.compteurIndex]?.valeurCourante;
-      if (!plan.value.seuil.derniereIntervention && currentVal !== undefined && currentVal !== null && typeof currentVal === "number") {
-        const n = Number(currentVal);
-        if (!isNaN(n)) {
-          plan.value.seuil.derniereIntervention = ordinalToISOString(n);
-        }
-      }
-      
-      // Convertir prochaineMaintenance aussi
-      if (plan.value.seuil.prochaineMaintenance && typeof plan.value.seuil.prochaineMaintenance === "number") {
-        plan.value.seuil.prochaineMaintenance = ordinalToISOString(
-          plan.value.seuil.prochaineMaintenance
-        );
-      }
-      
-      // Calculer ecartCalendaire depuis ecartInterventions (MS)
-      const intervalle = Number(plan.value.seuil.ecartInterventions);
-      if (!isNaN(intervalle) && intervalle > 0) {
-        const days = Math.round(intervalle / (1000 * 60 * 60 * 24));
-        
-        // Choisir l'unité appropriée
-        if (days < 7) {
-          ecartCalendaire.value = days;
-          uniteCalendaire.value = "days";
-        } else if (days < 60) {
-          ecartCalendaire.value = Math.round(days / 7);
-          uniteCalendaire.value = "weeks";
-        } else if (days < 365) {
-          ecartCalendaire.value = Math.round(days / 30);
-          uniteCalendaire.value = "months";
-        } else {
-          ecartCalendaire.value = Math.round(days / 365);
-          uniteCalendaire.value = "years";
-        }
-      }
-    }
-
-    
-  }
-
-  
-});
 </script>

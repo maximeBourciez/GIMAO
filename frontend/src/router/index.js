@@ -40,6 +40,9 @@ import EditFailure from '@/views/Failures/EditFailure.vue'
 import AddDocumentFailure from '@/views/Failures/AddDocumentFailure.vue'
 
 // ------------------------------------------------------------------
+import NoticesHome from '@/views/Notices/NoticesHome.vue'
+
+// ------------------------------------------------------------------
 
 import DataManagement from '@/views/DataManagement/DataManagement.vue'
 
@@ -421,6 +424,14 @@ const routes = [
     meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:editCreated', 'di:editAll'], permissionMode: 'OR' }
   },
 
+  // Notices ------------------------------------------------------------------
+  {
+    path: '/Notice',
+    name: 'Notice',
+    component: NoticesHome,
+    meta: { title: "Notices d'utilisation", public: true }
+  },
+
   // Lieux ---------------------------------------------------------------
 
   {
@@ -553,6 +564,10 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
+
+router.afterEach((to) => {
+  document.title = to.meta.title ? `GIMAO - ${to.meta.title}` : 'GIMAO'
+})
 
 
 export default router

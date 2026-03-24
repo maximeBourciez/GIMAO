@@ -35,6 +35,28 @@ export function useEquipmentForm(isEditMode = false) {
     return null;
   };
 
+  const ORDINAL_EPOCH = 719162; // 1970-01-01
+
+  const todayToOrdinal = () => {
+    const now = new Date();
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysSinceEpoch = Math.floor(
+      (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) -
+      Date.UTC(1970, 0, 1)) / msPerDay
+    );
+    return daysSinceEpoch + ORDINAL_EPOCH;
+  };
+
+  const createDefaultCalendarCounter = () => ({
+    id: null,
+    nom: 'Calendrier',
+    valeurCourante: todayToOrdinal(),
+    unite: 'date',
+    estPrincipal: false,
+    type: 'Calendaire',
+    isDefaultCalendar: true
+  });
+
   const formData = ref({
     numSerie: '',
     reference: '',
@@ -49,7 +71,7 @@ export function useEquipmentForm(isEditMode = false) {
     lieu: null,
     statut: null,
     consommables: [],
-    compteurs: [],
+    compteurs: isEditMode ? [] : [createDefaultCalendarCounter()],
     plansMaintenance: [],
     createurEquipement: getCurrentUserId()
   });
@@ -121,7 +143,8 @@ export function useEquipmentForm(isEditMode = false) {
     valeurCourante: null,
     unite: 'heures',
     estPrincipal: false,
-    type: 'Numérique'
+    type: 'Numérique',
+    isDefaultCalendar: false
   });
   const currentCounter = ref(getEmptyCounter());
 
@@ -189,7 +212,10 @@ export function useEquipmentForm(isEditMode = false) {
       fabricants.value = data.fabricants;
       consumables.value = data.consumables;
       familles.value = data.familles;
-      typesPM.value = data.typesPM;
+      typesPM.value = data.typesPM.filter(item => item.libelle === 'Préventive conditionnelle' || item.libelle === 'Préventive systématique').map(item => ({
+        id: item.id,
+        libelle: item.libelle
+      }));
       typesDocuments.value = data.typesDocuments;
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -311,6 +337,9 @@ export function useEquipmentForm(isEditMode = false) {
   };
 
   const handleCounterDelete = (counter) => {
+    if (counter?.isDefaultCalendar) {
+      return;
+    }
     if (confirm('Êtes-vous sûr de vouloir supprimer ce compteur ?')) {
       formData.value.compteurs = formData.value.compteurs.filter(c => c !== counter);
     }
@@ -319,8 +348,6 @@ export function useEquipmentForm(isEditMode = false) {
   const dateToOrdinal = (dateStr) => {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return null;
-
-    const ORDINAL_EPOCH = 719162; // 1970-01-01
 
     // Nombre de jours depuis 1970-01-01 en UTC
     const msPerDay = 1000 * 60 * 60 * 24;
@@ -333,7 +360,6 @@ export function useEquipmentForm(isEditMode = false) {
   };
 
   const ordinalToDate = (ordinal) => {
-    const ORDINAL_EPOCH = 719162; // 1970-01-01
     const msPerDay = 1000 * 60 * 60 * 24;
     const date = new Date((ordinal - ORDINAL_EPOCH) * msPerDay);
     return date.toISOString().split('T')[0];
@@ -341,20 +367,30 @@ export function useEquipmentForm(isEditMode = false) {
 
 
   const saveCurrentCounter = () => {
+    const normalizedCounter = {
+      ...currentCounter.value,
+      isDefaultCalendar: false,
+      type: currentCounter.value?.type === 'Calendaire' ? 'Numérique' : (currentCounter.value?.type || 'Numérique')
+    };
+
+    if (normalizedCounter.type !== 'Calendaire' && !normalizedCounter.unite) {
+      normalizedCounter.unite = 'heures';
+    }
+
     if (editingCounterIndex.value >= 0) {
       // Mode édition
-      formData.value.compteurs[editingCounterIndex.value] = { ...currentCounter.value };
-      formData.value.compteurs[editingCounterIndex.value].type === 'Calendaire' ? 
-        formData.value.compteurs[editingCounterIndex.value].valeurCourante =  
-          dateToOrdinal(currentCounter.value.valeurCourante) :
-        formData.value.compteurs[editingCounterIndex.value].valeurCourante = currentCounter.value.valeurCourante;
+      formData.value.compteurs[editingCounterIndex.value] = { ...normalizedCounter };
+      formData.value.compteurs[editingCounterIndex.value].type === 'Calendaire' ?
+        formData.value.compteurs[editingCounterIndex.value].valeurCourante =
+          dateToOrdinal(normalizedCounter.valeurCourante) :
+        formData.value.compteurs[editingCounterIndex.value].valeurCourante = normalizedCounter.valeurCourante;
     } else {
       // Mode ajout
-      formData.value.compteurs.push({ ...currentCounter.value });
+      formData.value.compteurs.push({ ...normalizedCounter });
       formData.value.compteurs[formData.value.compteurs.length - 1].type === 'Calendaire' ?
-        formData.value.compteurs[formData.value.compteurs.length - 1].valeurCourante =  
-          dateToOrdinal(currentCounter.value.valeurCourante) :
-        formData.value.compteurs[formData.value.compteurs.length - 1].valeurCourante = currentCounter.value.valeurCourante;
+        formData.value.compteurs[formData.value.compteurs.length - 1].valeurCourante =
+          dateToOrdinal(normalizedCounter.valeurCourante) :
+        formData.value.compteurs[formData.value.compteurs.length - 1].valeurCourante = normalizedCounter.valeurCourante;
     }
     closeCounterDialog();
   };
@@ -364,7 +400,8 @@ export function useEquipmentForm(isEditMode = false) {
     isPlanEditMode.value = false;
     currentPlan.value = getEmptyPlan();
     if (formData.value.compteurs.length > 0) {
-      currentPlan.value.compteurIndex = 0;
+      const calendarCounterIndex = formData.value.compteurs.findIndex(c => c?.isDefaultCalendar || c?.type === 'Calendaire');
+      currentPlan.value.compteurIndex = calendarCounterIndex >= 0 ? calendarCounterIndex : 0;
     }
     showPlanDialog.value = true;
   };

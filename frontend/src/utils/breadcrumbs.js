@@ -79,6 +79,8 @@ export const BREADCRUMBS = {
     ModelEquipmentDetail: "Modèle d'équipement",
     EditModelEquipment: "Modifier le modèle d'équipement",
 
+    // Notices
+    Notice: "Notices d'utilisation",
     // Calendrier 
     Calendar: "Calendrier"
 };
@@ -97,6 +99,7 @@ export const HEADERS = [
     "EquipmentList",
     "FailureList",
     "ModelEquipmentList",
+    "Notice",
     "Calendar"
 ]
 
