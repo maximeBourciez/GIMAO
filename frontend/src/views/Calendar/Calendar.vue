@@ -26,6 +26,11 @@
                         item-title="nom" item-value="id" label="Filtrer par équipement" clearable />
                 </div>
 
+                <div v-if="mode === 'bt' && techniciensOptions.length" class="mb-3 px-2">
+                    <FormSelect v-model="technicienSelected" field-name="technicien_filter" :items="techniciensOptions"
+                        item-title="nom" item-value="id" label="Filtrer par technicien" clearable />
+                </div>
+
                 <vue-cal ref="vuecal" :events="currentEvents" :time-from="7 * 60" :time-to="20 * 60" :time-step="30"
                     active-view="month" locale="fr" :first-day-of-week="2" :on-event-click="onEventClick"
                     :max-events-per-cell="3" events-on-month-view="short" :today-button="true"
@@ -160,6 +165,7 @@ const eventsMaintenance = ref([])
  */
 const loadedBT = ref(false)
 const loadedMaintenance = ref(false)
+const loadedTechniciens = ref(false)
 
 /**
  * Loading
@@ -171,6 +177,16 @@ const getFilteredMaintenanceEvents = (equipmentId) => {
         return eventsMaintenance.value
     }
     return eventsMaintenance.value.filter(e => Number(e.equipement_id) === Number(equipmentId))
+}
+
+const getFilteredBTEvents = (technicienId) => {
+    if (!technicienId) {
+        return eventsBT.value
+    }
+
+    return eventsBT.value.filter((event) =>
+        (event.techniciens || []).some((technicien) => Number(technicien.id) === Number(technicienId))
+    )
 }
 
 const buildFakeMaintenanceTimeline = (events) => {
@@ -257,6 +273,28 @@ const fetchBT = async () => {
     }
 }
 
+const techniciensOptions = ref([])
+const fetchTechniciens = async () => {
+    try {
+        const res = await api.get('utilisateurs/techniciens/')
+        const data = res.data ?? res ?? []
+
+        techniciensOptions.value = (data || []).map(t => {
+            const fullName = `${t.prenom || ''} ${t.nomFamille || ''}`.trim()
+
+            return {
+                id: t.id,
+                nom: fullName || t.nom || t.username || t.email || `Technicien ${t.id}`
+            }
+        })
+
+        loadedTechniciens.value = true
+    } catch (e) {
+        console.error('Erreur Techniciens', e)
+        techniciensOptions.value = []
+    }
+}
+
 /**
  * API Maintenance
  */
@@ -340,6 +378,7 @@ const toDateOnlyString = (value) => {
  */
 const equipmentSelected = ref(null)
 const equipmentsOptions = ref([])
+const technicienSelected = ref(null)
 const fetchEquipments = async () => {
     try {
         const res = await api.get('equipements/')
@@ -361,6 +400,11 @@ const loadDataIfNeeded = async () => {
     if (mode.value === 'bt' && !loadedBT.value) {
         console.log("BT")
         await fetchBT()
+    }
+
+    // Précharge la liste des techniciens pour le filtre BT.
+    if (mode.value === 'bt' && !loadedTechniciens.value) {
+        await fetchTechniciens()
     }
 
     if (mode.value === 'maintenance' && !loadedMaintenance.value) {
@@ -397,7 +441,7 @@ const initializeCalendarFromRoute = async () => {
  */
 const currentEvents = computed(() => {
     if (mode.value === 'bt') {
-        return eventsBT.value
+        return getFilteredBTEvents(technicienSelected.value)
     }
 
     const maintenanceEvents = getFilteredMaintenanceEvents(equipmentSelected.value)
