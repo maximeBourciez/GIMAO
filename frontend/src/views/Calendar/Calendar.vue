@@ -52,12 +52,12 @@
                                     <span class="event-title font-weight-medium">{{ event.title }}</span>
 
                                     <span v-if="event.start && event.end && event.class !== 'event-mp'" class="event-time">
-                                        {{ new Date(event.start).toLocaleTimeString([], {
+                                        {{ new Date(event.start).toLocaleString('fr-FR', {
                                             day: '2-digit', month: '2-digit',
                                             hour: '2-digit', minute: '2-digit'
                                         }) }}
                                         -
-                                        {{ new Date(event.end).toLocaleTimeString([], {
+                                        {{ new Date(event.end).toLocaleString('fr-FR', {
                                             day: '2-digit', month: '2-digit', hour:
                                                 '2-digit', minute: '2-digit'
                                         }) }}
@@ -221,7 +221,7 @@ const fetchBT = async () => {
             const start = e.start || e.date_prevue
             const end = e.end && e.end !== e.start
                 ? e.end
-                : new Date(new Date(start).getTime() + 60 * 60 * 1000).toISOString()
+                : new Date(new Date(start).getTime() + 60 * 60 * 1000)
             const firstTechId = e.techniciens?.[0]?.id ?? null
             const color = getColorForEntity('technicien', firstTechId, '#E53935')
 
@@ -438,16 +438,37 @@ const onEventClick = (event, e) => {
 const toVueCalDate = (value) => {
     if (!value) return null
 
+    const formatAsLocalVueCalDate = (date) => {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+            return null
+        }
+
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        return `${year}-${month}-${day} ${hours}:${minutes}`
+    }
+
     if (value instanceof Date) {
-        if (Number.isNaN(value.getTime())) return null
-        return value.toISOString().replace('T', ' ').substring(0, 16)
+        return formatAsLocalVueCalDate(value)
     }
 
     if (typeof value === 'string') {
-        if (!value.trim()) return null
-        if (value.includes('T')) return value.replace('T', ' ').substring(0, 16)
+        const trimmed = value.trim()
+        if (!trimmed) return null
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return `${trimmed} 00:00`
+
+        // Si la date contient un fuseau (ex: Z, +01:00), on convertit en heure locale.
+        if (/([zZ]|[+-]\d{2}:\d{2})$/.test(trimmed)) {
+            return formatAsLocalVueCalDate(new Date(trimmed))
+        }
+
+        if (trimmed.includes('T')) return trimmed.replace('T', ' ').substring(0, 16)
         if (value.length === 10) return `${value} 00:00`
-        return value.substring(0, 16)
+        return trimmed.substring(0, 16)
     }
 
     return null
