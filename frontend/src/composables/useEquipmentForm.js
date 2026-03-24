@@ -212,7 +212,10 @@ export function useEquipmentForm(isEditMode = false) {
       fabricants.value = data.fabricants;
       consumables.value = data.consumables;
       familles.value = data.familles;
-      typesPM.value = data.typesPM;
+      typesPM.value = data.typesPM.filter(item => item.libelle === 'Préventive conditionnelle' || item.libelle === 'Préventive systématique').map(item => ({
+        id: item.id,
+        libelle: item.libelle
+      }));
       typesDocuments.value = data.typesDocuments;
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
