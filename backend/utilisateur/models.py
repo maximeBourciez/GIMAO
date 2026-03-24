@@ -21,7 +21,7 @@ class Role(models.Model):
     )
 
     def __str__(self):
-        return self.nomRole
+        return f"{self.id} - {self.nomRole}"
     
     class Meta:
         db_table = 'gimao_role'
@@ -132,7 +132,7 @@ class Utilisateur(models.Model):
         return self.derniereConnexion is None
 
     def __str__(self):
-        return f"{self.prenom} {self.nomFamille} ({self.nomUtilisateur})"
+        return f"{self.id} - {self.nomUtilisateur} - {self.prenom} {self.nomFamille}"
     
     class Meta:
         db_table = 'gimao_utilisateur'
@@ -179,7 +179,7 @@ class Log(models.Model):
     )
 
     def __str__(self):
-        return f"{self.type} sur {self.nomTable} ({self.date})"
+        return f"{self.id} - {self.nomTable} - action : {self.type} - {self.date}"
     
     class Meta:
         db_table = 'gimao_log'
@@ -298,7 +298,7 @@ class Permission(models.Model):
             'dash:stats.di': 'Voir les statistiques de ses DI',
             'dash:stats.full': 'Voir toutes les statistiques',
         }
-        return FULL_LABELS.get(self.nomPermission, self.nomPermission)
+        return f"{self.id} - {self.nomPermission} - {FULL_LABELS.get(self.nomPermission, self.nomPermission)}"
     
     class Meta:
         db_table = 'gimao_permission'
@@ -324,7 +324,7 @@ class RolePermission(models.Model):
     )
 
     def __str__(self):
-        return f"{self.role.nomRole} - {self.permission.nomPermission}"
+        return f"{self.id} - {self.role.nomRole} - {self.permission.nomPermission}"
     
     class Meta:
         db_table = 'gimao_role_permission'
@@ -395,7 +395,7 @@ class UtilisateurPermission(models.Model):
     )
 
     def __str__(self):
-        return f"{self.utilisateur.nomUtilisateur} - {self.permission.nomPermission}"
+        return f"{self.id} - {self.utilisateur.nomUtilisateur} - {self.permission.nomPermission}"
 
     class Meta:
         db_table = 'gimao_utilisateur_permission'

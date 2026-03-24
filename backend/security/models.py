@@ -21,7 +21,7 @@ class ApiToken(models.Model):
         return not self.is_revoked and self.valid_until > timezone.now()
 
     def __str__(self):
-        return f"{self.user} - {self.token_hash[:10]}"
+        return f"{self.id} - {self.user.nomUtilisateur} - {self.token_hash[:10]}"
     
 
 

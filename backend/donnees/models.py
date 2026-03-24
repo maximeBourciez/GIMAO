@@ -18,7 +18,7 @@ class Lieu(models.Model):
     y = models.FloatField(null=True, blank=True, help_text="Coordonnée Y du lieu par rapport à son lieu parent.")
 
     def __str__(self):
-        return self.nomLieu
+        return f"{self.id} - {self.nomLieu}"
 
     class Meta:
         db_table = 'gimao_lieu'
@@ -31,7 +31,7 @@ class TypeDocument(models.Model):
     nomTypeDocument = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.nomTypeDocument
+        return f"{self.id} - {self.nomTypeDocument}"
 
     class Meta:
         db_table = 'gimao_type_document'
@@ -48,7 +48,7 @@ class Document(models.Model):
     )
 
     def __str__(self):
-        return self.nomDocument
+        return f"{self.id} - {self.nomDocument}"
 
     class Meta:
         db_table = 'gimao_document'
@@ -67,7 +67,7 @@ class Fabricant(models.Model):
     adresse = models.ForeignKey('Adresse', on_delete=models.CASCADE, null=True, blank=True, help_text="Adresse du fabricant")
 
     def __str__(self):
-        return self.nom
+        return f"{self.id} - {self.nom}"
     
     class Meta:
         db_table = 'gimao_fabricant'
@@ -87,7 +87,7 @@ class Fournisseur(models.Model):
     adresse = models.ForeignKey('Adresse', on_delete=models.CASCADE, null=True, blank=True, help_text="Adresse du fournisseur")
 
     def __str__(self):
-        return self.nom
+        return f"{self.id} - {self.nom}"
     
     class Meta:
         db_table = 'gimao_fournisseur'
@@ -107,7 +107,7 @@ class Adresse(models.Model):
     complement = models.CharField(max_length=255, blank=True, null=True, help_text="Complément d'adresse optionnel")
     
     def __str__(self):
-        return f"{self.rue}, {self.ville}, {self.code_postal}, {self.pays}"
+        return f"{self.id} - {self.rue} - {self.ville}, {self.code_postal}, {self.pays}"
     
     class Meta:
         db_table = 'gimao_adresse'
