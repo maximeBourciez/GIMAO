@@ -1,7 +1,7 @@
 ﻿<template>
   <v-container fluid>
     <v-card class="mb-4">
-      <v-card-title class="text-h4 text-primary bg-grey-lighten-4 py-4 rounded-t">
+      <v-card-title class="text-h4 text-primary py-4 rounded-t" :class="isDarkTheme ? 'bg-grey-darken-4' : 'bg-grey-lighten-4'">
         <v-icon size="large" class="mr-2" color="primary">mdi-information</v-icon>
         Notice Générale
       </v-card-title>
@@ -17,7 +17,7 @@
 
         <v-divider class="my-4"></v-divider>
 
-        <v-tabs v-model="tab" color="primary" bg-color="grey-lighten-4" show-arrows>
+        <v-tabs v-model="tab" color="primary" :bg-color="isDarkTheme ? 'grey-darken-4' : 'grey-lighten-4'" show-arrows>
           <v-tab value="roles">
             <v-icon start>mdi-account-group</v-icon> Les Rôles
           </v-tab>
@@ -164,10 +164,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import ConnexionTab from './Auth/ConnexionTab.vue';
+import vuetify from '@/plugins/vuetify'
 
 const tab = ref('roles');
+
+const isDarkTheme = computed(() => vuetify.theme.global.current.value.dark)
 </script>
 
 <style scoped>

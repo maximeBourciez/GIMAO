@@ -63,8 +63,10 @@
     <!-- Contenu -->
     <div class="notices-content">
       <div class="notices-topbar">
-        <span>{{ currentNotice.label }}</span>
-      </div>
+        <span>{{ currentNotice.label }}</span>        <v-spacer></v-spacer>
+        <v-btn icon @click="handleThemeToggle" :title="themeToggleLabel">
+          <v-icon>{{ themeToggleIcon }}</v-icon>
+        </v-btn>      </div>
       <v-container fluid>
         <v-window v-model="tab">
           <v-window-item value="global"><NoticeGlobale /></v-window-item>
@@ -88,6 +90,9 @@ import NoticeTechnicien from '@/views/Notices/NoticeTechnicien.vue'
 import NoticeMagasinier from '@/views/Notices/NoticeMagasinier.vue'
 import NoticeResponsable from '@/views/Notices/NoticeResponsable.vue'
 
+import vuetify from '@/plugins/vuetify'
+import { toggleTheme } from '@/utils/theme'
+
 import logo from '@/assets/images/LogoGIMAO.png'
 
 const noticeItems = [
@@ -110,6 +115,16 @@ const currentNotice = computed(() =>
 )
 
 const toggleMini = () => { isMini.value = !isMini.value }
+
+const isDarkTheme = computed(() => vuetify.theme.global.current.value.dark)
+const themeToggleIcon = computed(() => (isDarkTheme.value ? 'mdi-weather-sunny' : 'mdi-weather-night'))
+const themeToggleLabel = computed(() => (
+  isDarkTheme.value ? 'Activer le mode clair' : 'Activer le mode sombre'
+))
+
+const handleThemeToggle = () => {
+  toggleTheme()
+}
 
 const router = useRouter()
 const goBack = () => {
@@ -147,7 +162,7 @@ const goBack = () => {
 }
 
 .notices-topbar {
-  background: white;
+  background: rgb(var(--v-theme-surface));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   height: 64px;
   display: flex;
@@ -155,8 +170,11 @@ const goBack = () => {
   padding: 0 20px;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #05004E;
+  color: rgb(var(--v-theme-primary));
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .active-item {
@@ -168,10 +186,6 @@ const goBack = () => {
 }
 .active-item:hover {
   background-color: #5d5fef !important;
-}
-
-.v-list-item-title {
-  color: #151d48 !important;
 }
 
 .menu-toggle-wrapper {
