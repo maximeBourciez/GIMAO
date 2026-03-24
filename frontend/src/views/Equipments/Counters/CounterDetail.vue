@@ -50,7 +50,7 @@
 
       <!-- Liste des seuils avec plans de maintenance -->
       <div v-if="counter.seuils && counter.seuils.length > 0">
-        <h3 class="mb-3">Seuils et plans de maintenance associés</h3>
+        <h3 class="mb-3">Maintenances préventives associées</h3>
 
         <v-expansion-panels multiple v-model="openedPanels">
           <v-expansion-panel v-for="(seuil, index) in counter.seuils" :key="seuil.id">
@@ -60,7 +60,7 @@
                   <v-col cols="4" class="text-left">
                     <div class="d-flex align-center">
                       <v-icon left>mdi-calendar-clock</v-icon>
-                      <strong class="ml-2">Seuil {{ index + 1 }}</strong>
+                      <strong class="ml-2">{{ counter.type === 'Calendaire' ? 'Périodicité' : 'Seuil' }} {{ index + 1 }}</strong>
                     </div>
                   </v-col>
                   <v-col cols="6" class="text-left">
