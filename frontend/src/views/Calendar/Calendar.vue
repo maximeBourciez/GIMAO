@@ -51,7 +51,7 @@
                                 <div class="event-content d-flex flex-column">
                                     <span class="event-title font-weight-medium">{{ event.title }}</span>
 
-                                    <span v-if="event.start && event.end" class="event-time">
+                                    <span v-if="event.start && event.end && event.class !== 'event-mp'" class="event-time">
                                         {{ new Date(event.start).toLocaleTimeString([], {
                                             day: '2-digit', month: '2-digit',
                                             hour: '2-digit', minute: '2-digit'
@@ -88,6 +88,10 @@
                         </div>
                     </template>
                 </vue-cal>
+
+                <span class="caption mt-2 d-block text-center" v-if="mode === 'maintenance'">
+                    * Les événements de maintenance préventive sont affichés à dans leur jour prévu. Etant donné qu'elles sont souvent sans heure, on leur attribue un créneau fictif pour les rendre visibles dans les vues semaine/jour.
+                </span>
             </div>
 
             <!-- Message si aucun event -->
@@ -167,6 +171,44 @@ const getFilteredMaintenanceEvents = (equipmentId) => {
         return eventsMaintenance.value
     }
     return eventsMaintenance.value.filter(e => Number(e.equipement_id) === Number(equipmentId))
+}
+
+const buildFakeMaintenanceTimeline = (events) => {
+    const MAX_EVENTS_PER_SLOT = 2
+    const START_HOUR = 8
+    const SLOT_DURATION_HOURS = 1
+
+    const eventsByDay = new Map()
+    events.forEach((event) => {
+        const dayKey = String(event.start || '').substring(0, 10)
+        if (!dayKey) {
+            return
+        }
+
+        if (!eventsByDay.has(dayKey)) {
+            eventsByDay.set(dayKey, [])
+        }
+
+        eventsByDay.get(dayKey).push(event)
+    })
+
+    const timelineEvents = []
+
+    eventsByDay.forEach((dayEvents, dayKey) => {
+        dayEvents.forEach((event, index) => {
+            const slotIndex = Math.floor(index / MAX_EVENTS_PER_SLOT)
+            const slotStartHour = START_HOUR + (slotIndex * SLOT_DURATION_HOURS)
+            const slotEndHour = slotStartHour + SLOT_DURATION_HOURS
+
+            timelineEvents.push({
+                ...event,
+                start: `${dayKey} ${String(slotStartHour).padStart(2, '0')}:00`,
+                end: `${dayKey} ${String(slotEndHour).padStart(2, '0')}:00`
+            })
+        })
+    })
+
+    return timelineEvents
 }
 
 const fetchBT = async () => {
@@ -354,9 +396,12 @@ const initializeCalendarFromRoute = async () => {
  * Events affiches
  */
 const currentEvents = computed(() => {
-    return mode.value === 'bt'
-        ? eventsBT.value
-        : getFilteredMaintenanceEvents(equipmentSelected.value)
+    if (mode.value === 'bt') {
+        return eventsBT.value
+    }
+
+    const maintenanceEvents = getFilteredMaintenanceEvents(equipmentSelected.value)
+    return buildFakeMaintenanceTimeline(maintenanceEvents)
 })
 
 watch(equipmentSelected, (selectedEquipmentId) => {
