@@ -500,14 +500,6 @@ const router = createRouter({
   routes
 })
 
-// Titre d'onglet (document.title)
-const APP_TITLE = 'GIMAO'
-
-router.afterEach((to) => {
-  const pageTitle = to.meta?.title
-  document.title = pageTitle ? `${pageTitle} - ${APP_TITLE}` : APP_TITLE
-})
-
 // Protection des routes
 router.beforeEach((to, from, next) => {
   const userRaw = localStorage.getItem('user')
