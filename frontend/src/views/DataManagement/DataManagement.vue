@@ -33,7 +33,7 @@ export default {
         { name: "Fabricants", route: "/ManufacturerList", icon: "mdi-factory", color: "red", requiresPermission: "man:viewList" },
         { name: "Modèles d'équipements", route: "/ModelEquipmentList", icon: "mdi-cog", color: "purple", requiresPermission: "eqmod:viewList" },
         { name: "Rôles", route: "/RoleList", icon: "mdi-shield-account", color: "green", requiresPermission: "role:viewList" },
-        { name: "Export de données", route: "/ExportData", icon: "mdi-database-export", color: "teal", requiresPermission: "menu:dataManagement" },
+        { name: "Export de données", route: "/ExportData", icon: "mdi-database-export", color: "teal", requiresPermission: "export:view" },
       ],
     };
   },

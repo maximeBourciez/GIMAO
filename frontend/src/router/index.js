@@ -304,7 +304,7 @@ const routes = [
     path: '/ExportData',
     name: 'ExportData',
     component: ExportData,
-    meta: { title: 'Export de données', requiresPermissions: ['menu:dataManagement'] }
+    meta: { title: 'Export de données', requiresPermissions: ['export:view'] }
   },
 
   // Bon de travail ---------------------------------------------------------------

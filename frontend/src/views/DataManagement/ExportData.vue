@@ -10,7 +10,7 @@
             <FormSelect
               v-model="form.exportType"
               field-name="exportType"
-              :items="exportTypes"
+              :items="availableExportTypes"
               item-title="label"
               item-value="value"
               label="Type de données à exporter"
@@ -205,12 +205,14 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useStore } from 'vuex'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
 import http from '@/composables/http'
 import { FormSelect, FormField } from '@/components/Forms/inputType'
 
 const api = useApi()
+const store = useStore()
 
 const availableFields = ref([])
 const isFieldsLoading = ref(false)
@@ -270,24 +272,28 @@ const archivedOptions = [
 ]
 
 const exportTypes = [
-  { label: 'Équipements', value: 'equipement' },
-  { label: 'Statuts des équipements', value: 'statut_equipement' },
-  { label: 'Bons de travail', value: 'bt' },
-  { label: 'Demandes d\'intervention', value: 'di' },
-  { label: 'Consommables', value: 'conso' },
-  { label: 'Historique d\'achat des consommables', value: 'historique_achat_conso' },
-  { label: 'Stocks en magasin', value: 'stock' },
-  { label: 'Magasins', value: 'magasins' },
-  { label: 'Historique de sortie des magasins', value: 'historique_sortie_magasin' },
-  { label: 'Logs système', value: 'logs' },
-  { label: 'Fournisseurs', value: 'fournisseur' },
-  { label: 'Fabricants', value: 'fabricant' },
-  { label: 'Modèles d\'équipements', value: 'modele_equipement' },
-  { label: 'Lieux', value: 'lieu' },
-  { label: 'Compteurs', value: 'compteur' },
-  { label: 'Maintenance préventive (Seuils)', value: 'maintenance_preventive' },
-  { label: 'Utilisateurs', value: 'users' },
+  { label: 'Équipements', value: 'equipement', permission: 'export:eq' },
+  { label: 'Statuts des équipements', value: 'statut_equipement', permission: 'export:eqstatus' },
+  { label: 'Bons de travail', value: 'bt', permission: 'export:bt' },
+  { label: 'Demandes d\'intervention', value: 'di', permission: 'export:di' },
+  { label: 'Consommables', value: 'conso', permission: 'export:cons' },
+  { label: 'Historique d\'achat des consommables', value: 'historique_achat_conso', permission: 'export:histcons' },
+  { label: 'Stocks en magasin', value: 'stock', permission: 'export:stockmag' },
+  { label: 'Magasins', value: 'magasins', permission: 'export:mag' },
+  { label: 'Historique de sortie des magasins', value: 'historique_sortie_magasin', permission: 'export:histmag' },
+  { label: 'Logs système', value: 'logs', permission: 'export:logs' },
+  { label: 'Fournisseurs', value: 'fournisseur', permission: 'export:sup' },
+  { label: 'Fabricants', value: 'fabricant', permission: 'export:man' },
+  { label: 'Modèles d\'équipements', value: 'modele_equipement', permission: 'export:eqmod' },
+  { label: 'Lieux', value: 'lieu', permission: 'export:lieu' },
+  { label: 'Compteurs', value: 'compteur', permission: 'export:cp' },
+  { label: 'Maintenance préventive (Seuils)', value: 'maintenance_preventive', permission: 'export:mntprev' },
+  { label: 'Utilisateurs', value: 'users', permission: 'export:user' },
 ]
+
+const availableExportTypes = computed(() => {
+  return exportTypes.filter(type => store.getters.hasPermission(type.permission))
+})
 
 const requiresEquipementId = computed(() => {
   const types = ['statut_equipement', 'bt', 'di', 'compteur', 'maintenance_preventive']
