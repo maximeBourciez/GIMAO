@@ -28,8 +28,11 @@
                   {{ item.raw.label }}
                   <span v-if="item.raw.isPrincipal" class="text-caption text-primary ml-1">(Principal)</span>
                 </v-list-item-title>
-                <v-list-item-subtitle>
+                <v-list-item-subtitle v-if="item.raw.type !== 'Calendaire'">
                   {{ item.raw.currentValue }} {{ item.raw.unit }}
+                </v-list-item-subtitle>
+                <v-list-item-subtitle v-else>
+                  {{ ordinalToDisplay(item.raw.currentValue) ?? "—" }}
                 </v-list-item-subtitle>
               </v-list-item>
             </template>
@@ -360,6 +363,7 @@ const countersForSelect = computed(() =>
     .map(({ counter, index }) => ({
       value: index,
       label: counter.nom,
+      type: counter.type,
       isPrincipal: counter.estPrincipal,
       currentValue: counter.valeurCourante,
       unit: counter.unite,
@@ -417,6 +421,13 @@ const ordinalToISO = (ordinal) => {
   const ORDINAL_EPOCH = 719162;
   const date = new Date(Date.UTC(1970, 0, 1 + (ordinal - ORDINAL_EPOCH)));
   return date.toISOString().split("T")[0];
+};
+
+const ordinalToDisplay = (ordinal) => {
+  const iso = ordinalToISO(ordinal);
+  if (!iso) return null;
+  const [year, month, day] = iso.split("-");
+  return `${day}/${month}/${year}`;
 };
 
 // --- PM existant ---
