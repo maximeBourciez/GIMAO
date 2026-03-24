@@ -88,16 +88,19 @@ class BaseExportStrategy:
 
     def _get_field_metadata(self):
         """
-        Builds a mapping {attname: label} and a set of boolean field attnames
-        from the model's meta fields.
+        Builds a mapping {attname: label}, a set of boolean field attnames,
+        and a mapping {attname: fk_name} for ForeignKey fields.
         """
         column_labels = {}
         boolean_fields = set()
+        fk_fields = {}
         for field in self.model._meta.fields:
             column_labels[field.attname] = str(field.verbose_name).capitalize()
             if isinstance(field, models.BooleanField):
                 boolean_fields.add(field.attname)
-        return column_labels, boolean_fields
+            elif isinstance(field, models.ForeignKey):
+                fk_fields[field.attname] = field.name
+        return column_labels, boolean_fields, fk_fields
 
     def _format_data(self, data, boolean_fields):
         """
@@ -123,15 +126,26 @@ class BaseExportStrategy:
         """
         qs = self.get_queryset()
         columns = self.get_columns()
-        column_labels, boolean_fields = self._get_field_metadata()
+        column_labels, boolean_fields, fk_fields = self._get_field_metadata()
 
-        if columns:
-            data = list(qs.values(*columns))
-        else:
-            # If no columns specified, fetch all fields via values()
-            data = list(qs.values())
+        if not columns:
             # Use all field attnames as columns to guarantee consistent ordering
             columns = [field.attname for field in self.model._meta.fields]
+
+        select_related_fields = [fk_fields[col] for col in columns if col in fk_fields]
+        if select_related_fields:
+            qs = qs.select_related(*select_related_fields)
+
+        data = []
+        for obj in qs:
+            row = {}
+            for col in columns:
+                if col in fk_fields:
+                    fk_obj = getattr(obj, fk_fields[col], None)
+                    row[col] = str(fk_obj) if fk_obj is not None else ''
+                else:
+                    row[col] = getattr(obj, col, None)
+            data.append(row)
 
         # Convert booleans True/False → Oui/Non
         data = self._format_data(data, boolean_fields)
