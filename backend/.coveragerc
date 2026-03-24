@@ -1,0 +1,32 @@
+[run]
+omit =
+    # Infrastructure Django - pas du code métier
+    manage.py
+    */wsgi.py
+    */asgi.py
+    */settings*.py
+    */__init__.py
+    */apps.py
+    */admin.py
+    # Migrations auto-générées
+    */migrations/*
+    # Fichiers de tests eux-mêmes
+    tests/*
+    */tests/*
+    */tests.py
+    # Commandes de gestion (wrappers)
+    */management/commands/*
+    # Placeholders / pages d'accueil non critiques pour la logique métier
+    gimao/urls.py
+    gimao/views.py
+    donnees/views.py
+    maintenance/views.py
+    security/views.py
+    utilisateur/views.py
+    # Scripts d'initialisation de données (hors runtime API)
+    tasks/create_initial_data.py
+    tasks/perms_data.py
+
+[report]
+skip_covered = False
+skip_empty = True
