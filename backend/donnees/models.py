@@ -107,7 +107,19 @@ class Adresse(models.Model):
     complement = models.CharField(max_length=255, blank=True, null=True, help_text="Complément d'adresse optionnel")
     
     def __str__(self):
-        return f"{self.id} - {self.rue} - {self.ville}, {self.code_postal}, {self.pays}"
+        parts = [str(self.id)]
+        
+        # Adresse (numéro + rue)
+        rue_complete = f"{self.numero} {self.rue}".strip()
+        if rue_complete:
+            parts.append(rue_complete)
+            
+        # Localisation
+        loc_parts = [p for p in [self.ville, self.code_postal, self.pays] if p]
+        if loc_parts:
+            parts.append(", ".join(loc_parts))
+            
+        return " - ".join(parts)
     
     class Meta:
         db_table = 'gimao_adresse'

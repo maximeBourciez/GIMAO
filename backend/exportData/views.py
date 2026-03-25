@@ -33,6 +33,13 @@ class ExportView(APIView):
             # Instantiate the Strategy with the request parameters
             exporter_instance = exporter_class(request.GET)
             
+            qs = exporter_instance.get_queryset()
+            if not qs.exists():
+                return Response(
+                    {"error": "Pas de données pour ces paramètres"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             # Execute export, returns HttpResponse (CSV or XLSX file)
             return exporter_instance.export()
         except Exception as e:

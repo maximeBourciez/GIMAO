@@ -3,6 +3,17 @@
     <v-card class="elevation-2 rounded-lg pa-6">
       <h1 class="text-h4 font-weight-bold mb-6 text-center text-primary">Export de Données</h1>
       
+      <v-alert
+        v-if="errorMessage"
+        type="error"
+        variant="tonal"
+        closable
+        class="mb-6 mx-auto"
+        @click:close="errorMessage = null"
+      >
+        {{ errorMessage }}
+      </v-alert>
+
       <v-form @submit.prevent="handleExport" ref="exportForm">
         <v-row>
           <!-- Type d'export -->
@@ -217,6 +228,7 @@ const store = useStore()
 const availableFields = ref([])
 const isFieldsLoading = ref(false)
 const isFiltersLoading = ref(false)
+const errorMessage = ref(null)
 
 const equipementList = ref([])
 const magasinList = ref([])
@@ -366,11 +378,12 @@ const onExportTypeChange = async () => {
 }
 
 const handleExport = async () => {
+  errorMessage.value = null // reset 
   if (!form.exportType) {
-    alert("Veuillez sélectionner un type de données à exporter.")
+    errorMessage.value = "Veuillez sélectionner un type de données à exporter."
     return
   }
-
+  
   const params = {}
   params.exportType = form.exportType
   params.fileType = form.fileType
@@ -425,7 +438,22 @@ const handleExport = async () => {
     
   } catch (error) {
     console.error("Erreur d'export :", error)
-    alert("Une erreur s'est produite lors de l'exportation des données.")
+    if (error.response && error.response.data instanceof Blob) {
+      try {
+        const textData = await error.response.data.text()
+        const errJson = JSON.parse(textData)
+        if (errJson.error) {
+          errorMessage.value = errJson.error
+          return
+        }
+      } catch (e) {
+        console.error("Impossible de lire l'erreur Blob", e)
+      }
+    } else if (error.response && error.response.data && error.response.data.error) {
+      errorMessage.value = error.response.data.error
+      return
+    }
+    errorMessage.value = "Une erreur s'est produite lors de l'exportation des données."
   }
 }
 </script>
