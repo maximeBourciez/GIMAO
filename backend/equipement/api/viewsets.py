@@ -180,10 +180,10 @@ class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             compteur = Compteur.objects.create(
                 equipement=equipement,
                 nomCompteur=cp["nom"],
-                valeurCourante=self.getFormattedCounterValue(cp),
+                valeurCourante=cp.get("valeurCourante", 0),
                 unite=cp.get("unite", "heures"),
                 estPrincipal=cp.get("estPrincipal", False),
-                type=cp.get("type", "Général")
+                type=cp.get("type", "Numérique")
             )
             compteurs_crees.append(compteur)
 

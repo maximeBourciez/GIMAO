@@ -50,7 +50,7 @@
 
       <!-- Liste des seuils avec plans de maintenance -->
       <div v-if="counter.seuils && counter.seuils.length > 0">
-        <h3 class="mb-3">Seuils et plans de maintenance associés</h3>
+        <h3 class="mb-3">Maintenances préventives associées</h3>
 
         <v-expansion-panels multiple v-model="openedPanels">
           <v-expansion-panel v-for="(seuil, index) in counter.seuils" :key="seuil.id">
@@ -60,7 +60,7 @@
                   <v-col cols="4" class="text-left">
                     <div class="d-flex align-center">
                       <v-icon left>mdi-calendar-clock</v-icon>
-                      <strong class="ml-2">Seuil {{ index + 1 }}</strong>
+                      <strong class="ml-2">{{ counter.type === 'Calendaire' ? 'Périodicité' : 'Seuil' }} {{ index + 1 }}</strong>
                     </div>
                   </v-col>
                   <v-col cols="6" class="text-left">
@@ -106,8 +106,8 @@
 
               <!-- Plan de maintenance -->
               <div v-if="seuil.planMaintenance">
-                <v-sheet class="pa-3 mb-3" elevation="1" rounded color="grey-lighten-4">
-                  <h4 class="mb-2">Plan de maintenance</h4>
+                <v-sheet class="pa-3 mb-3" elevation="1" rounded >
+                  <h4 class="mb-2">Opération de maintenance</h4>
 
                   <!-- Informations du PM -->
                   <v-row dense class="mb-3">
@@ -159,7 +159,7 @@
                   </v-row>
 
                   <!-- Consommables -->
-                  <v-sheet class="pa-3 mb-3" elevation="0" rounded color="white">
+                  <v-sheet class="pa-3 mb-3" elevation="0" rounded border>
                     <h5 class="mb-2">Consommables nécessaires</h5>
 
                     <div v-if="!seuil.planMaintenance.consommables?.length" class="text-grey">
@@ -180,7 +180,7 @@
                   </v-sheet>
 
                   <!-- Documents -->
-                  <v-sheet class="pa-3" elevation="0" rounded color="white">
+                  <v-sheet class="pa-3" elevation="0" rounded border>
                     <h5 class="mb-2">Documents associés</h5>
 
                     <div v-if="!seuil.planMaintenance.documents?.length" class="text-grey">
