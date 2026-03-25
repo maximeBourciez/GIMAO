@@ -20,6 +20,9 @@ class ModeleEquipement(models.Model):
         db_table = 'gimao_modele_equipement'
         verbose_name = 'Modèle d\'équipement'
         verbose_name_plural = 'Modèles d\'équipements'
+        indexes = [
+            models.Index(fields=['nom'], name='modele_nom_idx'),
+        ]
 
 
 class FamilleEquipement(models.Model):
@@ -36,6 +39,9 @@ class FamilleEquipement(models.Model):
         db_table = 'gimao_famille_equipement'
         verbose_name = 'Famille d\'équipement'
         verbose_name_plural = 'Familles d\'équipements'
+        indexes = [
+            models.Index(fields=['nom'], name='famille_nom_idx'),
+        ]
 
 
 class Equipement(ArchivableMixin, models.Model):

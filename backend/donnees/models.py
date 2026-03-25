@@ -24,6 +24,9 @@ class Lieu(models.Model):
         db_table = 'gimao_lieu'
         verbose_name = 'Lieu'
         verbose_name_plural = 'Lieux'
+        indexes = [
+            models.Index(fields=['nomLieu'], name='lieu_nom_idx'),
+        ]
         
 
 
@@ -37,6 +40,9 @@ class TypeDocument(models.Model):
         db_table = 'gimao_type_document'
         verbose_name = 'Type de document'
         verbose_name_plural = 'Types de document'
+        indexes = [
+            models.Index(fields=['nomTypeDocument'], name='typedoc_nom_idx'),
+        ]
 
 class Document(models.Model):
     nomDocument = models.CharField(max_length=100, help_text="Nom du document.")
@@ -73,6 +79,9 @@ class Fabricant(models.Model):
         db_table = 'gimao_fabricant'
         verbose_name = 'Fabricant'
         verbose_name_plural = 'Fabricants'
+        indexes = [
+            models.Index(fields=['nom'], name='fabricant_nom_idx'),
+        ]
         
 
 
@@ -93,6 +102,9 @@ class Fournisseur(models.Model):
         db_table = 'gimao_fournisseur'
         verbose_name = 'Fournisseur'
         verbose_name_plural = 'Fournisseurs'   
+        indexes = [
+            models.Index(fields=['nom'], name='fournisseur_nom_idx'),
+        ]
 
 
 class Adresse(models.Model):

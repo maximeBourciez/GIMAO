@@ -54,6 +54,11 @@ class DemandeIntervention(ArchivableMixin, models.Model):
         verbose_name = 'Demande d\'intervention'
         verbose_name_plural = 'Demandes d\'intervention'
         ordering = ['-date_creation']
+        indexes = [
+            models.Index(fields=['archive', 'date_creation', 'id'], name='di_arch_date_id_idx'),
+            models.Index(fields=['archive', 'equipement', 'date_creation', 'id'], name='di_arch_eq_date_idx'),
+            models.Index(fields=['archive', 'utilisateur', 'date_creation', 'id'], name='di_arch_user_date_idx'),
+        ]
     
     def __str__(self):
         try:
@@ -148,6 +153,10 @@ class BonTravail(ArchivableMixin, models.Model):
         db_table = 'gimao_bon_travail'
         verbose_name = 'Bon de travail'
         verbose_name_plural = 'Bons de travail'
+        indexes = [
+            models.Index(fields=['archive', 'date_assignation', 'id'], name='bt_arch_assign_idx'),
+            models.Index(fields=['archive', 'statut', 'date_assignation', 'id'], name='bt_arch_statut_idx'),
+        ]
 
 
 class TypePlanMaintenance(models.Model):
@@ -339,6 +348,9 @@ class BonTravailConsommable(models.Model):
         unique_together = ['bon_travail', 'consommable']
         verbose_name = 'Consommable utilisé'
         verbose_name_plural = 'Consommables utilisés'
+        indexes = [
+            models.Index(fields=['bon_travail', 'estConfirme'], name='bt_conso_conf_idx'),
+        ]
     
     def __str__(self):
         return f"{self.bon_travail} - {self.consommable} (x{self.quantite_utilisee})"
