@@ -116,6 +116,10 @@ class BaseExportStrategy:
                         row[field_name] = 'Non'
         return data
 
+    def _process_row(self, row, obj):
+        """Hook for subclasses to mutate a row dictionary right after extraction"""
+        return row
+
     def export(self):
         """
         Executes the export strategy:
@@ -127,7 +131,7 @@ class BaseExportStrategy:
         qs = self.get_queryset()
         columns = self.get_columns()
         column_labels, boolean_fields, fk_fields = self._get_field_metadata()
-
+    
         if not columns:
             # Use all field attnames as columns to guarantee consistent ordering
             columns = [field.attname for field in self.model._meta.fields]
@@ -145,6 +149,8 @@ class BaseExportStrategy:
                     row[col] = str(fk_obj) if fk_obj is not None else ''
                 else:
                     row[col] = getattr(obj, col, None)
+            
+            row = self._process_row(row, obj)
             data.append(row)
 
         # Convert booleans True/False → Oui/Non
@@ -374,22 +380,48 @@ class ModeleEquipementStrategy(BaseExportStrategy):
 class LieuStrategy(BaseExportStrategy):
     model = Lieu
 
-# 15. Compteur
+# 15. Compteur (uniquement numériques)
 @registerExporter('compteur')
-class CompteurStrategy(BaseExportStrategy):
+class CompteurNumeriqueStrategy(BaseExportStrategy):
     model = Compteur
     
+    def get_queryset(self):
+        qs = super().get_queryset()
+        qs = qs.exclude(type='Calendaire')
+        return qs
+
     def apply_filters(self, qs):
         equipement_id = self.params.get('equipementId')
         if equipement_id:
             qs = qs.filter(equipement_id=equipement_id)
         return qs
 
-# 16. Maintenance Preventive (Seuils / Declencher)
-@registerExporter('maintenance_preventive')
-class SeuilStrategy(BaseExportStrategy):
+# 16. Seuils de compteurs numériques
+@registerExporter('seuils_compteur')
+class SeuilCompteurStrategy(BaseExportStrategy):
     model = Declencher
     
+    def get_queryset(self):
+        qs = super().get_queryset()
+        qs = qs.exclude(compteur__type='Calendaire')
+        return qs
+
+    def apply_filters(self, qs):
+        equipement_id = self.params.get('equipementId')
+        if equipement_id:   
+            qs = qs.filter(compteur__equipement_id=equipement_id)
+        return qs
+
+# 17. Périodicités (seuils de compteurs calendaires)
+@registerExporter('periodicites')
+class PeriodiciteStrategy(BaseExportStrategy):
+    model = Declencher
+    
+    def get_queryset(self):
+        qs = super().get_queryset()
+        qs = qs.filter(compteur__type='Calendaire')
+        return qs
+
     def apply_filters(self, qs):
         equipement_id = self.params.get('equipementId')
         if equipement_id:
@@ -412,16 +444,42 @@ class SeuilStrategy(BaseExportStrategy):
             except ValueError:
                 pass
             
-            if start_ord or end_ord:
-                if start_ord and end_ord:
-                    cal_filter = models.Q(compteur__type='Calendaire', prochaineMaintenance__range=[start_ord, end_ord])
-                elif start_ord:
-                    cal_filter = models.Q(compteur__type='Calendaire', prochaineMaintenance__gte=start_ord)
-                else:
-                    cal_filter = models.Q(compteur__type='Calendaire', prochaineMaintenance__lte=end_ord)
-                
-                qs = qs.filter(cal_filter | ~models.Q(compteur__type='Calendaire'))
+            if start_ord and end_ord:
+                qs = qs.filter(prochaineMaintenance__range=[start_ord, end_ord])
+            elif start_ord:
+                qs = qs.filter(prochaineMaintenance__gte=start_ord)
+            elif end_ord:
+                qs = qs.filter(prochaineMaintenance__lte=end_ord)
         return qs
+
+    def _get_field_metadata(self):
+        column_labels, boolean_fields, fk_fields = super()._get_field_metadata()
+        if 'ecartInterventions' in column_labels:
+            column_labels['ecartInterventions'] += ' (Jours)'
+        return column_labels, boolean_fields, fk_fields
+
+    def _process_row(self, row, obj):
+        from datetime import date
+
+        # Récupère les ordinaux bruts AVANT conversion en date
+        ord_derniere  = row.get('derniereIntervention')
+        ord_prochaine = row.get('prochaineMaintenance')
+
+        for field in ['derniereIntervention', 'prochaineMaintenance']:
+            if field in row and row[field] is not None:
+                try:
+                    row[field] = date.fromordinal(int(row[field]))
+                except Exception:
+                    pass
+
+        # Calcul de l'écart en jours via les ordinaux (insensible au DST)
+        if 'ecartInterventions' in row:
+            try:
+                ecart_jours = int(ord_prochaine) - int(ord_derniere)
+                row['ecartInterventions'] = ecart_jours
+            except Exception:
+                row['ecartInterventions'] = ''
+        return row
 
 # 17. Utilisateurs
 @registerExporter('users')

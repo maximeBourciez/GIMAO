@@ -141,8 +141,9 @@ perms = {
     'export:man': 'Exporter les fabricants',
     'export:eqmod': 'Exporter les modèles d\'équipement',
     'export:lieu': 'Exporter les lieux',
-    'export:cp': 'Exporter les compteurs',
-    'export:mntprev': 'Exporter les maintenances préventives',
+    'export:cp': 'Exporter les compteurs numériques',
+    'export:seuils': 'Exporter les seuils de compteurs',
+    'export:periodicites': 'Exporter les périodicités',
     'export:user': 'Exporter les utilisateurs',
 
     # Menu

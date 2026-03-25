@@ -1,6 +1,21 @@
 import csv
 import openpyxl
+import datetime
+from django.utils import timezone
 from django.http import HttpResponse
+
+def _format_date_for_export(val):
+    if val is None:
+        return ''
+    if isinstance(val, datetime.datetime):
+        if timezone.is_aware(val):
+            val = timezone.localtime(val)
+        return val.strftime('%d/%m/%Y - %H:%M')
+    if isinstance(val, datetime.date):
+        return val.strftime('%d/%m/%Y - 00:00')
+    if isinstance(val, datetime.time):
+        return val.strftime('%H:%M')
+    return val
 
 def generateCsvResponse(data, filename, columns=None, column_labels=None):
     """
@@ -30,7 +45,7 @@ def generateCsvResponse(data, filename, columns=None, column_labels=None):
     writer.writerow(headers)
     for row in data:
         writer.writerow([
-            str(row.get(col, '')) if row.get(col) is not None else ''
+            str(_format_date_for_export(row.get(col))) if row.get(col) is not None else ''
             for col in columns
         ])
 
@@ -66,18 +81,11 @@ def generateXlsxResponse(data, filename, columns=None, column_labels=None):
     # Write headers
     worksheet.append(headers)
 
-    import datetime
-
     def _clean_for_excel(val):
-        if val is None:
+        val = _format_date_for_export(val)
+        if val is None or val == '':
             return ''
         if isinstance(val, (int, float)):
-            return val
-        if isinstance(val, datetime.datetime):
-            if val.tzinfo is not None:
-                return val.replace(tzinfo=None)
-            return val
-        if isinstance(val, (datetime.date, datetime.time)):
             return val
         return str(val)
 

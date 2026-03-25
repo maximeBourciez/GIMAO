@@ -298,8 +298,9 @@ const exportTypes = [
   { label: 'Fabricants', value: 'fabricant', permission: 'export:man' },
   { label: 'Modèles d\'équipements', value: 'modele_equipement', permission: 'export:eqmod' },
   { label: 'Lieux', value: 'lieu', permission: 'export:lieu' },
-  { label: 'Compteurs', value: 'compteur', permission: 'export:cp' },
-  { label: 'Maintenance préventive (Seuils)', value: 'maintenance_preventive', permission: 'export:mntprev' },
+  { label: 'Compteurs numériques', value: 'compteur', permission: 'export:cp' },
+  { label: 'Seuils de compteurs', value: 'seuils_compteur', permission: 'export:seuils' },
+  { label: 'Périodicités', value: 'periodicites', permission: 'export:periodicites' },
   { label: 'Utilisateurs', value: 'users', permission: 'export:user' },
 ]
 
@@ -308,12 +309,12 @@ const availableExportTypes = computed(() => {
 })
 
 const requiresEquipementId = computed(() => {
-  const types = ['statut_equipement', 'bt', 'di', 'compteur', 'maintenance_preventive']
+  const types = ['statut_equipement', 'bt', 'di', 'compteur', 'seuils_compteur', 'periodicites']
   return types.includes(form.exportType)
 })
 
 const requiresDateFilter = computed(() => {
-  const types = ['statut_equipement', 'bt', 'di', 'historique_achat_conso', 'historique_sortie_magasin', 'logs', 'maintenance_preventive']
+  const types = ['statut_equipement', 'bt', 'di', 'historique_achat_conso', 'historique_sortie_magasin', 'logs', 'periodicites']
   return types.includes(form.exportType)
 })
 
