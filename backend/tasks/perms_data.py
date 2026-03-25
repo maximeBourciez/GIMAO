@@ -36,7 +36,7 @@ perms = {
     'eq:delete': 'Supprimer un équipement',
     'eq:export': 'Exporter les équipements',
     'eq:archive': 'Archiver un équipement',
-    'eq:view.calendar': 'Voir le calendrier des maintenances d’un équipement',
+    'eq:maintenance.calendar': 'Voir le calendrier des maintenances d’un équipement',
 
     # Compteurs
     'cp:viewList': 'Voir la liste des compteurs',
@@ -178,8 +178,6 @@ perms_map = {
 
         'eq:viewList', 'eq:viewDetail',
 
-        'menu:view',
-
         'dash:display.diCreated', 'dash:display.eq', 'dash:stats.di','dash:display.vertical',
     ],
 
@@ -191,8 +189,6 @@ perms_map = {
         'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
 
         'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export',
-
-        'menu:view',
 
         'export:view',
 

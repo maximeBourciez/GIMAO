@@ -1772,6 +1772,36 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         })
 
 
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        queryset = self.get_queryset().select_related('demande_intervention__equipement').prefetch_related('utilisateur_assigne').filter(date_prevue__isnull=False, statut__in=['EN_ATTENTE', 'EN_COURS', 'EN_RETARD'])
+        bts = queryset.order_by('duree_previsionnelle')
+        data = []
+        for bt in bts:
+            start = bt.date_prevue
+            end = (bt.date_prevue + bt.duree_previsionnelle) if bt.duree_previsionnelle else bt.date_prevue
+
+            data.append({
+                'id': bt.id,
+                'nom': bt.nom,
+                'start': start,
+                'end': end,
+                'equipement': {
+                    'id': bt.demande_intervention.equipement.id,
+                    'nom': bt.demande_intervention.equipement.designation,
+                } if bt.demande_intervention and bt.demande_intervention.equipement else None,
+                'techniciens': [
+                    {
+                        'id': user.id,
+                        'nom': user.get_full_name() or user.username,
+                    }
+                    for user in bt.utilisateur_assigne.all()
+                ],
+            })
+        return Response(data, status=status.HTTP_200_OK)
+        
+
+
 class TypePlanMaintenanceViewSet(GimaoModelViewSet):
     """
     ViewSet pour gérer les types de plans de maintenance.
@@ -2244,3 +2274,42 @@ class DashboardStatsViewset(viewsets.ViewSet):
         return list(user.role.permissions.filter(
             nomPermission__startswith='dash'
         ).values_list('nomPermission', flat=True))
+
+
+
+class MaintenanceCalendarViewSet(viewsets.ViewSet):
+
+    def list(self, request):
+        """ Récupère tous les déclenchmenets de compteurs calendaires"""
+        from equipement.models import Declencher
+
+        declenchements = Declencher.objects.select_related(
+            'planMaintenance',
+            'planMaintenance__equipement',
+            'compteur'
+        ).filter(compteur__type='CALENDAIRE')
+        data = []
+        for decl in declenchements:
+            plan = decl.planMaintenance
+            equipement = plan.equipement if plan else None
+            data.append({
+                'id': decl.id,
+                'derniereIntervention': decl.derniereIntervention,
+                'prochaineMaintenance': decl.prochaineMaintenance,
+                'ecartInterventions': decl.ecartInterventions,
+                'estGlissant': decl.estGlissant,
+                'compteur': {
+                    'id': decl.compteur_id,
+                    'nom': decl.compteur.nomCompteur if decl.compteur else None,
+                } if decl.compteur else None,
+                'planMaintenance': {
+                    'id': plan.id,
+                    'nom': plan.nom,
+                } if plan else None,
+                'equipement': {
+                    'id': equipement.id,
+                    'nom': equipement.designation,
+                } if equipement else None,
+            })
+        
+        return Response(data, status=status.HTTP_200_OK)

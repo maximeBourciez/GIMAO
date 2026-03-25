@@ -214,6 +214,7 @@ const PERM_TYPE = {
   transform: 'action', start: 'action', end: 'action', refuseClosure: 'action',
   acceptClosure: 'action', acceptConsumableRequest: 'action',
   disable: 'action', enable: 'action', dataManagement: 'affichage',
+  'maintenance.calendar': 'affichage'
 }
 
 const PERM_HIERARCHY = {
