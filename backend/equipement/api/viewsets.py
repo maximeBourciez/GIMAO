@@ -1,6 +1,7 @@
 import json
 import datetime
 from decimal import Decimal
+from django.db.models import Prefetch
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -54,7 +55,18 @@ class EquipementListPagination(PageNumberPagination):
 
 
 class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
-    queryset = Equipement.objects.select_related("lieu", "modele").prefetch_related("statuts")
+    queryset = Equipement.objects.select_related("lieu", "modele").prefetch_related(
+        Prefetch(
+            "statuts",
+            queryset=StatutEquipement.objects.only(
+                "id",
+                "statut",
+                "dateChangement",
+                "equipement_id",
+            ).order_by("-dateChangement"),
+            to_attr="prefetched_statuts",
+        )
+    )
     pagination_class = EquipementListPagination
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["reference", "designation", "numSerie", "lieu__nomLieu", "modele__nom"]

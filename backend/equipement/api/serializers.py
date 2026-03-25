@@ -16,7 +16,11 @@ class EquipementSerializer(serializers.ModelSerializer):
     lieu = LieuSerializer(read_only=True)  
     
     def get_statut(self, obj):
-        statut = obj.statuts.first()
+        prefetched_statuts = getattr(obj, "prefetched_statuts", None)
+        if prefetched_statuts is not None:
+            statut = prefetched_statuts[0] if prefetched_statuts else None
+        else:
+            statut = obj.statuts.order_by('-dateChangement').first()
         if statut:
             return {
                 'id': statut.id,
