@@ -26,7 +26,7 @@ def test_equipement_list_returns_paginated_payload_when_page_is_provided():
 
 
 @pytest.mark.django_db
-def test_equipement_list_keeps_legacy_array_response_without_page_param():
+def test_equipement_list_returns_paginated_payload_without_page_param():
     client = APIClient()
 
     EquipementFactory()
@@ -37,8 +37,8 @@ def test_equipement_list_keeps_legacy_array_response_without_page_param():
     assert response.status_code == 200
     payload = response.json()
 
-    assert isinstance(payload, list)
-    assert len(payload) == 2
+    assert payload["count"] == 2
+    assert len(payload["results"]) == 2
 
 
 @pytest.mark.django_db

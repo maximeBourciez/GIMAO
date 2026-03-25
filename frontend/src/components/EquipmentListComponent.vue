@@ -54,6 +54,7 @@ import ServerPaginationControls from "@/components/common/ServerPaginationContro
 import { useApi } from "@/composables/useApi";
 import { getStatusColor, getStatusLabel } from "@/utils/helpers";
 import { API_BASE_URL } from "@/utils/constants";
+import { extractItems, fetchAllPages } from "@/utils/paginatedApi";
 
 const props = defineProps({
   title: {
@@ -133,18 +134,8 @@ const pageSizeOptions = [10, 25, 50, 100];
 
 let searchDebounceId = null;
 
-const toItems = (payload) => {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-  if (payload && Array.isArray(payload.results)) {
-    return payload.results;
-  }
-  return [];
-};
-
-const locations = computed(() => toItems(locationsApi.data.value));
-const equipmentModels = computed(() => toItems(modelsApi.data.value));
+const locations = computed(() => extractItems(locationsApi.data.value));
+const equipmentModels = computed(() => extractItems(modelsApi.data.value));
 const loading = computed(
   () =>
     equipmentsApi.loading.value || locationsApi.loading.value || modelsApi.loading.value,
@@ -185,8 +176,10 @@ const buildEquipementParams = () => {
 };
 
 const fetchEquipments = async () => {
-  const response = await equipmentsApi.get("equipements/", buildEquipementParams());
-  const items = toItems(response);
+  const response = props.serverPagination
+    ? await equipmentsApi.get("equipements/", buildEquipementParams())
+    : await fetchAllPages(equipmentsApi, "equipements/");
+  const items = extractItems(response);
 
   currentItems.value = items;
   totalItems.value = props.serverPagination ? Number(response?.count || 0) : items.length;
@@ -199,8 +192,8 @@ const fetchSupportData = async () => {
     modelsApi.get("modele-equipements/"),
   ]);
 
-  emit("locations-loaded", toItems(locationsResponse));
-  emit("models-loaded", toItems(modelsResponse));
+  emit("locations-loaded", extractItems(locationsResponse));
+  emit("models-loaded", extractItems(modelsResponse));
 };
 
 const fetchData = async () => {

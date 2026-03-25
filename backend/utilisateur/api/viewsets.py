@@ -21,7 +21,7 @@ from .serializers import (
     PermissionSerializer
 )
 from gimao.viewsets import GimaoModelViewSet
-from gimao.pagination import StandardOptionalPagination
+from gimao.pagination import StandardPagination
 from security.models import ApiToken, create_token
 
 
@@ -73,7 +73,7 @@ class UtilisateurViewSet(GimaoModelViewSet):
         'role__permissions',
         'permissions_personnalisees__permission',
     ).order_by('nomFamille', 'prenom', 'id')
-    pagination_class = StandardOptionalPagination
+    pagination_class = StandardPagination
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['nomUtilisateur', 'prenom', 'nomFamille', 'email', 'role__nomRole']
     ordering_fields = ['id', 'nomUtilisateur', 'prenom', 'nomFamille', 'dateCreation', 'derniereConnexion']

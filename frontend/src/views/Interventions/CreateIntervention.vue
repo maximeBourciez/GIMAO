@@ -33,6 +33,7 @@ import { useStore } from 'vuex';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 import InterventionForm from '@/components/Forms/InterventionForm.vue';
+import { fetchAllPages } from '@/utils/paginatedApi';
 
 const router = useRouter();
 const store = useStore();
@@ -54,9 +55,9 @@ const fetchData = async () => {
 	loadingData.value = true;
 	try {
 		const [usersResponse, equipmentsResponse, consommablesResponse, typeDocumentsResponse] = await Promise.all([
-			api.get('utilisateurs/'),
-			api.get('equipements/'),
-			api.get('consommables/'),
+			fetchAllPages(api, 'utilisateurs/'),
+			fetchAllPages(api, 'equipements/'),
+			fetchAllPages(api, 'consommables/'),
 			api.get('types-documents/')
 		]);
 		

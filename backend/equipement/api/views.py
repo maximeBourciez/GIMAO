@@ -17,10 +17,10 @@ from equipement.api.serializers import (
     ModeleEquipementSerializer,
     FamilleEquipementSerializer,
 )
-from gimao.pagination import LargeOptionalPagination
+from gimao.pagination import LargePagination
 
 
-class EquipementFormDataPagination(LargeOptionalPagination):
+class EquipementFormDataPagination(LargePagination):
     pass
 
 
@@ -118,12 +118,8 @@ class EquipementFormDataView(APIView):
 
         paginator = EquipementFormDataPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
-        serializer = config["serializer"](page if page is not None else queryset, many=True)
-
-        if page is not None:
-            return paginator.get_paginated_response(serializer.data)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = config["serializer"](page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def get(self, request):
         try:

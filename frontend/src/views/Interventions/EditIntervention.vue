@@ -39,6 +39,7 @@ import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
 import InterventionForm from '@/components/Forms/InterventionForm.vue';
 import { toTimeInputValue } from '@/utils/helpers';
+import { fetchAllPages } from '@/utils/paginatedApi';
 
 
 const route = useRoute();
@@ -130,9 +131,9 @@ onMounted(async () => {
 	loading.value = true;
 	try {
 		await Promise.all([
-			api.get('utilisateurs/').then(data => users.value = data),
-			api.get('equipements/').then(data => equipments.value = data),
-			api.get('consommables/').then(data => consommables.value = data),
+			fetchAllPages(api, 'utilisateurs/').then(data => users.value = data),
+			fetchAllPages(api, 'equipements/').then(data => equipments.value = data),
+			fetchAllPages(api, 'consommables/').then(data => consommables.value = data),
 			api.get('types-documents/').then(data => typeDocuments.value = data),
 			fetchBonTravail()
 		]);

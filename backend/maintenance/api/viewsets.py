@@ -48,12 +48,12 @@ from maintenance.api.serializers import (
 )
 from gimao.viewsets import GimaoModelViewSet
 from gimao.mixins import ArchivableViewSetMixin
-from gimao.pagination import OptionalPaginationViewSetMixin, StandardOptionalPagination
+from gimao.pagination import PaginatedActionMixin, StandardPagination
 
 logger = logging.getLogger(__name__)
 
 
-class DemandeInterventionViewSet(OptionalPaginationViewSetMixin, ArchivableViewSetMixin, GimaoModelViewSet):
+class DemandeInterventionViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModelViewSet):
     """
     ViewSet pour gérer les demandes d'intervention.
     
@@ -85,7 +85,7 @@ class DemandeInterventionViewSet(OptionalPaginationViewSetMixin, ArchivableViewS
     )
     serializer_class = DemandeInterventionSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
-    pagination_class = StandardOptionalPagination
+    pagination_class = StandardPagination
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = [
         'nom',
@@ -144,7 +144,7 @@ class DemandeInterventionViewSet(OptionalPaginationViewSetMixin, ArchivableViewS
             )
         
         demandes = self.filter_queryset(self.get_queryset().filter(equipement_id=equipement_id))
-        return self.get_paginated_or_full_response(demandes)
+        return self.get_paginated_response_for_queryset(demandes)
 
     @action(detail=False, methods=['get'])
     def par_utilisateur(self, request):
@@ -160,7 +160,7 @@ class DemandeInterventionViewSet(OptionalPaginationViewSetMixin, ArchivableViewS
             )
         
         demandes = self.filter_queryset(self.get_queryset().filter(utilisateur_id=utilisateur_id))
-        return self.get_paginated_or_full_response(demandes)
+        return self.get_paginated_response_for_queryset(demandes)
 
     @action(detail=True, methods=['post'])
     def traiter(self, request, pk=None):
@@ -540,7 +540,7 @@ class DemandeInterventionViewSet(OptionalPaginationViewSetMixin, ArchivableViewS
             raise
 
 
-class BonTravailViewSet(OptionalPaginationViewSetMixin, ArchivableViewSetMixin, GimaoModelViewSet):
+class BonTravailViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModelViewSet):
     """
     ViewSet pour gérer les bons de travail.
     
@@ -572,7 +572,7 @@ class BonTravailViewSet(OptionalPaginationViewSetMixin, ArchivableViewSetMixin, 
     )
     serializer_class = BonTravailSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
-    pagination_class = StandardOptionalPagination
+    pagination_class = StandardPagination
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = [
         'nom',
@@ -1289,7 +1289,7 @@ class BonTravailViewSet(OptionalPaginationViewSetMixin, ArchivableViewSetMixin, 
             )
 
         bons = self.filter_queryset(self.get_queryset().filter(utilisateur_assigne__id=user))
-        return self.get_paginated_or_full_response(bons)
+        return self.get_paginated_response_for_queryset(bons)
         
 
     @action(detail=True, methods=['patch'])
@@ -1366,7 +1366,7 @@ class BonTravailViewSet(OptionalPaginationViewSetMixin, ArchivableViewSetMixin, 
         summary = self._build_list_stock_summary(queryset)
         queryset = self._apply_list_stock_state_filter(queryset)
 
-        return self.get_paginated_or_full_response(
+        return self.get_paginated_response_for_queryset(
             queryset,
             serializer_class=BonTravailListStockSerializer,
             extra={'summary': summary},

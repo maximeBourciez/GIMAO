@@ -43,7 +43,7 @@ def test_should_filter_demandes_by_equipement(api_factory):
     response = view(request)
 
     assert response.status_code == 200
-    ids = [item["id"] for item in response.data]
+    ids = [item["id"] for item in response.data["results"]]
     assert ids == [di_target.id]
 
 
@@ -74,7 +74,7 @@ def test_should_filter_demandes_by_utilisateur(api_factory):
     response = view(request)
 
     assert response.status_code == 200
-    ids = [item["id"] for item in response.data]
+    ids = [item["id"] for item in response.data["results"]]
     assert ids == [di_target.id]
 
 

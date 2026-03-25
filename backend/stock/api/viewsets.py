@@ -18,7 +18,7 @@ from stock.api.serializers import (
 )
 from gimao.viewsets import GimaoModelViewSet
 from gimao.mixins import ArchivableViewSetMixin
-from gimao.pagination import StandardOptionalPagination
+from gimao.pagination import StandardPagination
 
 
 class MagasinViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
@@ -51,7 +51,7 @@ class ConsommableViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     """ViewSet pour la gestion des consommables avec CRUD complet et filtrage par magasin"""
     queryset = Consommable.objects.all().prefetch_related('stocks', 'fournitures', 'stocks__magasin')
     serializer_class = ConsommableSerializer
-    pagination_class = StandardOptionalPagination
+    pagination_class = StandardPagination
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['magasins']
     search_fields = ['designation', 'stocks__magasin__nom']

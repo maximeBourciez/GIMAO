@@ -40,10 +40,10 @@ from maintenance.models import (
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
 from gimao.viewsets import GimaoModelViewSet
 from gimao.mixins import ArchivableViewSetMixin
-from gimao.pagination import LargeOptionalPagination
+from gimao.pagination import LargePagination
 
 
-class EquipementListPagination(LargeOptionalPagination):
+class EquipementListPagination(LargePagination):
     pass
 
 
