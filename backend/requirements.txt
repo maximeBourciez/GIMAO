@@ -7,6 +7,7 @@ Pillow
 django-cors-headers>=4.0.0
 python-dotenv>=1.0.0
 drf-yasg>=1.21.7
+locust
 
 # --- Tests ---
 pytest>=7.4.0
