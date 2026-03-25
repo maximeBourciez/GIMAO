@@ -554,6 +554,11 @@ onMounted(() => {
     min-height: 600px;
 }
 
+/* Supprime la scrollbar interne de VueCal */
+:deep(.vuecal--custom .vuecal__bg) {
+    overflow-y: hidden !important;
+}
+
 /* ─── En-têtes jours ────────────────────────────────────────── */
 :deep(.vuecal--custom .vuecal__heading) {
     background: var(--vc-primary);
