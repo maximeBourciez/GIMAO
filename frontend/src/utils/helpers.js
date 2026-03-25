@@ -90,15 +90,23 @@ export function formatDateTime(dateString) {
  */
 export function formatDuration(duration) {
   if (!duration) return "Non spécifié";
-  const parts = duration.split(":").map(Number);
-  const hours = parts[0] || 0;
-  const minutes = parts[1] || 0;
-  const seconds = parts[2] || 0;
+
+  const rawValue = String(duration).trim();
+  const match = rawValue.match(/^(?:(\d+)\s+)?(\d+):([0-5]\d)(?::([0-5]\d)(?:\.\d+)?)?$/);
+  if (!match) return rawValue;
+
+  const days = Number(match[1] || 0);
+  const hours = Number(match[2] || 0);
+  const minutes = Number(match[3] || 0);
+  const seconds = Number(match[4] || 0);
+  const totalHours = (days * 24) + hours;
 
   let result = "";
-  if (hours > 0) result += `${hours}h `;
+  if (totalHours > 0) result += `${totalHours}h `;
   if (minutes > 0) result += `${minutes}m `;
   if (seconds > 0) result += `${seconds}s`;
+
+  if (!result.trim()) return "0m";
   
   return result.trim();
 }
@@ -113,7 +121,7 @@ export const toTimeInputValue = (value) => {
 	const rawValue = String(value).trim();
 	if (!rawValue) return '';
 
-	const match = rawValue.match(/^(?:(\d+)\s+)?(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+  const match = rawValue.match(/^(?:(\d+)\s+)?(\d+):(\d{2})(?::\d{2}(?:\.\d+)?)?$/);
 	if (!match) return '';
 
 	const days = Number(match[1] || 0);
@@ -122,7 +130,7 @@ export const toTimeInputValue = (value) => {
 	if (!Number.isFinite(days) || !Number.isFinite(hours) || !Number.isFinite(minutes)) return '';
 
 	const totalHours = (days * 24) + hours;
-	if (totalHours > 23 || minutes > 59) return '';
+  if (minutes > 59) return '';
 
-	return `${String(totalHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  return `${String(totalHours)}:${String(minutes).padStart(2, '0')}`;
 };

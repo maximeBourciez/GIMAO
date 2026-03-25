@@ -25,7 +25,7 @@
 
 					<v-col cols="12" md="6">
 						<FormField v-model="formData.duree_previsionnelle" field-name="duree_previsionnelle"
-							label="Durée prévisionnelle" type="time" />
+							label="Durée prévisionnelle" type="text" placeholder="HH:MM (ex: 84:00)" />
 					</v-col>
 				</v-row>
 			</v-sheet>
@@ -198,19 +198,47 @@ const loading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 
-const DUREE_PREVISIONNELLE_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+const DUREE_PREVISIONNELLE_REGEX = /^(\d+):([0-5]\d)(?::([0-5]\d))?$/;
+const DUREE_PREVISIONNELLE_DAYS_REGEX = /^(\d+)\s+(\d{1,2}):([0-5]\d)(?::([0-5]\d))?$/;
 
 const normalizeDureePrevisionnelleForApi = (value) => {
 	if (value === null || value === undefined) return '';
 	const rawValue = String(value).trim();
 	if (!rawValue) return '';
 
-	if (DUREE_PREVISIONNELLE_REGEX.test(rawValue)) {
-		return `${rawValue}:00`;
+	const daysMatch = rawValue.match(DUREE_PREVISIONNELLE_DAYS_REGEX);
+	if (daysMatch) {
+		const days = Number(daysMatch[1]);
+		const hours = Number(daysMatch[2]);
+		const minutes = Number(daysMatch[3]);
+		const seconds = Number(daysMatch[4] || 0);
+
+		if (!Number.isFinite(days) || !Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+			return rawValue;
+		}
+
+		return `${days} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 	}
 
-	if (/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(rawValue)) {
-		return rawValue;
+	const hmMatch = rawValue.match(DUREE_PREVISIONNELLE_REGEX);
+	if (hmMatch) {
+		const totalHours = Number(hmMatch[1]);
+		const minutes = Number(hmMatch[2]);
+		const seconds = Number(hmMatch[3] || 0);
+
+		if (!Number.isFinite(totalHours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+			return rawValue;
+		}
+
+		const days = Math.floor(totalHours / 24);
+		const remainingHours = totalHours % 24;
+		const normalizedTime = `${String(remainingHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+		if (days > 0) {
+			return `${days} ${normalizedTime}`;
+		}
+
+		return normalizedTime;
 	}
 
 	return rawValue;
@@ -787,7 +815,7 @@ const isFormValidForSubmit = computed(() => {
 
 	if (
 		dureePrevisionnelle &&
-		!(/^(?:[01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(dureePrevisionnelle))
+		!(DUREE_PREVISIONNELLE_REGEX.test(dureePrevisionnelle) || DUREE_PREVISIONNELLE_DAYS_REGEX.test(dureePrevisionnelle))
 	) {
 		console.log('Duree previsionnelle invalide:', dureePrevisionnelle);
 		return false;

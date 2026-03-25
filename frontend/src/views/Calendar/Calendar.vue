@@ -95,7 +95,7 @@
                 </vue-cal>
 
                 <span class="caption mt-2 d-block text-center" v-if="mode === 'maintenance'">
-                    * Les événements de maintenance préventive sont affichés à dans leur jour prévu. Etant donné qu'elles sont souvent sans heure, on leur attribue un créneau fictif pour les rendre visibles dans les vues semaine/jour.
+                    * Les événements de maintenance préventive sont affichés dans leur jour prévu. Etant donné qu'elles sont souvent sans heure, on leur attribue un créneau fictif pour les rendre visibles dans les vues semaine/jour.
                 </span>
             </div>
 
