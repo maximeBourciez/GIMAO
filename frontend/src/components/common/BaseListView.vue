@@ -46,7 +46,7 @@
     <v-card :elevation="elevation" :class="cardClass">
       <v-data-table :headers="headers" :items="computedItems" :loading="loading" :items-per-page="itemsPerPage"
         :items-per-page-options="itemsPerPageOptions" :search="internalSearch ? searchQuery : undefined"
-        :sort-by="sortBy" :class="tableClass" @click:row="handleRowClick">
+        :sort-by="sortBy" :class="tableClass" :hide-default-footer="hideDefaultFooter" @click:row="handleRowClick">
         <!-- Pass through all item slots -->
         <template v-for="(_, slot) in $slots" v-slot:[slot]="scope">
           <slot :name="slot" v-bind="scope"></slot>
@@ -206,6 +206,10 @@ const props = defineProps({
   tableClass: {
     type: String,
     default: ''
+  },
+  hideDefaultFooter: {
+    type: Boolean,
+    default: false
   }
 });
 

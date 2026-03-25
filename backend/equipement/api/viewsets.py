@@ -4,6 +4,8 @@ from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.pagination import PageNumberPagination
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
@@ -40,8 +42,41 @@ from gimao.viewsets import GimaoModelViewSet
 from gimao.mixins import ArchivableViewSetMixin
 
 
+class EquipementListPagination(PageNumberPagination):
+    page_size = 25
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+    def paginate_queryset(self, queryset, request, view=None):
+        if self.page_query_param not in request.query_params:
+            return None
+        return super().paginate_queryset(queryset, request, view=view)
+
+
 class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
-    queryset = Equipement.objects.all()
+    queryset = Equipement.objects.select_related("lieu", "modele").prefetch_related("statuts")
+    pagination_class = EquipementListPagination
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["reference", "designation", "numSerie", "lieu__nomLieu", "modele__nom"]
+    ordering_fields = ["id", "reference", "designation", "dateCreation"]
+    ordering = ["designation", "id"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        lieu_ids = self.request.query_params.get("lieu_ids")
+        if lieu_ids:
+            ids = [int(value) for value in lieu_ids.split(",") if value.strip().isdigit()]
+            if ids:
+                queryset = queryset.filter(lieu_id__in=ids)
+
+        modele_ids = self.request.query_params.get("modele_ids")
+        if modele_ids:
+            ids = [int(value) for value in modele_ids.split(",") if value.strip().isdigit()]
+            if ids:
+                queryset = queryset.filter(modele_id__in=ids)
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'create':
