@@ -57,9 +57,9 @@ class DemandeIntervention(ArchivableMixin, models.Model):
     
     def __str__(self):
         try:
-            return f"{self.nom} - {self.equipement}"
+            return f"{self.id} - {self.nom} - {self.equipement}"
         except Equipement.DoesNotExist:
-            return f"{self.nom} - Équipement supprimé (id={self.equipement_id})"
+            return f"{self.id} - {self.nom} - Équipement supprimé (id={self.equipement_id})"
 
 
 class BonTravail(ArchivableMixin, models.Model):
@@ -142,7 +142,7 @@ class BonTravail(ArchivableMixin, models.Model):
         ordering = ['-date_assignation']
     
     def __str__(self):
-        return f"{self.nom} - {self.statut}"
+        return f"{self.id} - {self.nom} - {self.statut}"
     
     class Meta:
         db_table = 'gimao_bon_travail'
@@ -160,7 +160,7 @@ class TypePlanMaintenance(models.Model):
         verbose_name_plural = 'Types de plan de maintenance'
     
     def __str__(self):
-        return self.libelle
+        return f"{self.id} - {self.libelle}"
     
     class Meta:
         db_table = 'gimao_type_plan_maintenance'
@@ -208,7 +208,7 @@ class PlanMaintenance(models.Model):
         verbose_name_plural = 'Plans de maintenance'
     
     def __str__(self):
-        return f"{self.id } - {self.nom} - {self.equipement}"
+        return f"{self.id} - {self.nom} - {self.equipement}"
 
 
 
@@ -237,7 +237,7 @@ class PlanMaintenanceConsommable(models.Model):
         verbose_name_plural = 'Consommables nécessaires'
     
     def __str__(self):
-        return f"{self.plan_maintenance} - {self.consommable} (x{self.quantite_necessaire})"
+        return f"{self.id} - {self.plan_maintenance.nom} - Consommable {self.consommable.designation} (x{self.quantite_necessaire})"
     
     
 class PlanMaintenanceDocument(models.Model):
@@ -258,7 +258,7 @@ class PlanMaintenanceDocument(models.Model):
         verbose_name_plural = 'Documents de plans de maintenance'
     
     def __str__(self):
-        return f"{self.plan_maintenance} - {self.document}"
+        return f"{self.id} - {self.plan_maintenance.nom} - Document {self.document.nomDocument}"
 
 class DemandeInterventionDocument(models.Model):
     """Table d'association entre DemandeIntervention et Document"""
@@ -278,7 +278,7 @@ class DemandeInterventionDocument(models.Model):
         verbose_name_plural = 'Documents de demandes d\'intervention'
     
     def __str__(self):
-        return f"{self.demande_intervention} - {self.document}"
+        return f"{self.id} - {self.demande_intervention.nom} - Document {self.document.nomDocument}"
 
 
 class BonTravailDocument(models.Model):
@@ -299,7 +299,7 @@ class BonTravailDocument(models.Model):
         verbose_name_plural = 'Documents de bons de travail'
 
     def __str__(self):
-        return f"{self.bon_travail} - {self.document}"
+        return f"{self.id} - {self.bon_travail.nom} - Document {self.document.nomDocument}"
 
 
 class BonTravailConsommable(models.Model):
@@ -341,7 +341,7 @@ class BonTravailConsommable(models.Model):
         verbose_name_plural = 'Consommables utilisés'
     
     def __str__(self):
-        return f"{self.bon_travail} - {self.consommable} (x{self.quantite_utilisee})"
+        return f"{self.id} - {self.bon_travail.nom} - {self.consommable.designation} (x{self.quantite_utilisee})"
 
 
 class BonTravailConsommableReservation(models.Model):
@@ -369,4 +369,4 @@ class BonTravailConsommableReservation(models.Model):
         verbose_name_plural = 'Reservations de consommables'
 
     def __str__(self):
-        return f"{self.bon_travail_consommable} - {self.magasin} (x{self.quantite})"
+        return f"{self.id} - {self.bon_travail_consommable.bon_travail.nom} - Reservation {self.magasin.nom} (x{self.quantite})"

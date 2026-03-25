@@ -45,6 +45,7 @@ import NoticesHome from '@/views/Notices/NoticesHome.vue'
 // ------------------------------------------------------------------
 
 import DataManagement from '@/views/DataManagement/DataManagement.vue'
+import ExportData from '@/views/DataManagement/ExportData.vue'
 
 import CreateLocation from '@/views/DataManagement/Locations/CreateLocation.vue'
 import LocationList from '@/views/DataManagement/Locations/LocationList.vue'
@@ -304,6 +305,13 @@ const routes = [
     component: DataManagement,
     // meta: { title: 'Gestion des données', requiresPermissions: ['loc:viewList'] }
     meta: { title: 'Gestion des données', requiresPermissions: ['menu:dataManagement'] }
+  },
+
+  {
+    path: '/ExportData',
+    name: 'ExportData',
+    component: ExportData,
+    meta: { title: 'Export de données', requiresPermissions: ['export:view'] }
   },
 
   // Bon de travail ---------------------------------------------------------------

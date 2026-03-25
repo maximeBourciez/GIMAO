@@ -129,6 +129,24 @@ perms = {
 
     # Export global
     'export:view': 'Accéder aux exports de données',
+    'export:eq': 'Exporter les équipements',
+    'export:eqstatus': 'Exporter les statuts des équipements',
+    'export:bt': 'Exporter les bons de travail',
+    'export:di': 'Exporter les demandes d’intervention',
+    'export:cons': 'Exporter les consommables',
+    'export:histcons': 'Exporter l\'historique des achats de consommables',
+    'export:stockmag': 'Exporter les stocks des magasins',
+    'export:mag': 'Exporter les magasins',
+    'export:histmag': 'Exporter l\'historique des sorties de magasins',
+    'export:logs': 'Exporter l\'historique des logs',
+    'export:sup': 'Exporter les fournisseurs',
+    'export:man': 'Exporter les fabricants',
+    'export:eqmod': 'Exporter les modèles d\'équipement',
+    'export:lieu': 'Exporter les lieux',
+    'export:cp': 'Exporter les compteurs numériques',
+    'export:seuils': 'Exporter les seuils de compteurs',
+    'export:periodicites': 'Exporter les périodicités',
+    'export:user': 'Exporter les utilisateurs',
 
     # Menu
     'menu:view': 'Accéder au menu de navigation',
