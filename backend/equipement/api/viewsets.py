@@ -6,7 +6,6 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
@@ -41,17 +40,11 @@ from maintenance.models import (
 from donnees.models import Lieu, Document, Fabricant, Fournisseur
 from gimao.viewsets import GimaoModelViewSet
 from gimao.mixins import ArchivableViewSetMixin
+from gimao.pagination import LargeOptionalPagination
 
 
-class EquipementListPagination(PageNumberPagination):
-    page_size = 25
-    page_size_query_param = "page_size"
-    max_page_size = 100
-
-    def paginate_queryset(self, queryset, request, view=None):
-        if self.page_query_param not in request.query_params:
-            return None
-        return super().paginate_queryset(queryset, request, view=view)
+class EquipementListPagination(LargeOptionalPagination):
+    pass
 
 
 class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):

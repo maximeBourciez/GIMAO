@@ -17,6 +17,11 @@ from equipement.api.serializers import (
     ModeleEquipementSerializer,
     FamilleEquipementSerializer,
 )
+from gimao.pagination import LargeOptionalPagination
+
+
+class EquipementFormDataPagination(LargeOptionalPagination):
+    pass
 
 
 class EquipementFormDataView(APIView):
@@ -27,62 +32,144 @@ class EquipementFormDataView(APIView):
     GET /api/equipements/form-data/
     """
 
+    SECTION_CONFIG = {
+        "equipmentModels": {
+            "queryset": ModeleEquipement.objects.select_related('fabricant').all(),
+            "serializer": ModeleEquipementSerializer,
+            "search_field": "nom",
+            "ordering": "nom",
+        },
+        "fabricants": {
+            "queryset": Fabricant.objects.all(),
+            "serializer": FabricantSimpleSerializer,
+            "search_field": "nom",
+            "ordering": "nom",
+        },
+        "fournisseurs": {
+            "queryset": Fournisseur.objects.all(),
+            "serializer": FournisseurSimpleSerializer,
+            "search_field": "nom",
+            "ordering": "nom",
+        },
+        "consumables": {
+            "queryset": Consommable.objects.all(),
+            "serializer": ConsommableSerializer,
+            "search_field": "designation",
+            "ordering": "designation",
+        },
+        "familles": {
+            "queryset": FamilleEquipement.objects.all(),
+            "serializer": FamilleEquipementSerializer,
+            "search_field": "nom",
+            "ordering": "nom",
+        },
+        "typesPM": {
+            "queryset": TypePlanMaintenance.objects.all(),
+            "serializer": TypePlanMaintenanceSerializer,
+            "search_field": "libelle",
+            "ordering": "libelle",
+        },
+        "typesDocuments": {
+            "queryset": TypeDocument.objects.all(),
+            "serializer": TypeDocumentSerializer,
+            "search_field": "nomTypeDocument",
+            "ordering": "nomTypeDocument",
+        },
+    }
+
+    def _is_truthy(self, value):
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _build_locations_tree(self):
+        lieux = list(Lieu.objects.all().order_by('nomLieu'))
+        children_by_parent = {}
+
+        for lieu in lieux:
+            children_by_parent.setdefault(lieu.lieuParent_id, []).append(lieu)
+
+        def build_node(lieu):
+            return {
+                "id": lieu.id,
+                "nomLieu": lieu.nomLieu,
+                "children": [build_node(child) for child in children_by_parent.get(lieu.id, [])],
+            }
+
+        return [build_node(racine) for racine in children_by_parent.get(None, [])]
+
+    def _get_section_response(self, request, section):
+        config = self.SECTION_CONFIG.get(section)
+        if config is None:
+            return Response(
+                {"error": f"Section inconnue: {section}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = config["queryset"].order_by(config["ordering"])
+
+        ids = request.query_params.get("ids")
+        if ids:
+            selected_ids = [int(value) for value in ids.split(",") if value.strip().isdigit()]
+            if selected_ids:
+                queryset = queryset.filter(id__in=selected_ids)
+
+        search = str(request.query_params.get("search", "")).strip()
+        if search:
+            queryset = queryset.filter(**{f"{config['search_field']}__icontains": search})
+
+        paginator = EquipementFormDataPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        serializer = config["serializer"](page if page is not None else queryset, many=True)
+
+        if page is not None:
+            return paginator.get_paginated_response(serializer.data)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def get(self, request):
         try:
-            # Hiérarchie des lieux
-            def build_tree(lieu):
-                children = Lieu.objects.filter(lieuParent=lieu)
-                return {
-                    "id": lieu.id,
-                    "nomLieu": lieu.nomLieu,
-                    "children": [build_tree(child) for child in children],
-                }
+            section = request.query_params.get("section")
+            if section:
+                return self._get_section_response(request, section)
 
-            racines = Lieu.objects.filter(lieuParent__isnull=True)
-            locations = [build_tree(racine) for racine in racines]
+            response_data = {
+                "locations": self._build_locations_tree(),
+                "familles": FamilleEquipementSerializer(
+                    FamilleEquipement.objects.all().order_by('nom'),
+                    many=True,
+                ).data,
+                "typesPM": TypePlanMaintenanceSerializer(
+                    TypePlanMaintenance.objects.all().order_by('libelle'),
+                    many=True,
+                ).data,
+                "typesDocuments": TypeDocumentSerializer(
+                    TypeDocument.objects.all().order_by('nomTypeDocument'),
+                    many=True,
+                ).data,
+            }
 
-            # Autres données
-            equipment_models = ModeleEquipementSerializer(
-                ModeleEquipement.objects.all(), many=True
-            ).data
+            if not self._is_truthy(request.query_params.get("minimal")):
+                response_data.update(
+                    {
+                        "equipmentModels": ModeleEquipementSerializer(
+                            ModeleEquipement.objects.select_related('fabricant').all().order_by('nom'),
+                            many=True,
+                        ).data,
+                        "fabricants": FabricantSimpleSerializer(
+                            Fabricant.objects.all().order_by('nom'),
+                            many=True,
+                        ).data,
+                        "fournisseurs": FournisseurSimpleSerializer(
+                            Fournisseur.objects.all().order_by('nom'),
+                            many=True,
+                        ).data,
+                        "consumables": ConsommableSerializer(
+                            Consommable.objects.all().order_by('designation'),
+                            many=True,
+                        ).data,
+                    }
+                )
 
-            fabricants = FabricantSimpleSerializer(
-                Fabricant.objects.all(), many=True
-            ).data
-
-            fournisseurs = FournisseurSimpleSerializer(
-                Fournisseur.objects.all(), many=True
-            ).data
-
-            consumables = ConsommableSerializer(
-                Consommable.objects.all(), many=True
-            ).data
-
-            familles = FamilleEquipementSerializer(
-                FamilleEquipement.objects.all(), many=True
-            ).data
-
-            types_pm = TypePlanMaintenanceSerializer(
-                TypePlanMaintenance.objects.all(), many=True
-            ).data
-
-            types_documents = TypeDocumentSerializer(
-                TypeDocument.objects.all(), many=True
-            ).data
-
-            return Response(
-                {
-                    "locations": locations,
-                    "equipmentModels": equipment_models,
-                    "fabricants": fabricants,
-                    "fournisseurs": fournisseurs,
-                    "consumables": consumables,
-                    "familles": familles,
-                    "typesPM": types_pm,
-                    "typesDocuments": types_documents,
-                },
-                status=status.HTTP_200_OK,
-            )
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(

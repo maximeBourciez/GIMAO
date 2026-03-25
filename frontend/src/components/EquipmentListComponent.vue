@@ -11,7 +11,7 @@
     :items-per-page="serverPagination ? -1 : 10"
     :hide-default-footer="serverPagination"
     no-data-icon="mdi-package-variant-closed"
-    :internal-search="true"
+    :internal-search="!serverPagination"
     @row-click="$emit('row-click', $event)"
     @clear-error="errorMessage = ''"
     @search="handleSearch"
@@ -32,30 +32,17 @@
     </template>
 
     <template v-if="serverPagination" #after-table>
-      <div class="pagination-bar">
-        <div class="pagination-bar__count">
-          {{ totalItems }} équipement<span v-if="totalItems > 1">s</span>
-        </div>
-
-        <div class="pagination-bar__controls">
-          <v-select
-            v-model="pageSize"
-            :items="pageSizeOptions"
-            label="Par page"
-            density="compact"
-            variant="outlined"
-            hide-details
-            class="pagination-bar__page-size"
-          />
-
-          <v-pagination
-            v-model="currentPage"
-            :length="totalPages"
-            density="comfortable"
-            rounded="circle"
-          />
-        </div>
-      </div>
+      <ServerPaginationControls
+        :page="currentPage"
+        :page-size="pageSize"
+        :page-count="totalPages"
+        :total-items="totalItems"
+        item-label-singular="équipement"
+        item-label-plural="équipements"
+        :reserve-fab-space="reserveFabSpace"
+        @update:page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
     </template>
   </BaseListView>
 </template>
@@ -63,6 +50,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import BaseListView from "@/components/common/BaseListView.vue";
+import ServerPaginationControls from "@/components/common/ServerPaginationControls.vue";
 import { useApi } from "@/composables/useApi";
 import { getStatusColor, getStatusLabel } from "@/utils/helpers";
 import { API_BASE_URL } from "@/utils/constants";
@@ -122,6 +110,10 @@ const props = defineProps({
   selectedModelIds: {
     type: Array,
     default: () => [],
+  },
+  reserveFabSpace: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -306,28 +298,4 @@ onBeforeUnmount(() => {
   color: black !important;
 }
 
-.pagination-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 8px 0;
-  flex-wrap: wrap;
-}
-
-.pagination-bar__count {
-  color: #5f6368;
-  font-size: 0.95rem;
-}
-
-.pagination-bar__controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.pagination-bar__page-size {
-  width: 120px;
-}
 </style>

@@ -73,6 +73,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  summary: {
+    type: Object,
+    default: () => null
+  },
   selectedFilter: {
     type: String,
     default: null
@@ -87,10 +91,16 @@ const emit = defineEmits(['filter-change']);
 
 // Statistiques de stock
 const horsStockCount = computed(() => {
+  if (props.summary && Number.isFinite(Number(props.summary.hors_stock_count))) {
+    return Number(props.summary.hors_stock_count);
+  }
   return props.consommables.filter(c => (c.quantite ?? c.quantite_totale ?? 0) === 0).length;
 });
 
 const sousSeuilCount = computed(() => {
+  if (props.summary && Number.isFinite(Number(props.summary.sous_seuil_count))) {
+    return Number(props.summary.sous_seuil_count);
+  }
   return props.consommables.filter(c => {
     const quantite = c.quantite ?? c.quantite_totale ?? 0;
     return quantite > 0 && c.seuilStockFaible !== null && quantite <= c.seuilStockFaible;
@@ -98,6 +108,9 @@ const sousSeuilCount = computed(() => {
 });
 
 const stockSuffisantCount = computed(() => {
+  if (props.summary && Number.isFinite(Number(props.summary.stock_suffisant_count))) {
+    return Number(props.summary.stock_suffisant_count);
+  }
   return props.consommables.filter(c => {
     const quantite = c.quantite ?? c.quantite_totale ?? 0;
     return c.seuilStockFaible === null || quantite > c.seuilStockFaible;

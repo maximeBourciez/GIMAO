@@ -82,6 +82,7 @@
           :table-headers="computedTableHeaders"
           :filtered-items="filteredEquipments"
           :server-pagination="true"
+          :reserve-fab-space="hasCreationPermission && showCreateButton"
           :selected-location-ids="selectedLocationIds"
           :selected-model-ids="selectedModelIds"
           @row-click="handleRowClick"
@@ -92,20 +93,11 @@
         />
 
         <!-- Bouton flottant en bas à droite -->
-        <v-btn
-          v-if="hasCreationPermission && showCreateButton"
-          color="primary"
-          size="large"
-          icon
-          class="floating-add-button"
-          elevation="4"
+        <FloatingCreateButton
+          :visible="hasCreationPermission && showCreateButton"
+          :tooltip="createButtonText"
           @click="handleCreate"
-        >
-          <v-icon size="large">mdi-plus</v-icon>
-          <v-tooltip activator="parent" location="left">
-            {{ createButtonText }}
-          </v-tooltip>
-        </v-btn>
+        />
       </v-col>
     </v-row>
   </v-container>
@@ -116,6 +108,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { VTreeview } from "vuetify/labs/components";
+import FloatingCreateButton from "@/components/common/FloatingCreateButton.vue";
 import EquipmentListComponent from "@/components/EquipmentListComponent.vue";
 
 const store = useStore();
@@ -374,18 +367,6 @@ onBeforeUnmount(() => {
 
 .v-icon {
   transition: transform 0.3s ease;
-}
-
-.floating-add-button {
-  position: fixed !important;
-  bottom: 24px;
-  right: 24px;
-  z-index: 100;
-}
-
-.floating-add-button:hover {
-  transform: scale(1.1);
-  transition: transform 0.2s ease;
 }
 
 .v-list-item__prepend i,

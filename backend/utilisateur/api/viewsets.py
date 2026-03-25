@@ -2,6 +2,7 @@
 
 import hashlib
 from rest_framework import viewsets, status
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import check_password, make_password
@@ -20,6 +21,7 @@ from .serializers import (
     PermissionSerializer
 )
 from gimao.viewsets import GimaoModelViewSet
+from gimao.pagination import StandardOptionalPagination
 from security.models import ApiToken, create_token
 
 
@@ -67,7 +69,24 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
 # ==================== UTILISATEUR VIEWSET ====================
 
 class UtilisateurViewSet(GimaoModelViewSet):
-    queryset = Utilisateur.objects.all().order_by('id')
+    queryset = Utilisateur.objects.select_related('role').prefetch_related(
+        'role__permissions',
+        'permissions_personnalisees__permission',
+    ).order_by('nomFamille', 'prenom', 'id')
+    pagination_class = StandardOptionalPagination
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['nomUtilisateur', 'prenom', 'nomFamille', 'email', 'role__nomRole']
+    ordering_fields = ['id', 'nomUtilisateur', 'prenom', 'nomFamille', 'dateCreation', 'derniereConnexion']
+    ordering = ['nomFamille', 'prenom', 'id']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        role_id = self.request.query_params.get('role_id')
+        if role_id and str(role_id).isdigit():
+            queryset = queryset.filter(role_id=int(role_id))
+
+        return queryset
 
     def get_serializer_class(self):
         """

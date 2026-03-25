@@ -1,43 +1,65 @@
 <template>
   <v-container fluid>
-    <!-- Statistiques en haut sur toute la largeur -->
-    <StockStatistics :consommables="consommables" :selectedFilter="selectedStockFilter" :bt-count="btPendingCount"
-      @filter-change="selectedStockFilter = $event" class="mb-4" />
+    <StockStatistics
+      :consommables="displayedConsommables"
+      :summary="stockSummary"
+      :selected-filter="selectedStockFilter"
+      :bt-count="btPendingCount"
+      class="mb-4"
+      @filter-change="selectedStockFilter = $event"
+    />
 
     <v-row class="mb-4">
-      <!-- Colonne Consommables (50%) -->
       <v-col cols="12" lg="6">
         <v-card class="rounded-lg pa-4" elevation="1">
-          <!-- Header custom -->
           <div class="mb-4">
             <h1 class="text-h4 text-primary">{{ title }}</h1>
             <p class="text-subtitle-1 text-grey">{{ currentSubtitle }}</p>
           </div>
 
-          <!-- Filtres + Recherche -->
           <div class="d-flex align-center ga-3 mb-4">
-            <v-btn v-if="store.getters.hasPermission('mag:viewList')" prepend-icon="mdi-filter-variant" variant="flat"
-              class="filter-btn" rounded="lg" @click="showMagasinFilterDialog = true">
+            <v-btn
+              v-if="store.getters.hasPermission('mag:viewList')"
+              prepend-icon="mdi-filter-variant"
+              variant="flat"
+              class="filter-btn"
+              rounded="lg"
+              @click="showMagasinFilterDialog = true"
+            >
               Filtrer
             </v-btn>
 
-            <v-text-field v-model="searchQuery" placeholder="Rechercher un consommable..."
-              prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" hide-details clearable
-              class="flex-grow-1" />
+            <v-text-field
+              v-model="searchInput"
+              placeholder="Rechercher un consommable..."
+              prepend-inner-icon="mdi-magnify"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+              class="flex-grow-1"
+            />
           </div>
 
-          <!-- Tableau -->
-          <v-data-table :headers="tableHeaders" :items="searchedConsommables" :loading="loading" :items-per-page="10"
-            class="elevation-0" @click:row="(event, { item }) => $emit('row-click', item)">
-            <!-- Colonne Quantité avec couleur -->
+          <v-data-table
+            :headers="tableHeaders"
+            :items="displayedConsommables"
+            :loading="loading"
+            :items-per-page="-1"
+            hide-default-footer
+            class="elevation-0"
+            @click:row="(event, { item }) => $emit('row-click', item)"
+          >
             <template #item.quantite="{ item }">
-              <v-chip size="small" :color="getQuantiteColor(item.quantite_totale, item.seuilStockFaible)"
-                variant="tonal">
+              <v-chip
+                size="small"
+                :color="getQuantiteColor(item.quantite, item.seuilStockFaible)"
+                variant="tonal"
+              >
                 {{ item.quantite }}
               </v-chip>
             </template>
 
-            <!-- No data -->
             <template #no-data>
               <div class="text-center pa-4">
                 <v-icon size="64" color="grey">mdi-package-variant</v-icon>
@@ -45,14 +67,24 @@
               </div>
             </template>
           </v-data-table>
+
+          <ServerPaginationControls
+            :page="currentPage"
+            :page-size="pageSize"
+            :page-count="totalPages"
+            :total-items="totalItems"
+            item-label-singular="consommable"
+            item-label-plural="consommables"
+            :reserve-fab-space="showCreateButton"
+            @update:page="currentPage = $event"
+            @update:page-size="pageSize = $event"
+          />
         </v-card>
       </v-col>
 
-      <!-- Colonne BT en attente (50%) -->
       <v-col cols="12" lg="6">
         <BTStockValidation
           ref="btStockValidationRef"
-          :consommables="consommables"
           @count-updated="btPendingCount = $event"
           @counts-updated="handleBtCountsUpdated"
           @stock-updated="handleStockUpdated"
@@ -60,16 +92,13 @@
       </v-col>
     </v-row>
 
-    <!-- Bouton flottant en bas à droite -->
-    <v-btn v-if="showCreateButton" color="primary" size="large" icon class="floating-add-button" elevation="8"
-      @click="$emit('create')">
-      <v-icon size="large">mdi-plus</v-icon>
-      <v-tooltip activator="parent" location="left">
-        {{ createButtonText }}
-      </v-tooltip>
-    </v-btn>
+    <FloatingCreateButton
+      :visible="showCreateButton"
+      :tooltip="createButtonText"
+      :elevation="8"
+      @click="$emit('create')"
+    />
 
-    <!-- Dialog Filtre par Magasin -->
     <v-dialog v-model="showMagasinFilterDialog" max-width="900px">
       <v-card class="rounded-lg">
         <v-card-title class="d-flex align-center justify-space-between pa-4 pb-2">
@@ -82,8 +111,13 @@
         <v-divider />
 
         <v-card-text class="pa-4">
-          <MagasinFilter :magasins="magasins" :consommables="consommables" v-model:selectedMagasin="selectedMagasin"
-            @edit:magasin="handleOpenEditMagasin" @archive:magasin="handleOpenArchiveMagasin" />
+          <MagasinFilter
+            v-model:selectedMagasin="selectedMagasin"
+            :magasins="magasins"
+            :consommables="displayedConsommables"
+            @edit:magasin="handleOpenEditMagasin"
+            @archive:magasin="handleOpenArchiveMagasin"
+          />
         </v-card-text>
 
         <v-divider />
@@ -103,11 +137,14 @@
       </v-card>
     </v-dialog>
 
-    <!-- Dialog Formulaire Magasin -->
     <v-dialog v-model="showMagasinFormDialog" max-width="500px">
       <v-card class="rounded-lg">
-        <MagasinForm :magasin="magasinToEdit" @created="handleMagasinCreated" @updated="handleMagasinUpdated"
-          @close="showMagasinFormDialog = false" />
+        <MagasinForm
+          :magasin="magasinToEdit"
+          @created="handleMagasinCreated"
+          @updated="handleMagasinUpdated"
+          @close="showMagasinFormDialog = false"
+        />
       </v-card>
     </v-dialog>
 
@@ -125,30 +162,32 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
 import MagasinFilter from '@/components/Stock/MagasinFilter.vue';
 import MagasinForm from '@/components/Forms/MagasinForm.vue';
 import StockStatistics from '@/components/Stock/StockStatistics.vue';
 import BTStockValidation from '@/components/Stock/BTStockValidation.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
+import FloatingCreateButton from '@/components/common/FloatingCreateButton.vue';
+import ServerPaginationControls from '@/components/common/ServerPaginationControls.vue';
 import { useApi } from '@/composables/useApi';
+import { usePaginatedList } from '@/composables/usePaginatedList';
 import { API_BASE_URL } from '@/utils/constants';
 
 const props = defineProps({
   title: {
     type: String,
-    default: 'Liste des consommables'
+    default: 'Liste des consommables',
   },
   createButtonText: {
     type: String,
-    default: 'Ajouter un consommable'
+    default: 'Ajouter un consommable',
   },
   noDataText: {
     type: String,
-    default: 'Aucun consommable trouvé'
-  }
+    default: 'Aucun consommable trouvé',
+  },
 });
 
 const emit = defineEmits(['create', 'row-click', 'consommables-loaded']);
@@ -171,103 +210,96 @@ const btCompletedCount = ref(0);
 const btStockValidationRef = ref(null);
 const archiving = ref(false);
 
-const consommables = computed(() => consommablesApi.data.value || []);
 const magasins = computed(() => magasinsApi.data.value || []);
-const loading = computed(() => consommablesApi.loading.value || magasinsApi.loading.value);
-const searchQuery = ref('');
 const showCreateButton = computed(() => store.getters.hasPermission('cons:create'));
 
-// Headers du tableau
 const tableHeaders = [
   { title: 'Nom', key: 'designation', sortable: true },
   { title: 'Magasin', key: 'magasin_nom' },
-  { title: 'Quantité', key: 'quantite', sortable: true, align: 'center' }
+  { title: 'Quantité', key: 'quantite', sortable: true, align: 'center' },
 ];
 
-// Fonction utilitaire pour vérifier le statut du stock d'un consommable
-const getStockStatus = (consommable) => {
-  const quantite = consommable.quantite_totale ?? 0;
-  if (quantite === 0) return 'hors-stock';
-  if (consommable.seuilStockFaible !== null && quantite <= consommable.seuilStockFaible) return 'sous-seuil';
-  return 'stock-suffisant';
-};
-
-// Filtrage par magasin et stock sur les consommables originaux
-const consommablesFiltered = computed(() => {
-  let filtered = consommables.value;
-
-  if (selectedMagasin.value !== null) {
-    filtered = filtered.filter(c => c.magasins.includes(selectedMagasin.value));
-  }
-
-  if (selectedStockFilter.value) {
-    filtered = filtered.filter(c => getStockStatus(c) === selectedStockFilter.value);
-  }
-
-  return filtered;
+const {
+  items,
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  searchQuery,
+  loading,
+  extra,
+  fetchPage,
+  handleSearch,
+} = usePaginatedList({
+  api: consommablesApi,
+  endpoint: 'consommables/',
+  initialPageSize: 10,
+  buildParams: () => ({
+    magasin_id: selectedMagasin.value ?? undefined,
+    stock_status: selectedStockFilter.value ?? undefined,
+  }),
+  watchSource: () => [selectedMagasin.value ?? '', selectedStockFilter.value ?? ''],
+  onFetched: (_response, normalized) => {
+    emit('consommables-loaded', normalized.items);
+  },
 });
 
-// Expansion des consommables filtrés (Logique Stock)
-const filteredConsommables = computed(() => {
-  return consommablesFiltered.value.map(consommable => {
-    let quantityToDisplay = 0;
+const searchInput = computed({
+  get: () => searchQuery.value,
+  set: (value) => handleSearch(value),
+});
+
+const stockSummary = computed(() => extra.value?.summary || null);
+
+const displayedConsommables = computed(() =>
+  items.value.map((consommable) => {
+    let quantite = consommable.quantite_totale ?? 0;
 
     if (selectedMagasin.value !== null) {
-      const stock = consommable.stocks?.find(s => s.magasin === selectedMagasin.value);
-      quantityToDisplay = stock ? stock.quantite : 0;
-    } else {
-      quantityToDisplay = consommable.quantite_totale || 0;
+      const stock = (consommable.stocks || []).find((item) => item.magasin === selectedMagasin.value);
+      quantite = stock ? stock.quantite : 0;
     }
-    const magasins_noms = [...new Set(consommable.stocks?.map(s => s.magasin_nom).filter(Boolean))].join(', ');
+
+    const magasinNom = [...new Set(
+      (consommable.stocks || [])
+        .map((stock) => stock.magasin_nom)
+        .filter(Boolean),
+    )].join(', ');
 
     return {
       ...consommable,
-      quantite: quantityToDisplay,
-      magasin_nom: magasins_noms || '-',
+      quantite,
+      magasin_nom: magasinNom || '-',
     };
-  });
-});
+  }),
+);
 
-// Sous-titre dynamique
 const currentSubtitle = computed(() => {
   if (selectedMagasin.value === null) {
-    return `${filteredConsommables.value.length} consommable(s) au total`;
+    return `${totalItems.value} consommable(s) au total`;
   }
-  const magasin = magasins.value.find(m => m.id === selectedMagasin.value);
-  return magasin ? `Magasin : ${magasin.nom} - ${filteredConsommables.value.length} consommable(s)` : '';
+
+  const magasin = magasins.value.find((item) => item.id === selectedMagasin.value);
+  return magasin ? `Magasin : ${magasin.nom} - ${totalItems.value} consommable(s)` : '';
 });
 
-// Couleur de la quantité
 const getQuantiteColor = (quantite, seuil) => {
   if (quantite === 0) return 'error';
-  if (seuil !== null && quantite <= seuil) return 'warning';
+  if (seuil !== null && seuil !== undefined && quantite <= seuil) return 'warning';
   return 'success';
 };
 
-// Chargement des données
-const fetchData = async () => {
+const fetchMagasins = async () => {
   try {
-    await Promise.all([
-      consommablesApi.get('consommables/'),
-      magasinsApi.get('magasins/')
-    ]);
-    emit('consommables-loaded', consommables.value);
+    await magasinsApi.get('magasins/');
   } catch (error) {
-    console.error('Erreur lors du chargement des données:', error);
-    errorMessage.value = 'Erreur lors du chargement des données';
+    errorMessage.value = 'Erreur lors du chargement des magasins';
   }
 };
 
-// Filtrage avec recherche
-const searchedConsommables = computed(() => {
-  if (!searchQuery.value) return filteredConsommables.value;
-  
-  const search = searchQuery.value.toLowerCase();
-  return filteredConsommables.value.filter(c => 
-    c.designation?.toLowerCase().includes(search) ||
-    c.magasin_nom?.toLowerCase().includes(search)
-  );
-});
+const fetchData = async () => {
+  await Promise.allSettled([fetchPage(), fetchMagasins()]);
+};
 
 const handleApplyFilter = () => {
   showMagasinFilterDialog.value = false;
@@ -314,12 +346,14 @@ const archiveMagasin = async () => {
   try {
     await archiveApi.patch(`magasins/${magasinToArchive.value.id}/set-archive/`, { archive: true });
     await fetchData();
+
     if (selectedMagasin.value === magasinToArchive.value.id) {
       selectedMagasin.value = null;
     }
+
     showArchiveDialog.value = false;
   } catch (error) {
-    console.error('Erreur archivage magasin', error);
+    errorMessage.value = 'Erreur lors de l\'archivage du magasin';
   } finally {
     archiving.value = false;
     magasinToArchive.value = null;
@@ -337,7 +371,7 @@ const handleBtCountsUpdated = ({ pending, completed, reserved }) => {
 };
 
 const handleStockUpdated = async () => {
-  await fetchData();
+  await fetchPage();
 };
 
 onMounted(() => {
@@ -346,13 +380,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.floating-add-button {
-  position: fixed !important;
-  bottom: 24px;
-  right: 24px;
-  z-index: 1001;
-}
-
 .filter-btn {
   background-color: #F1F5FF !important;
   color: #05004E !important;

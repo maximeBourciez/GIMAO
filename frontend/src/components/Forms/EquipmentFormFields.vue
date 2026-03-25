@@ -56,7 +56,8 @@
 
             <v-col cols="12" md="6">
                 <FormSelect v-model="modelValue.modeleEquipement" field-name="modeleEquipement" :step="step"
-                    label="Modèle" :items="equipmentModels" item-title="nom" item-value="id" clearable>
+                    label="Modèle" :items="equipmentModels" item-title="nom" item-value="id" clearable no-filter
+                    :loading="equipmentModelsLoading" @update:search="$emit('search-equipment-models', $event)">
                     <template #append-item>
                         <v-divider class="mt-2" />
                         <v-list-item @click="$emit('open-modele-dialog')">
@@ -71,7 +72,8 @@
 
             <v-col cols="12" md="6">
                 <FormSelect v-model="modelValue.fournisseur" field-name="fournisseur" :step="step" label="Fournisseur"
-                    :items="fournisseurs" item-title="nom" item-value="id" clearable>
+                    :items="fournisseurs" item-title="nom" item-value="id" clearable no-filter
+                    :loading="fournisseursLoading" @update:search="$emit('search-fournisseurs', $event)">
                     <template #append-item>
                         <v-divider class="mt-2" />
                         <v-list-item @click="$emit('open-fournisseur-dialog')">
@@ -86,7 +88,8 @@
 
             <v-col cols="12" md="6">
                 <FormSelect v-model="modelValue.fabricant" field-name="fabricant" :step="step" label="Fabricant"
-                    :items="fabricants" item-title="nom" item-value="id" clearable>
+                    :items="fabricants" item-title="nom" item-value="id" clearable no-filter
+                    :loading="fabricantsLoading" @update:search="$emit('search-fabricants', $event)">
                     <template #append-item>
                         <v-divider class="mt-2" />
                         <v-list-item @click="$emit('open-fabricant-dialog')">
@@ -141,7 +144,8 @@
 
             <v-col cols="12">
                 <FormSelect v-model="modelValue.consommables" label="Consommables" :items="consumables"
-                    item-title="designation" item-value="id" multiple chips clearable>
+                    item-title="designation" item-value="id" multiple chips clearable no-filter
+                    :loading="consumablesLoading" @update:search="$emit('search-consumables', $event)">
                     <template #append-item>
                         <v-divider class="mt-2" />
                         <v-list-item @click="$emit('open-consommable-dialog')">
@@ -237,6 +241,22 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    equipmentModelsLoading: {
+        type: Boolean,
+        default: false
+    },
+    fournisseursLoading: {
+        type: Boolean,
+        default: false
+    },
+    fabricantsLoading: {
+        type: Boolean,
+        default: false
+    },
+    consumablesLoading: {
+        type: Boolean,
+        default: false
+    },
     equipmentStatuses: {
         type: Array,
         default: () => []
@@ -275,7 +295,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter', 'open-modele-dialog', 'open-fournisseur-dialog', 'open-fabricant-dialog', 'open-famille-dialog', 'open-lieu-dialog', 'open-consommable-dialog']);
+const emit = defineEmits(['update:modelValue', 'file-upload', 'location-created', 'edit-counter', 'delete-counter', 'open-modele-dialog', 'open-fournisseur-dialog', 'open-fabricant-dialog', 'open-famille-dialog', 'open-lieu-dialog', 'open-consommable-dialog', 'search-equipment-models', 'search-fournisseurs', 'search-fabricants', 'search-consumables']);
 
 const handleFileUpload = (file) => {
     emit('file-upload', file);
