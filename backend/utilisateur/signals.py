@@ -36,12 +36,21 @@ def make_serializable(obj):
         return obj.pk
     return obj
 
+def should_ignore_model(sender):
+    if sender._meta.model_name in ['log', 'session', 'contenttype', 'migration', 'adminlog']:
+        return True
+    
+    db_table = getattr(sender._meta, 'db_table', '')
+    if db_table.startswith('auth') or db_table.startswith('django') or db_table.startswith('security'):
+        return True
+        
+    return False
+
 @receiver(pre_save)
 def capture_old_state(sender, instance, **kwargs):
     # Ignore specific models to prevent clutter or recursion
-    if sender._meta.model_name in ['log', 'session', 'contenttype', 'migration', 'adminlog']:
+    if should_ignore_model(sender):
         return
-        
     if instance.pk:
         try:
             # We fetch the specific fields to avoid overhead, but model_to_dict needs an instance
@@ -54,7 +63,7 @@ def capture_old_state(sender, instance, **kwargs):
 
 @receiver(post_save)
 def log_save(sender, instance, created, **kwargs):
-    if sender._meta.model_name in ['log', 'session', 'contenttype', 'migration', 'adminlog']:
+    if should_ignore_model(sender):
         return
 
     # Determine action
@@ -126,7 +135,7 @@ def log_save(sender, instance, created, **kwargs):
 
 @receiver(post_delete)
 def log_delete(sender, instance, **kwargs):
-    if sender._meta.model_name in ['log', 'session', 'contenttype', 'migration', 'adminlog']:
+    if should_ignore_model(sender):
         return
 
     from .middleware import get_thread_log_group
