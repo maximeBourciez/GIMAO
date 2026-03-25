@@ -4,17 +4,17 @@ import os
 import traceback
 from urllib.parse import parse_qs
 from django.http import JsonResponse
+from donnees.models import Document, TypeDocument
+from django.db.models import Count, F, Prefetch, Q
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
-from django.db.models import Count, F, Prefetch, Q
 from django.utils import timezone
 from django.db import transaction
 import json
-from donnees.models import Document, TypeDocument
 from equipement.models import Equipement, StatutEquipement
 from utilisateur.models import Utilisateur, Log
 from stock.models import Consommable, Stocker
@@ -68,21 +68,7 @@ class DemandeInterventionViewSet(PaginatedActionMixin, ArchivableViewSetMixin, G
     - GET /demandes-intervention/par_equipement/?equipement_id=X : Filtre par équipement
     - POST /demandes-intervention/{id}/traiter/ : Marque comme traitée
     """
-    queryset = DemandeIntervention.objects.select_related(
-        'utilisateur', 'equipement', 'equipement__lieu'
-    ).prefetch_related(
-        'bons_travail',
-        Prefetch(
-            'equipement__statuts',
-            queryset=StatutEquipement.objects.only(
-                'id',
-                'statut',
-                'dateChangement',
-                'equipement_id',
-            ).order_by('-dateChangement'),
-            to_attr='prefetched_statuts',
-        ),
-    )
+    queryset = DemandeIntervention.objects.all()
     serializer_class = DemandeInterventionSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     pagination_class = StandardPagination
@@ -98,6 +84,44 @@ class DemandeInterventionViewSet(PaginatedActionMixin, ArchivableViewSetMixin, G
     ]
     ordering_fields = ['id', 'nom', 'date_creation', 'date_changementStatut', 'statut']
     ordering = ['-date_creation', '-id']
+
+    def _get_list_queryset(self):
+        return DemandeIntervention.objects.select_related(
+            'utilisateur',
+            'equipement',
+            'equipement__lieu',
+        ).prefetch_related(
+            Prefetch(
+                'equipement__statuts',
+                queryset=StatutEquipement.objects.only(
+                    'id',
+                    'statut',
+                    'dateChangement',
+                    'equipement_id',
+                ).order_by('-dateChangement'),
+                to_attr='prefetched_statuts',
+            ),
+        )
+
+    def _get_detail_queryset(self):
+        return self._get_list_queryset().prefetch_related(
+            Prefetch(
+                'documents',
+                queryset=Document.objects.select_related('typeDocument').only(
+                    'id',
+                    'nomDocument',
+                    'cheminAcces',
+                    'typeDocument_id',
+                    'typeDocument__id',
+                    'typeDocument__nomTypeDocument',
+                ),
+            ),
+        )
+
+    def get_queryset(self):
+        if self.action == 'retrieve':
+            return self._get_detail_queryset()
+        return self._get_list_queryset()
 
     def _parse_json_field(self, data, key, default):
         raw = data.get(key, default)
@@ -119,14 +143,14 @@ class DemandeInterventionViewSet(PaginatedActionMixin, ArchivableViewSetMixin, G
     @action(detail=False, methods=['get'])
     def en_attente(self, request):
         """Retourne les demandes d'intervention en attente de traitement"""
-        demandes = self.queryset.filter(date_traitement__isnull=True)
+        demandes = self.get_queryset().filter(date_traitement__isnull=True)
         serializer = self.get_serializer(demandes, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def traitees(self, request):
         """Retourne les demandes d'intervention traitées"""
-        demandes = self.queryset.filter(date_traitement__isnull=False)
+        demandes = self.get_queryset().filter(date_traitement__isnull=False)
         serializer = self.get_serializer(demandes, many=True)
         return Response(serializer.data)
 
@@ -553,23 +577,7 @@ class BonTravailViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModel
     - PATCH /bons-travail/{id}/updateStatus/ : Change le statut
     - PATCH /bons-travail/{id}/delink_document/ : Délie un document du bon
     """
-    queryset = BonTravail.objects.select_related(
-        'demande_intervention',
-        'demande_intervention__equipement',
-        'responsable'
-    ).prefetch_related(
-        'utilisateur_assigne',
-        'documents',
-        'demande_intervention__documents',
-        Prefetch(
-            'bontravailconsommable_set',
-            queryset=BonTravailConsommable.objects.select_related('consommable').prefetch_related(
-                'reservations__magasin',
-                'consommable__stocks__magasin',
-            ),
-            to_attr='prefetched_consommables',
-        ),
-    )
+    queryset = BonTravail.objects.all()
     serializer_class = BonTravailSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     pagination_class = StandardPagination
@@ -588,6 +596,126 @@ class BonTravailViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModel
     ]
     ordering_fields = ['id', 'nom', 'date_assignation', 'date_prevue', 'date_cloture', 'statut']
     ordering = ['-date_assignation', '-id']
+
+    def _prefetched_assignees(self):
+        return Prefetch(
+            'utilisateur_assigne',
+            queryset=Utilisateur.objects.only(
+                'id',
+                'nomUtilisateur',
+                'email',
+                'prenom',
+                'nomFamille',
+                'photoProfil',
+            ).order_by('id'),
+        )
+
+    def _prefetched_documents(self, relation):
+        return Prefetch(
+            relation,
+            queryset=Document.objects.select_related('typeDocument').only(
+                'id',
+                'nomDocument',
+                'cheminAcces',
+                'typeDocument_id',
+                'typeDocument__id',
+                'typeDocument__nomTypeDocument',
+            ).order_by('id'),
+        )
+
+    def _prefetched_statuts(self):
+        return Prefetch(
+            'demande_intervention__equipement__statuts',
+            queryset=StatutEquipement.objects.only(
+                'id',
+                'statut',
+                'dateChangement',
+                'equipement_id',
+            ).order_by('-dateChangement'),
+            to_attr='prefetched_statuts',
+        )
+
+    def _get_base_queryset(self):
+        return BonTravail.objects.select_related(
+            'demande_intervention',
+            'demande_intervention__utilisateur',
+            'demande_intervention__equipement',
+            'demande_intervention__equipement__lieu',
+            'responsable',
+        )
+
+    def _get_list_queryset(self):
+        return self._get_base_queryset().prefetch_related(
+            self._prefetched_assignees(),
+        )
+
+    def _get_detail_queryset(self):
+        return self._get_base_queryset().prefetch_related(
+            self._prefetched_assignees(),
+            self._prefetched_documents('documents'),
+            self._prefetched_documents('demande_intervention__documents'),
+            self._prefetched_statuts(),
+            Prefetch(
+                'bontravailconsommable_set',
+                queryset=BonTravailConsommable.objects.select_related('consommable').only(
+                    'id',
+                    'bon_travail_id',
+                    'consommable_id',
+                    'quantite_utilisee',
+                    'consommable__id',
+                    'consommable__designation',
+                    'consommable__lienImageConsommable',
+                ),
+                to_attr='prefetched_consommables',
+            ),
+        )
+
+    def _get_list_stock_queryset(self):
+        return self._get_base_queryset().prefetch_related(
+            self._prefetched_assignees(),
+            self._prefetched_documents('documents'),
+            self._prefetched_documents('demande_intervention__documents'),
+            self._prefetched_statuts(),
+            Prefetch(
+                'bontravailconsommable_set',
+                queryset=BonTravailConsommable.objects.select_related('consommable').only(
+                    'id',
+                    'bon_travail_id',
+                    'consommable_id',
+                    'quantite_utilisee',
+                    'estConfirme',
+                    'date_confirme',
+                    'magasin_reserve_id',
+                    'consommable__id',
+                    'consommable__designation',
+                    'consommable__lienImageConsommable',
+                ).prefetch_related(
+                    Prefetch(
+                        'reservations',
+                        queryset=BonTravailConsommableReservation.objects.select_related('magasin').only(
+                            'id',
+                            'bon_travail_consommable_id',
+                            'magasin_id',
+                            'quantite',
+                            'magasin__id',
+                            'magasin__nom',
+                        ),
+                    ),
+                    Prefetch(
+                        'consommable__stocks',
+                        queryset=Stocker.objects.select_related('magasin').only(
+                            'id',
+                            'consommable_id',
+                            'magasin_id',
+                            'quantite',
+                            'magasin__id',
+                            'magasin__nom',
+                        ),
+                    ),
+                ),
+                to_attr='prefetched_consommables',
+            ),
+        )
 
     def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
         try:
@@ -718,7 +846,14 @@ class BonTravailViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModel
         Query param: cloture (optionnel)
         - cloture=true (ou 1) => inclut les BT au statut CLOTURE
         """
-        queryset = super().get_queryset().distinct()
+        if self.action == 'list_stock':
+            queryset = self._get_list_stock_queryset()
+        elif self.action == 'retrieve':
+            queryset = self._get_detail_queryset()
+        else:
+            queryset = self._get_list_queryset()
+
+        queryset = queryset.distinct()
 
         statut = str(self.request.query_params.get('statut', '')).strip().upper()
         if statut and statut != 'ALL':
@@ -1358,7 +1493,7 @@ class BonTravailViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModel
         
         Endpoint idéal pour le magasinier pour voir les BT en cours et les consommables à distribuer.
         """
-        queryset = self.queryset.exclude(
+        queryset = self.get_queryset().exclude(
             statut__in=['CLOTURE', 'TERMINE']
         ).distinct()
 
@@ -1383,23 +1518,31 @@ class BonTravailViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModel
         )
 
     def _build_list_stock_summary(self, queryset):
-        pending_count = queryset.filter(
-            total_consommables_count__gt=0,
-            confirmed_consommables_count__lt=F('total_consommables_count'),
-            pieces_recuperees=False,
-        ).count()
-        reserved_count = queryset.filter(
-            total_consommables_count__gt=0,
-            confirmed_consommables_count=F('total_consommables_count'),
-            pieces_recuperees=False,
-        ).count()
-        recovered_count = queryset.filter(pieces_recuperees=True).count()
-
-        return {
-            'pending_count': pending_count,
-            'reserved_count': reserved_count,
-            'recovered_count': recovered_count,
-        }
+        return queryset.aggregate(
+            pending_count=Count(
+                'id',
+                filter=Q(
+                    total_consommables_count__gt=0,
+                    confirmed_consommables_count__lt=F('total_consommables_count'),
+                    pieces_recuperees=False,
+                ),
+                distinct=True,
+            ),
+            reserved_count=Count(
+                'id',
+                filter=Q(
+                    total_consommables_count__gt=0,
+                    confirmed_consommables_count=F('total_consommables_count'),
+                    pieces_recuperees=False,
+                ),
+                distinct=True,
+            ),
+            recovered_count=Count(
+                'id',
+                filter=Q(pieces_recuperees=True),
+                distinct=True,
+            ),
+        )
 
     def _apply_list_stock_state_filter(self, queryset):
         reservation_state = str(

@@ -52,7 +52,7 @@ class EquipementFormDataView(APIView):
             "ordering": "nom",
         },
         "consumables": {
-            "queryset": Consommable.objects.all(),
+            "queryset": Consommable.objects.prefetch_related('magasins', 'documents'),
             "serializer": ConsommableSerializer,
             "search_field": "designation",
             "ordering": "designation",
@@ -159,7 +159,7 @@ class EquipementFormDataView(APIView):
                             many=True,
                         ).data,
                         "consumables": ConsommableSerializer(
-                            Consommable.objects.all().order_by('designation'),
+                            Consommable.objects.prefetch_related('magasins', 'documents').all().order_by('designation'),
                             many=True,
                         ).data,
                     }

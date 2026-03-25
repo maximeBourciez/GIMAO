@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from django.db import transaction
-from django.db.models import F, IntegerField, Q, Sum, Value
+from django.db.models import Count, F, IntegerField, Prefetch, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -49,7 +49,7 @@ class MagasinViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
 
 class ConsommableViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     """ViewSet pour la gestion des consommables avec CRUD complet et filtrage par magasin"""
-    queryset = Consommable.objects.all().prefetch_related('stocks', 'fournitures', 'stocks__magasin')
+    queryset = Consommable.objects.all()
     serializer_class = ConsommableSerializer
     pagination_class = StandardPagination
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -57,6 +57,39 @@ class ConsommableViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     search_fields = ['designation', 'stocks__magasin__nom']
     ordering_fields = ['designation', 'id', 'seuilStockFaible']
     ordering = ['designation']
+
+    def _get_detail_queryset(self):
+        return Consommable.objects.prefetch_related(
+            'magasins',
+            'documents',
+            Prefetch(
+                'stocks',
+                queryset=Stocker.objects.select_related('magasin').only(
+                    'id',
+                    'consommable_id',
+                    'magasin_id',
+                    'quantite',
+                    'magasin__id',
+                    'magasin__nom',
+                ),
+            ),
+            Prefetch(
+                'fournitures',
+                queryset=PorterSur.objects.select_related('fournisseur', 'fabricant').only(
+                    'id',
+                    'consommable_id',
+                    'fournisseur_id',
+                    'fabricant_id',
+                    'quantite',
+                    'prix_unitaire',
+                    'date_reference_prix',
+                    'fournisseur__id',
+                    'fournisseur__nom',
+                    'fabricant__id',
+                    'fabricant__nom',
+                ),
+            ),
+        )
 
     def _get_selected_stock_expression(self):
         magasin_id = self.request.query_params.get('magasin_id')
@@ -77,7 +110,7 @@ class ConsommableViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         )
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = self._get_detail_queryset()
         magasin_id = self.request.query_params.get('magasin_id')
 
         if magasin_id and str(magasin_id).isdigit():
@@ -133,25 +166,33 @@ class ConsommableViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
 
     def _build_stock_summary(self, queryset):
         base_queryset = queryset.exclude(archive=True)
-        hors_stock_count = base_queryset.filter(filtered_quantite_totale=0).count()
-        sous_seuil_count = base_queryset.filter(
-            filtered_quantite_totale__gt=0,
-            seuilStockFaible__isnull=False,
-            filtered_quantite_totale__lte=F('seuilStockFaible'),
-        ).count()
-        stock_suffisant_count = base_queryset.exclude(
-            Q(filtered_quantite_totale=0) |
-            Q(
-                seuilStockFaible__isnull=False,
-                filtered_quantite_totale__lte=F('seuilStockFaible'),
-            )
-        ).count()
-
-        return {
-            'hors_stock_count': hors_stock_count,
-            'sous_seuil_count': sous_seuil_count,
-            'stock_suffisant_count': stock_suffisant_count,
-        }
+        return base_queryset.aggregate(
+            hors_stock_count=Count(
+                'id',
+                filter=Q(filtered_quantite_totale=0),
+                distinct=True,
+            ),
+            sous_seuil_count=Count(
+                'id',
+                filter=Q(
+                    filtered_quantite_totale__gt=0,
+                    seuilStockFaible__isnull=False,
+                    filtered_quantite_totale__lte=F('seuilStockFaible'),
+                ),
+                distinct=True,
+            ),
+            stock_suffisant_count=Count(
+                'id',
+                filter=~(
+                    Q(filtered_quantite_totale=0) |
+                    Q(
+                        seuilStockFaible__isnull=False,
+                        filtered_quantite_totale__lte=F('seuilStockFaible'),
+                    )
+                ),
+                distinct=True,
+            ),
+        )
 
     @action(detail=True, methods=['post'])
     @transaction.atomic

@@ -1,6 +1,7 @@
 
 
 import hashlib
+from django.db.models import Prefetch
 from rest_framework import viewsets, status
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
@@ -69,18 +70,33 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
 # ==================== UTILISATEUR VIEWSET ====================
 
 class UtilisateurViewSet(GimaoModelViewSet):
-    queryset = Utilisateur.objects.select_related('role').prefetch_related(
-        'role__permissions',
-        'permissions_personnalisees__permission',
-    ).order_by('nomFamille', 'prenom', 'id')
+    queryset = Utilisateur.objects.all()
     pagination_class = StandardPagination
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['nomUtilisateur', 'prenom', 'nomFamille', 'email', 'role__nomRole']
     ordering_fields = ['id', 'nomUtilisateur', 'prenom', 'nomFamille', 'dateCreation', 'derniereConnexion']
     ordering = ['nomFamille', 'prenom', 'id']
 
+    def _get_list_queryset(self):
+        return Utilisateur.objects.select_related('role').prefetch_related(
+            Prefetch(
+                'role__permissions',
+                queryset=Permission.objects.only('id', 'nomPermission', 'description').order_by('id'),
+            ),
+            Prefetch(
+                'permissions_personnalisees',
+                queryset=UtilisateurPermission.objects.select_related('permission').only(
+                    'id',
+                    'utilisateur_id',
+                    'permission_id',
+                    'permission__id',
+                    'permission__nomPermission',
+                ),
+            ),
+        ).order_by('nomFamille', 'prenom', 'id')
+
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = self._get_list_queryset()
 
         role_id = self.request.query_params.get('role_id')
         if role_id and str(role_id).isdigit():
