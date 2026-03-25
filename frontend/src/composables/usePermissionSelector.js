@@ -1,61 +1,61 @@
 import { computed } from 'vue'
 
-export const PERM_HIERARCHY = {
-  'di:editAll': ['di:editCreated'],
-  'bt:editAll': ['bt:editAssigned'],
-  'dash:stats.full': ['dash:stats.bt', 'dash:stats.di'],
-  'dash:display.bt': ['dash:display.btAssigned'],
-  'dash:display.di': ['dash:display.diCreated'],
-}
-
-const PERM_TYPE = {
-  viewList: 'affichage', viewDetail: 'affichage', view: 'affichage',
-  'display.bt': 'affichage', 'display.di': 'affichage', 'display.eq': 'affichage',
-  'display.mag': 'affichage', 'display.vertical': 'affichage',
-  'display.btAssigned': 'affichage', 'display.diCreated': 'affichage',
-  'stats.full': 'affichage', 'stats.bt': 'affichage', 'stats.di': 'affichage',
-  create: 'action', edit: 'action', editAll: 'action', editCreated: 'action',
-  editAssigned: 'action', delete: 'action', accept: 'action', refuse: 'action',
-  transform: 'action', start: 'action', end: 'action', refuseClosure: 'action',
-  acceptClosure: 'action', acceptConsumableRequest: 'action',
-  disable: 'action', enable: 'action', dataManagement: 'affichage',
-}
-
 /**
  * Composable partagé pour la sélection de permissions.
  *
  * @param {Ref<Array>} allPermissions - Ref vers la liste complète des permissions
  * @param {Ref<Array>} selectedIds    - Ref vers le tableau des IDs sélectionnés (modifiable)
  * @param {Ref<string>} searchPerm    - Ref vers la chaîne de recherche
+ *
+ * Chaque permission expose depuis l'API : { id, nomPermission, description, type, parent_id, module }
+ * - type      : 'affichage' | 'action'
+ * - parent_id : id de la permission parente (ou null)
  */
 export function usePermissionSelector(allPermissions, selectedIds, searchPerm) {
-  const getPermType = (nomPermission) => {
-    const action = nomPermission.split(':')[1] || nomPermission
-    return PERM_TYPE[action] || 'action'
+
+  // Une permission d'action est désactivée si sa permission parente est déjà cochée
+  const isPermDisabledByHierarchy = (permId) => {
+    const perm = allPermissions.value.find(p => p.id === permId)
+    if (!perm?.parent_id) return false
+    return selectedIds.value.includes(perm.parent_id)
   }
 
-  const isPermDisabledByHierarchy = (nomPermission) => {
-    for (const [parent, children] of Object.entries(PERM_HIERARCHY)) {
-      if (children.includes(nomPermission)) {
-        const parentPerm = allPermissions.value.find(p => p.nomPermission === parent)
-        if (parentPerm && selectedIds.value.includes(parentPerm.id)) {
-          return true
+  // Réordonne un tableau de permissions : parent d'abord, puis ses enfants juste après.
+  // Chaque élément retourné est une copie avec _isChild ajouté.
+  function orderedWithChildren(perms) {
+    const idsInGroup = new Set(perms.map(p => p.id))
+    const result = []
+    const added = new Set()
+    for (const perm of perms) {
+      if (added.has(perm.id)) continue
+      const isRoot = !perm.parent_id || !idsInGroup.has(perm.parent_id)
+      if (isRoot) {
+        result.push({ ...perm, _isChild: false })
+        added.add(perm.id)
+        for (const child of perms) {
+          if (child.parent_id === perm.id && !added.has(child.id)) {
+            result.push({ ...child, _isChild: true })
+            added.add(child.id)
+          }
         }
       }
     }
-    return false
+    return result
   }
 
-  // Permissions groupées par module, en excluant les permissions d'export
+  // Permissions groupées par module
   const permissionsByModule = computed(() => {
     const groups = {}
     for (const perm of allPermissions.value) {
-      if (perm.nomPermission === 'export:view') continue
-      if (perm.nomPermission.endsWith(':export')) continue
       const code = perm.module?.code ?? perm.nomPermission.split(':')[0]
       const nom = perm.module?.nom ?? code
       if (!groups[code]) groups[code] = { nom, affichage: [], action: [] }
-      groups[code][getPermType(perm.nomPermission)].push(perm)
+      groups[code][perm.type ?? 'action'].push(perm)
+    }
+    // Réordonner pour placer les enfants juste après leur parent
+    for (const code of Object.keys(groups)) {
+      groups[code].affichage = orderedWithChildren(groups[code].affichage)
+      groups[code].action = orderedWithChildren(groups[code].action)
     }
     return groups
   })
@@ -66,8 +66,12 @@ export function usePermissionSelector(allPermissions, selectedIds, searchPerm) {
     const search = searchPerm.value.toLowerCase()
     const result = {}
     for (const [code, data] of Object.entries(permissionsByModule.value)) {
-      const filteredAffichage = data.affichage.filter(p => p.nomPermission.toLowerCase().includes(search))
-      const filteredAction = data.action.filter(p => p.nomPermission.toLowerCase().includes(search))
+      const filteredAffichage = data.affichage.filter(p =>
+        p.description?.toLowerCase().includes(search) || p.nomPermission.toLowerCase().includes(search)
+      )
+      const filteredAction = data.action.filter(p =>
+        p.description?.toLowerCase().includes(search) || p.nomPermission.toLowerCase().includes(search)
+      )
       if (filteredAffichage.length || filteredAction.length) {
         result[code] = { ...data, affichage: filteredAffichage, action: filteredAction }
       }
@@ -98,41 +102,36 @@ export function usePermissionSelector(allPermissions, selectedIds, searchPerm) {
     if (!perm) return
 
     if (value) {
-      if (!selectedIds.value.includes(id)) selectedIds.value.push(id)
-      if (PERM_HIERARCHY[perm.nomPermission]) {
-        for (const childName of PERM_HIERARCHY[perm.nomPermission]) {
-          const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
-          if (childPerm && !selectedIds.value.includes(childPerm.id)) {
-            selectedIds.value.push(childPerm.id)
-          }
+      let newIds = selectedIds.value.includes(id) ? selectedIds.value : [...selectedIds.value, id]
+      // Activer aussi les enfants dont c'est la permission parente
+      for (const child of allPermissions.value) {
+        if (child.parent_id === id && !newIds.includes(child.id)) {
+          newIds = [...newIds, child.id]
         }
       }
+      selectedIds.value = newIds
     } else {
-      selectedIds.value = selectedIds.value.filter(x => x !== id)
-      if (PERM_HIERARCHY[perm.nomPermission]) {
-        for (const childName of PERM_HIERARCHY[perm.nomPermission]) {
-          const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
-          if (childPerm) {
-            selectedIds.value = selectedIds.value.filter(x => x !== childPerm.id)
-          }
-        }
-      }
+      // Désactiver la permission et ses enfants
+      const childIds = allPermissions.value
+        .filter(p => p.parent_id === id)
+        .map(p => p.id)
+      selectedIds.value = selectedIds.value.filter(x => x !== id && !childIds.includes(x))
     }
   }
 
   // Applique la hiérarchie sur les IDs sélectionnés (à appeler après chargement)
   const applyHierarchy = () => {
-    for (const [parent, children] of Object.entries(PERM_HIERARCHY)) {
-      const parentPerm = allPermissions.value.find(p => p.nomPermission === parent)
-      if (parentPerm && selectedIds.value.includes(parentPerm.id)) {
-        for (const childName of children) {
-          const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
-          if (childPerm && !selectedIds.value.includes(childPerm.id)) {
-            selectedIds.value.push(childPerm.id)
+    let ids = [...selectedIds.value]
+    for (const perm of allPermissions.value) {
+      if (ids.includes(perm.id)) {
+        for (const child of allPermissions.value) {
+          if (child.parent_id === perm.id && !ids.includes(child.id)) {
+            ids = [...ids, child.id]
           }
         }
       }
     }
+    selectedIds.value = ids
   }
 
   return {

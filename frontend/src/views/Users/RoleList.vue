@@ -112,64 +112,11 @@
               </span>
             </div>
 
-            <!-- Filtre par module -->
-            <v-text-field v-model="searchPerm" placeholder="Rechercher une permission..."
-              prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" clearable class="mb-3" />
-
-
-            <div v-for="(types, module) in filteredPermissionsByModule" :key="module" class="mb-2">
-              <v-expansion-panels variant="accordion">
-                <v-expansion-panel>
-                  <v-expansion-panel-title>
-                    <div class="d-flex align-center" style="gap: 12px;">
-                      <v-checkbox :model-value="isModuleFullySelected([...types.affichage, ...types.action])"
-                        :indeterminate="isModulePartiallySelected([...types.affichage, ...types.action])"
-                        density="compact" hide-details color="primary"
-                        @update:model-value="toggleModule([...types.affichage, ...types.action], $event)"
-                        @click.stop />
-                      <span class="font-weight-medium">{{ types.nom }}</span>
-                      <v-chip size="x-small" color="primary" variant="tonal">
-                        {{[...types.affichage, ...types.action].filter(p => form.permissions_ids.includes(p.id)).length
-                        }}/{{ types.affichage.length + types.action.length }}
-                      </v-chip>
-                    </div>
-                  </v-expansion-panel-title>
-                  <v-expansion-panel-text>
-                    <!-- Permissions d'affichage -->
-                    <div v-if="types.affichage.length > 0" class="mb-3">
-                      <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center"
-                        style="gap: 6px;">
-                        <v-icon size="14" color="blue">mdi-eye</v-icon>
-                        AFFICHAGE
-                      </div>
-                      <div v-for="perm in types.affichage" :key="perm.id" class="d-flex align-center">
-                        <v-checkbox :model-value="form.permissions_ids.includes(perm.id)"
-                          :label="perm.description" density="compact" hide-details color="blue"
-                          @update:model-value="togglePermission(perm.id, $event)" />
-                      </div>
-                    </div>
-                    <!-- Permissions d'action -->
-                    <div v-if="types.action.length > 0">
-                      <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center"
-                        style="gap: 6px;">
-                        <v-icon size="14" color="orange">mdi-lightning-bolt</v-icon>
-                        ACTIONS
-                      </div>
-                      <div v-for="perm in types.action" :key="perm.id" class="d-flex align-center">
-                        <v-checkbox :model-value="form.permissions_ids.includes(perm.id)"
-                          :label="perm.description" density="compact" hide-details color="orange"
-                          :disabled="isPermDisabledByHierarchy(perm.nomPermission)"
-                          @update:model-value="togglePermission(perm.id, $event)" />
-                      </div>
-                    </div>
-                  </v-expansion-panel-text>
-                </v-expansion-panel>
-              </v-expansion-panels>
-            </div>
-
-            <p v-if="Object.keys(filteredPermissionsByModule).length === 0" class="text-body-2 text-medium-emphasis">
-              Aucune permission trouvée.
-            </p>
+            <PermissionSelector
+              ref="permissionSelectorRef"
+              v-model="form.permissions_ids"
+              :all-permissions="allPermissions"
+            />
           </v-sheet>
 
           <!-- Erreur formulaire -->
@@ -215,10 +162,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
-import { usePermissionSelector } from '@/composables/usePermissionSelector'
+import PermissionSelector from '@/components/PermissionSelector.vue'
 
 const api = useApi(API_BASE_URL)
 
@@ -234,8 +181,8 @@ const dialog = ref(false)
 const isEdit = ref(false)
 const saving = ref(false)
 const dialogError = ref('')
-const searchPerm = ref('')
 const editingRoleId = ref(null)
+const permissionSelectorRef = ref(null)
 
 const form = ref({
   nomRole: '',
@@ -250,22 +197,6 @@ const formErrors = ref({
 const deleteDialog = ref(false)
 const deleting = ref(false)
 const roleToDelete = ref(null)
-
-// Adaptateur pour passer form.permissions_ids au composable comme un ref
-const selectedIds = computed({
-  get: () => form.value.permissions_ids,
-  set: (val) => { form.value.permissions_ids = val }
-})
-
-const {
-  filteredPermissionsByModule,
-  isPermDisabledByHierarchy,
-  isModuleFullySelected,
-  isModulePartiallySelected,
-  toggleModule,
-  togglePermission,
-  applyHierarchy,
-} = usePermissionSelector(allPermissions, selectedIds, searchPerm)
 
 // ==================== CHARGEMENT ====================
 const fetchData = async () => {
@@ -299,7 +230,7 @@ const resetForm = () => {
   form.value = { nomRole: '', permissions_ids: [] }
   formErrors.value = { nomRole: '' }
   dialogError.value = ''
-  searchPerm.value = ''
+  permissionSelectorRef.value?.resetSearch()
 }
 
 const openCreateDialog = () => {
@@ -318,9 +249,9 @@ const openEditDialog = (role) => {
     permissions_ids: (role.permissions || []).map(p => p.id)
   }
 
-  applyHierarchy()
-
   dialog.value = true
+  // applyHierarchy via le composant enfant (nextTick pour attendre le rendu)
+  setTimeout(() => permissionSelectorRef.value?.applyHierarchy(), 0)
 }
 
 const closeDialog = () => {

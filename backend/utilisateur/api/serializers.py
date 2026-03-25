@@ -23,7 +23,7 @@ class PermissionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Permission
-        fields = ['id', 'nomPermission', 'description', 'module']
+        fields = ['id', 'nomPermission', 'description', 'type', 'parent_id', 'module']
 
 
 # ==================== ROLE ====================

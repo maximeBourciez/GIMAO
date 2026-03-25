@@ -217,6 +217,13 @@ class Permission(models.Model):
     """
     Représente une permission spécifique attribuée à un rôle.
     """
+    TYPE_AFFICHAGE = 'affichage'
+    TYPE_ACTION = 'action'
+    TYPE_CHOICES = [
+        (TYPE_AFFICHAGE, 'Affichage'),
+        (TYPE_ACTION, 'Action'),
+    ]
+
     nomPermission = models.CharField(
         max_length=100,
         help_text="Nom de la permission (ex: ajouter_utilisateur, supprimer_equipement)",
@@ -227,6 +234,22 @@ class Permission(models.Model):
         null=True,
         blank=True,
         help_text="Description détaillée de la permission"
+    )
+
+    type = models.CharField(
+        max_length=10,
+        choices=TYPE_CHOICES,
+        default=TYPE_ACTION,
+        help_text="Type de permission : affichage (lecture) ou action (écriture)"
+    )
+
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='enfants',
+        help_text="Permission parente : si cochée, cette permission est automatiquement activée"
     )
 
     module = models.ForeignKey(
