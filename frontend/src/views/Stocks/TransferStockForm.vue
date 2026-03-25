@@ -1,52 +1,59 @@
 <template>
   <v-dialog v-model="dialog" max-width="600px">
     <BaseForm
+      v-model="formData"
       title="Transférer du stock"
       :submit-button-text="'Transférer'"
-      :submit-disabled="!isValid"
+      :submit-disabled="remainingStock < 0 || transfers.length === 0"
       :handle-submit="submit"
-      @cancel="close"
+      :custom-cancel-action="close"
+      :validation-schema="validationSchema"
       :loading="loading"
     >
         <template #default>
           <v-container>
             <!-- Source Store -->
-            <v-select
+            <FormSelect
               v-model="sourceStore"
               :items="availableStores"
               item-title="title"
               item-value="magasin"
               label="Magasin Source"
+              field-name="sourceStore"
               return-object
-              required
-              :rules="[v => !!v || 'Magasin source requis']"
-            ></v-select>
+            />
 
             <v-divider class="my-4"></v-divider>
             <div class="text-subtitle-1 mb-2">Vers:</div>
 
             <!-- Destinations -->
-            <div v-for="(transfer, index) in transfers" :key="index" class="d-flex align-center mb-2">
-              <v-autocomplete
-                v-model="transfer.to_magasin"
-                :items="allStores"
-                item-title="nom"
-                item-value="id"
-                label="Magasin Destination"
-                class="mr-2"
-                density="compact"
-                hide-details
-              ></v-autocomplete>
-              <v-text-field
-                v-model.number="transfer.quantite"
-                label="Quantité"
-                type="number"
-                min="1"
-                density="compact"
-                hide-details
-                style="max-width: 100px"
-              ></v-text-field>
-              <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="removeTransfer(index)"></v-btn>
+            <div v-for="(transfer, index) in transfers" :key="index" class="transfer-row mb-2">
+              <div class="transfer-destination">
+                <FormSelect
+                  v-model="transfer.to_magasin"
+                  :items="allStores"
+                  item-title="nom"
+                  item-value="id"
+                  label="Magasin Destination"
+                  field-name="to_magasin"
+                  density="compact"
+                  hide-details
+                />
+              </div>
+              <div class="transfer-quantity">
+                <FormField
+                  v-model.number="transfer.quantite"
+                  label="Quantité"
+                  type="number"
+                  min="1"
+                  field-name="quantite"
+                  density="compact"
+                  hide-details
+                />
+              </div>
+              <div class="transfer-delete">
+                <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="removeTransfer(index)"></v-btn>
+              </div>
             </div>
 
             <v-btn color="primary" variant="tonal" size="small" @click="addTransfer" class="mt-2">
@@ -70,7 +77,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
-import BaseForm from '@/components/common/BaseForm.vue';
+import { BaseForm, FormField, FormSelect } from '@/components/common';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -85,12 +92,23 @@ const dialog = computed({
   set: (val) => emit('update:modelValue', val)
 });
 
-const valid = ref(false);
+const formData = ref({
+  sourceStore: null
+});
 const loading = ref(false);
-const sourceStore = ref(null);
+const sourceStore = computed({
+  get: () => formData.value.sourceStore,
+  set: (value) => {
+    formData.value.sourceStore = value;
+  }
+});
 const transfers = ref([{ to_magasin: null, quantite: 1 }]);
 const allStores = ref([]);
 const loadingStores = ref(false);
+
+const validationSchema = {
+  sourceStore: ['required']
+};
 
 // Stores that have stock
 const availableStores = computed(() => {
@@ -104,10 +122,6 @@ const remainingStock = computed(() => {
   if (!sourceStore.value) return 0;
   const totalTransfer = transfers.value.reduce((sum, t) => sum + (parseInt(t.quantite) || 0), 0);
   return sourceStore.value.quantite - totalTransfer;
-});
-
-const isValid = computed(() => {
-  return sourceStore.value && transfers.value.length > 0 && remainingStock.value >= 0 && transfers.value.every(t => t.to_magasin && t.quantite > 0);
 });
 
 const fetchAllStores = async () => {
@@ -132,7 +146,7 @@ const removeTransfer = (index) => {
 
 const close = () => {
   dialog.value = false;
-  sourceStore.value = null;
+  formData.value.sourceStore = null;
   transfers.value = [{ to_magasin: null, quantite: 1 }];
 };
 
@@ -151,7 +165,8 @@ const submit = async () => {
   // I will keep manual loading management or I can let BaseForm handle errors if I throw?
   // I'll keep my manual loading for now to be safe with existing logic.
   
-  if (!isValid.value) return;
+  const hasInvalidTransfer = transfers.value.some(t => !t.to_magasin || !t.quantite || Number(t.quantite) < 1);
+  if (!sourceStore.value || transfers.value.length === 0 || remainingStock.value < 0 || hasInvalidTransfer) return;
   loading.value = true;
   try {
     const payload = {
@@ -173,3 +188,30 @@ const submit = async () => {
 onMounted(fetchAllStores);
 
 </script>
+
+<style scoped>
+.transfer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.transfer-destination {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.transfer-quantity {
+  flex: 0 0 120px;
+}
+
+.transfer-delete {
+  flex: 0 0 auto;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+</style>
