@@ -94,25 +94,10 @@ def log_save(sender, instance, created, **kwargs):
     if not champs_modifies and not created:
         return
 
-    # Get User from Thread Local (set by ViewSet)
-    from .middleware import get_thread_user, get_thread_log_group
-    app_user = get_safe_app_user(get_thread_user())
+    # Get User from Thread Local (now seamlessly handles token and fallback)
+    from .middleware import get_current_user, get_thread_log_group
+    app_user = get_safe_app_user(get_current_user())
     log_group_id = get_thread_log_group()
-
-    # Fallback to request user if thread user not set (e.g. Admin panel)
-    if not app_user:
-        try:
-             from .middleware import get_current_request
-             request = get_current_request()
-             if request and request.user and request.user.is_authenticated:
-                  if hasattr(request.user, 'utilisateur'):
-                      app_user = get_safe_app_user(request.user.utilisateur)
-                  elif hasattr(request.user, 'username'):
-                      app_user = get_safe_app_user(
-                          Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
-                      )
-        except:
-             pass
 
     # Enrich idCible with FKs for association tables
     id_cible = {'id': instance.pk}
@@ -147,15 +132,7 @@ def log_delete(sender, instance, **kwargs):
     from .middleware import get_thread_log_group
     log_group_id = get_thread_log_group()
 
-    django_user = get_current_user()
-    app_user = None
-    if django_user and django_user.is_authenticated:
-        if hasattr(django_user, 'utilisateur'):
-            app_user = get_safe_app_user(django_user.utilisateur)
-        elif hasattr(django_user, 'username'):
-             app_user = get_safe_app_user(
-                 Utilisateur.objects.filter(nomUtilisateur=django_user.username).first()
-             )
+    app_user = get_safe_app_user(get_current_user())
 
     # Enrich idCible with FKs
     id_cible = {'id': instance.pk}
