@@ -9,6 +9,7 @@
       :rules="fieldRules"
       variant="outlined"
       density="comfortable"
+      :disabled="disabled"
       hide-details="auto"
     >
       <!-- Slot personnalisé pour #no-data -->
@@ -37,7 +38,8 @@ import { computed, inject } from 'vue';
 const props = defineProps({
     label: { type: String, default: '' },
     fieldName: { type: String, required: true },
-    step: { type: Number, default: null }
+    step: { type: Number, default: null },
+    disabled: { type: Boolean, default: false }
 });
 
 const validation = inject('validation', null);

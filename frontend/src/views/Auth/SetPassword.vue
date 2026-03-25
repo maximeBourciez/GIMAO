@@ -99,6 +99,7 @@ export default {
 
         // Stocker l'utilisateur et rediriger
         this.$store.commit('setUser', response.utilisateur)
+        this.$store.commit('setToken', response.token)
         this.$router.push('/')
 
       } catch (err) {

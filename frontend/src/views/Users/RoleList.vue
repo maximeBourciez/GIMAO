@@ -31,7 +31,7 @@
 
         <!-- Liste des rôles -->
         <v-row>
-          <v-col v-for="role in roles" :key="role.id" cols="12" md="6" lg="4">
+          <v-col v-for="role in roles" :key="role.id" cols="12" md="6" lg="6">
             <v-card elevation="2" rounded height="220">
               <v-card-title class="pt-3 pb-1">
                 <span class="text-body-1 font-weight-bold">{{ role.nomRole }}</span>
@@ -58,6 +58,10 @@
                 <v-btn size="small" variant="text" color="primary" prepend-icon="mdi-pencil"
                   @click="openEditDialog(role)">
                   Modifier
+                </v-btn>
+                <v-btn size="small" variant="text" color="secondary" prepend-icon="mdi-content-copy"
+                  @click="dupliquerRole(role)">
+                  Dupliquer
                 </v-btn>
                 <v-btn v-if="!estRoleSysteme(role.nomRole)" size="small" variant="text" color="error"
                   prepend-icon="mdi-delete" @click="confirmDelete(role)">
@@ -113,25 +117,48 @@
               prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" clearable class="mb-3" />
 
 
-            <div v-for="(perms, module) in filteredPermissionsByModule" :key="module" class="mb-2">
+            <div v-for="(types, module) in filteredPermissionsByModule" :key="module" class="mb-2">
               <v-expansion-panels variant="accordion">
                 <v-expansion-panel>
                   <v-expansion-panel-title>
                     <div class="d-flex align-center" style="gap: 12px;">
-                      <v-checkbox :model-value="isModuleFullySelected(module, perms)"
-                        :indeterminate="isModulePartiallySelected(module, perms)" density="compact" hide-details
-                        color="primary" @update:model-value="toggleModule(module, perms, $event)" @click.stop />
+                      <v-checkbox :model-value="isModuleFullySelected(module, [...types.affichage, ...types.action])"
+                        :indeterminate="isModulePartiallySelected(module, [...types.affichage, ...types.action])"
+                        density="compact" hide-details color="primary"
+                        @update:model-value="toggleModule(module, [...types.affichage, ...types.action], $event)"
+                        @click.stop />
                       <span class="font-weight-medium">{{ moduleLabel(module) }}</span>
                       <v-chip size="x-small" color="primary" variant="tonal">
-                        {{perms.filter(p => form.permissions_ids.includes(p.id)).length}}/{{ perms.length }}
+                        {{[...types.affichage, ...types.action].filter(p => form.permissions_ids.includes(p.id)).length
+                        }}/{{ types.affichage.length + types.action.length }}
                       </v-chip>
                     </div>
                   </v-expansion-panel-title>
                   <v-expansion-panel-text>
-                    <div class="d-flex flex-column" style="gap: 4px;">
-                      <div v-for="perm in perms" :key="perm.id" class="d-flex align-center">
+                    <!-- Permissions d'affichage -->
+                    <div v-if="types.affichage.length > 0" class="mb-3">
+                      <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center"
+                        style="gap: 6px;">
+                        <v-icon size="14" color="blue">mdi-eye</v-icon>
+                        AFFICHAGE
+                      </div>
+                      <div v-for="perm in types.affichage" :key="perm.id" class="d-flex align-center">
                         <v-checkbox :model-value="form.permissions_ids.includes(perm.id)"
-                          :label="perm.description" density="compact" hide-details color="primary"
+                          :label="perm.description" density="compact" hide-details color="blue"
+                          @update:model-value="togglePermission(perm.id, $event)" />
+                      </div>
+                    </div>
+                    <!-- Permissions d'action -->
+                    <div v-if="types.action.length > 0">
+                      <div class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center"
+                        style="gap: 6px;">
+                        <v-icon size="14" color="orange">mdi-lightning-bolt</v-icon>
+                        ACTIONS
+                      </div>
+                      <div v-for="perm in types.action" :key="perm.id" class="d-flex align-center">
+                        <v-checkbox :model-value="form.permissions_ids.includes(perm.id)"
+                          :label="perm.description" density="compact" hide-details color="orange"
+                          :disabled="isPermDisabledByHierarchy(perm.nomPermission)"
                           @update:model-value="togglePermission(perm.id, $event)" />
                       </div>
                     </div>
@@ -157,6 +184,10 @@
         <v-card-actions class="pa-4">
           <v-spacer />
           <v-btn variant="text" @click="closeDialog">Annuler</v-btn>
+          <v-btn v-if="isEdit" color="secondary" variant="outlined" :loading="saving"
+            prepend-icon="mdi-content-save-plus" @click="saveAsNewRole">
+            Enregistrer comme nouveau rôle
+          </v-btn>
           <v-btn color="primary" :loading="saving" @click="saveRole">
             {{ isEdit ? 'Enregistrer' : 'Créer' }}
           </v-btn>
@@ -251,14 +282,55 @@ const getModules = (permissions) => {
   return [...new Set(permissions.map(p => getModule(p.nomPermission)))]
 }
 
+const PERM_TYPE = {
+  viewList: 'affichage', viewDetail: 'affichage', view: 'affichage',
+  'display.bt': 'affichage', 'display.di': 'affichage', 'display.eq': 'affichage',
+  'display.mag': 'affichage', 'display.vertical': 'affichage',
+  'display.btAssigned': 'affichage', 'display.diCreated': 'affichage',
+  'stats.full': 'affichage', 'stats.bt': 'affichage', 'stats.di': 'affichage',
+  create: 'action', edit: 'action', editAll: 'action', editCreated: 'action',
+  editAssigned: 'action', delete: 'action', accept: 'action', refuse: 'action',
+  transform: 'action', start: 'action', end: 'action', refuseClosure: 'action',
+  acceptClosure: 'action', acceptConsumableRequest: 'action',
+  disable: 'action', enable: 'action', dataManagement: 'affichage',
+  'eq:maintenance.calendar': 'affichage'
+}
+
+const PERM_HIERARCHY = {
+  'di:editAll': ['di:editCreated'],
+  'bt:editAll': ['bt:editAssigned'],
+  'dash:stats.full': ['dash:stats.bt', 'dash:stats.di'],
+  'dash:display.bt': ['dash:display.btAssigned'],   //quand on coche dash:display.bt (tous les BT), dash:display.btAssigned (BT assignés) se coche automatiquement et devient grisé et inversement
+  'dash:display.di': ['dash:display.diCreated'],
+}
+
+const isPermDisabledByHierarchy = (nomPermission) => {
+  for (const [parent, children] of Object.entries(PERM_HIERARCHY)) {
+    if (children.includes(nomPermission)) {
+      const parentPerm = allPermissions.value.find(p => p.nomPermission === parent)
+      if (parentPerm && form.value.permissions_ids.includes(parentPerm.id)) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+const getPermType = (nomPermission) => {
+  const action = nomPermission.split(':')[1] || nomPermission
+  return PERM_TYPE[action] || 'action'
+}
+
+
 // Toutes les permissions groupées par module
 const permissionsByModule = computed(() => {
   const groups = {}
   for (const perm of allPermissions.value) {
     // if (perm.nomPermission.startsWith('dash:display')) continue
     const module = getModule(perm.nomPermission)
-    if (!groups[module]) groups[module] = []
-    groups[module].push(perm)
+    if (!groups[module]) groups[module] = { affichage: [], action: [] }
+    const type = getPermType(perm.nomPermission)
+    groups[module][type].push(perm)
   }
   return groups
 })
@@ -268,9 +340,12 @@ const filteredPermissionsByModule = computed(() => {
   if (!searchPerm.value) return permissionsByModule.value
   const search = searchPerm.value.toLowerCase()
   const result = {}
-  for (const [module, perms] of Object.entries(permissionsByModule.value)) {
-    const filtered = perms.filter(p => p.nomPermission.toLowerCase().includes(search))
-    if (filtered.length > 0) result[module] = filtered
+  for (const [module, types] of Object.entries(permissionsByModule.value)) {
+    const filteredAffichage = types.affichage.filter(p => p.nomPermission.toLowerCase().includes(search))
+    const filteredAction = types.action.filter(p => p.nomPermission.toLowerCase().includes(search))
+    if (filteredAffichage.length > 0 || filteredAction.length > 0) {
+      result[module] = { affichage: filteredAffichage, action: filteredAction }
+    }
   }
   return result
 })
@@ -324,12 +399,36 @@ const toggleModule = (module, perms, value) => {
   }
 }
 
-const togglePermission = (id) => {
-  const idx = form.value.permissions_ids.indexOf(id)
-  if (idx >= 0) {
-    form.value.permissions_ids.splice(idx, 1)
+const togglePermission = (id, value) => {
+  const perm = allPermissions.value.find(p => p.id === id)
+  if (!perm) return
+
+  if (value) {
+    // Ajouter la permission
+    if (!form.value.permissions_ids.includes(id)) {
+      form.value.permissions_ids.push(id)
+    }
+    // Ajouter automatiquement les enfants si c'est un parent
+    if (PERM_HIERARCHY[perm.nomPermission]) {
+      for (const childName of PERM_HIERARCHY[perm.nomPermission]) {
+        const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
+        if (childPerm && !form.value.permissions_ids.includes(childPerm.id)) {
+          form.value.permissions_ids.push(childPerm.id)
+        }
+      }
+    }
   } else {
-    form.value.permissions_ids.push(id)
+    // Supprimer la permission
+    form.value.permissions_ids = form.value.permissions_ids.filter(pid => pid !== id)
+    // Supprimer aussi les enfants si c'est un parent
+    if (PERM_HIERARCHY[perm.nomPermission]) {
+      for (const childName of PERM_HIERARCHY[perm.nomPermission]) {
+        const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
+        if (childPerm) {
+          form.value.permissions_ids = form.value.permissions_ids.filter(pid => pid !== childPerm.id)
+        }
+      }
+    }
   }
 }
 
@@ -354,9 +453,22 @@ const openEditDialog = (role) => {
   editingRoleId.value = role.id
   form.value = {
     nomRole: role.nomRole,
-    // rang: role.rang,
     permissions_ids: (role.permissions || []).map(p => p.id)
   }
+
+  // Appliquer la hiérarchie au chargement
+  for (const [parent, children] of Object.entries(PERM_HIERARCHY)) {
+    const parentPerm = allPermissions.value.find(p => p.nomPermission === parent)
+    if (parentPerm && form.value.permissions_ids.includes(parentPerm.id)) {
+      for (const childName of children) {
+        const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
+        if (childPerm && !form.value.permissions_ids.includes(childPerm.id)) {
+          form.value.permissions_ids.push(childPerm.id)
+        }
+      }
+    }
+  }
+
   dialog.value = true
 }
 
@@ -418,6 +530,32 @@ const saveRole = async () => {
 }
 
 // ==================== SUPPRESSION ====================
+const saveAsNewRole = async () => {
+  if (!validateForm()) return
+  saving.value = true
+  dialogError.value = ''
+  try {
+    // Demander le nom du nouveau rôle
+    const nouveauNom = prompt('Nom du nouveau rôle :', `Copie de ${form.value.nomRole}`)
+    if (!nouveauNom || !nouveauNom.trim()) {
+      saving.value = false
+      return
+    }
+    const payload = {
+      nomRole: nouveauNom.trim(),
+      permissions_ids: form.value.permissions_ids
+    }
+    await api.post('roles/', payload)
+    successMessage.value = `Rôle "${nouveauNom}" créé avec succès.`
+    setTimeout(() => { successMessage.value = '' }, 4000)
+    closeDialog()
+    await fetchData()
+  } catch (e) {
+    dialogError.value = 'Erreur lors de la création du nouveau rôle.'
+  } finally {
+    saving.value = false
+  }
+}
 const confirmDelete = (role) => {
   roleToDelete.value = role
   deleteDialog.value = true
@@ -442,4 +580,17 @@ const deleteRole = async () => {
     deleting.value = false
   }
 }
+const dupliquerRole = async (role) => {
+  try {
+    const nouveau = await api.post(`roles/${role.id}/dupliquer/`, {
+      nomRole: `Copie de ${role.nomRole}`
+    })
+    successMessage.value = `Rôle "${nouveau.nomRole}" créé avec succès.`
+    setTimeout(() => { successMessage.value = '' }, 4000)
+    await fetchData()
+  } catch (e) {
+    errorMessage.value = 'Erreur lors de la duplication du rôle.'
+  }
+}
+
 </script>

@@ -1,4 +1,3 @@
-version: "3.9"
 name: gimao-dev
 services:
   db:
@@ -41,9 +40,38 @@ services:
       - db
     environment:
       - DJANGO_SETTINGS_MODULE=gimao.settings
+      - LOCUST_PASSWORD=locust123
+      - LOCUST_RESPONSABLE_USERNAME=locust_responsable
+      - LOCUST_TECHNICIEN_USERNAME=locust_technicien
+      - LOCUST_MAGASINIER_USERNAME=locust_magasinier
+      - LOCUST_OPERATEUR_USERNAME=locust_operateur
       - DJANGO_SUPERUSER_USERNAME=admin
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_EMAIL=admin@admin.com
+    networks:
+      - gimao_network
+  locust:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      - media_data_dev:/app/media
+    ports:
+      - "8089:8089"
+    depends_on:
+      - backend
+    environment:
+      - LOCUST_HOST=http://backend:8000
+      - LOCUST_READ_ONLY=true
+      - LOCUST_PASSWORD=locust123
+      - LOCUST_RESPONSABLE_USERNAME=locust_responsable
+      - LOCUST_TECHNICIEN_USERNAME=locust_technicien
+      - LOCUST_MAGASINIER_USERNAME=locust_magasinier
+      - LOCUST_OPERATEUR_USERNAME=locust_operateur
+    command: >
+      sh -c "while ! nc -z backend 8000; do sleep 1; done &&
+      locust -f /app/locustfile.py --host http://backend:8000"
     networks:
       - gimao_network
   frontend:
@@ -59,6 +87,7 @@ services:
       - backend
     environment:
       - NODE_ENV=development
+      - VUE_APP_PROXY_TARGET=http://backend:8000
     networks:
       - gimao_network
 

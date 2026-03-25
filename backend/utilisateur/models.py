@@ -114,6 +114,9 @@ class Utilisateur(models.Model):
         except Exception:
             pass
 
+    def get_full_name(self):
+        return f"{self.prenom} {self.nomFamille}"
+
     def set_password(self, raw_password):
         if raw_password:
             self.motDePasse = make_password(raw_password)

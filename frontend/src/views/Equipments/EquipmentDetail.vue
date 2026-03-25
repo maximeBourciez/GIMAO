@@ -80,6 +80,10 @@
               <v-btn color="warning" prepend-icon="mdi-alert-circle" @click="signalFailure" v-if="store.getters.hasPermission('di:create')">
                 Créer une demande d'intervention (DI)
               </v-btn>
+              <v-btn color="primary" prepend-icon="mdi-calendar-clock" @click="openMaintenanceCalendar"
+                v-if="store.getters.hasPermission('eq:maintenance.calendar')">
+                Voir le calendrier maintenance
+              </v-btn>
             </v-card-actions>
           </v-card>
 
@@ -90,7 +94,7 @@
               <v-divider></v-divider>
               <v-card-text>
 
-                <v-data-table v-if="data.compteurs && data.compteurs.length > 0" :items="data.compteurs"
+                <v-data-table v-if="filteredCounters" :items="filteredCounters"
                   :headers="TABLE_HEADERS.COUNTER" class="elevation-1" hide-default-footer>
 
                   <template #item.valeurCourante="{ item }">
@@ -279,6 +283,13 @@ const archiveEquipment = async () => {
 // Dialog compteur
 const showCounterDialog = ref(false);
 const currentCounter = ref(null);
+const fileredCounters = ref([]);
+
+const filteredCounters = computed(() => {
+  if (!equipement.value.compteurs) return [];
+  // return equipement.value.compteurs.filter(counter => counter.type !== 'Calendaire');
+  return equipement.value.compteurs;
+});
 
 const getEmptyCounter = () => ({
   nom: '',
@@ -435,6 +446,20 @@ const signalFailure = () => {
       params: { equipementId: equipement.value.id }
     });
   }
+};
+
+const openMaintenanceCalendar = () => {
+  const equipmentId = equipmentDetails.value?.id;
+  if (!equipmentId) return;
+
+  router.push({
+    name: 'Calendar',
+    query: {
+      from: 'equipment',
+      mode: 'maintenance',
+      equipmentId: equipmentId
+    }
+  });
 };
 
 const viewCounter = (counter) => {

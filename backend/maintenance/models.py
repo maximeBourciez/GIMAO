@@ -85,6 +85,7 @@ class BonTravail(ArchivableMixin, models.Model):
     date_debut = models.DateTimeField(blank=True, null=True)
     date_fin = models.DateTimeField(blank=True, null=True)
     date_prevue = models.DateTimeField(blank=True, null=True)
+    duree_previsionnelle = models.DurationField(blank=True, null=True)
     statut = models.CharField(
         max_length=50,
         choices=STATUT_CHOICES,

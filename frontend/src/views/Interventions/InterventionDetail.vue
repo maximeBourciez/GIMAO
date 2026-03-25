@@ -1,16 +1,7 @@
 <template>
-  <BaseDetailView
-    :title="'Détail du bon de travail'"
-    :data="intervention"
-    :loading="loading"
-    :error-message="errorMessage"
-    :success-message="successMessage"
-    :auto-display="false"
-    :show-edit-button="false"
-    :show-delete-button="false"
-    @clear-error="errorMessage = ''"
-    @clear-success="successMessage = ''"
-  >
+  <BaseDetailView :title="'Détail du bon de travail'" :data="intervention" :loading="loading"
+    :error-message="errorMessage" :success-message="successMessage" :auto-display="false" :show-edit-button="false"
+    :show-delete-button="false" @clear-error="errorMessage = ''" @clear-success="successMessage = ''">
     <template #default="{ data }">
       <v-row v-if="data">
         <!-- Colonne gauche : champs du BT -->
@@ -50,8 +41,13 @@
           </div>
 
           <div class="detail-field">
-            <label class="detail-label">Date prévue</label>
+            <label class="detail-label">Date de début prévue</label>
             <div class="detail-value">{{ formatDateTime(data.date_prevue) }}</div>
+          </div>
+
+          <div class="detail-field">
+            <label class="detail-label">Durée prévue</label>
+            <div class="detail-value">{{ formatDuration(data.duree_previsionnelle) }}</div>
           </div>
 
           <div class="detail-field">
@@ -72,38 +68,20 @@
           <!-- Boutons d'action -->
           <v-row class="mt-6">
             <v-col cols="12" xl="6" class="py-1">
-              <v-btn color="info" block :disabled="!canStart" @click="openStartModal" v-if="canStartIntervention"
-                >Démarrer l'intervention</v-btn
-              >
+              <v-btn color="info" block :disabled="!canStart" @click="openStartModal"
+                v-if="canStartIntervention">Démarrer l'intervention</v-btn>
             </v-col>
             <v-col cols="12" xl="6" class="py-1">
-              <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal" v-if="canFinishIntervention"
-                >Terminer l'intervention</v-btn
-              >
+              <v-btn color="info" block :disabled="!canFinish" @click="openFinishModal"
+                v-if="canFinishIntervention">Terminer l'intervention</v-btn>
             </v-col>
-            <v-col
-              v-if="store.getters.hasPermission('bt:acceptClosure')"
-              cols="12"
-              xl="6"
-              class="py-1"
-            >
-              <v-btn color="success" class="text-white" block :disabled="!canClose" @click="openCloseModal" v-if="store.getters.hasPermission('bt:acceptClosure')"
-                >Clôturer le BT</v-btn
-              >
+            <v-col v-if="store.getters.hasPermission('bt:acceptClosure')" cols="12" xl="6" class="py-1">
+              <v-btn color="success" class="text-white" block :disabled="!canClose" @click="openCloseModal"
+                v-if="store.getters.hasPermission('bt:acceptClosure')">Clôturer le BT</v-btn>
             </v-col>
-            <v-col
-              v-if="store.getters.hasPermission('bt:refuseClosure')"
-              cols="12"
-              xl="6"
-              class="py-1"
-            >
-              <v-btn
-                color="error"
-                block
-                :disabled="!canRefuseClose"
-                @click="openRefuseCloseModal"
-                >Refuser la clôture du BT</v-btn
-              >
+            <v-col v-if="store.getters.hasPermission('bt:refuseClosure')" cols="12" xl="6" class="py-1">
+              <v-btn color="error" block :disabled="!canRefuseClose" @click="openRefuseCloseModal">Refuser la clôture du
+                BT</v-btn>
             </v-col>
           </v-row>
         </v-col>
@@ -129,10 +107,8 @@
 
           <!-- Section Affectation -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title
-              class="text-h6 d-flex align-center cursor-pointer"
-              @click="showAffectation = !showAffectation"
-            >
+            <v-card-title class="text-h6 d-flex align-center cursor-pointer"
+              @click="showAffectation = !showAffectation">
               Affectation
               <v-spacer></v-spacer>
               <v-icon>
@@ -148,19 +124,17 @@
                     <div class="detail-value">
                       <span v-if="data.responsable">{{
                         formatUserDisplay(data.responsable) || "Non spécifié"
-                      }}</span>
+                        }}</span>
                       <span v-else>Non spécifié</span>
                     </div>
                   </div>
                   <div class="detail-field">
                     <label class="detail-label">Utilisateurs assignés</label>
                     <div class="detail-value">
-                      <div
-                        v-if="
-                          Array.isArray(data.utilisateur_assigne) &&
-                          data.utilisateur_assigne.length
-                        "
-                      >
+                      <div v-if="
+                        Array.isArray(data.utilisateur_assigne) &&
+                        data.utilisateur_assigne.length
+                      ">
                         <div v-for="u in data.utilisateur_assigne" :key="u.id">
                           - {{ formatUserDisplay(u) || 'Non spécifié' }}
                         </div>
@@ -175,19 +149,10 @@
 
           <!-- Section DI -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title
-              class="text-h6 d-flex align-center cursor-pointer"
-              @click="toggleDemandeDetails"
-            >
+            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleDemandeDetails">
               Demande d'intervention
               <v-spacer></v-spacer>
-              <v-btn
-                color="primary"
-                size="small"
-                class="mr-2"
-                @click.stop="openFailure"
-                :disabled="!demandeId"
-              >
+              <v-btn color="primary" size="small" class="mr-2" @click.stop="openFailure" :disabled="!demandeId">
                 Ouvrir
               </v-btn>
               <v-icon>
@@ -198,11 +163,7 @@
               <div v-show="showDemandeDetails">
                 <v-divider></v-divider>
                 <v-card-text>
-                  <div
-                    v-for="(value, key) in formattedDemande"
-                    :key="key"
-                    class="detail-field"
-                  >
+                  <div v-for="(value, key) in formattedDemande" :key="key" class="detail-field">
                     <label class="detail-label">{{ key }}</label>
                     <div class="detail-value">{{ value }}</div>
                   </div>
@@ -211,49 +172,40 @@
             </v-expand-transition>
           </v-card>
 
-      <!-- Section Équipement (provient de la DI) -->
-      <v-card class="mt-4" elevation="2">
-        <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleEquipementDetails">
-          Équipement
-          <v-spacer></v-spacer>
-          <v-btn
-            color="primary"
-            size="small"
-            class="mr-2"
-            @click.stop="openEquipement"
-            :disabled="!equipementId"
-          >
-            Ouvrir
-          </v-btn>
-          <v-icon>
-            {{ showEquipementDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
-          </v-icon>
-        </v-card-title>
-        <v-expand-transition>
-          <div v-show="showEquipementDetails">
-            <v-divider></v-divider>
-            <v-card-text>
-              <div v-if="!equipement">
-                Aucun équipement associé
+          <!-- Section Équipement (provient de la DI) -->
+          <v-card class="mt-4" elevation="2">
+            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleEquipementDetails">
+              Équipement
+              <v-spacer></v-spacer>
+              <v-btn color="primary" size="small" class="mr-2" @click.stop="openEquipement" :disabled="!equipementId">
+                Ouvrir
+              </v-btn>
+              <v-icon>
+                {{ showEquipementDetails ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+              </v-icon>
+            </v-card-title>
+            <v-expand-transition>
+              <div v-show="showEquipementDetails">
+                <v-divider></v-divider>
+                <v-card-text>
+                  <div v-if="!equipement">
+                    Aucun équipement associé
+                  </div>
+                  <div v-else>
+                    <div v-for="(value, key) in formattedEquipement" :key="key" class="detail-field">
+                      <label class="detail-label">{{ key }}</label>
+                      <div v-if="key !== 'Statut'" class="detail-value">{{ value }}</div>
+                      <v-chip v-else :color="getStatusColor(value)" variant="tonal">{{ getStatusLabel(value) }}</v-chip>
+                    </div>
+                  </div>
+                </v-card-text>
               </div>
-              <div v-else>
-                <div v-for="(value, key) in formattedEquipement" :key="key" class="detail-field">
-                  <label class="detail-label">{{ key }}</label>
-                  <div v-if="key !== 'Statut'" class="detail-value">{{ value }}</div>
-                  <v-chip v-else :color="getStatusColor(value)" variant="tonal">{{ getStatusLabel(value) }}</v-chip>
-                </div>
-              </div>
-            </v-card-text>
-          </div>
-        </v-expand-transition>
-      </v-card>
+            </v-expand-transition>
+          </v-card>
 
           <!-- Section Documents -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title
-              class="text-h6 d-flex align-center cursor-pointer"
-              @click="toggleDocumentsDetails"
-            >
+            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleDocumentsDetails">
               Documents
               <v-spacer></v-spacer>
               <v-btn color="primary" size="small" class="mr-2" @click.stop="addDocument" v-if="canUserEditBT">
@@ -269,29 +221,17 @@
                 <v-divider></v-divider>
                 <v-card-text>
                   <h4 class="text-subtitle-1 mb-2">Documents du BT</h4>
-                  <DocumentList
-                    v-if="(data.documentsBT || data.liste_documents_intervention || []).length > 0"
-                    :documents="data.documentsBT || data.liste_documents_intervention || []"
-                    :show-type="true"
-                    :show-delete="canUserEditBT"
-                    @delete-success="handleDeleteSuccess"
-                    @delete-error="handleDeleteError"
-                    @download-error="handleDownloadError"
-                    @download-success="handleDownloadSuccess"
-                  />
+                  <DocumentList v-if="(data.documentsBT || data.liste_documents_intervention || []).length > 0"
+                    :documents="data.documentsBT || data.liste_documents_intervention || []" :show-type="true"
+                    :show-delete="canUserEditBT" @delete-success="handleDeleteSuccess" @delete-error="handleDeleteError"
+                    @download-error="handleDownloadError" @download-success="handleDownloadSuccess" />
                   <p v-else class="text-caption text-grey">Aucun document associé au Bon de Travail</p>
 
                   <h4 class="text-subtitle-1 mt-6 mb-2">Documents de la DI</h4>
-                  <DocumentList
-                    v-if="(data.documentsDI || []).length > 0"
-                    :documents="data.documentsDI || []"
-                    :show-type="true"
-                    :show-delete="canUserEditBT"
-                    @delete-success="handleDeleteSuccess"
-                    @delete-error="handleDeleteError"
-                    @download-error="handleDownloadError"
-                    @download-success="handleDownloadSuccess"
-                  />
+                  <DocumentList v-if="(data.documentsDI || []).length > 0" :documents="data.documentsDI || []"
+                    :show-type="true" :show-delete="canUserEditBT" @delete-success="handleDeleteSuccess"
+                    @delete-error="handleDeleteError" @download-error="handleDownloadError"
+                    @download-success="handleDownloadSuccess" />
                   <p v-else class="text-caption text-grey">Aucun document associé à la Demande d'Intervention</p>
                 </v-card-text>
               </div>
@@ -300,10 +240,7 @@
 
           <!-- Section Consommables (juste après Documents) -->
           <v-card class="mt-4" elevation="2">
-            <v-card-title
-              class="text-h6 d-flex align-center cursor-pointer"
-              @click="toggleConsommablesDetails"
-            >
+            <v-card-title class="text-h6 d-flex align-center cursor-pointer" @click="toggleConsommablesDetails">
               Consommables
               <v-spacer></v-spacer>
               <v-icon>
@@ -314,26 +251,15 @@
               <div v-show="showConsommablesDetails">
                 <v-divider></v-divider>
                 <v-card-text>
-                  <v-data-table
-                    v-if="Array.isArray(data.consommables) && data.consommables.length"
-                    :headers="consommableHeaders"
-                    :items="data.consommables"
-                    class="elevation-1"
-                    hide-default-footer
-                    :items-per-page="-1"
-                  >
+                  <v-data-table v-if="Array.isArray(data.consommables) && data.consommables.length"
+                    :headers="consommableHeaders" :items="data.consommables" class="elevation-1" hide-default-footer
+                    :items-per-page="-1">
                     <template #item.image="{ item }">
                       <div class="d-flex justify-center">
-                        <v-img
-                          v-if="item.image"
-                          :src="`${BASE_URL}/media/${String(item.image).replace(
-                            /^\/+/,
-                            ''
-                          )}`"
-                          max-width="48"
-                          max-height="48"
-                          cover
-                        />
+                        <v-img v-if="item.image" :src="`${BASE_URL}/media/${String(item.image).replace(
+                          /^\/+/,
+                          ''
+                        )}`" max-width="48" max-height="48" cover />
                         <span v-else class="text-caption text-grey">-</span>
                       </div>
                     </template>
@@ -358,125 +284,65 @@
     </template>
   </BaseDetailView>
 
-    <!-- Boutons flottants -->
-    <div class="floating-buttons">
-      <v-btn
-        v-if="!intervention?.archive && store.getters.hasPermission('bt:archive')"
-        color="warning"
-        size="large"
-        icon
-        elevation="4"
-        class="mb-3 d-block"
-        @click="showArchiveDialog = true"
-      >
-        <v-icon size="large">mdi-archive-arrow-down</v-icon>
-        <v-tooltip activator="parent" location="left">
-          Archiver le bon de travail
-        </v-tooltip>
-      </v-btn>
+  <!-- Boutons flottants -->
+  <div class="floating-buttons">
+    <v-btn v-if="!intervention?.archive && store.getters.hasPermission('bt:archive')" color="warning" size="large" icon
+      elevation="4" class="mb-3 d-block" @click="showArchiveDialog = true">
+      <v-icon size="large">mdi-archive-arrow-down</v-icon>
+      <v-tooltip activator="parent" location="left">
+        Archiver le bon de travail
+      </v-tooltip>
+    </v-btn>
 
-      <v-btn
-        color="primary"
-        size="large"
-        icon
-        elevation="4"
-        class="d-block"
-        @click="goToEditIntervention"
-         v-if="canUserEditBT"
-      >
-        <v-icon size="large">mdi-pencil</v-icon>
-        <v-tooltip activator="parent" location="left">
-          Modifier l'intervention
-        </v-tooltip>
-      </v-btn>
-    </div>
+    <v-btn color="primary" size="large" icon elevation="4" class="d-block" @click="goToEditIntervention"
+      v-if="canUserEditBT">
+      <v-icon size="large">mdi-pencil</v-icon>
+      <v-tooltip activator="parent" location="left">
+        Modifier l'intervention
+      </v-tooltip>
+    </v-btn>
+  </div>
 
-    <!-- Modale d'archivage -->
-    <ConfirmationModal
-      v-model="showArchiveDialog"
-      title="Confirmer l'archivage"
-      message="Êtes-vous sûr de vouloir archiver ce bon de travail ?
-            Il ne sera plus visible dans la liste principale."
-      confirmText="Archiver"
-      @confirm="archiveIntervention"
-      @cancel="showArchiveDialog = false"
-    />
+  <!-- Modale d'archivage -->
+  <ConfirmationModal v-model="showArchiveDialog" title="Confirmer l'archivage" message="Êtes-vous sûr de vouloir archiver ce bon de travail ?
+            Il ne sera plus visible dans la liste principale." confirmText="Archiver" @confirm="archiveIntervention"
+    @cancel="showArchiveDialog = false" />
 
-    <!-- Modales de confirmation (comme DI) -->
-    <ConfirmationModal
-      v-model="showStart"
-      type="info"
-      title="Démarrer l'intervention"
-      message="Êtes-vous sûr de vouloir démarrer cette intervention ?"
-      confirm-text="Démarrer"
-      confirm-icon="mdi-play"
-      :loading="actionLoading"
-      @confirm="startIntervention"
-      @cancel="showStart = false"
-    />
-    <ConfirmationModal
-      v-model="showFinish"
-      type="info"
-      title="Terminer l'intervention"
-      message="Êtes-vous sûr de vouloir terminer cette intervention ?"
-      confirm-text="Terminer"
-      confirm-icon="mdi-check"
-      :loading="actionLoading"
-      @confirm="finishIntervention"
-      @cancel="showFinish = false"
-    />
-    <ConfirmationModal
-      v-model="showClose"
-      type="success"
-      title="Clôturer le bon de travail"
-      message="Êtes-vous sûr de vouloir clôturer ce bon de travail ?"
-      confirm-text="Clôturer"
-      confirm-icon="mdi-check-circle-outline"
-      :loading="actionLoading"
-      @confirm="closeBonTravail"
-      @cancel="showClose = false"
-    />
+  <!-- Modales de confirmation (comme DI) -->
+  <ConfirmationModal v-model="showStart" type="info" title="Démarrer l'intervention"
+    message="Êtes-vous sûr de vouloir démarrer cette intervention ?" confirm-text="Démarrer" confirm-icon="mdi-play"
+    :loading="actionLoading" @confirm="startIntervention" @cancel="showStart = false" />
+  <ConfirmationModal v-model="showFinish" type="info" title="Terminer l'intervention"
+    message="Êtes-vous sûr de vouloir terminer cette intervention ?" confirm-text="Terminer" confirm-icon="mdi-check"
+    :loading="actionLoading" @confirm="finishIntervention" @cancel="showFinish = false" />
+  <ConfirmationModal v-model="showClose" type="success" title="Clôturer le bon de travail"
+    message="Êtes-vous sûr de vouloir clôturer ce bon de travail ?" confirm-text="Clôturer"
+    confirm-icon="mdi-check-circle-outline" :loading="actionLoading" @confirm="closeBonTravail"
+    @cancel="showClose = false" />
 
-    <!-- Refuser la clôture : formulaire (commentaire obligatoire) -->
-    <v-dialog v-model="showRefuseClose" max-width="600" scrollable>
-      <v-card class="rounded-xl intervention-dialog-card">
-        <v-card-text class="pa-6 refuse-close-dialog__body">
-          <BaseForm
-            v-model="refuseCloseFormData"
-            title="Refuser la clôture"
-            :validation-schema="refuseCloseValidationSchema"
-            :loading="actionLoading"
-            :error-message="errorMessage"
-            :success-message="successMessage"
-            submit-button-text="Refuser"
-            submit-button-color="error"
-            cancel-button-text="Annuler"
-            :custom-cancel-action="() => (showRefuseClose = false)"
-            :handleSubmit="refuseCloseBonTravail"
-            @clear-error="errorMessage = ''"
-            @clear-success="successMessage = ''"
-            container-class="dialog-form-shell"
-            card-class="dialog-form-card"
-            title-class="dialog-form-title"
-            content-class="dialog-form-content"
-            elevation="0"
-          >
-            <template #default>
-              <v-row dense>
-                <v-col cols="12">
-                  <FormTextarea
-                    v-model="refuseCloseFormData.commentaire_refus_cloture"
-                    field-name="commentaire_refus_cloture"
-                    label="Commentaire de refus"
-                    rows="4"
-                  />
-                </v-col>
-              </v-row>
-            </template>
-          </BaseForm>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+  <!-- Refuser la clôture : formulaire (commentaire obligatoire) -->
+  <v-dialog v-model="showRefuseClose" max-width="600" scrollable>
+    <v-card class="rounded-xl intervention-dialog-card">
+      <v-card-text class="pa-6 refuse-close-dialog__body">
+        <BaseForm v-model="refuseCloseFormData" title="Refuser la clôture"
+          :validation-schema="refuseCloseValidationSchema" :loading="actionLoading" :error-message="errorMessage"
+          :success-message="successMessage" submit-button-text="Refuser" submit-button-color="error"
+          cancel-button-text="Annuler" :custom-cancel-action="() => (showRefuseClose = false)"
+          :handleSubmit="refuseCloseBonTravail" @clear-error="errorMessage = ''" @clear-success="successMessage = ''"
+          container-class="dialog-form-shell" card-class="dialog-form-card" title-class="dialog-form-title"
+          content-class="dialog-form-content" elevation="0">
+          <template #default>
+            <v-row dense>
+              <v-col cols="12">
+                <FormTextarea v-model="refuseCloseFormData.commentaire_refus_cloture"
+                  field-name="commentaire_refus_cloture" label="Commentaire de refus" rows="4" />
+              </v-col>
+            </v-row>
+          </template>
+        </BaseForm>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 
 </template>
 
@@ -490,7 +356,7 @@ import DocumentList from '@/components/DocumentList.vue';
 import { BaseForm, FormTextarea } from '@/components/common';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL, BASE_URL, MEDIA_BASE_URL, INTERVENTION_STATUS, INTERVENTION_TYPE } from '@/utils/constants';
-import { formatDateTime, getInterventionStatusColor, getStatusColor, getStatusLabel } from '@/utils/helpers';
+import { formatDateTime, formatDuration, getInterventionStatusColor, getStatusColor, getStatusLabel } from '@/utils/helpers';
 
 const router = useRouter();
 const route = useRoute();
@@ -575,9 +441,8 @@ const formattedEquipement = computed(() => {
 
 const canClose = computed(
   () =>
-    !!intervention.value &&
-    !intervention.value.date_cloture &&
-    intervention.value.statut === "TERMINE" &&
+    !intervention.value?.date_cloture &&
+    intervention.value?.statut !== "CLOTURE" &&
     store.getters.hasPermission("bt:acceptClosure")
 );
 const canStart = computed(
@@ -604,7 +469,7 @@ const canStartIntervention = computed(() => {
 const canFinishIntervention = computed(() => {
   const isAssigned = isUserAssignedToIntervention.value;
   const isCreator = intervention.value?.utilisateur_createur?.id === currentUser.value.id;
-  return  (isAssigned || isCreator);
+  return (isAssigned || isCreator);
 });
 
 const canUserEditBT = computed(() => {
@@ -640,10 +505,10 @@ const openRefuseCloseModal = () => {
 };
 
 const goToEditIntervention = () => {
-  const id = intervention.value?.id ?? route.params.id; 
+  const id = intervention.value?.id ?? route.params.id;
   if (!id) return;
 
-  if(route.query.from){
+  if (route.query.from) {
     router.push({ name: "EditIntervention", params: { id }, query: { from: route.query.from, interventionId: route.params.id } });
     return;
   }
@@ -724,11 +589,11 @@ const openFailure = () => {
 const openEquipement = () => {
   if (!equipementId.value) return;
 
-  if(route.query.from){
+  if (route.query.from) {
     router.push({
       name: "EquipmentDetail",
       params: { id: equipementId.value },
-      query: { from: "intervention-" +route.query.from, interventionId: route.params.id },
+      query: { from: "intervention-" + route.query.from, interventionId: route.params.id },
     });
     return;
   }
@@ -742,7 +607,7 @@ const openEquipement = () => {
 
 const addDocument = () => {
   if (!intervention.value?.id) return;
-  if(route.query.from){
+  if (route.query.from) {
     router.push({ name: "AddDocumentIntervention", params: { id: intervention.value.id }, query: { from: route.query.from, interventionId: route.params.id } });
     return;
   }
@@ -882,6 +747,7 @@ onMounted(fetchData);
   align-items: center;
   white-space: nowrap;
 }
+
 .detail-column {
   min-width: 0;
 }

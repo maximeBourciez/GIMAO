@@ -80,3 +80,57 @@ export function formatDateTime(dateString) {
     minute: "2-digit",
   });
 }
+
+
+
+/**
+ * Formate un timedelta (en secondes) en une chaîne lisible (ex: "1h 30m")
+ * @param {timedelta} hour - La durée à formater au format HH:MM:SS
+ * @returns {string} La durée formatée
+ */
+export function formatDuration(duration) {
+  if (!duration) return "Non spécifié";
+
+  const rawValue = String(duration).trim();
+  const match = rawValue.match(/^(?:(\d+)\s+)?(\d+):([0-5]\d)(?::([0-5]\d)(?:\.\d+)?)?$/);
+  if (!match) return rawValue;
+
+  const days = Number(match[1] || 0);
+  const hours = Number(match[2] || 0);
+  const minutes = Number(match[3] || 0);
+  const seconds = Number(match[4] || 0);
+  const totalHours = (days * 24) + hours;
+
+  let result = "";
+  if (totalHours > 0) result += `${totalHours}h `;
+  if (minutes > 0) result += `${minutes}m `;
+  if (seconds > 0) result += `${seconds}s`;
+
+  if (!result.trim()) return "0m";
+  
+  return result.trim();
+}
+
+/**
+ * Convertit une durée au format "X jours Y:MM" en "HH:MM" pour les inputs de type time
+ * @param {string} value - La durée à convertir
+ * @returns {string} La durée au format "HH:MM" ou une chaîne vide si le format est invalide
+ */
+export const toTimeInputValue = (value) => {
+	if (value === null || value === undefined) return '';
+	const rawValue = String(value).trim();
+	if (!rawValue) return '';
+
+  const match = rawValue.match(/^(?:(\d+)\s+)?(\d+):(\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+	if (!match) return '';
+
+	const days = Number(match[1] || 0);
+	const hours = Number(match[2] || 0);
+	const minutes = Number(match[3] || 0);
+	if (!Number.isFinite(days) || !Number.isFinite(hours) || !Number.isFinite(minutes)) return '';
+
+	const totalHours = (days * 24) + hours;
+  if (minutes > 59) return '';
+
+  return `${String(totalHours)}:${String(minutes).padStart(2, '0')}`;
+};

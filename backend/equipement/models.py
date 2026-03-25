@@ -71,6 +71,11 @@ class Equipement(ArchivableMixin, models.Model):
 
     def __str__(self):
         return f"{self.id} - {self.designation} - {self.numSerie}"
+
+
+    def get_dernier_statut(self):
+        dernier_statut = self.statuts.order_by('-dateChangement').first()
+        return dernier_statut.statut if dernier_statut else "Statut inconnu"
     
     class Meta:
         db_table = 'gimao_equipement'

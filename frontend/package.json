@@ -12,6 +12,7 @@
     "@vue/cli-service": "^5.0.0",
     "axios": "^1.7.9",
     "vue": "^3.2.37",
+    "vue-cal": "^4.10.2",
     "vue-router": "^4.5.0",
     "vuetify": "^3.6.0",
     "vuex": "^4.1.0"

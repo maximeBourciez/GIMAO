@@ -40,6 +40,9 @@ import EditFailure from '@/views/Failures/EditFailure.vue'
 import AddDocumentFailure from '@/views/Failures/AddDocumentFailure.vue'
 
 // ------------------------------------------------------------------
+import NoticesHome from '@/views/Notices/NoticesHome.vue'
+
+// ------------------------------------------------------------------
 
 import DataManagement from '@/views/DataManagement/DataManagement.vue'
 import ExportData from '@/views/DataManagement/ExportData.vue'
@@ -64,6 +67,10 @@ import EditModelEquipment from '@/views/DataManagement/EquipmentsModels/EditMode
 
 import CounterDetail from '@/views/Equipments/Counters/CounterDetail.vue'
 import EditSupplier from '@/views/DataManagement/Suppliers/EditSupplier.vue'
+
+// Dashboard
+import Calendar from '@/views/Calendar/Calendar.vue'
+
 
 // ---------------------------------------------------------------
 // ROLES ET PERMISSIONS
@@ -425,6 +432,14 @@ const routes = [
     meta: { title: 'Ajouter un document à la demande d\'intervention', requiresPermissions: ['di:editCreated', 'di:editAll'], permissionMode: 'OR' }
   },
 
+  // Notices ------------------------------------------------------------------
+  {
+    path: '/Notice',
+    name: 'Notice',
+    component: NoticesHome,
+    meta: { title: "Notices d'utilisation", public: true }
+  },
+
   // Lieux ---------------------------------------------------------------
 
   {
@@ -477,6 +492,14 @@ const routes = [
     name: 'EditModelEquipment',
     component: EditModelEquipment,
     meta: { title: 'Modifier modele equipement', requiresPermissions: ['eqmod:edit'] }
+  },
+
+  // Dashboard -------------------------------------------------------------------------
+  {
+    path: '/Calendar',
+    name: 'Calendar',
+    component: Calendar,
+    meta: { title: 'Calendrier', requiresPermissions: ['menu:calendar'] }
   }
 ]
 
@@ -549,6 +572,10 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
+
+router.afterEach((to) => {
+  document.title = to.meta.title ? `GIMAO - ${to.meta.title}` : 'GIMAO'
+})
 
 
 export default router

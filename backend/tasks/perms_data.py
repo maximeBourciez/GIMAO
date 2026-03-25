@@ -36,6 +36,7 @@ perms = {
     'eq:delete': 'Supprimer un équipement',
     'eq:export': 'Exporter les équipements',
     'eq:archive': 'Archiver un équipement',
+    'eq:maintenance.calendar': 'Voir le calendrier des maintenances d’un équipement',
 
     # Compteurs
     'cp:viewList': 'Voir la liste des compteurs',
@@ -52,6 +53,7 @@ perms = {
     'mp:edit': 'Modifier une maintenance préventive',
     'mp:delete': 'Supprimer une maintenance préventive',
     'mp:export': 'Exporter les maintenances préventives',
+    'mp:calendar': 'Voir le calendrier des maintenances préventives',
 
     # Stocks
     'stock:view': 'Voir les stocks',
@@ -149,6 +151,7 @@ perms = {
     # Menu
     'menu:view': 'Accéder au menu de navigation',
     'menu:dataManagement': 'Accéder au menu de gestion des données',
+    'menu:calendar': 'Accéder au calendrier',
 
     # Dashboard
     'dash:display.di': 'Afficher les demandes d’intervention sur le tableau de bord',
@@ -193,8 +196,6 @@ perms_map = {
 
         'eq:viewList', 'eq:viewDetail',
 
-        'menu:view',
-
         'dash:display.diCreated', 'dash:display.eq', 'dash:stats.di','dash:display.vertical',
     ],
 
@@ -206,8 +207,6 @@ perms_map = {
         'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
 
         'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export',
-
-        'menu:view',
 
         'export:view',
 

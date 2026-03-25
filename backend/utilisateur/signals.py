@@ -26,6 +26,8 @@ def make_serializable(obj):
         return str(obj)
     if isinstance(obj, (datetime.datetime, datetime.date)):
         return obj.isoformat()
+    if isinstance(obj, datetime.timedelta):
+        return obj.total_seconds()
     if isinstance(obj, FieldFile):
         return obj.name
     if isinstance(obj, dict):
@@ -34,6 +36,7 @@ def make_serializable(obj):
         return [make_serializable(v) for v in obj]
     if hasattr(obj, 'pk'):
         return obj.pk
+    
     return obj
 
 def should_ignore_model(sender):

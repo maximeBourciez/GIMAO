@@ -83,18 +83,7 @@ class UtilisateurSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['derniereConnexion', 'dateCreation']
 
-    # def get_permissions_names(self, obj):
-    #     """
-    #     Retourne les permissions de l'utilisateur.
-    #     Si des permissions personnalisées existent, elles remplacent celles du rôle.
-    #     Sinon, on retourne les permissions du rôle.
-    #     """
-    #     perms_perso = obj.permissions_personnalisees.select_related('permission').all()
-    #     if perms_perso.exists():
-    #         return [up.permission.nomPermission for up in perms_perso]
-    #     if obj.role:
-    #         return [perm.nomPermission for perm in obj.role.permissions.all()]
-    #     return []
+ 
     def get_permissions_names(self, obj):
         """
         Retourne les permissions de l'utilisateur.
@@ -298,7 +287,8 @@ class LoginSerializer(serializers.Serializer):
 class ChangePasswordSerializer(serializers.Serializer):
     """Serializer pour le changement de mot de passe"""
     ancien_motDePasse = serializers.CharField(
-        required=True,
+        required=False,
+        allow_blank=True,
         style={'input_type': 'password'},
         write_only=True
     )
