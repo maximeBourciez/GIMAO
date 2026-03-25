@@ -21,17 +21,37 @@
             <!-- Calendrier -->
             <div class="calendar-wrapper">
 
+                <div class="mb-3 px-2 d-flex flex-wrap ga-3 align-center" v-if="mode === 'bt'">
+                    <FormField
+                        v-model="dayStartTime"
+                        field-name="calendar_day_start_time"
+                        type="time"
+                        label="Début (jour/semaine)"
+                        style="max-width: 180px"
+                    />
+
+                    <FormField
+                        v-model="dayEndTime"
+                        field-name="calendar_day_end_time"
+                        type="time"
+                        label="Fin (jour/semaine)"
+                        :error="isTimeRangeInvalid"
+                        :error-messages="isTimeRangeInvalid ? 'L\'heure de fin doit être après l\'heure de début.' : ''"
+                        style="max-width: 180px"
+                    />
+
+                    <div class="flex-grow-1" style="min-width: 260px;">
+                        <FormSelect v-model="technicienSelected" field-name="technicien_filter" :items="techniciensOptions"
+                            item-title="nom" item-value="id" label="Filtrer par technicien" clearable />
+                    </div>
+                </div>
+
                 <div v-if="mode === 'maintenance'" class="mb-3 px-2">
                     <FormSelect v-model="equipmentSelected" field-name="equipment_filter" :items="equipmentsOptions"
                         item-title="nom" item-value="id" label="Filtrer par équipement" clearable />
                 </div>
 
-                <div v-if="mode === 'bt' && techniciensOptions.length" class="mb-3 px-2">
-                    <FormSelect v-model="technicienSelected" field-name="technicien_filter" :items="techniciensOptions"
-                        item-title="nom" item-value="id" label="Filtrer par technicien" clearable />
-                </div>
-
-                <vue-cal ref="vuecal" :events="currentEvents" :time-from="7 * 60" :time-to="20 * 60" :time-step="30"
+                <vue-cal ref="vuecal" :events="currentEvents" :time-from="calendarTimeFrom" :time-to="calendarTimeTo" :time-step="30"
                     active-view="month" locale="fr" :first-day-of-week="2" :on-event-click="onEventClick"
                     :max-events-per-cell="3" events-on-month-view="short" :today-button="true"
                     :click-to-navigate="false" show-week-numbers :time-cell-height="48" class="vuecal--custom"
@@ -113,6 +133,7 @@ import VueCal from 'vue-cal'
 import { API_BASE_URL } from '@/utils/constants'
 import { useApi } from '@/composables/useApi'
 import { useRouter, useRoute } from 'vue-router'
+import FormField from '@/components/Forms/inputType/FormField.vue'
 import FormSelect from '@/components/Forms/inputType/FormSelect.vue'
 import 'vue-cal/dist/vuecal.css'
 
@@ -121,6 +142,60 @@ const router = useRouter();
 const route = useRoute();
 
 const currentView = ref('month')
+const dayStartTime = ref('07:00')
+const dayEndTime = ref('20:00')
+
+const DEFAULT_TIME_FROM = 7 * 60
+const DEFAULT_TIME_TO = 20 * 60
+const MAX_MINUTES_IN_DAY = 24 * 60
+
+const toMinutes = (timeValue) => {
+    if (typeof timeValue !== 'string') {
+        return null
+    }
+
+    const [hoursStr, minutesStr] = timeValue.split(':')
+    const hours = Number(hoursStr)
+    const minutes = Number(minutesStr)
+
+    if (
+        Number.isNaN(hours) || Number.isNaN(minutes) ||
+        hours < 0 || hours > 23 || minutes < 0 || minutes > 59
+    ) {
+        return null
+    }
+
+    return hours * 60 + minutes
+}
+
+const calendarTimeFrom = computed(() => {
+    return toMinutes(dayStartTime.value) ?? DEFAULT_TIME_FROM
+})
+
+const isTimeRangeInvalid = computed(() => {
+    const start = toMinutes(dayStartTime.value)
+    const end = toMinutes(dayEndTime.value)
+
+    if (start === null || end === null) {
+        return false
+    }
+
+    return end <= start
+})
+
+const calendarTimeTo = computed(() => {
+    const end = toMinutes(dayEndTime.value)
+
+    if (end === null) {
+        return DEFAULT_TIME_TO
+    }
+
+    if (end <= calendarTimeFrom.value) {
+        return Math.min(calendarTimeFrom.value + 30, MAX_MINUTES_IN_DAY)
+    }
+
+    return end
+})
 
 const entityColors = {
     technicien: new Map(),
