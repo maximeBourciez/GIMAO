@@ -120,7 +120,9 @@ const availableStores = computed(() => {
 
 const remainingStock = computed(() => {
   if (!sourceStore.value) return 0;
-  const totalTransfer = transfers.value.reduce((sum, t) => sum + (parseInt(t.quantite) || 0), 0);
+  const totalTransfer = transfers.value
+    .filter(t => t.to_magasin)
+    .reduce((sum, t) => sum + (parseInt(t.quantite) || 0), 0);
   return sourceStore.value.quantite - totalTransfer;
 });
 
@@ -165,13 +167,17 @@ const submit = async () => {
   // I will keep manual loading management or I can let BaseForm handle errors if I throw?
   // I'll keep my manual loading for now to be safe with existing logic.
   
-  const hasInvalidTransfer = transfers.value.some(t => !t.to_magasin || !t.quantite || Number(t.quantite) < 1);
-  if (!sourceStore.value || transfers.value.length === 0 || remainingStock.value < 0 || hasInvalidTransfer) return;
+  const selectedTransfers = transfers.value.filter(t => t.to_magasin);
+  const hasInvalidTransfer = selectedTransfers.some(t => !t.quantite || Number(t.quantite) < 1);
+  if (selectedTransfers.length === 0) {
+    throw new Error('Veuillez sélectionner au moins un magasin destination.');
+  }
+  if (!sourceStore.value || remainingStock.value < 0 || hasInvalidTransfer) return;
   loading.value = true;
   try {
     const payload = {
         from_magasin: sourceStore.value.magasin, // stock object has magasin ID in 'magasin' field
-        transfers: transfers.value
+        transfers: selectedTransfers
     };
     await api.post(`consommables/${props.consumable.id}/transfer_stock/`, payload);
     emit('transfer-complete');
