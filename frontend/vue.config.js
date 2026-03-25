@@ -1,10 +1,12 @@
 const { defineConfig } = require('@vue/cli-service')
 
+const proxyTarget = process.env.VUE_APP_PROXY_TARGET || 'http://localhost:8000'
+
 module.exports = defineConfig({
   devServer: {
     proxy: {
       '/api': {
-        target: 'http://backend:8000',
+        target: proxyTarget,
         changeOrigin: true
       }
     }
