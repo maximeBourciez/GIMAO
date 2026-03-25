@@ -42,7 +42,7 @@
               <v-card-title class="d-flex flex-wrap align-center justify-space-between py-2 gap-2">
                  <span>Stocks en Magasin</span>
                   <v-btn
-                   v-if="consumable?.stocks?.length"
+                   v-if="consumable?.stocks?.length && store.getters.hasPermission('stock:transfer')"
                    color="secondary"
                    prepend-icon="mdi-transfer"
                    size="small"
@@ -75,6 +75,7 @@
               <v-card-title class="d-flex flex-wrap align-center justify-space-between py-2 gap-2">
                  <span>Historique des Achats</span>
                  <v-btn
+                   v-if="store.getters.hasPermission('stock:addPurchase')"
                    color="primary"
                    prepend-icon="mdi-plus"
                    size="small"

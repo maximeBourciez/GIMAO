@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import check_password, make_password
 
-from utilisateur.models import Role, Utilisateur, Log, Permission, UtilisateurPermission, RolePermission
+from utilisateur.models import Role, Utilisateur, Log, Permission, UtilisateurPermission, RolePermission, Module
 from .serializers import (
     RoleSerializer,
     UtilisateurSerializer,
@@ -17,7 +17,8 @@ from .serializers import (
     LoginSerializer,
     ChangePasswordSerializer,
     DefinirMotDePasseSerializer,
-    PermissionSerializer
+    PermissionSerializer,
+    ModuleSerializer,
 )
 from gimao.viewsets import GimaoModelViewSet
 from security.models import ApiToken, create_token
@@ -51,6 +52,18 @@ class RoleViewSet(GimaoModelViewSet):
         serializer = self.get_serializer(nouveau_role)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+# ==================== MODULE VIEWSET ====================
+
+class ModuleViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet en lecture seule pour lister tous les modules disponibles.
+    GET /api/modules/
+    GET /api/modules/{id}/
+    """
+    queryset = Module.objects.all().order_by('nom')
+    serializer_class = ModuleSerializer
+
+
 # ==================== PERMISSION VIEWSET ====================
 
 class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -60,7 +73,7 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     GET /api/permissions/
     GET /api/permissions/{id}/
     """
-    queryset = Permission.objects.all().order_by('nomPermission')
+    queryset = Permission.objects.select_related('module').all().order_by('nomPermission')
     serializer_class = PermissionSerializer
 
 

@@ -189,6 +189,30 @@ class Log(models.Model):
 
 
 
+class Module(models.Model):
+    """
+    Représente un module fonctionnel regroupant des permissions (ex: di, bt, eq).
+    """
+    code = models.CharField(
+        max_length=20,
+        unique=True,
+        help_text="Code court du module (ex: di, bt, eq)"
+    )
+    nom = models.CharField(
+        max_length=100,
+        help_text="Nom lisible du module (ex: Demandes d'intervention)"
+    )
+
+    def __str__(self):
+        return self.nom
+
+    class Meta:
+        db_table = 'gimao_module'
+        verbose_name = 'Module'
+        verbose_name_plural = 'Modules'
+        ordering = ['nom']
+
+
 class Permission(models.Model):
     """
     Représente une permission spécifique attribuée à un rôle.
@@ -203,6 +227,15 @@ class Permission(models.Model):
         null=True,
         blank=True,
         help_text="Description détaillée de la permission"
+    )
+
+    module = models.ForeignKey(
+        'Module',
+        on_delete=models.PROTECT,
+        related_name='permissions',
+        null=True,
+        blank=True,
+        help_text="Module auquel appartient cette permission"
     )
 
     def __str__(self):

@@ -1,6 +1,6 @@
 from maintenance.models import TypePlanMaintenance
 from donnees.models import TypeDocument
-from utilisateur.models import Utilisateur, Role, Permission, RolePermission
+from utilisateur.models import Utilisateur, Role, Permission, RolePermission, Module
 from . import perms_data
 
 def create_initial_data():
@@ -34,14 +34,48 @@ def create_initial_data():
     for doc_type in types_document:
         TypeDocument.objects.get_or_create(nomTypeDocument=doc_type)
 
+    # Création des modules
+    modules_data = {
+        'di': "Demandes d'intervention",
+        'bt': 'Bons de travail',
+        'eq': 'Équipements',
+        'cp': 'Compteurs',
+        'mp': 'Maintenances préventives',
+        'stock': 'Stocks',
+        'cons': 'Consommables',
+        'mag': 'Magasins',
+        'user': 'Utilisateurs',
+        'role': 'Rôles',
+        'loc': 'Lieux',
+        'sup': 'Fournisseurs',
+        'man': 'Fabricants',
+        'eqmod': "Modèles d'équipement",
+        'export': 'Export',
+        'menu': 'Menu',
+        'dash': 'Dashboard',
+    }
+    modules = {}
+    for code, nom in modules_data.items():
+        module, _ = Module.objects.get_or_create(code=code, defaults={'nom': nom})
+        modules[code] = module
+
     # Création des permissions
     for perm_name, description in perms_data.perms.items():
+        module_code = perm_name.split(':')[0]
+        module = modules.get(module_code)
+
         perm, created = Permission.objects.get_or_create(
             nomPermission=perm_name
         )
 
+        changed = False
         if perm.description != description:
             perm.description = description
+            changed = True
+        if module and perm.module != module:
+            perm.module = module
+            changed = True
+        if changed:
             perm.save()
 
     # Assignation des permissions aux rôles

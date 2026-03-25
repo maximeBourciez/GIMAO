@@ -58,6 +58,9 @@ perms = {
     # Stocks
     'stock:view': 'Voir les stocks',
     'stock:export': 'Exporter les stocks',
+    'stock:viewReservations': 'Voir les mises de côté',
+    'stock:addPurchase': 'Enregistrer un achat',
+    'stock:transfer': 'Transférer du stock entre magasins',
 
     # Consommables
     'cons:viewDetail': "Voir le détail d’un consommable",
@@ -186,7 +189,7 @@ perms_map = {
     "Magasinier": [
         'bt:viewList', 'bt:viewDetail', 'bt:acceptConsumableRequest',
 
-        'stock:view', 'stock:export',
+        'stock:view', 'stock:export', 'stock:viewReservations', 'stock:addPurchase', 'stock:transfer',
 
         'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
 

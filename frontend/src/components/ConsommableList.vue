@@ -49,7 +49,7 @@
       </v-col>
 
       <!-- Colonne BT en attente (50%) -->
-      <v-col cols="12" lg="6">
+      <v-col v-if="store.getters.hasPermission('stock:viewReservations')" cols="12" lg="6">
         <BTStockValidation
           ref="btStockValidationRef"
           :consommables="consommables"

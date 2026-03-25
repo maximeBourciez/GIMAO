@@ -2,17 +2,28 @@
 
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from utilisateur.models import Role, Utilisateur, Log, Permission, UtilisateurPermission
+from utilisateur.models import Role, Utilisateur, Log, Permission, UtilisateurPermission, Module
+
+
+# ==================== MODULE ====================
+
+class ModuleSerializer(serializers.ModelSerializer):
+    """Serializer pour le modèle Module"""
+
+    class Meta:
+        model = Module
+        fields = ['id', 'code', 'nom']
 
 
 # ==================== PERMISSION ====================
 
 class PermissionSerializer(serializers.ModelSerializer):
     """Serializer pour le modèle Permission"""
+    module = ModuleSerializer(read_only=True)
 
     class Meta:
         model = Permission
-        fields = ['id', 'nomPermission', 'description']
+        fields = ['id', 'nomPermission', 'description', 'module']
 
 
 # ==================== ROLE ====================

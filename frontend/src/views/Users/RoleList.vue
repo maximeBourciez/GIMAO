@@ -122,12 +122,12 @@
                 <v-expansion-panel>
                   <v-expansion-panel-title>
                     <div class="d-flex align-center" style="gap: 12px;">
-                      <v-checkbox :model-value="isModuleFullySelected(module, [...types.affichage, ...types.action])"
-                        :indeterminate="isModulePartiallySelected(module, [...types.affichage, ...types.action])"
+                      <v-checkbox :model-value="isModuleFullySelected([...types.affichage, ...types.action])"
+                        :indeterminate="isModulePartiallySelected([...types.affichage, ...types.action])"
                         density="compact" hide-details color="primary"
-                        @update:model-value="toggleModule(module, [...types.affichage, ...types.action], $event)"
+                        @update:model-value="toggleModule([...types.affichage, ...types.action], $event)"
                         @click.stop />
-                      <span class="font-weight-medium">{{ moduleLabel(module) }}</span>
+                      <span class="font-weight-medium">{{ types.nom }}</span>
                       <v-chip size="x-small" color="primary" variant="tonal">
                         {{[...types.affichage, ...types.action].filter(p => form.permissions_ids.includes(p.id)).length
                         }}/{{ types.affichage.length + types.action.length }}
@@ -218,6 +218,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
+import { usePermissionSelector } from '@/composables/usePermissionSelector'
 
 const api = useApi(API_BASE_URL)
 
@@ -238,19 +239,33 @@ const editingRoleId = ref(null)
 
 const form = ref({
   nomRole: '',
-  //   rang: 1,
   permissions_ids: []
 })
 
 const formErrors = ref({
   nomRole: '',
-  //   rang: ''
 })
 
 // Dialog suppression
 const deleteDialog = ref(false)
 const deleting = ref(false)
 const roleToDelete = ref(null)
+
+// Adaptateur pour passer form.permissions_ids au composable comme un ref
+const selectedIds = computed({
+  get: () => form.value.permissions_ids,
+  set: (val) => { form.value.permissions_ids = val }
+})
+
+const {
+  filteredPermissionsByModule,
+  isPermDisabledByHierarchy,
+  isModuleFullySelected,
+  isModulePartiallySelected,
+  toggleModule,
+  togglePermission,
+  applyHierarchy,
+} = usePermissionSelector(allPermissions, selectedIds, searchPerm)
 
 // ==================== CHARGEMENT ====================
 const fetchData = async () => {
@@ -271,164 +286,12 @@ const fetchData = async () => {
 
 onMounted(fetchData)
 
-// ==================== PERMISSIONS PAR MODULE ====================
-
-// Extrait le préfixe module d'une permission (ex: "di" depuis "di:viewList")
-const getModule = (nomPermission) => nomPermission.split(':')[0]
+// ==================== MODULES (affichage cartes) ====================
 
 // Retourne les modules uniques d'une liste de permissions
 const getModules = (permissions) => {
   if (!permissions) return []
-  return [...new Set(permissions.map(p => getModule(p.nomPermission)))]
-}
-
-const PERM_TYPE = {
-  viewList: 'affichage', viewDetail: 'affichage', view: 'affichage',
-  'display.bt': 'affichage', 'display.di': 'affichage', 'display.eq': 'affichage',
-  'display.mag': 'affichage', 'display.vertical': 'affichage',
-  'display.btAssigned': 'affichage', 'display.diCreated': 'affichage',
-  'stats.full': 'affichage', 'stats.bt': 'affichage', 'stats.di': 'affichage',
-  create: 'action', edit: 'action', editAll: 'action', editCreated: 'action',
-  editAssigned: 'action', delete: 'action', accept: 'action', refuse: 'action',
-  transform: 'action', start: 'action', end: 'action', refuseClosure: 'action',
-  acceptClosure: 'action', acceptConsumableRequest: 'action',
-  disable: 'action', enable: 'action', dataManagement: 'affichage',
-}
-
-const PERM_HIERARCHY = {
-  'di:editAll': ['di:editCreated'],
-  'bt:editAll': ['bt:editAssigned'],
-  'dash:stats.full': ['dash:stats.bt', 'dash:stats.di'],
-  'dash:display.bt': ['dash:display.btAssigned'],   //quand on coche dash:display.bt (tous les BT), dash:display.btAssigned (BT assignés) se coche automatiquement et devient grisé et inversement
-  'dash:display.di': ['dash:display.diCreated'],
-}
-
-const isPermDisabledByHierarchy = (nomPermission) => {
-  for (const [parent, children] of Object.entries(PERM_HIERARCHY)) {
-    if (children.includes(nomPermission)) {
-      const parentPerm = allPermissions.value.find(p => p.nomPermission === parent)
-      if (parentPerm && form.value.permissions_ids.includes(parentPerm.id)) {
-        return true
-      }
-    }
-  }
-  return false
-}
-
-const getPermType = (nomPermission) => {
-  const action = nomPermission.split(':')[1] || nomPermission
-  return PERM_TYPE[action] || 'action'
-}
-
-
-// Toutes les permissions groupées par module
-const permissionsByModule = computed(() => {
-  const groups = {}
-  for (const perm of allPermissions.value) {
-    if (perm.nomPermission === 'export:view') continue
-    if (perm.nomPermission.endsWith(':export')) continue
-    const module = getModule(perm.nomPermission)
-    if (!groups[module]) groups[module] = { affichage: [], action: [] }
-    const type = getPermType(perm.nomPermission)
-    groups[module][type].push(perm)
-  }
-  return groups
-})
-
-// Permissions filtrées par recherche
-const filteredPermissionsByModule = computed(() => {
-  if (!searchPerm.value) return permissionsByModule.value
-  const search = searchPerm.value.toLowerCase()
-  const result = {}
-  for (const [module, types] of Object.entries(permissionsByModule.value)) {
-    const filteredAffichage = types.affichage.filter(p => p.nomPermission.toLowerCase().includes(search))
-    const filteredAction = types.action.filter(p => p.nomPermission.toLowerCase().includes(search))
-    if (filteredAffichage.length > 0 || filteredAction.length > 0) {
-      result[module] = { affichage: filteredAffichage, action: filteredAction }
-    }
-  }
-  return result
-})
-
-// Labels lisibles pour les modules
-const MODULE_LABELS = {
-  di: 'Demandes d\'intervention',
-  bt: 'Bons de travail',
-  eq: 'Équipements',
-  cp: 'Compteurs',
-  mp: 'Maintenances préventives',
-  stock: 'Stocks',
-  cons: 'Consommables',
-  mag: 'Magasins',
-  user: 'Utilisateurs',
-  role: 'Rôles',
-  loc: 'Lieux',
-  sup: 'Fournisseurs',
-  man: 'Fabricants',
-  eqmod: 'Modèles d\'équipement',
-  export: 'Export',
-  menu: 'Menu',
-  dash: 'Dashboard'
-}
-
-const moduleLabel = (module) => MODULE_LABELS[module] || module
-
-
-// Gestion de la sélection par module
-const isModuleFullySelected = (module, perms) => {
-  return perms.every(p => form.value.permissions_ids.includes(p.id))
-}
-
-const isModulePartiallySelected = (module, perms) => {
-  const selected = perms.filter(p => form.value.permissions_ids.includes(p.id))
-  return selected.length > 0 && selected.length < perms.length
-}
-
-const toggleModule = (module, perms, value) => {
-  if (value) {
-    // Ajouter toutes les permissions du module
-    const ids = perms.map(p => p.id)
-    const current = new Set(form.value.permissions_ids)
-    ids.forEach(id => current.add(id))
-    form.value.permissions_ids = [...current]
-  } else {
-    // Retirer toutes les permissions du module
-    const ids = new Set(perms.map(p => p.id))
-    form.value.permissions_ids = form.value.permissions_ids.filter(id => !ids.has(id))
-  }
-}
-
-const togglePermission = (id, value) => {
-  const perm = allPermissions.value.find(p => p.id === id)
-  if (!perm) return
-
-  if (value) {
-    // Ajouter la permission
-    if (!form.value.permissions_ids.includes(id)) {
-      form.value.permissions_ids.push(id)
-    }
-    // Ajouter automatiquement les enfants si c'est un parent
-    if (PERM_HIERARCHY[perm.nomPermission]) {
-      for (const childName of PERM_HIERARCHY[perm.nomPermission]) {
-        const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
-        if (childPerm && !form.value.permissions_ids.includes(childPerm.id)) {
-          form.value.permissions_ids.push(childPerm.id)
-        }
-      }
-    }
-  } else {
-    // Supprimer la permission
-    form.value.permissions_ids = form.value.permissions_ids.filter(pid => pid !== id)
-    // Supprimer aussi les enfants si c'est un parent
-    if (PERM_HIERARCHY[perm.nomPermission]) {
-      for (const childName of PERM_HIERARCHY[perm.nomPermission]) {
-        const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
-        if (childPerm) {
-          form.value.permissions_ids = form.value.permissions_ids.filter(pid => pid !== childPerm.id)
-        }
-      }
-    }
-  }
+  return [...new Set(permissions.map(p => p.module?.code ?? p.nomPermission.split(':')[0]))]
 }
 
 // ==================== DIALOG ====================
@@ -455,18 +318,7 @@ const openEditDialog = (role) => {
     permissions_ids: (role.permissions || []).map(p => p.id)
   }
 
-  // Appliquer la hiérarchie au chargement
-  for (const [parent, children] of Object.entries(PERM_HIERARCHY)) {
-    const parentPerm = allPermissions.value.find(p => p.nomPermission === parent)
-    if (parentPerm && form.value.permissions_ids.includes(parentPerm.id)) {
-      for (const childName of children) {
-        const childPerm = allPermissions.value.find(p => p.nomPermission === childName)
-        if (childPerm && !form.value.permissions_ids.includes(childPerm.id)) {
-          form.value.permissions_ids.push(childPerm.id)
-        }
-      }
-    }
-  }
+  applyHierarchy()
 
   dialog.value = true
 }
@@ -485,10 +337,6 @@ const validateForm = () => {
     formErrors.value.nomRole = 'Le nom du rôle est requis.'
     valid = false
   }
-  // if (!form.value.rang || form.value.rang < 1) {
-  //   formErrors.value.rang = 'Le rang doit être un entier positif.'
-  //   valid = false
-  // }
   return valid
 }
 
@@ -534,7 +382,6 @@ const saveAsNewRole = async () => {
   saving.value = true
   dialogError.value = ''
   try {
-    // Demander le nom du nouveau rôle
     const nouveauNom = prompt('Nom du nouveau rôle :', `Copie de ${form.value.nomRole}`)
     if (!nouveauNom || !nouveauNom.trim()) {
       saving.value = false
@@ -555,13 +402,16 @@ const saveAsNewRole = async () => {
     saving.value = false
   }
 }
+
 const confirmDelete = (role) => {
   roleToDelete.value = role
   deleteDialog.value = true
 }
+
 const ROLES_SYSTEME = ['Opérateur', 'Magasinier', 'Technicien', 'Responsable GMAO']
 
 const estRoleSysteme = (nomRole) => ROLES_SYSTEME.includes(nomRole)
+
 const deleteRole = async () => {
   if (!roleToDelete.value) return
 
@@ -579,6 +429,7 @@ const deleteRole = async () => {
     deleting.value = false
   }
 }
+
 const dupliquerRole = async (role) => {
   try {
     const nouveau = await api.post(`roles/${role.id}/dupliquer/`, {
