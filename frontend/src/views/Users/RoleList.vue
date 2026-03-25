@@ -256,8 +256,6 @@ const permissionsByModule = computed(() => {
   const groups = {}
   for (const perm of allPermissions.value) {
     // if (perm.nomPermission.startsWith('dash:display')) continue
-    if (perm.nomPermission === 'export:view') continue
-    if (perm.nomPermission.endsWith(':export')) continue
     const module = getModule(perm.nomPermission)
     if (!groups[module]) groups[module] = []
     groups[module].push(perm)
