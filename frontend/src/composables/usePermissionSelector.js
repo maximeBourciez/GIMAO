@@ -9,19 +9,47 @@ import { computed } from 'vue'
  *
  * Chaque permission expose depuis l'API : { id, nomPermission, description, type, parent_id, module }
  * - type      : 'affichage' | 'action'
- * - parent_id : id de la permission parente (ou null)
+ * - parent_id : id de la permission requise (ex. di:archive.parent = di:viewDetail)
+ *
+ * Règle de parenté :
+ *   Cocher une permission coche aussi tous ses ancêtres (remontée de chaîne).
+ *   Décocher une permission décoche aussi toutes les permissions qui en dépendent.
+ *   Une permission est grisée si au moins une permission sélectionnée en dépend.
  */
 export function usePermissionSelector(allPermissions, selectedIds, searchPerm) {
 
-  // Une permission d'action est désactivée si sa permission parente est déjà cochée
-  const isPermDisabledByHierarchy = (permId) => {
-    const perm = allPermissions.value.find(p => p.id === permId)
-    if (!perm?.parent_id) return false
-    return selectedIds.value.includes(perm.parent_id)
+  // Remonte la chaîne des parents depuis un id et retourne tous les ids ancêtres
+  function getAncestorIds(id) {
+    const ancestors = []
+    let perm = allPermissions.value.find(p => p.id === id)
+    while (perm?.parent_id) {
+      ancestors.push(perm.parent_id)
+      perm = allPermissions.value.find(p => p.id === perm.parent_id)
+    }
+    return ancestors
   }
 
-  // Réordonne un tableau de permissions : parent d'abord, puis ses enfants juste après.
-  // Chaque élément retourné est une copie avec _isChild ajouté.
+  // Collecte récursivement tous les ids qui dépendent de l'id donné (descendants)
+  function getDescendantIds(id) {
+    const result = []
+    for (const p of allPermissions.value) {
+      if (p.parent_id === id) {
+        result.push(p.id)
+        result.push(...getDescendantIds(p.id))
+      }
+    }
+    return result
+  }
+
+  // Une permission est grisée si une permission sélectionnée en dépend (directement ou transitivement)
+  const isPermDisabledByHierarchy = (permId) => {
+    return allPermissions.value.some(p => {
+      if (!selectedIds.value.includes(p.id) || p.id === permId) return false
+      return getAncestorIds(p.id).includes(permId)
+    })
+  }
+
+  // Réordonne : parents avant leurs enfants directs, avec _isChild ajouté
   function orderedWithChildren(perms) {
     const idsInGroup = new Set(perms.map(p => p.id))
     const result = []
@@ -52,10 +80,9 @@ export function usePermissionSelector(allPermissions, selectedIds, searchPerm) {
       if (!groups[code]) groups[code] = { nom, affichage: [], action: [] }
       groups[code][perm.type ?? 'action'].push(perm)
     }
-    // Réordonner pour placer les enfants juste après leur parent
     for (const code of Object.keys(groups)) {
       groups[code].affichage = orderedWithChildren(groups[code].affichage)
-      groups[code].action = orderedWithChildren(groups[code].action)
+      groups[code].action    = orderedWithChildren(groups[code].action)
     }
     return groups
   })
@@ -87,51 +114,54 @@ export function usePermissionSelector(allPermissions, selectedIds, searchPerm) {
   }
 
   const toggleModule = (perms, value) => {
-    const ids = perms.map(p => p.id)
     const current = new Set(selectedIds.value)
     if (value) {
-      ids.forEach(id => current.add(id))
+      for (const perm of perms) {
+        current.add(perm.id)
+        // Cocher aussi tous les ancêtres requis
+        for (const ancestorId of getAncestorIds(perm.id)) {
+          current.add(ancestorId)
+        }
+      }
     } else {
-      ids.forEach(id => current.delete(id))
+      for (const perm of perms) {
+        current.delete(perm.id)
+        // Décocher aussi tout ce qui dépend de cette permission
+        for (const descendantId of getDescendantIds(perm.id)) {
+          current.delete(descendantId)
+        }
+      }
     }
     selectedIds.value = [...current]
   }
 
   const togglePermission = (id, value) => {
-    const perm = allPermissions.value.find(p => p.id === id)
-    if (!perm) return
-
+    const current = new Set(selectedIds.value)
     if (value) {
-      let newIds = selectedIds.value.includes(id) ? selectedIds.value : [...selectedIds.value, id]
-      // Activer aussi les enfants dont c'est la permission parente
-      for (const child of allPermissions.value) {
-        if (child.parent_id === id && !newIds.includes(child.id)) {
-          newIds = [...newIds, child.id]
-        }
+      current.add(id)
+      // Remonter la chaîne : cocher tous les ancêtres requis
+      for (const ancestorId of getAncestorIds(id)) {
+        current.add(ancestorId)
       }
-      selectedIds.value = newIds
     } else {
-      // Désactiver la permission et ses enfants
-      const childIds = allPermissions.value
-        .filter(p => p.parent_id === id)
-        .map(p => p.id)
-      selectedIds.value = selectedIds.value.filter(x => x !== id && !childIds.includes(x))
+      current.delete(id)
+      // Décocher tout ce qui dépendait de cette permission
+      for (const descendantId of getDescendantIds(id)) {
+        current.delete(descendantId)
+      }
     }
+    selectedIds.value = [...current]
   }
 
-  // Applique la hiérarchie sur les IDs sélectionnés (à appeler après chargement)
+  // À appeler après chargement : s'assure que tous les ancêtres requis sont cochés
   const applyHierarchy = () => {
-    let ids = [...selectedIds.value]
-    for (const perm of allPermissions.value) {
-      if (ids.includes(perm.id)) {
-        for (const child of allPermissions.value) {
-          if (child.parent_id === perm.id && !ids.includes(child.id)) {
-            ids = [...ids, child.id]
-          }
-        }
+    const current = new Set(selectedIds.value)
+    for (const id of [...current]) {
+      for (const ancestorId of getAncestorIds(id)) {
+        current.add(ancestorId)
       }
     }
-    selectedIds.value = ids
+    selectedIds.value = [...current]
   }
 
   return {

@@ -230,7 +230,6 @@ const resetForm = () => {
   form.value = { nomRole: '', permissions_ids: [] }
   formErrors.value = { nomRole: '' }
   dialogError.value = ''
-  permissionSelectorRef.value?.resetSearch()
 }
 
 const openCreateDialog = () => {
