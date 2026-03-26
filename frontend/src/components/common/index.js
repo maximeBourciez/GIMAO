@@ -29,6 +29,8 @@ export {
 export { default as BaseForm } from "./BaseForm.vue";
 export { default as BaseListView } from "./BaseListView.vue";
 export { default as BaseDetailView } from "./BaseDetailView.vue";
+export { default as ServerPaginationControls } from "./ServerPaginationControls.vue";
+export { default as FloatingCreateButton } from "./FloatingCreateButton.vue";
 
 // Export du plugin Vue (pour enregistrement global)
 export { default as formComponentsPlugin } from "./plugin.js";

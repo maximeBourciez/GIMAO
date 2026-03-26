@@ -32,6 +32,10 @@ class Consommable(ArchivableMixin, models.Model):
         db_table = 'gimao_consommable'
         verbose_name = 'Consommable'
         verbose_name_plural = 'Consommables'
+        indexes = [
+            models.Index(fields=['archive', 'designation', 'id'], name='cons_arch_des_idx'),
+            models.Index(fields=['archive', 'seuilStockFaible', 'id'], name='cons_arch_seuil_idx'),
+        ]
 
 class PorterSur(models.Model):
     """
@@ -87,6 +91,9 @@ class Stocker(models.Model):
         verbose_name = 'Stock en magasin'
         verbose_name_plural = 'Stocks en magasin'
         unique_together = ['consommable', 'magasin']
+        indexes = [
+            models.Index(fields=['magasin', 'consommable'], name='stock_mag_cons_idx'),
+        ]
 
     def __str__(self):
         return f"{self.id} - {self.consommable.designation} - {self.magasin.nom} : {self.quantite}"

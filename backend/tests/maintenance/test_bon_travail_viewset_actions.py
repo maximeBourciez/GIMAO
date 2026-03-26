@@ -826,7 +826,7 @@ def test_should_filter_assigned_bons_by_utilisateur(api_factory):
     response = view(request)
 
     assert response.status_code == 200
-    ids = [item["id"] for item in response.data]
+    ids = [item["id"] for item in response.data["results"]]
     assert ids == [bt_target.id]
 
 
@@ -1001,7 +1001,7 @@ def test_should_list_stock_without_termine_and_cloture(api_factory):
     response = view(request)
 
     assert response.status_code == 200
-    ids = {item["id"] for item in response.data}
+    ids = {item["id"] for item in response.data["results"]}
     assert bt_en_attente.id in ids
     assert bt_en_cours.id in ids
     assert len(ids) == 2

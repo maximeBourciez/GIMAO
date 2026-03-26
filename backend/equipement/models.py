@@ -20,6 +20,9 @@ class ModeleEquipement(models.Model):
         db_table = 'gimao_modele_equipement'
         verbose_name = 'Modèle d\'équipement'
         verbose_name_plural = 'Modèles d\'équipements'
+        indexes = [
+            models.Index(fields=['nom'], name='modele_nom_idx'),
+        ]
 
 
 class FamilleEquipement(models.Model):
@@ -36,6 +39,9 @@ class FamilleEquipement(models.Model):
         db_table = 'gimao_famille_equipement'
         verbose_name = 'Famille d\'équipement'
         verbose_name_plural = 'Familles d\'équipements'
+        indexes = [
+            models.Index(fields=['nom'], name='famille_nom_idx'),
+        ]
 
 
 class Equipement(ArchivableMixin, models.Model):
@@ -81,6 +87,11 @@ class Equipement(ArchivableMixin, models.Model):
         db_table = 'gimao_equipement'
         verbose_name = 'Équipement'
         verbose_name_plural = 'Équipements'
+        indexes = [
+            models.Index(fields=['archive', 'designation', 'id'], name='eq_arch_des_id_idx'),
+            models.Index(fields=['archive', 'lieu', 'id'], name='eq_arch_lieu_id_idx'),
+            models.Index(fields=['archive', 'modele', 'id'], name='eq_arch_mod_id_idx'),
+        ]
 
 
 class StatutEquipement(models.Model):
@@ -106,6 +117,9 @@ class StatutEquipement(models.Model):
         verbose_name = 'Statut d\'équipement'
         verbose_name_plural = 'Statuts d\'équipements'
         ordering = ['-dateChangement']
+        indexes = [
+            models.Index(fields=['equipement', '-dateChangement'], name='eq_statut_last_idx'),
+        ]
 
 
 class Compteur(models.Model):

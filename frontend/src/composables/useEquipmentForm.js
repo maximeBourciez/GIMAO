@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { useApi } from '@/composables/useApi';
@@ -47,6 +47,9 @@ export function useEquipmentForm(isEditMode = false) {
     return daysSinceEpoch + ORDINAL_EPOCH;
   };
 
+  // Ce compteur "cache" sert d'ancre pour les plans calendaires :
+  // l'utilisateur ne le gere pas comme un compteur metier, mais le backend
+  // a besoin d'une valeur date stable pour calculer les echeances.
   const createDefaultCalendarCounter = () => ({
     id: null,
     nom: 'Calendrier',
@@ -88,6 +91,10 @@ export function useEquipmentForm(isEditMode = false) {
   const familles = ref([]);
   const typesPM = ref([]);
   const typesDocuments = ref([]);
+  const equipmentModelsLoading = ref(false);
+  const fournisseursLoading = ref(false);
+  const fabricantsLoading = ref(false);
+  const consumablesLoading = ref(false);
 
   const showCounterDialog = ref(false);
   const showFabricantDialog = ref(false);
@@ -96,6 +103,7 @@ export function useEquipmentForm(isEditMode = false) {
   const showFamilleDialog = ref(false);
 
   const existingPMs = ref([]);
+  const sectionSearchTimeouts = new Map();
 
   const generateTempPmId = () => `pm_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
@@ -197,26 +205,148 @@ export function useEquipmentForm(isEditMode = false) {
     formData.value.lienImageEquipement = file;
   };
 
+  const mergeUniqueById = (currentItems, nextItems) => {
+    const merged = new Map();
+
+    for (const item of currentItems || []) {
+      if (item?.id !== undefined && item?.id !== null) {
+        merged.set(item.id, item);
+      }
+    }
+
+    for (const item of nextItems || []) {
+      if (item?.id !== undefined && item?.id !== null) {
+        merged.set(item.id, item);
+      }
+    }
+
+    return Array.from(merged.values());
+  };
+
+  const fetchFormDataSection = async (section, { search = '', ids = [] } = {}) => {
+    const params = {
+      section,
+      page: 1,
+      page_size: 25,
+    };
+
+    if (search?.trim()) {
+      params.search = search.trim();
+    }
+
+    if (Array.isArray(ids) && ids.length > 0) {
+      params.ids = ids.join(',');
+    }
+
+    return api.get('equipements/form-data/', params);
+  };
+
+  const sectionConfigs = {
+    equipmentModels: {
+      target: equipmentModels,
+      loading: equipmentModelsLoading,
+    },
+    fournisseurs: {
+      target: fournisseurs,
+      loading: fournisseursLoading,
+    },
+    fabricants: {
+      target: fabricants,
+      loading: fabricantsLoading,
+    },
+    consumables: {
+      target: consumables,
+      loading: consumablesLoading,
+    },
+  };
+
+  const loadSectionOptions = async (section, options = {}) => {
+    const config = sectionConfigs[section];
+    if (!config) return;
+
+    config.loading.value = true;
+
+    try {
+      const response = await fetchFormDataSection(section, options);
+      const nextItems = Array.isArray(response?.results) ? response.results : Array.isArray(response) ? response : [];
+
+      if (options.ids?.length) {
+        // En mode edition, une valeur selectionnee peut ne pas appartenir
+        // a la premiere page chargee. On la fusionne au lieu d'ecraser la liste.
+        config.target.value = mergeUniqueById(config.target.value, nextItems);
+      } else {
+        config.target.value = nextItems;
+      }
+    } finally {
+      config.loading.value = false;
+    }
+  };
+
+  const searchSectionOptions = (section, search) => {
+    const previousTimeout = sectionSearchTimeouts.get(section);
+    if (previousTimeout) {
+      clearTimeout(previousTimeout);
+    }
+
+    const timeoutId = setTimeout(() => {
+      loadSectionOptions(section, { search }).catch((error) => {
+        console.error(`Erreur lors du chargement de ${section}:`, error);
+      });
+    }, 300);
+
+    sectionSearchTimeouts.set(section, timeoutId);
+  };
+
+  const ensureSelectedOptions = async () => {
+    // Le formulaire ne charge qu'un sous-ensemble des options au depart.
+    // On recharge explicitement les valeurs deja choisies pour que les selects
+    // puissent afficher un libelle correct meme si l'option n'est pas dans la page courante.
+    const requests = [];
+
+    if (formData.value.modeleEquipement) {
+      requests.push(loadSectionOptions('equipmentModels', { ids: [formData.value.modeleEquipement] }));
+    }
+
+    if (formData.value.fournisseur) {
+      requests.push(loadSectionOptions('fournisseurs', { ids: [formData.value.fournisseur] }));
+    }
+
+    if (formData.value.fabricant) {
+      requests.push(loadSectionOptions('fabricants', { ids: [formData.value.fabricant] }));
+    }
+
+    if (Array.isArray(formData.value.consommables) && formData.value.consommables.length > 0) {
+      requests.push(loadSectionOptions('consumables', { ids: formData.value.consommables }));
+    }
+
+    if (requests.length > 0) {
+      await Promise.all(requests);
+    }
+  };
+
   const fetchData = async () => {
     loadingData.value = true;
     errorMessage.value = '';
 
     try {
-      const formDataApi = useApi(API_BASE_URL);
-      await formDataApi.get('equipements/form-data/');
-      const data = formDataApi.data.value;
+      // "minimal" evite de charger toutes les grosses listes au premier rendu ;
+      // les options volumineuses sont ensuite chargees section par section.
+      const data = await api.get('equipements/form-data/', { minimal: true });
 
       locations.value = data.locations;
-      equipmentModels.value = data.equipmentModels;
-      fournisseurs.value = data.fournisseurs;
-      fabricants.value = data.fabricants;
-      consumables.value = data.consumables;
       familles.value = data.familles;
       typesPM.value = data.typesPM.filter(item => item.libelle === 'Préventive conditionnelle' || item.libelle === 'Préventive systématique').map(item => ({
         id: item.id,
         libelle: item.libelle
       }));
       typesDocuments.value = data.typesDocuments;
+
+      await Promise.all([
+        loadSectionOptions('equipmentModels'),
+        loadSectionOptions('fournisseurs'),
+        loadSectionOptions('fabricants'),
+        loadSectionOptions('consumables'),
+      ]);
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
       errorMessage.value = 'Erreur lors du chargement des données. Veuillez réessayer.';
@@ -262,6 +392,7 @@ export function useEquipmentForm(isEditMode = false) {
 
       initialData.value = JSON.parse(JSON.stringify(equipmentData));
       formData.value = equipmentData;
+      await ensureSelectedOptions();
     } catch (e) {
       console.error("Erreur détaillée fetchEquipment:", e);
       console.error("Response:", e.response?.data);
@@ -380,6 +511,8 @@ export function useEquipmentForm(isEditMode = false) {
     if (editingCounterIndex.value >= 0) {
       // Mode édition
       formData.value.compteurs[editingCounterIndex.value] = { ...normalizedCounter };
+      // Le formulaire manipule une date lisible, mais l'API attend un ordinal
+      // pour les compteurs calendaires historiques.
       formData.value.compteurs[editingCounterIndex.value].type === 'Calendaire' ?
         formData.value.compteurs[editingCounterIndex.value].valeurCourante =
           dateToOrdinal(normalizedCounter.valeurCourante) :
@@ -479,6 +612,13 @@ export function useEquipmentForm(isEditMode = false) {
     formData.value.lieu = newLocation.id;
   };
 
+  onBeforeUnmount(() => {
+    for (const timeoutId of sectionSearchTimeouts.values()) {
+      clearTimeout(timeoutId);
+    }
+    sectionSearchTimeouts.clear();
+  });
+
   const detectChanges = () => {
     if (!initialData.value || !formData.value) return { hasChanges: false, changes: {} };
 
@@ -519,6 +659,8 @@ export function useEquipmentForm(isEditMode = false) {
     const currentConsos = JSON.stringify([...(formData.value.consommables || [])].sort());
     const initialConsos = JSON.stringify([...(initialData.value.consommables || [])].sort());
 
+    // L'ordre d'affichage n'a pas de sens metier ici ; on compare donc
+    // un ensemble trie pour ne remonter que les vrais changements.
     if (currentConsos !== initialConsos) {
       changes.consommables = {
         ancienne: initialData.value.consommables,
@@ -557,6 +699,10 @@ export function useEquipmentForm(isEditMode = false) {
     typesPM,
     typesDocuments,
     equipmentStatuses,
+    equipmentModelsLoading,
+    fournisseursLoading,
+    fabricantsLoading,
+    consumablesLoading,
 
     // Counter state
     currentCounter,
@@ -586,6 +732,8 @@ export function useEquipmentForm(isEditMode = false) {
     detectChanges,
     dateToOrdinal,
     ordinalToDate,
+    loadSectionOptions,
+    searchSectionOptions,
 
     // Counter methods
     getEmptyCounter,

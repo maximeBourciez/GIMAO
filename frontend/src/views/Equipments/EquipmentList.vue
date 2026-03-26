@@ -81,6 +81,10 @@
           :no-data-text="noDataText"
           :table-headers="computedTableHeaders"
           :filtered-items="filteredEquipments"
+          :server-pagination="true"
+          :reserve-fab-space="hasCreationPermission && showCreateButton"
+          :selected-location-ids="selectedLocationIds"
+          :selected-model-ids="selectedModelIds"
           @row-click="handleRowClick"
           @equipments-loaded="handleEquipmentsLoaded"
           @locations-loaded="handleLocationsLoaded"
@@ -89,20 +93,11 @@
         />
 
         <!-- Bouton flottant en bas à droite -->
-        <v-btn
-          v-if="hasCreationPermission && showCreateButton"
-          color="primary"
-          size="large"
-          icon
-          class="floating-add-button"
-          elevation="4"
+        <FloatingCreateButton
+          :visible="hasCreationPermission && showCreateButton"
+          :tooltip="createButtonText"
           @click="handleCreate"
-        >
-          <v-icon size="large">mdi-plus</v-icon>
-          <v-tooltip activator="parent" location="left">
-            {{ createButtonText }}
-          </v-tooltip>
-        </v-btn>
+        />
       </v-col>
     </v-row>
   </v-container>
@@ -113,6 +108,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { VTreeview } from "vuetify/labs/components";
+import FloatingCreateButton from "@/components/common/FloatingCreateButton.vue";
 import EquipmentListComponent from "@/components/EquipmentListComponent.vue";
 
 const store = useStore();
@@ -162,7 +158,7 @@ const locations = ref([]);
 const equipmentModels = ref([]);
 
 // Refs pour les filtres
-const selectedLocation = ref([]);
+const selectedLocationIds = ref([]);
 const selectedTypeEquipments = ref([]);
 const selectedTreeNodes = ref([]);
 const openNodes = ref(new Set());
@@ -217,33 +213,21 @@ const getAllDescendantIds = (item) => {
   return ids;
 };
 
-const getAllDescendantNames = (item) => {
-  let names = [item.nomLieu];
-  if (item.children && item.children.length > 0) {
-    item.children.forEach((child) => {
-      names = names.concat(getAllDescendantNames(child));
-    });
-  }
-  return names;
-};
-
 // Gestion de la sélection des lieux
 const onSelectLocation = (items) => {
   if (items.length > 0) {
-    const allLocationNames = [];
+    const allLocationIds = [];
 
     items.forEach((id) => {
       const selectedItem = findItem(locations.value, id);
       if (selectedItem) {
-        allLocationNames.push(...getAllDescendantNames(selectedItem));
+        allLocationIds.push(...getAllDescendantIds(selectedItem));
       }
     });
 
-    selectedLocation.value = [...new Set(allLocationNames)];
-    console.log("Selected Locations (with descendants):", selectedLocation.value);
+    selectedLocationIds.value = [...new Set(allLocationIds)];
   } else {
-    console.log("No Locations Selected");
-    selectedLocation.value = [];
+    selectedLocationIds.value = [];
   }
 };
 
@@ -266,7 +250,6 @@ const handleEquipmentTypeSelected = (model) => {
     } else {
       selectedTypeEquipments.value.push(model);
     }
-    console.log("Selected Equipment Types:", selectedTypeEquipments.value);
   }
 };
 
@@ -276,21 +259,14 @@ const isEquipmentTypeSelected = (model) => {
 
 // Filtrage des équipements
 const filteredEquipments = computed(() => {
-  if (!equipments.value) return [];
-
-  return equipments.value.filter((e) => {
-    const locationMatch =
-      selectedLocation.value.length === 0 ||
-      selectedLocation.value.includes("All") ||
-      selectedLocation.value.includes(e.lieu.nomLieu);
-
-    const typeMatch =
-      selectedTypeEquipments.value.length === 0 ||
-      selectedTypeEquipments.value.some((m) => m.nom === e.modele);
-
-    return locationMatch && typeMatch;
-  });
+  return equipments.value || [];
 });
+
+const selectedModelIds = computed(() =>
+  selectedTypeEquipments.value
+    .map((model) => model.id)
+    .filter((id) => Number.isInteger(id)),
+);
 
 // Headers responsifs
 const computedTableHeaders = computed(() => {
@@ -391,18 +367,6 @@ onBeforeUnmount(() => {
 
 .v-icon {
   transition: transform 0.3s ease;
-}
-
-.floating-add-button {
-  position: fixed !important;
-  bottom: 24px;
-  right: 24px;
-  z-index: 100;
-}
-
-.floating-add-button:hover {
-  transform: scale(1.1);
-  transition: transform 0.2s ease;
 }
 
 .v-list-item__prepend i,

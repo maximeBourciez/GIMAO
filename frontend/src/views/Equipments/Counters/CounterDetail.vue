@@ -302,6 +302,7 @@ import { useApi } from "@/composables/useApi";
 import { API_BASE_URL, MEDIA_BASE_URL, BASE_URL } from "@/utils/constants";
 import CounterInlineForm from "@/components/Forms/CounterInlineForm.vue";
 import MaintenancePlanInlineForm from "@/components/Forms/MaintenancePlanInlineForm.vue";
+import { fetchAllPages } from "@/utils/paginatedApi";
 
 const route = useRoute();
 const router = useRouter();
@@ -492,7 +493,7 @@ const fetchCounter = async () => {
 
 const fetchReferentials = async () => {
   const [cons, pmTypes, docTypes, pms] = await Promise.all([
-    api.get("consommables/"),
+    fetchAllPages(api, "consommables/"),
     api.get("types-plan-maintenance/"),
     api.get("types-documents/"),
     api.get("plans-maintenance/par_equipement/?equipement_id=" + counter.value.equipement_info?.id),

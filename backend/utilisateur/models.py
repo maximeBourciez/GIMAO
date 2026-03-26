@@ -27,6 +27,9 @@ class Role(models.Model):
         db_table = 'gimao_role'
         verbose_name = 'Rôle'
         verbose_name_plural = 'Rôles'
+        indexes = [
+            models.Index(fields=['nomRole'], name='role_nom_idx'),
+        ]
         # ordering = ['rang']
 
 
@@ -142,6 +145,10 @@ class Utilisateur(models.Model):
         verbose_name = 'Utilisateur'
         verbose_name_plural = 'Utilisateurs'
         ordering = ['nomFamille', 'prenom']
+        indexes = [
+            models.Index(fields=['nomFamille', 'prenom', 'id'], name='user_name_list_idx'),
+            models.Index(fields=['role', 'nomFamille', 'prenom', 'id'], name='user_role_list_idx'),
+        ]
 
 
 class Log(models.Model):
