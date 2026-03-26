@@ -1,6 +1,6 @@
+import hashlib
 import threading
 import uuid
-
 
 _thread_locals = threading.local()
 
@@ -10,15 +10,33 @@ def get_current_request():
 def get_current_user():
     request = get_current_request()
     if request:
-        return getattr(request, 'user', None)
-    return None
-
+        auth = request.headers.get("Authorization")
+        if auth and auth.startswith("Bearer "):
+            token = auth.split(" ")[1]
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            try:
+                from security.models import ApiToken
+                api_token = ApiToken.objects.get(token_hash=token_hash)
+                if api_token.is_valid():
+                    return api_token.user
+            except:
+                pass
+                
+        # Fallback pour le panel admin par exemple
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            if hasattr(request.user, 'utilisateur'):
+                return request.user.utilisateur
+            elif hasattr(request.user, 'username'):
+                from .models import Utilisateur
+                return Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
+                
+    return getattr(_thread_locals, 'app_user', None)
 
 def set_thread_user(user):
     _thread_locals.app_user = user
 
 def get_thread_user():
-    return getattr(_thread_locals, 'app_user', None)
+    return get_current_user()
 
 def get_thread_log_group():
     return getattr(_thread_locals, 'log_group_id', None)

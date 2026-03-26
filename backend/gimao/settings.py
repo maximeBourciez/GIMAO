@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'equipement',
     'maintenance',
     'tasks',
+    'exportData',
 ]
 
 MIDDLEWARE = [
@@ -45,6 +46,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'utilisateur.middleware.CurrentUserMiddleware',
     'gimao.middleware.ApiTokenMiddleware',  # Ajout du middleware personnalisé
 ]
 

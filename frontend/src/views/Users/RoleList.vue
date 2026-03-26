@@ -293,6 +293,7 @@ const PERM_TYPE = {
   transform: 'action', start: 'action', end: 'action', refuseClosure: 'action',
   acceptClosure: 'action', acceptConsumableRequest: 'action',
   disable: 'action', enable: 'action', dataManagement: 'affichage',
+  'eq:maintenance.calendar': 'affichage'
 }
 
 const PERM_HIERARCHY = {
@@ -325,8 +326,7 @@ const getPermType = (nomPermission) => {
 const permissionsByModule = computed(() => {
   const groups = {}
   for (const perm of allPermissions.value) {
-    if (perm.nomPermission === 'export:view') continue
-    if (perm.nomPermission.endsWith(':export')) continue
+    // if (perm.nomPermission.startsWith('dash:display')) continue
     const module = getModule(perm.nomPermission)
     if (!groups[module]) groups[module] = { affichage: [], action: [] }
     const type = getPermType(perm.nomPermission)
@@ -368,7 +368,8 @@ const MODULE_LABELS = {
   eqmod: 'Modèles d\'équipement',
   export: 'Export',
   menu: 'Menu',
-  dash: 'Dashboard'
+  dash: 'Dashboard',
+  export: 'Export'
 }
 
 const moduleLabel = (module) => MODULE_LABELS[module] || module

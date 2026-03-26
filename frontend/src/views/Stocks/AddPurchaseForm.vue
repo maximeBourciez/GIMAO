@@ -1,85 +1,93 @@
 <template>
   <v-dialog v-model="dialog" max-width="800px">
     <BaseForm
+      v-model="purchase"
       title="Ajouter un achat"
       :show-actions="false"
-      @cancel="close"
+      :custom-cancel-action="close"
+      :validation-schema="validationSchema"
     >
-        <template #default>
+        <template #default="{ validation }">
             <v-stepper v-model="step" :items="['Informations', 'Distribution']"  class="elevation-0" :hide-actions="true">
             <template v-slot:item.1>
                 <v-card flat>
-                <v-form ref="form" v-model="valid" @submit.prevent>
-                        <v-container>
+                <v-container>
+                            <v-alert
+                              v-if="stepOneError"
+                              type="error"
+                              density="compact"
+                              class="mb-4"
+                            >
+                              {{ stepOneError }}
+                            </v-alert>
                             <v-row>
                             <!-- Date -->
                             <v-col cols="12" sm="6">
-                                <v-text-field
+                      <FormField
                                 v-model="purchase.date_reference_prix"
                                 label="Date"
                                 type="date"
-                                required
-                                :rules="dateRules"
-                                ></v-text-field>
+                      field-name="date_reference_prix"
+                      :step="1"
+                      />
                             </v-col>
 
                             <!-- Quantité -->
                             <v-col cols="12" sm="6">
-                                <v-text-field
+                      <FormField
                                 v-model.number="purchase.quantite"
                                 label="Quantité Achetée"
                                 type="number"
                                 min="1"
-                                required
-                                :rules="quantityRules"
-                                ></v-text-field>
+                      field-name="quantite"
+                      :step="1"
+                      />
                             </v-col>
 
                             <!-- Prix Unitaire -->
                             <v-col cols="12" sm="6">
-                                <v-text-field
+                      <FormField
                                 v-model.number="purchase.prix_unitaire"
                                 label="Prix Unitaire (€)"
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                required
-                                :rules="priceRules"
-                                ></v-text-field>
+                      field-name="prix_unitaire"
+                      :step="1"
+                      />
                             </v-col>
 
                             <!-- Fournisseur -->
                             <v-col cols="12">
-                                <v-autocomplete
+                      <FormSelect
                                 v-model="purchase.fournisseur"
                                 :items="suppliers"
                                 item-title="nom"
                                 item-value="id"
                                 label="Fournisseur"
-                                required
-                                :rules="supplierRules"
+                      field-name="fournisseur"
+                      :step="1"
                                 :loading="loadingSuppliers"
                                 clearable
-                                ></v-autocomplete>
+                      />
                             </v-col>
 
                             <!-- Fabricant -->
                             <v-col cols="12">
-                                <v-autocomplete
+                      <FormSelect
                                 v-model="purchase.fabricant"
                                 :items="manufacturers"
                                 item-title="nom"
                                 item-value="id"
                                 label="Fabricant"
-                                required
-                                :rules="manufacturerRules"
+                      field-name="fabricant"
+                      :step="1"
                                 :loading="loadingManufacturers"
                                 clearable
-                                ></v-autocomplete>
+                      />
                             </v-col>
                             </v-row>
-                        </v-container>
-                </v-form>
+                </v-container>
                 </v-card>
             </template>
 
@@ -94,28 +102,47 @@
                             </strong>
                         </div>
                     
-                        <v-list density="compact">
-                            <v-list-item v-for="store in distributionList" :key="store.id">
-                                <template v-slot:prepend>
-                                    <v-checkbox v-model="store.selected" density="compact" hide-details></v-checkbox>
-                                </template>
-                                <v-list-item-title>{{ store.nom }}</v-list-item-title>
-                                <template v-slot:append>
-                                    <v-text-field
-                                        v-model.number="store.quantite"
-                                        type="number"
-                                        min="0"
-                                        density="compact"
-                                        hide-details
-                                        style="width: 100px"
-                                        :disabled="!store.selected"
-                                    ></v-text-field>
-                                </template>
-                            </v-list-item>
-                        </v-list>
-                        <v-alert v-if="remainingToDistribute !== 0" type="warning" density="compact" variant="tonal" class="mt-2">
+                        <v-alert
+                          v-if="distributionList.length === 0"
+                          type="info"
+                          density="compact"
+                          class="mt-4"
+                        >
+                          Aucun magasin disponible. Ajoutez un magasin pour finaliser la distribution.
+                        </v-alert>
+
+                        <v-table v-else density="compact">
+                          <thead>
+                            <tr>
+                              <th>Magasin</th>
+                              <th class="text-right" style="width: 180px;">Quantité</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="store in distributionList" :key="store.id">
+                              <td>{{ store.nom }}</td>
+                              <td>
+                                <FormField
+                                  v-model.number="store.quantite"
+                                  type="number"
+                                  min="0"
+                                  field-name="quantite_distribution"
+                                  hide-details
+                                  density="compact"
+                                />
+                              </td>
+                            </tr>
+                          </tbody>
+                        </v-table>
+                        <v-alert v-if="distributionList.length > 0 && remainingToDistribute !== 0" type="warning" density="compact" class="mt-4">
                             Vous devez distribuer exactement la quantité achetée.
                         </v-alert>
+
+                        <div class="d-flex justify-end mt-3">
+                          <v-btn color="primary" variant="outlined" size="small" @click="openMagasinForm">
+                            Ajouter un magasin
+                          </v-btn>
+                        </div>
                     </v-card-text>
                 </v-card>
             </template>
@@ -128,8 +155,7 @@
                 <v-btn 
                     v-if="step < 2" 
                     color="primary" 
-                    @click="nextStep" 
-                    :disabled="!valid"
+                    @click="nextStep(validation)" 
                     class="ml-2"
                 >
                     Suivant
@@ -147,14 +173,26 @@
             </div>
         </template>
     </BaseForm>
+
+    <v-dialog v-model="showMagasinFormDialog" max-width="500px">
+      <v-card class="rounded-lg">
+        <MagasinForm
+          :magasin="magasinToEdit"
+          @created="handleMagasinCreated"
+          @updated="handleMagasinCreated"
+          @close="showMagasinFormDialog = false"
+        />
+      </v-card>
+    </v-dialog>
   </v-dialog>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useApi } from '@/composables/useApi';
 import { API_BASE_URL } from '@/utils/constants';
-import BaseForm from '@/components/common/BaseForm.vue';
+import { BaseForm, FormField, FormSelect } from '@/components/common';
+import MagasinForm from '@/components/Forms/MagasinForm.vue';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -172,8 +210,10 @@ const dialog = computed({
 });
 
 const step = ref(1);
-const valid = ref(false);
 const loading = ref(false);
+const stepOneError = ref('');
+const showMagasinFormDialog = ref(false);
+const magasinToEdit = ref(null);
 // ... (data refs same as before)
 // Data for selects
 const suppliers = ref([]);
@@ -191,22 +231,18 @@ const purchase = ref({
 });
 const distributionList = ref([]);
 
-// Rules
-const dateRules = [v => !!v || 'La date est requise'];
-const quantityRules = [
-  v => !!v || 'La quantité est requise',
-  v => v > 0 || 'La quantité doit être positive'
-];
-const priceRules = [
-  v => v !== null && v !== '' || 'Le prix est requis',
-  v => v >= 0 || 'Le prix doit être positif'
-];
-const supplierRules = [v => !!v || 'Le fournisseur est requis'];
-const manufacturerRules = [v => !!v || 'Le fabricant est requis'];
+const validationSchema = {
+  step1: {
+    date_reference_prix: ['required'],
+    quantite: ['required', 'numeric', 'positive'],
+    prix_unitaire: ['required', 'numeric', { name: 'min', params: [0] }],
+    fournisseur: ['required'],
+    fabricant: ['required']
+  }
+};
 
 const totalDistributed = computed(() => {
     return distributionList.value
-        .filter(s => s.selected)
         .reduce((sum, s) => sum + (parseInt(s.quantite) || 0), 0);
 });
 
@@ -244,8 +280,7 @@ const fetchStores = async () => {
         distributionList.value = stores.value.map(s => ({
             id: s.id,
             nom: s.nom,
-            quantite: 0,
-            selected: false
+          quantite: 0
         }));
     } catch (e) {
         console.error('Error fetching stores', e);
@@ -258,15 +293,32 @@ onMounted(() => {
   fetchStores();
 });
 
-const nextStep = () => {
-    if (step.value === 1 && valid.value) {
-        step.value = 2;
-    }
+const nextStep = (validation) => {
+  if (step.value !== 1) return;
+
+  if (validation?.validateStep(1, purchase.value)) {
+    stepOneError.value = '';
+    step.value = 2;
+    return;
+  }
+
+  stepOneError.value = 'Veuillez corriger les champs obligatoires avant de continuer.';
+};
+
+const openMagasinForm = () => {
+  magasinToEdit.value = null;
+  showMagasinFormDialog.value = true;
+};
+
+const handleMagasinCreated = async () => {
+  showMagasinFormDialog.value = false;
+  await fetchStores();
 };
 
 const close = () => {
   dialog.value = false;
   step.value = 1;
+  stepOneError.value = '';
 };
 
 const save = async () => {
@@ -281,7 +333,7 @@ const save = async () => {
       prix_unitaire: purchase.value.prix_unitaire,
       date_reference_prix: purchase.value.date_reference_prix,
       distribution: distributionList.value
-        .filter(s => s.selected && s.quantite > 0)
+        .filter(s => s.quantite > 0)
         .map(s => ({ magasin: s.id, quantite: s.quantite }))
     };
     await api.post('fournitures/', payload);
@@ -297,7 +349,6 @@ const save = async () => {
     };
     distributionList.value.forEach(s => {
         s.quantite = 0;
-        s.selected = false;
     });
 
   } catch (error) {
