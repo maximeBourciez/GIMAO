@@ -522,15 +522,15 @@ router.beforeEach((to, from, next) => {
     return
   } 
 
+  if (!isAuthenticated) {
+    next('/login')
+    return
+  }
+
   // Vérification validité auth
   if (!checkAuthValidity(store)) {
     store.commit('logout')
     next({ path: '/login', state: { message: 'Votre session a expiré. Veuillez vous reconnecter.' } })   
-    return
-  }
-
-  if (!isAuthenticated) {
-    next('/login')
     return
   }
 
