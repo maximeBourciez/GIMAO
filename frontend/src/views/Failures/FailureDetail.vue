@@ -168,9 +168,18 @@
 
       <v-card-text class="pt-4">
         <p class="mb-4">Êtes-vous sûr de vouloir transformer cette demande d'intervention en bon de travail ?<br/><br/>Cette action changera le statut de la demande.</p>
+
+        <FormTextarea
+          v-model="transformFormData.diagnostic"
+          field-name="diagnostic"
+          label="Diagnostic"
+          placeholder="Saisir un diagnostic"
+          rows="3"
+          class="mb-4"
+        />
         
         <FormSelect
-          v-model="statutEquipementSelectionne"
+          v-model="transformFormData.statut_equipement"
           field-name="statut_equipement"
           label="Nouveau statut de l'équipement"
           :items="statutOptions"
@@ -185,7 +194,7 @@
         <v-btn color="grey" variant="text" @click="showCreateInterventionModal = false">
           Annuler
         </v-btn>
-        <v-btn color="primary" @click="handleCreateIntervention()" :loading="createInterventionLoading">
+        <v-btn color="primary" @click="handleCreateIntervention()" :loading="createInterventionLoading" :disabled="!canSubmitCreateIntervention">
           <v-icon left class="mr-1">mdi-check</v-icon>
           Transformer
         </v-btn>
@@ -242,7 +251,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
-import { FormSelect } from '@/components/common';
+import { FormSelect, FormTextarea } from '@/components/common';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import DocumentList from '@/components/DocumentList.vue';
 import { useApi } from '@/composables/useApi';
@@ -278,6 +287,11 @@ const rejectLoading = ref(false);
 const showCreateInterventionModal = ref(false);
 const createInterventionLoading = ref(false);
 
+const transformFormData = ref({
+  diagnostic: '',
+  statut_equipement: null
+});
+
 const showArchiveDialog = ref(false);
 const archiving = ref(false);
 
@@ -285,7 +299,12 @@ const statutOptions = Object.entries(EQUIPMENT_STATUS).map(([key, value]) => ({
     title: value,
     value: key
 }));
-const statutEquipementSelectionne = ref(null);
+
+const canSubmitCreateIntervention = computed(() => {
+  const diagnostic = (transformFormData.value.diagnostic || '').trim();
+  const statut = transformFormData.value.statut_equipement;
+  return diagnostic.length >= 2 && diagnostic.length <= 2000 && !!statut;
+});
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Non spécifié';
@@ -416,7 +435,8 @@ const handleCreateIntervention = async () => {
     const response =await patchApi.post(`demandes-intervention/${route.params.id}/transform_to_bon_travail/`, 
       {
         responsable: store.getters.currentUser.id,
-        statut_equipement: statutEquipementSelectionne.value
+        statut_equipement: transformFormData.value.statut_equipement,
+        diagnostic: transformFormData.value.diagnostic
       }
     );
     successMessage.value = 'Demande d\'intervention transformée avec succès';
@@ -440,7 +460,10 @@ const openRejectModal = () => {
   showRejectModal.value = true;
 };
 const openCreateInterventionModal = () => {
-  statutEquipementSelectionne.value = defaillance.value?.statut_suppose || defaillance.value?.equipement?.dernier_statut?.statut;
+  transformFormData.value = {
+    diagnostic: '',
+    statut_equipement: defaillance.value?.statut_suppose || defaillance.value?.equipement?.dernier_statut?.statut || null
+  };
   showCreateInterventionModal.value = true;
 };
 

@@ -271,12 +271,14 @@ class DemandeInterventionViewSet(PaginatedActionMixin, ArchivableViewSetMixin, G
         """Transforme une demande d'intervention en bon de travail."""
         demande = self.get_object()
         print(demande, request.data.get('responsable'))
+        diagnostic = (request.data.get('diagnostic') or '').strip()
 
         # Création du bon de travail
         bon_travail = BonTravail.objects.create(
             demande_intervention=demande,
             nom=demande.nom,
             type="CORRECTIF",
+            diagnostic=diagnostic,
             commentaire=demande.commentaire,
             responsable_id=request.data.get('responsable'),
             statut='EN_ATTENTE'

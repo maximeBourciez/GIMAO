@@ -130,7 +130,7 @@ const tableHeaders = computed(() => {
     return TABLE_HEADERS.FAILURES_SUPER_LIGHT;
   }
 
-  if (props.templateHeader) {
+  if (props.templateHeader || containerWidth.value < 1000) {
     return TABLE_HEADERS.FAILURES_LIGHT;
   }
 
