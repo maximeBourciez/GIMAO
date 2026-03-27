@@ -75,7 +75,7 @@
 
           <!-- Recherche -->
           <v-text-field v-model="searchPerm" placeholder="Rechercher une permission..." prepend-inner-icon="mdi-magnify"
-            variant="outlined" density="compact" clearable class="mb-4" />
+            variant="outlined" density="compact" clearable class="mb-4" @keydown.enter.prevent />
 
           <!-- Permissions groupées par module -->
           <div v-for="(types, module) in filteredPermissionsByModule" :key="module" class="mb-2">

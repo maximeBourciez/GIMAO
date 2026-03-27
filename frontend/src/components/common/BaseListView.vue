@@ -17,7 +17,7 @@
           <!-- Barre de recherche -->
           <v-text-field v-if="showSearch" v-model="searchQuery" :label="searchLabel" :placeholder="searchPlaceholder"
             prepend-inner-icon="mdi-magnify" clearable variant="outlined" density="compact" hide-details
-            style="max-width: 350px;" @input="handleSearch" />
+            style="max-width: 350px;" @keydown.enter.prevent />
         </div>
       </v-col>
 
@@ -76,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, useSlots } from 'vue';
+import { computed, ref } from 'vue';
 import FormAlert from './FormAlert.vue';
 
 const props = defineProps({
@@ -138,6 +138,10 @@ const props = defineProps({
   searchPlaceholder: {
     type: String,
     default: 'Tapez pour rechercher...'
+  },
+  searchValue: {
+    type: String,
+    default: undefined
   },
   searchCols: {
     type: [Number, String],
@@ -213,28 +217,43 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['create', 'row-click', 'search', 'clear-error']);
+const emit = defineEmits(['create', 'row-click', 'search', 'clear-error', 'update:searchValue']);
 
-const slots = useSlots();
-
-const searchQuery = ref('');
+const localSearchQuery = ref('');
 
 const computedItems = computed(() => props.items || []);
 
-const handleSearch = (value) => {
-  emit('search', value);
+const normalizeSearchValue = (value) => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (value && typeof value === 'object' && typeof value.target?.value === 'string') {
+    return value.target.value;
+  }
+
+  return '';
 };
+
+const isSearchControlled = computed(() => props.searchValue !== undefined);
+
+const searchQuery = computed({
+  get: () => (isSearchControlled.value ? props.searchValue ?? '' : localSearchQuery.value),
+  set: (value) => {
+    const normalizedValue = normalizeSearchValue(value);
+
+    if (!isSearchControlled.value) {
+      localSearchQuery.value = normalizedValue;
+    }
+
+    emit('update:searchValue', normalizedValue);
+    emit('search', normalizedValue);
+  }
+});
 
 const handleRowClick = (event, { item }) => {
   emit('row-click', item);
 };
-
-// Watcher pour réinitialiser la recherche si les items changent
-watch(() => props.items, () => {
-  if (!props.internalSearch) {
-    searchQuery.value = '';
-  }
-});
 </script>
 
 <style scoped>
