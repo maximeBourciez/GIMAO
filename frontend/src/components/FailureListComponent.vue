@@ -10,6 +10,7 @@
     :no-data-icon="noDataIcon"
     :show-search="showSearch"
     :show-create-button="false"
+    :search-value="searchQuery"
     :items-per-page="-1"
     :hide-default-footer="true"
     :internal-search="false"
@@ -113,6 +114,7 @@ const {
   pageSize,
   totalItems,
   totalPages,
+  searchQuery,
   loading,
   errorMessage: paginationErrorMessage,
   fetchPage,

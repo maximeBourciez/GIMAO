@@ -10,6 +10,7 @@
     :error-message="resolvedErrorMessage"
     :show-search="showSearch"
     :show-create-button="false"
+    :search-value="usesLocalItems ? undefined : searchQuery"
     :create-button-text="createButtonText"
     :internal-search="usesLocalItems ? internalSearch : false"
     :items-per-page="usesLocalItems ? 10 : -1"
@@ -178,6 +179,7 @@ const {
   pageSize,
   totalItems,
   totalPages,
+  searchQuery,
   loading,
   errorMessage: paginationErrorMessage,
   fetchPage,
