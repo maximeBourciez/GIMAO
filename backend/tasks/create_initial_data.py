@@ -59,8 +59,8 @@ def create_initial_data():
         module, _ = Module.objects.get_or_create(code=code, defaults={'nom': nom})
         modules[code] = module
 
-    # Création des permissions (premier passage : sans parent)
-    for perm_name, (description, perm_type, _parent) in perms_data.perms.items():
+    # Création et mise à jour des permissions
+    for perm_name, (description, perm_type) in perms_data.perms.items():
         module_code = perm_name.split(':')[0]
         module = modules.get(module_code)
 
@@ -78,15 +78,6 @@ def create_initial_data():
             changed = True
         if changed:
             perm.save()
-
-    # Deuxième passage : assigner les parents
-    for perm_name, (_description, _perm_type, parent_name) in perms_data.perms.items():
-        if parent_name:
-            perm = Permission.objects.get(nomPermission=perm_name)
-            parent = Permission.objects.get(nomPermission=parent_name)
-            if perm.parent != parent:
-                perm.parent = parent
-                perm.save()
 
     # Assignation des permissions aux rôles
     for role_name, perm_list in perms_data.perms_map.items():

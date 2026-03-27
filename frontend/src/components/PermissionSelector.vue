@@ -33,59 +33,31 @@
           <v-expansion-panel-text>
             <div v-if="types.affichage.length > 0" class="mb-3">
               <div class="text-caption font-weight-bold text-medium-emphasis mb-1">AFFICHAGE</div>
-              <template v-for="perm in types.affichage" :key="perm.id">
-                <div v-if="perm._isChild" class="d-flex align-center child-perm">
-                  <span class="child-connector">└</span>
-                  <v-checkbox
-                    :model-value="modelValue.includes(perm.id)"
-                    :label="perm.description"
-                    density="compact"
-                    hide-details
-                    color="blue"
-                    :disabled="isPermDisabledByHierarchy(perm.id)"
-                    @update:model-value="togglePermission(perm.id, $event)"
-                  />
-                </div>
-                <div v-else class="d-flex align-center">
-                  <v-checkbox
-                    :model-value="modelValue.includes(perm.id)"
-                    :label="perm.description"
-                    density="compact"
-                    hide-details
-                    color="blue"
-                    :disabled="isPermDisabledByHierarchy(perm.id)"
-                    @update:model-value="togglePermission(perm.id, $event)"
-                  />
-                </div>
-              </template>
+              <div v-for="perm in types.affichage" :key="perm.id" class="d-flex align-center">
+                <v-checkbox
+                  :model-value="modelValue.includes(perm.id)"
+                  :label="perm.description"
+                  density="compact"
+                  hide-details
+                  color="blue"
+                  :disabled="isPermDisabledByHierarchy(perm.id)"
+                  @update:model-value="togglePermission(perm.id, $event)"
+                />
+              </div>
             </div>
             <div v-if="types.action.length > 0">
               <div class="text-caption font-weight-bold text-medium-emphasis mb-1">ACTIONS</div>
-              <template v-for="perm in types.action" :key="perm.id">
-                <div v-if="perm._isChild" class="d-flex align-center child-perm">
-                  <span class="child-connector">└</span>
-                  <v-checkbox
-                    :model-value="modelValue.includes(perm.id)"
-                    :label="perm.description"
-                    density="compact"
-                    hide-details
-                    color="orange"
-                    :disabled="isPermDisabledByHierarchy(perm.id)"
-                    @update:model-value="togglePermission(perm.id, $event)"
-                  />
-                </div>
-                <div v-else class="d-flex align-center">
-                  <v-checkbox
-                    :model-value="modelValue.includes(perm.id)"
-                    :label="perm.description"
-                    density="compact"
-                    hide-details
-                    color="orange"
-                    :disabled="isPermDisabledByHierarchy(perm.id)"
-                    @update:model-value="togglePermission(perm.id, $event)"
-                  />
-                </div>
-              </template>
+              <div v-for="perm in types.action" :key="perm.id" class="d-flex align-center">
+                <v-checkbox
+                  :model-value="modelValue.includes(perm.id)"
+                  :label="perm.description"
+                  density="compact"
+                  hide-details
+                  color="orange"
+                  :disabled="isPermDisabledByHierarchy(perm.id)"
+                  @update:model-value="togglePermission(perm.id, $event)"
+                />
+              </div>
             </div>
           </v-expansion-panel-text>
         </v-expansion-panel>
@@ -133,19 +105,3 @@ const resetSearch = () => { searchPerm.value = '' }
 defineExpose({ applyHierarchy, resetSearch })
 </script>
 
-<style scoped>
-.child-perm {
-  margin-left: 20px;
-  padding-left: 8px;
-  border-left: 2px solid rgba(0, 0, 0, 0.1);
-}
-
-.child-connector {
-  font-size: 12px;
-  line-height: 1;
-  margin-right: 4px;
-  margin-top: 2px;
-  color: rgba(0, 0, 0, 0.35);
-  flex-shrink: 0;
-}
-</style>
