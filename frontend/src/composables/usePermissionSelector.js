@@ -64,14 +64,10 @@ export function usePermissionSelector(allPermissions, selectedIds, searchPerm) {
   }
 
   /**
-   * Une permission est grisée si :
-   * 1. Un descendant sélectionné en dépend (ancêtre verrouillé)
-   * 2. Un autre membre de son groupe exclusif visuel est sélectionné
+   * Une permission est grisée si un autre membre de son groupe exclusif visuel est sélectionné.
+   * Les parents NE sont PAS verrouillés : les décocher décoche automatiquement leurs enfants.
    */
   const isPermDisabledByHierarchy = (permId) => {
-    if (allPermissions.value.some(p =>
-      selectedIds.value.includes(p.id) && p.id !== permId && getAncestorIds(p.id).includes(permId)
-    )) return true
     return getExclusiveGroupIds(permId).some(id => selectedIds.value.includes(id))
   }
 
