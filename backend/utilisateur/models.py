@@ -243,6 +243,15 @@ class Permission(models.Model):
         help_text="Type de permission : affichage (lecture) ou action (écriture)"
     )
 
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='enfants',
+        help_text="Permission prérequise : cocher cette permission coche aussi son parent"
+    )
+
     module = models.ForeignKey(
         'Module',
         on_delete=models.PROTECT,
