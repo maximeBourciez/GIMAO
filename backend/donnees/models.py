@@ -18,12 +18,15 @@ class Lieu(models.Model):
     y = models.FloatField(null=True, blank=True, help_text="Coordonnée Y du lieu par rapport à son lieu parent.")
 
     def __str__(self):
-        return self.nomLieu
+        return f"{self.id} - {self.nomLieu}"
 
     class Meta:
         db_table = 'gimao_lieu'
         verbose_name = 'Lieu'
         verbose_name_plural = 'Lieux'
+        indexes = [
+            models.Index(fields=['nomLieu'], name='lieu_nom_idx'),
+        ]
         
 
 
@@ -31,12 +34,15 @@ class TypeDocument(models.Model):
     nomTypeDocument = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.nomTypeDocument
+        return f"{self.id} - {self.nomTypeDocument}"
 
     class Meta:
         db_table = 'gimao_type_document'
         verbose_name = 'Type de document'
         verbose_name_plural = 'Types de document'
+        indexes = [
+            models.Index(fields=['nomTypeDocument'], name='typedoc_nom_idx'),
+        ]
 
 class Document(models.Model):
     nomDocument = models.CharField(max_length=100, help_text="Nom du document.")
@@ -48,7 +54,7 @@ class Document(models.Model):
     )
 
     def __str__(self):
-        return self.nomDocument
+        return f"{self.id} - {self.nomDocument}"
 
     class Meta:
         db_table = 'gimao_document'
@@ -67,12 +73,15 @@ class Fabricant(models.Model):
     adresse = models.ForeignKey('Adresse', on_delete=models.CASCADE, null=True, blank=True, help_text="Adresse du fabricant")
 
     def __str__(self):
-        return self.nom
+        return f"{self.id} - {self.nom}"
     
     class Meta:
         db_table = 'gimao_fabricant'
         verbose_name = 'Fabricant'
         verbose_name_plural = 'Fabricants'
+        indexes = [
+            models.Index(fields=['nom'], name='fabricant_nom_idx'),
+        ]
         
 
 
@@ -87,12 +96,15 @@ class Fournisseur(models.Model):
     adresse = models.ForeignKey('Adresse', on_delete=models.CASCADE, null=True, blank=True, help_text="Adresse du fournisseur")
 
     def __str__(self):
-        return self.nom
+        return f"{self.id} - {self.nom}"
     
     class Meta:
         db_table = 'gimao_fournisseur'
         verbose_name = 'Fournisseur'
         verbose_name_plural = 'Fournisseurs'   
+        indexes = [
+            models.Index(fields=['nom'], name='fournisseur_nom_idx'),
+        ]
 
 
 class Adresse(models.Model):
@@ -107,7 +119,19 @@ class Adresse(models.Model):
     complement = models.CharField(max_length=255, blank=True, null=True, help_text="Complément d'adresse optionnel")
     
     def __str__(self):
-        return f"{self.rue}, {self.ville}, {self.code_postal}, {self.pays}"
+        parts = [str(self.id)]
+        
+        # Adresse (numéro + rue)
+        rue_complete = f"{self.numero} {self.rue}".strip()
+        if rue_complete:
+            parts.append(rue_complete)
+            
+        # Localisation
+        loc_parts = [p for p in [self.ville, self.code_postal, self.pays] if p]
+        if loc_parts:
+            parts.append(", ".join(loc_parts))
+            
+        return " - ".join(parts)
     
     class Meta:
         db_table = 'gimao_adresse'

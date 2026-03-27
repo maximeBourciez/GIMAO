@@ -3,9 +3,20 @@
     <div class="mb-4">
       <h1 class="text-h4 text-primary">BT en attente de mise de côté</h1>
       <p class="text-subtitle-1 stock-summary mb-0">
-        {{ pendingBons.length }} BT en attente, {{ reservedBons.length }} BT mis de côté, {{ recoveredBons.length }} BT récupérés
+        {{ pendingCount }} BT en attente, {{ reservedCount }} BT mis de côté, {{ recoveredCount }} BT récupérés
       </p>
     </div>
+
+    <v-text-field
+      v-model="searchInput"
+      placeholder="Rechercher un bon ou un consommable..."
+      prepend-inner-icon="mdi-magnify"
+      variant="outlined"
+      density="compact"
+      hide-details
+      clearable
+      class="mb-4"
+    />
 
     <v-card-text class="pt-0 px-0 pb-0">
       <!-- Loading -->
@@ -14,7 +25,7 @@
       </div>
 
       <!-- Liste vide -->
-      <v-alert v-else-if="pendingBons.length === 0 && reservedBons.length === 0 && recoveredBons.length === 0"
+      <v-alert v-else-if="pendingCount === 0 && reservedCount === 0 && recoveredCount === 0"
         type="success" variant="tonal" icon="mdi-check-circle">
         Aucun bon de travail en attente de mise de côté
       </v-alert>
@@ -352,6 +363,17 @@
             </div>
           </v-expand-transition>
         </div>
+
+        <ServerPaginationControls
+          :page="currentPage"
+          :page-size="pageSize"
+          :page-count="totalPages"
+          :total-items="totalItems"
+          item-label-singular="BT"
+          item-label-plural="BT"
+          @update:page="currentPage = $event"
+          @update:page-size="pageSize = $event"
+        />
       </div>
     </v-card-text>
   </v-card>
@@ -527,8 +549,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import ServerPaginationControls from '@/components/common/ServerPaginationControls.vue';
 import { useApi } from '@/composables/useApi';
+import { usePaginatedList } from '@/composables/usePaginatedList';
 import { API_BASE_URL } from '@/utils/constants';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 
@@ -540,10 +564,26 @@ const props = defineProps({
 });
 
 const api = useApi(API_BASE_URL);
+const listApi = useApi(API_BASE_URL);
 const emit = defineEmits(['count-updated', 'counts-updated', 'stock-updated']);
 
-const bonsTravail = ref([]);
-const loading = ref(false);
+const {
+  items: bonsTravail,
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  searchQuery,
+  loading,
+  extra,
+  fetchPage: fetchBonsTravail,
+  handleSearch,
+} = usePaginatedList({
+  api: listApi,
+  endpoint: 'bons-travail/list_stock/',
+  initialPageSize: 10,
+});
+
 const distributingId = ref(null);
 const distributingAll = ref(null);
 const confirmDialog = ref(false);
@@ -573,16 +613,32 @@ const collapsedSections = ref({
   recovered: false
 });
 
+const searchInput = computed({
+  get: () => searchQuery.value,
+  set: (value) => handleSearch(value),
+});
+
+const summary = computed(() => extra.value?.summary || {});
+const pendingCount = computed(() => Number(summary.value.pending_count || 0));
+const reservedCount = computed(() => Number(summary.value.reserved_count || 0));
+const recoveredCount = computed(() => Number(summary.value.recovered_count || 0));
+
 const consommableStockMap = computed(() => {
-  return props.consommables.reduce((map, consommable) => {
-    map.set(Number(consommable.id), Number(consommable.quantite_totale ?? consommable.quantite ?? 0));
+  const consumables = bonsTravail.value.flatMap((bt) => bt.consommables || []);
+  return consumables.reduce((map, consommable) => {
+    map.set(Number(consommable.consommable), Number(consommable.stock_total ?? 0));
     return map;
   }, new Map());
 });
 
 const consommableDetailsMap = computed(() => {
-  return props.consommables.reduce((map, consommable) => {
-    map.set(Number(consommable.id), consommable);
+  const consumables = bonsTravail.value.flatMap((bt) => bt.consommables || []);
+  return consumables.reduce((map, consommable) => {
+    map.set(Number(consommable.consommable), {
+      id: consommable.consommable,
+      stocks: consommable.stocks || [],
+      quantite_totale: consommable.stock_total ?? 0,
+    });
     return map;
   }, new Map());
 });
@@ -892,10 +948,10 @@ const recoveredBons = computed(() => {
   return bonsTravail.value.filter(bt => bt.pieces_recuperees === true);
 });
 
-// Émettre le count quand il change
-watch([pendingBons, reservedBons, recoveredBons], ([pending, reserved, recovered]) => {
-  emit('count-updated', pending.length);
-  emit('counts-updated', { pending: pending.length, reserved: reserved.length, recovered: recovered.length });
+// Émettre les compteurs globaux retournés par l'API paginée
+watch([pendingCount, reservedCount, recoveredCount], ([pending, reserved, recovered]) => {
+  emit('count-updated', pending);
+  emit('counts-updated', { pending, reserved, recovered });
 }, { immediate: true });
 
 // Récupérer les consommables non distribués d'un BT
@@ -1178,19 +1234,6 @@ const buildBulkReserveMessage = ({ insuffisants, requiresMagasinSelection }) => 
     return 'Certains consommables nécessitent un choix de magasin. Utilisez la mise de côté individuelle.';
   }
   return 'Impossible de mettre de côté tout le BT.';
-};
-
-// Charger les BT
-const fetchBonsTravail = async () => {
-  loading.value = true;
-  try {
-    const response = await api.get('bons-travail/list_stock/');
-    bonsTravail.value = Array.isArray(response) ? response : [response];
-  } catch (error) {
-    console.error('Erreur chargement BT:', error);
-  } finally {
-    loading.value = false;
-  }
 };
 
 // Distribuer un consommable

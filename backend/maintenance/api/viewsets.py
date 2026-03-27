@@ -4,16 +4,17 @@ import os
 import traceback
 from urllib.parse import parse_qs
 from django.http import JsonResponse
+from donnees.models import Document, TypeDocument
+from django.db.models import Count, F, Prefetch, Q
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
-from django.db.models import Prefetch, Q
 from django.utils import timezone
 from django.db import transaction
 import json
-from donnees.models import Document, TypeDocument
 from equipement.models import Equipement, StatutEquipement
 from utilisateur.models import Utilisateur, Log
 from stock.models import Consommable, Stocker
@@ -47,11 +48,12 @@ from maintenance.api.serializers import (
 )
 from gimao.viewsets import GimaoModelViewSet
 from gimao.mixins import ArchivableViewSetMixin
+from gimao.pagination import PaginatedActionMixin, StandardPagination
 
 logger = logging.getLogger(__name__)
 
 
-class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
+class DemandeInterventionViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModelViewSet):
     """
     ViewSet pour gérer les demandes d'intervention.
     
@@ -66,11 +68,60 @@ class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     - GET /demandes-intervention/par_equipement/?equipement_id=X : Filtre par équipement
     - POST /demandes-intervention/{id}/traiter/ : Marque comme traitée
     """
-    queryset = DemandeIntervention.objects.select_related(
-        'utilisateur', 'equipement'
-    ).prefetch_related('bons_travail')
+    queryset = DemandeIntervention.objects.all()
     serializer_class = DemandeInterventionSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    pagination_class = StandardPagination
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = [
+        'nom',
+        'commentaire',
+        'utilisateur__nomUtilisateur',
+        'utilisateur__prenom',
+        'utilisateur__nomFamille',
+        'equipement__designation',
+        'equipement__reference',
+    ]
+    ordering_fields = ['id', 'nom', 'date_creation', 'date_changementStatut', 'statut']
+    ordering = ['-date_creation', '-id']
+
+    def _get_list_queryset(self):
+        return DemandeIntervention.objects.select_related(
+            'utilisateur',
+            'equipement',
+            'equipement__lieu',
+        ).prefetch_related(
+            Prefetch(
+                'equipement__statuts',
+                queryset=StatutEquipement.objects.only(
+                    'id',
+                    'statut',
+                    'dateChangement',
+                    'equipement_id',
+                ).order_by('-dateChangement'),
+                to_attr='prefetched_statuts',
+            ),
+        )
+
+    def _get_detail_queryset(self):
+        return self._get_list_queryset().prefetch_related(
+            Prefetch(
+                'documents',
+                queryset=Document.objects.select_related('typeDocument').only(
+                    'id',
+                    'nomDocument',
+                    'cheminAcces',
+                    'typeDocument_id',
+                    'typeDocument__id',
+                    'typeDocument__nomTypeDocument',
+                ),
+            ),
+        )
+
+    def get_queryset(self):
+        if self.action == 'retrieve':
+            return self._get_detail_queryset()
+        return self._get_list_queryset()
 
     def _parse_json_field(self, data, key, default):
         raw = data.get(key, default)
@@ -92,14 +143,14 @@ class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     @action(detail=False, methods=['get'])
     def en_attente(self, request):
         """Retourne les demandes d'intervention en attente de traitement"""
-        demandes = self.queryset.filter(date_traitement__isnull=True)
+        demandes = self.get_queryset().filter(date_traitement__isnull=True)
         serializer = self.get_serializer(demandes, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def traitees(self, request):
         """Retourne les demandes d'intervention traitées"""
-        demandes = self.queryset.filter(date_traitement__isnull=False)
+        demandes = self.get_queryset().filter(date_traitement__isnull=False)
         serializer = self.get_serializer(demandes, many=True)
         return Response(serializer.data)
 
@@ -116,9 +167,8 @@ class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        demandes = self.queryset.filter(equipement_id=equipement_id)
-        serializer = self.get_serializer(demandes, many=True)
-        return Response(serializer.data)
+        demandes = self.filter_queryset(self.get_queryset().filter(equipement_id=equipement_id))
+        return self.get_paginated_response_for_queryset(demandes)
 
     @action(detail=False, methods=['get'])
     def par_utilisateur(self, request):
@@ -133,9 +183,8 @@ class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        demandes = self.queryset.filter(utilisateur_id=utilisateur_id)
-        serializer = self.get_serializer(demandes, many=True)
-        return Response(serializer.data)
+        demandes = self.filter_queryset(self.get_queryset().filter(utilisateur_id=utilisateur_id))
+        return self.get_paginated_response_for_queryset(demandes)
 
     @action(detail=True, methods=['post'])
     def traiter(self, request, pk=None):
@@ -222,12 +271,14 @@ class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         """Transforme une demande d'intervention en bon de travail."""
         demande = self.get_object()
         print(demande, request.data.get('responsable'))
+        diagnostic = (request.data.get('diagnostic') or '').strip()
 
         # Création du bon de travail
         bon_travail = BonTravail.objects.create(
             demande_intervention=demande,
             nom=demande.nom,
             type="CORRECTIF",
+            diagnostic=diagnostic,
             commentaire=demande.commentaire,
             responsable_id=request.data.get('responsable'),
             statut='EN_ATTENTE'
@@ -515,7 +566,7 @@ class DemandeInterventionViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             raise
 
 
-class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
+class BonTravailViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModelViewSet):
     """
     ViewSet pour gérer les bons de travail.
     
@@ -528,13 +579,145 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     - PATCH /bons-travail/{id}/updateStatus/ : Change le statut
     - PATCH /bons-travail/{id}/delink_document/ : Délie un document du bon
     """
-    queryset = BonTravail.objects.select_related(
-        'demande_intervention',
-        'demande_intervention__equipement',
-        'responsable'
-    ).prefetch_related('utilisateur_assigne', 'documents', 'demande_intervention__documents')
+    queryset = BonTravail.objects.all()
     serializer_class = BonTravailSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    pagination_class = StandardPagination
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = [
+        'nom',
+        'diagnostic',
+        'commentaire',
+        'demande_intervention__equipement__designation',
+        'demande_intervention__equipement__reference',
+        'responsable__prenom',
+        'responsable__nomFamille',
+        'utilisateur_assigne__prenom',
+        'utilisateur_assigne__nomFamille',
+        'bontravailconsommable__consommable__designation',
+    ]
+    ordering_fields = ['id', 'nom', 'date_assignation', 'date_prevue', 'date_cloture', 'statut']
+    ordering = ['-date_assignation', '-id']
+
+    def _prefetched_assignees(self):
+        return Prefetch(
+            'utilisateur_assigne',
+            queryset=Utilisateur.objects.only(
+                'id',
+                'nomUtilisateur',
+                'email',
+                'prenom',
+                'nomFamille',
+                'photoProfil',
+            ).order_by('id'),
+        )
+
+    def _prefetched_documents(self, relation):
+        return Prefetch(
+            relation,
+            queryset=Document.objects.select_related('typeDocument').only(
+                'id',
+                'nomDocument',
+                'cheminAcces',
+                'typeDocument_id',
+                'typeDocument__id',
+                'typeDocument__nomTypeDocument',
+            ).order_by('id'),
+        )
+
+    def _prefetched_statuts(self):
+        return Prefetch(
+            'demande_intervention__equipement__statuts',
+            queryset=StatutEquipement.objects.only(
+                'id',
+                'statut',
+                'dateChangement',
+                'equipement_id',
+            ).order_by('-dateChangement'),
+            to_attr='prefetched_statuts',
+        )
+
+    def _get_base_queryset(self):
+        return BonTravail.objects.select_related(
+            'demande_intervention',
+            'demande_intervention__utilisateur',
+            'demande_intervention__equipement',
+            'demande_intervention__equipement__lieu',
+            'responsable',
+        )
+
+    def _get_list_queryset(self):
+        return self._get_base_queryset().prefetch_related(
+            self._prefetched_assignees(),
+        )
+
+    def _get_detail_queryset(self):
+        return self._get_base_queryset().prefetch_related(
+            self._prefetched_assignees(),
+            self._prefetched_documents('documents'),
+            self._prefetched_documents('demande_intervention__documents'),
+            self._prefetched_statuts(),
+            Prefetch(
+                'bontravailconsommable_set',
+                queryset=BonTravailConsommable.objects.select_related('consommable').only(
+                    'id',
+                    'bon_travail_id',
+                    'consommable_id',
+                    'quantite_utilisee',
+                    'consommable__id',
+                    'consommable__designation',
+                    'consommable__lienImageConsommable',
+                ),
+                to_attr='prefetched_consommables',
+            ),
+        )
+
+    def _get_list_stock_queryset(self):
+        return self._get_base_queryset().prefetch_related(
+            self._prefetched_assignees(),
+            self._prefetched_documents('documents'),
+            self._prefetched_documents('demande_intervention__documents'),
+            self._prefetched_statuts(),
+            Prefetch(
+                'bontravailconsommable_set',
+                queryset=BonTravailConsommable.objects.select_related('consommable').only(
+                    'id',
+                    'bon_travail_id',
+                    'consommable_id',
+                    'quantite_utilisee',
+                    'estConfirme',
+                    'date_confirme',
+                    'magasin_reserve_id',
+                    'consommable__id',
+                    'consommable__designation',
+                    'consommable__lienImageConsommable',
+                ).prefetch_related(
+                    Prefetch(
+                        'reservations',
+                        queryset=BonTravailConsommableReservation.objects.select_related('magasin').only(
+                            'id',
+                            'bon_travail_consommable_id',
+                            'magasin_id',
+                            'quantite',
+                            'magasin__id',
+                            'magasin__nom',
+                        ),
+                    ),
+                    Prefetch(
+                        'consommable__stocks',
+                        queryset=Stocker.objects.select_related('magasin').only(
+                            'id',
+                            'consommable_id',
+                            'magasin_id',
+                            'quantite',
+                            'magasin__id',
+                            'magasin__nom',
+                        ),
+                    ),
+                ),
+                to_attr='prefetched_consommables',
+            ),
+        )
 
     def _create_log_entry(self, type_action, nom_table, id_cible, champs_modifies, utilisateur_id=None):
         try:
@@ -665,14 +848,25 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         Query param: cloture (optionnel)
         - cloture=true (ou 1) => inclut les BT au statut CLOTURE
         """
-        queryset = super().get_queryset()
+        if self.action == 'list_stock':
+            queryset = self._get_list_stock_queryset()
+        elif self.action == 'retrieve':
+            queryset = self._get_detail_queryset()
+        else:
+            queryset = self._get_list_queryset()
 
-        if getattr(self, 'action', None) != 'list':
+        queryset = queryset.distinct()
+
+        statut = str(self.request.query_params.get('statut', '')).strip().upper()
+        if statut and statut != 'ALL':
+            queryset = queryset.filter(statut=statut)
+
+        if getattr(self, 'action', None) not in {'list', 'assigne_a'}:
             return queryset
 
         cloture_raw = str(self.request.query_params.get('cloture', 'false')).strip().lower()
         include_cloture = cloture_raw in ['true', '1']
-        if include_cloture:
+        if include_cloture or statut == 'CLOTURE':
             return queryset
 
         return queryset.exclude(statut='CLOTURE')
@@ -1230,11 +1424,9 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 {'error': 'Le paramètre utilisateur_id est requis'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # Récupérer les BT assignés à l'utilisateur ( user in utilisateur_assigne )
-        bons = self.queryset.filter(utilisateur_assigne__id=user)
-        serializer = self.get_serializer(bons, many=True)
-        return Response(serializer.data)
+
+        bons = self.filter_queryset(self.get_queryset().filter(utilisateur_assigne__id=user))
+        return self.get_paginated_response_for_queryset(bons)
         
 
     @action(detail=True, methods=['patch'])
@@ -1305,20 +1497,78 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         """
         queryset = self.get_queryset().exclude(
             statut__in=['CLOTURE', 'TERMINE']
-        ).select_related(
-            'demande_intervention',
-            'demande_intervention__equipement',
-            'responsable'
-        ).prefetch_related(
-            'utilisateur_assigne',
-            'documents',
-            'demande_intervention__documents',
-            'bontravailconsommable_set__consommable',
-            'bontravailconsommable_set__reservations__magasin'
+        ).distinct()
+
+        queryset = self._with_list_stock_counts(self.filter_queryset(queryset))
+        summary = self._build_list_stock_summary(queryset)
+        queryset = self._apply_list_stock_state_filter(queryset)
+
+        return self.get_paginated_response_for_queryset(
+            queryset,
+            serializer_class=BonTravailListStockSerializer,
+            extra={'summary': summary},
         )
-        
-        serializer = BonTravailListStockSerializer(queryset, many=True, context={'request': request})
-        return Response(serializer.data)
+
+    def _with_list_stock_counts(self, queryset):
+        return queryset.annotate(
+            total_consommables_count=Count('bontravailconsommable', distinct=True),
+            confirmed_consommables_count=Count(
+                'bontravailconsommable',
+                filter=Q(bontravailconsommable__estConfirme=True),
+                distinct=True,
+            ),
+        )
+
+    def _build_list_stock_summary(self, queryset):
+        return queryset.aggregate(
+            pending_count=Count(
+                'id',
+                filter=Q(
+                    total_consommables_count__gt=0,
+                    confirmed_consommables_count__lt=F('total_consommables_count'),
+                    pieces_recuperees=False,
+                ),
+                distinct=True,
+            ),
+            reserved_count=Count(
+                'id',
+                filter=Q(
+                    total_consommables_count__gt=0,
+                    confirmed_consommables_count=F('total_consommables_count'),
+                    pieces_recuperees=False,
+                ),
+                distinct=True,
+            ),
+            recovered_count=Count(
+                'id',
+                filter=Q(pieces_recuperees=True),
+                distinct=True,
+            ),
+        )
+
+    def _apply_list_stock_state_filter(self, queryset):
+        reservation_state = str(
+            self.request.query_params.get('reservation_state', '')
+        ).strip().lower()
+
+        if reservation_state == 'pending':
+            return queryset.filter(
+                total_consommables_count__gt=0,
+                confirmed_consommables_count__lt=F('total_consommables_count'),
+                pieces_recuperees=False,
+            )
+
+        if reservation_state == 'reserved':
+            return queryset.filter(
+                total_consommables_count__gt=0,
+                confirmed_consommables_count=F('total_consommables_count'),
+                pieces_recuperees=False,
+            )
+
+        if reservation_state == 'recovered':
+            return queryset.filter(pieces_recuperees=True)
+
+        return queryset
 
     def _serialize_reservations(self, assoc):
         return [
@@ -1770,6 +2020,36 @@ class BonTravailViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
             'pieces_recuperees': bon.pieces_recuperees,
             'date_recuperation': bon.date_recuperation.isoformat() if bon.date_recuperation else None,
         })
+
+
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        queryset = self.get_queryset().select_related('demande_intervention__equipement').prefetch_related('utilisateur_assigne').filter(date_prevue__isnull=False, statut__in=['EN_ATTENTE', 'EN_COURS', 'EN_RETARD'])
+        bts = queryset.order_by('duree_previsionnelle')
+        data = []
+        for bt in bts:
+            start = bt.date_prevue
+            end = (bt.date_prevue + bt.duree_previsionnelle) if bt.duree_previsionnelle else bt.date_prevue
+
+            data.append({
+                'id': bt.id,
+                'nom': bt.nom,
+                'start': start,
+                'end': end,
+                'equipement': {
+                    'id': bt.demande_intervention.equipement.id,
+                    'nom': bt.demande_intervention.equipement.designation,
+                } if bt.demande_intervention and bt.demande_intervention.equipement else None,
+                'techniciens': [
+                    {
+                        'id': user.id,
+                        'nom': user.get_full_name() or user.username,
+                    }
+                    for user in bt.utilisateur_assigne.all()
+                ],
+            })
+        return Response(data, status=status.HTTP_200_OK)
+        
 
 
 class TypePlanMaintenanceViewSet(GimaoModelViewSet):
@@ -2244,3 +2524,42 @@ class DashboardStatsViewset(viewsets.ViewSet):
         return list(user.role.permissions.filter(
             nomPermission__startswith='dash'
         ).values_list('nomPermission', flat=True))
+
+
+
+class MaintenanceCalendarViewSet(viewsets.ViewSet):
+
+    def list(self, request):
+        """ Récupère tous les déclenchmenets de compteurs calendaires"""
+        from equipement.models import Declencher
+
+        declenchements = Declencher.objects.select_related(
+            'planMaintenance',
+            'planMaintenance__equipement',
+            'compteur'
+        ).filter(compteur__type='CALENDAIRE')
+        data = []
+        for decl in declenchements:
+            plan = decl.planMaintenance
+            equipement = plan.equipement if plan else None
+            data.append({
+                'id': decl.id,
+                'derniereIntervention': decl.derniereIntervention,
+                'prochaineMaintenance': decl.prochaineMaintenance,
+                'ecartInterventions': decl.ecartInterventions,
+                'estGlissant': decl.estGlissant,
+                'compteur': {
+                    'id': decl.compteur_id,
+                    'nom': decl.compteur.nomCompteur if decl.compteur else None,
+                } if decl.compteur else None,
+                'planMaintenance': {
+                    'id': plan.id,
+                    'nom': plan.nom,
+                } if plan else None,
+                'equipement': {
+                    'id': equipement.id,
+                    'nom': equipement.designation,
+                } if equipement else None,
+            })
+        
+        return Response(data, status=status.HTTP_200_OK)

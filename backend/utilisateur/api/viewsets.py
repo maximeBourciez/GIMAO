@@ -1,7 +1,9 @@
 
 
 import hashlib
+from django.db.models import Prefetch
 from rest_framework import viewsets, status
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import check_password, make_password
@@ -21,6 +23,7 @@ from .serializers import (
     ModuleSerializer,
 )
 from gimao.viewsets import GimaoModelViewSet
+from gimao.pagination import StandardPagination
 from security.models import ApiToken, create_token
 
 
@@ -80,7 +83,39 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
 # ==================== UTILISATEUR VIEWSET ====================
 
 class UtilisateurViewSet(GimaoModelViewSet):
-    queryset = Utilisateur.objects.all().order_by('id')
+    queryset = Utilisateur.objects.all()
+    pagination_class = StandardPagination
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['nomUtilisateur', 'prenom', 'nomFamille', 'email', 'role__nomRole']
+    ordering_fields = ['id', 'nomUtilisateur', 'prenom', 'nomFamille', 'dateCreation', 'derniereConnexion']
+    ordering = ['nomFamille', 'prenom', 'id']
+
+    def _get_list_queryset(self):
+        return Utilisateur.objects.select_related('role').prefetch_related(
+            Prefetch(
+                'role__permissions',
+                queryset=Permission.objects.only('id', 'nomPermission', 'description').order_by('id'),
+            ),
+            Prefetch(
+                'permissions_personnalisees',
+                queryset=UtilisateurPermission.objects.select_related('permission').only(
+                    'id',
+                    'utilisateur_id',
+                    'permission_id',
+                    'permission__id',
+                    'permission__nomPermission',
+                ),
+            ),
+        ).order_by('nomFamille', 'prenom', 'id')
+
+    def get_queryset(self):
+        queryset = self._get_list_queryset()
+
+        role_id = self.request.query_params.get('role_id')
+        if role_id and str(role_id).isdigit():
+            queryset = queryset.filter(role_id=int(role_id))
+
+        return queryset
 
     def get_serializer_class(self):
         """
@@ -343,6 +378,20 @@ class UtilisateurViewSet(GimaoModelViewSet):
             pass  # On ne révèle rien pour la sécurité
 
         return Response({"detail": "Déconnexion réussie"}, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'])
+    def techniciens(self, request):
+        """
+        Retourne la liste des utilisateurs ayant le rôle de technicien.
+        GET /api/utilisateurs/techniciens/
+        """
+        technicien_role = Role.objects.filter(nomRole__iexact='Technicien').first()
+        if not technicien_role:
+            return Response({"detail": "Rôle 'Technicien' introuvable"}, status=status.HTTP_404_NOT_FOUND)
+
+        techniciens = Utilisateur.objects.filter(role=technicien_role, actif=True).order_by('nomUtilisateur')
+        serializer = UtilisateurSimpleSerializer(techniciens, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 # ==================== LOG VIEWSET ====================
 

@@ -7,10 +7,13 @@
           :loading-message="loadingData ? 'Chargement des données...' : ''" :custom-validation="validateForm"
           submit-button-text="Enregistrer les modifications" :handleSubmit="handleSubmit">
           <template #default>
-            <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels" :fournisseurs="fournisseurs"
-              :fabricants="fabricants" :familles="familles" :locations="locations" :consumables="consumables"
-              :equipment-statuses="equipmentStatuses" :show-counters="false" @file-upload="handleFileUpload"
-              @location-created="handleLocationCreated" :lienImageEquipement="formData.lienImageEquipement" @open-lieu-dialog="handleOpenLieuDialog" />
+            <EquipmentFormFields
+              v-model="formData"
+              v-bind="sharedEquipmentFieldProps"
+              :show-counters="false"
+              :lien-image-equipement="formData.lienImageEquipement"
+              v-on="equipmentFieldEvents"
+            />
           </template>
         </BaseForm>
       </v-container>
@@ -72,6 +75,10 @@ const {
   consumables,
   familles,
   equipmentStatuses,
+  equipmentModelsLoading,
+  fournisseursLoading,
+  fabricantsLoading,
+  consumablesLoading,
   showFabricantDialog,
   showFournisseurDialog,
   showModeleDialog,
@@ -86,6 +93,7 @@ const {
   handleModeleCreated,
   handleFamilleCreated,
   handleLocationCreated,
+  searchSectionOptions,
   api,
   router
 } = useEquipmentForm(true);
@@ -95,6 +103,30 @@ const equipmentId = computed(() => route.params.id || null);
 
 const showLieuDialog = ref(false);
 const selectedParentLieuId = ref(null);
+
+const sharedEquipmentFieldProps = computed(() => ({
+  equipmentModels: equipmentModels.value,
+  fournisseurs: fournisseurs.value,
+  fabricants: fabricants.value,
+  familles: familles.value,
+  locations: locations.value,
+  consumables: consumables.value,
+  equipmentStatuses: equipmentStatuses.value,
+  equipmentModelsLoading: equipmentModelsLoading.value,
+  fournisseursLoading: fournisseursLoading.value,
+  fabricantsLoading: fabricantsLoading.value,
+  consumablesLoading: consumablesLoading.value,
+}));
+
+const equipmentFieldEvents = {
+  'file-upload': handleFileUpload,
+  'location-created': handleLocationCreated,
+  'search-equipment-models': (search) => searchSectionOptions('equipmentModels', search),
+  'search-fournisseurs': (search) => searchSectionOptions('fournisseurs', search),
+  'search-fabricants': (search) => searchSectionOptions('fabricants', search),
+  'search-consumables': (search) => searchSectionOptions('consumables', search),
+  'open-lieu-dialog': (parentId) => handleOpenLieuDialog(parentId),
+};
 
 const handleOpenLieuDialog = (parentId) => {
   selectedParentLieuId.value = parentId;

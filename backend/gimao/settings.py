@@ -11,6 +11,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = True
+ENABLE_SQL_LOGGING = os.getenv('ENABLE_SQL_LOGGING', '').strip().lower() in {'1', 'true', 'yes', 'on'}
 
 ALLOWED_HOSTS = ['*']
 
@@ -33,6 +34,7 @@ INSTALLED_APPS = [
     'equipement',
     'maintenance',
     'tasks',
+    'exportData',
 ]
 
 MIDDLEWARE = [
@@ -44,6 +46,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'utilisateur.middleware.CurrentUserMiddleware',
     'gimao.middleware.ApiTokenMiddleware',  # Ajout du middleware personnalisé
 ]
 
@@ -190,6 +193,13 @@ LOGGING = {
         },
     },
 }
+
+if ENABLE_SQL_LOGGING:
+    LOGGING['loggers']['django.db.backends'] = {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+        'propagate': False,
+    }
 
 # ============================================
 # Cron Jobs

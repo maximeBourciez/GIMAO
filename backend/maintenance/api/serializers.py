@@ -35,7 +35,12 @@ class EquipementSimpleSerializer(serializers.ModelSerializer):
         ref_name = 'EquipementSimpleSerializer'
 
     def get_dernier_statut(self, obj):
-        statut = obj.statuts.order_by('-dateChangement').first()
+        statuts = getattr(obj, 'prefetched_statuts', None)
+        if statuts is None:
+            statut = obj.statuts.order_by('-dateChangement').first()
+        else:
+            statut = statuts[0] if statuts else None
+
         if statut:
             date_changement = statut.dateChangement
             if hasattr(date_changement, 'isoformat'):
@@ -304,29 +309,46 @@ class BonTravailListStockSerializer(serializers.ModelSerializer):
     
     def get_consommables(self, obj):
         """Retourne les consommables avec leur statut de distribution"""
-        associations = BonTravailConsommable.objects.filter(
-            bon_travail=obj
-        ).select_related('consommable').prefetch_related('reservations__magasin')
-        return [
-            {
-                'consommable': assoc.consommable.id,
-                'designation': assoc.consommable.designation,
-                'image': assoc.consommable.lienImageConsommable.name.lstrip('/') if assoc.consommable.lienImageConsommable else None,
-                'quantite': assoc.quantite_utilisee,
-                'distribue': assoc.estConfirme,
-                'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
-                'magasin_reserve': assoc.magasin_reserve_id,
-                'magasins_reserves': [
-                    {
-                        'magasin_id': reservation.magasin_id,
-                        'magasin_nom': reservation.magasin.nom,
-                        'quantite': reservation.quantite,
-                    }
-                    for reservation in assoc.reservations.all()
-                ],
-            }
-            for assoc in associations
-        ]
+        associations = list(getattr(obj, 'prefetched_consommables', []))
+        if not associations:
+            associations = BonTravailConsommable.objects.filter(
+                bon_travail=obj
+            ).select_related('consommable').prefetch_related('reservations__magasin')
+        consommables = []
+        for assoc in associations:
+            stocks = list(assoc.consommable.stocks.all())
+            reservations = list(assoc.reservations.all())
+
+            consommables.append(
+                {
+                    'consommable': assoc.consommable.id,
+                    'designation': assoc.consommable.designation,
+                    'image': assoc.consommable.lienImageConsommable.name.lstrip('/') if assoc.consommable.lienImageConsommable else None,
+                    'quantite': assoc.quantite_utilisee,
+                    'distribue': assoc.estConfirme,
+                    'date_distribution': assoc.date_confirme.isoformat() if assoc.date_confirme else None,
+                    'magasin_reserve': assoc.magasin_reserve_id,
+                    'stock_total': sum(stock.quantite for stock in stocks),
+                    'stocks': [
+                        {
+                            'magasin': stock.magasin_id,
+                            'magasin_nom': stock.magasin.nom,
+                            'quantite': stock.quantite,
+                        }
+                        for stock in stocks
+                    ],
+                    'magasins_reserves': [
+                        {
+                            'magasin_id': reservation.magasin_id,
+                            'magasin_nom': reservation.magasin.nom,
+                            'quantite': reservation.quantite,
+                        }
+                        for reservation in reservations
+                    ],
+                }
+            )
+
+        return consommables
 
 
 class BonTravailDetailSerializer(serializers.ModelSerializer):
@@ -364,9 +386,11 @@ class BonTravailDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_consommables(self, obj):
-        associations = BonTravailConsommable.objects.filter(
-            bon_travail=obj
-        ).select_related('consommable')
+        associations = list(getattr(obj, 'prefetched_consommables', []))
+        if not associations:
+            associations = BonTravailConsommable.objects.filter(
+                bon_travail=obj
+            ).select_related('consommable')
         return [
             {
                 'consommable': assoc.consommable.id,

@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from "vue";
+import { ref, reactive, watch } from "vue";
 import { FormField, FormSelect } from "@/components/common";
 
 const UNITES = [
@@ -65,11 +65,6 @@ const props = defineProps({
   modelValue: {
     type: Object,
     required: true,
-    // {
-    //   derniereIntervention : string ISO "YYYY-MM-DD" | number (ordinal)
-    //   ecartInterventions   : number (delta ms, stocké pour le backend)
-    //   prochaineMaintenance : string ISO "YYYY-MM-DD" | number (ordinal)
-    // }
   },
 });
 
@@ -90,6 +85,30 @@ const toISODate = (val) => {
   return val; // déjà ISO string
 };
 
+const normalizeCalendarUnit = (unit) => {
+  const mapping = {
+    hours: "hours",
+    days: "days",
+    weeks: "weeks",
+    months: "months",
+    years: "years",
+    heure: "hours",
+    heures: "hours",
+    jour: "days",
+    jours: "days",
+    semaine: "weeks",
+    semaines: "weeks",
+    mois: "months",
+    an: "years",
+    ans: "years",
+    annee: "years",
+    annees: "years",
+  };
+
+  if (!unit) return null;
+  return mapping[String(unit).toLowerCase()] || null;
+};
+
 // --- État local ---
 
 const ecartCalendaire = ref(0);
@@ -99,6 +118,8 @@ const localSeuil = reactive({
   derniereIntervention: null,
   ecartInterventions:   0,
   prochaineMaintenance: null,
+  uniteCalendaire: "days",
+  ecartCalendaire: 0,
 });
 
 // --- Calcul ---
@@ -111,6 +132,8 @@ const updateProchaineMaintenance = () => {
   if (!derniere || !ecart || !unite) {
     localSeuil.prochaineMaintenance = "";
     localSeuil.ecartInterventions   = 0;
+    localSeuil.uniteCalendaire      = uniteCalendaire.value;
+    localSeuil.ecartCalendaire      = ecartCalendaire.value;
     emit("update:modelValue", { ...localSeuil });
     return;
   }
@@ -133,6 +156,9 @@ const updateProchaineMaintenance = () => {
   localSeuil.prochaineMaintenance = prochaineDate.toISOString().split("T")[0];
   // Delta en ms pour le backend
   localSeuil.ecartInterventions   = prochaineDate.getTime() - dateDerniere.getTime();
+  // Mémorise la saisie utilisateur pour éviter les reconversions pendant la frappe.
+  localSeuil.uniteCalendaire      = unite;
+  localSeuil.ecartCalendaire      = ecart;
 
   emit("update:modelValue", { ...localSeuil });
 };
@@ -144,7 +170,20 @@ const initFromProp = (val) => {
   localSeuil.prochaineMaintenance = toISODate(val.prochaineMaintenance);
   localSeuil.ecartInterventions   = val.ecartInterventions ?? 0;
 
-  // Reconstituer ecartCalendaire + uniteCalendaire depuis le delta ms
+  // Priorité à la saisie explicitement mémorisée.
+  const savedUnit = normalizeCalendarUnit(val.uniteCalendaire);
+  const savedGap = Number(val.ecartCalendaire);
+  const isSavedUnitValid = !!savedUnit;
+
+  if (isSavedUnitValid && !isNaN(savedGap) && savedGap > 0) {
+    uniteCalendaire.value = savedUnit;
+    ecartCalendaire.value = savedGap;
+    localSeuil.uniteCalendaire = savedUnit;
+    localSeuil.ecartCalendaire = savedGap;
+    return;
+  }
+
+  // Fallback: reconstituer ecartCalendaire + uniteCalendaire depuis le delta ms.
   const intervalle = Number(val.ecartInterventions);
   if (!isNaN(intervalle) && intervalle > 0) {
     const days = Math.round(intervalle / (1000 * 60 * 60 * 24));
@@ -164,11 +203,12 @@ const initFromProp = (val) => {
       ecartCalendaire.value = Math.round(days / 365);
       uniteCalendaire.value = "years";
     }
+    localSeuil.uniteCalendaire = uniteCalendaire.value;
+    localSeuil.ecartCalendaire = ecartCalendaire.value;
   }
 };
 
-onMounted(() => initFromProp(props.modelValue));
-
-// Sync si le parent pousse une mise à jour (rare mais possible en mode édition)
-watch(() => props.modelValue, (val) => initFromProp(val), { deep: true });
+// Sync au montage et quand le parent remplace l'objet (édition/changement de plan).
+// Pas de deep watch: sinon chaque frappe réinitialise l'unité/valeur.
+watch(() => props.modelValue, (val) => initFromProp(val), { immediate: true });
 </script>

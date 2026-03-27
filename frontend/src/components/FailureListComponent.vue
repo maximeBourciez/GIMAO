@@ -1,162 +1,185 @@
 <template>
-  <BaseListView ref="tableContainer" :title="title" :headers="tableHeaders" :items="failures" :loading="loading"
-    :error-message="errorMessage" :no-data-text="noDataText" :no-data-icon="noDataIcon" :show-search="showSearch"
-    :internalSearch="true" :show-create-button="false" @row-click="handleRowClick" @clear-error="errorMessage = ''">
-
-    <!-- Colonne Createur -->
+  <BaseListView
+    ref="tableContainer"
+    :title="title"
+    :headers="tableHeaders"
+    :items="failures"
+    :loading="loading"
+    :error-message="resolvedErrorMessage"
+    :no-data-text="noDataText"
+    :no-data-icon="noDataIcon"
+    :show-search="showSearch"
+    :show-create-button="false"
+    :items-per-page="-1"
+    :hide-default-footer="true"
+    :internal-search="false"
+    @row-click="handleRowClick"
+    @clear-error="errorMessage = ''"
+    @search="handleSearch"
+  >
     <template #item.createur="{ item }">
-      {{ item.utilisateur.prenom ?? '' }} {{ item.utilisateur.nomFamille ?? '' }}
-    </template>
-    <template #item.commentaire="{ item }">
-      {{ item.commentaire.length > 50 ? item.commentaire.substring(0, 50) + '...' : item.commentaire }}
+      {{ item.utilisateur?.prenom ?? '' }} {{ item.utilisateur?.nomFamille ?? '' }}
     </template>
 
-    <!-- Colonne Statut -->
+    <template #item.commentaire="{ item }">
+      {{ item.commentaire?.length > 50 ? `${item.commentaire.substring(0, 50)}...` : item.commentaire }}
+    </template>
+
     <template #item.statut="{ item }">
       <v-chip :color="item.statut ? FAILURE_STATUS_COLORS[item.statut] : 'grey'" dark>
         {{ FAILURE_STATUS[item.statut] }}
       </v-chip>
     </template>
 
-
-    <!-- Colonne Equipement -->
     <template #item.equipement="{ item }">
-      {{ item.equipement.designation }}
+      {{ item.equipement?.designation }}
     </template>
 
-
+    <template #after-table>
+      <ServerPaginationControls
+        :page="currentPage"
+        :page-size="pageSize"
+        :page-count="totalPages"
+        :total-items="totalItems"
+        item-label-singular="demande"
+        item-label-plural="demandes"
+        :reserve-fab-space="showCreateButton"
+        @update:page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
+    </template>
   </BaseListView>
 
-
-  <!-- Bouton flottant en bas à droite -->
-  <v-btn v-if="showCreateButton" color="primary" size="large" icon class="floating-add-button" elevation="4"
-    @click="$emit('create')">
-    <v-icon size="large">mdi-plus</v-icon>
-    <v-tooltip activator="parent" location="left">
-      {{ createButtonText }}
-    </v-tooltip>
-  </v-btn>
+  <FloatingCreateButton
+    :visible="showCreateButton"
+    :tooltip="createButtonText"
+    @click="$emit('create')"
+  />
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import BaseListView from '@/components/common/BaseListView.vue';
+import FloatingCreateButton from '@/components/common/FloatingCreateButton.vue';
+import ServerPaginationControls from '@/components/common/ServerPaginationControls.vue';
 import { useApi } from '@/composables/useApi';
+import { usePaginatedList } from '@/composables/usePaginatedList';
 import { TABLE_HEADERS, API_BASE_URL, FAILURE_STATUS, FAILURE_STATUS_COLORS } from '@/utils/constants';
-import { useStore } from 'vuex';
-
 
 const props = defineProps({
   createButtonText: {
     type: String,
-    default: 'Nouvelle demande d\'intervention'
+    default: 'Nouvelle demande d\'intervention',
   },
   noDataText: {
     type: String,
-    default: 'Aucune demande d\'intervention enregistrée'
+    default: 'Aucune demande d\'intervention enregistrée',
   },
   noDataIcon: {
     type: String,
-    default: 'mdi-alert-circle-outline'
+    default: 'mdi-alert-circle-outline',
   },
   apiEndpoint: {
     type: String,
-    default: 'demandes-intervention/'
+    default: 'demandes-intervention/',
   },
   templateHeader: {
     type: Boolean,
-    default: false
+    default: false,
   },
   title: {
     type: String,
-    default: 'Liste des demandes d\'intervention'
+    default: 'Liste des demandes d\'intervention',
   },
   showSearch: {
     type: Boolean,
-    default: true
+    default: true,
   },
   showCreateButton: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
+
 const emit = defineEmits(['create', 'row-click']);
+
 const api = useApi(API_BASE_URL);
 const errorMessage = ref('');
-const failures = computed(() => api.data.value || []);
-const loading = computed(() => api.loading.value);
 const containerWidth = ref(0);
-const store = useStore();
 
+const {
+  items: failures,
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  loading,
+  errorMessage: paginationErrorMessage,
+  fetchPage,
+  handleSearch,
+} = usePaginatedList({
+  api,
+  endpoint: () => props.apiEndpoint,
+  initialPageSize: 10,
+});
 
+const resolvedErrorMessage = computed(() => errorMessage.value || paginationErrorMessage.value);
 
 const tableHeaders = computed(() => {
   if (containerWidth.value < 860) {
     return TABLE_HEADERS.FAILURES_SUPER_LIGHT;
-  } else if (props.templateHeader) {
+  }
+
+  if (props.templateHeader || containerWidth.value < 1000) {
     return TABLE_HEADERS.FAILURES_LIGHT;
   }
+
   return TABLE_HEADERS.FAILURES;
 });
-const handleCreate = () => {
-  emit('create');
-};
+
 const handleRowClick = (item) => {
   emit('row-click', item);
 };
+
 const tableContainer = ref(null);
 let resizeObserver = null;
 let resizeTimeout = null;
 
-onMounted(async () => {
-  try {
-    await api.get(props.apiEndpoint);
-  } catch (error) {
-    errorMessage.value = 'Erreur lors du chargement des défaillances';
-  }
-
-  resizeObserver = new ResizeObserver(entries => {
+const observeTableWidth = () => {
+  resizeObserver = new ResizeObserver((entries) => {
     if (resizeTimeout) {
       clearTimeout(resizeTimeout);
     }
 
     resizeTimeout = setTimeout(() => {
-      window.requestAnimationFrame(() => {
-        const entry = entries[0];
-        if (entry) {
-          containerWidth.value = Math.round(entry.contentRect.width);
-        }
-      });
+      const entry = entries[0];
+      if (entry) {
+        containerWidth.value = Math.round(entry.contentRect.width);
+      }
     }, 100);
   });
 
-  if (tableContainer.value) {
-    const element = tableContainer.value.$el ?? tableContainer.value;
-    if (element) {
-      resizeObserver.observe(element);
-    }
+  const element = tableContainer.value?.$el ?? tableContainer.value;
+  if (element) {
+    resizeObserver.observe(element);
   }
+};
+
+onMounted(() => {
+  fetchPage().catch(() => {
+    errorMessage.value = 'Erreur lors du chargement des défaillances';
+  });
+
+  observeTableWidth();
 });
 
 onBeforeUnmount(() => {
   if (resizeTimeout) {
     clearTimeout(resizeTimeout);
   }
+
   if (resizeObserver) {
     resizeObserver.disconnect();
   }
 });
 </script>
-<style scoped>
-.floating-add-button {
-  position: fixed !important;
-  bottom: 24px;
-  right: 24px;
-  z-index: 100;
-}
-
-.floating-add-button:hover {
-  transform: scale(1.1);
-  transition: transform 0.2s ease;
-}
-</style>

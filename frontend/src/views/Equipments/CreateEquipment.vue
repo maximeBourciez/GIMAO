@@ -22,41 +22,49 @@
               <v-stepper-window v-model="step" :steps="EQUIPMENT_CREATE_STEPS.length" class="mb-8">
                 <!-- Étape 1: Informations générales  & Statut -->
                 <v-stepper-window-item :value="1">
-                  <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
-                    :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
-                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="1" :show-location="false"
-                    :show-status="true" :show-consommables="false" :show-counters="false" :show-general="true"
-                    :show-model-info="false" @file-upload="handleFileUpload" @location-created="handleLocationCreated"
-                    @open-modele-dialog="showModeleDialog = true"
-                    @open-fournisseur-dialog="showFournisseurDialog = true"
-                    @open-fabricant-dialog="showFabricantDialog = true" @open-famille-dialog="showFamilleDialog = true"
-                    @open-lieu-dialog="handleOpenLieuDialog" @open-consommable-dialog="showConsommableDialog = true" />
+                  <EquipmentFormFields
+                    v-model="formData"
+                    v-bind="sharedEquipmentFieldProps"
+                    :step="1"
+                    :show-location="false"
+                    :show-status="true"
+                    :show-consommables="false"
+                    :show-counters="false"
+                    :show-general="true"
+                    :show-model-info="false"
+                    v-on="equipmentFieldEvents"
+                  />
                 </v-stepper-window-item>
 
                 <!-- Étape 2: Fournisseur et Fabricant -->
                 <v-stepper-window-item :value="2">
-                  <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
-                    :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
-                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="2" :show-location="false"
-                    :show-status="false" :show-consommables="true" :show-counters="false" :show-general="false"
-                    :show-model-info="true" @file-upload="handleFileUpload" @location-created="handleLocationCreated"
-                    @open-modele-dialog="showModeleDialog = true"
-                    @open-fournisseur-dialog="showFournisseurDialog = true"
-                    @open-fabricant-dialog="showFabricantDialog = true" @open-famille-dialog="showFamilleDialog = true"
-                    @open-lieu-dialog="handleOpenLieuDialog" @open-consommable-dialog="showConsommableDialog = true" />
+                  <EquipmentFormFields
+                    v-model="formData"
+                    v-bind="sharedEquipmentFieldProps"
+                    :step="2"
+                    :show-location="false"
+                    :show-status="false"
+                    :show-consommables="true"
+                    :show-counters="false"
+                    :show-general="false"
+                    :show-model-info="true"
+                    v-on="equipmentFieldEvents"
+                  />
                 </v-stepper-window-item>
 
                 <!-- Étape 3: Localisation -->
                 <v-stepper-window-item :value="3">
-                  <EquipmentFormFields v-model="formData" :equipment-models="equipmentModels"
-                    :fournisseurs="fournisseurs" :fabricants="fabricants" :familles="familles" :locations="locations"
-                    :consumables="consumables" :equipment-statuses="equipmentStatuses" :step="3" :show-status="false"
-                    :show-consommables="false" :show-counters="false" :show-general="false" :show-model-info="false"
-                    @file-upload="handleFileUpload" @location-created="handleLocationCreated"
-                    @open-modele-dialog="showModeleDialog = true"
-                    @open-fournisseur-dialog="showFournisseurDialog = true"
-                    @open-fabricant-dialog="showFabricantDialog = true" @open-famille-dialog="showFamilleDialog = true"
-                    @open-lieu-dialog="handleOpenLieuDialog" />
+                  <EquipmentFormFields
+                    v-model="formData"
+                    v-bind="sharedEquipmentFieldProps"
+                    :step="3"
+                    :show-status="false"
+                    :show-consommables="false"
+                    :show-counters="false"
+                    :show-general="false"
+                    :show-model-info="false"
+                    v-on="equipmentFieldEvents"
+                  />
                 </v-stepper-window-item>
 
                 <!-- Étape 4: Compteurs -->
@@ -436,6 +444,10 @@ const {
   typesPM,
   typesDocuments,
   equipmentStatuses,
+  equipmentModelsLoading,
+  fournisseursLoading,
+  fabricantsLoading,
+  consumablesLoading,
   currentCounter,
   isCounterEditMode,
   currentPlan,
@@ -463,6 +475,7 @@ const {
   handleModeleCreated,
   handleFamilleCreated,
   handleLocationCreated,
+  searchSectionOptions,
   getEmptyCounter,
   api,
   router,
@@ -478,6 +491,45 @@ const selectedParentLieuId = ref(null);
 const showConsommableDialog = ref(false);
 const magasins = ref([]);
 const openedMaintenancePanels = ref([0]);
+
+const sharedEquipmentFieldProps = computed(() => ({
+  equipmentModels: equipmentModels.value,
+  fournisseurs: fournisseurs.value,
+  fabricants: fabricants.value,
+  familles: familles.value,
+  locations: locations.value,
+  consumables: consumables.value,
+  equipmentStatuses: equipmentStatuses.value,
+  equipmentModelsLoading: equipmentModelsLoading.value,
+  fournisseursLoading: fournisseursLoading.value,
+  fabricantsLoading: fabricantsLoading.value,
+  consumablesLoading: consumablesLoading.value,
+}));
+
+const equipmentFieldEvents = {
+  'file-upload': handleFileUpload,
+  'location-created': handleLocationCreated,
+  'search-equipment-models': (search) => searchSectionOptions('equipmentModels', search),
+  'search-fournisseurs': (search) => searchSectionOptions('fournisseurs', search),
+  'search-fabricants': (search) => searchSectionOptions('fabricants', search),
+  'search-consumables': (search) => searchSectionOptions('consumables', search),
+  'open-modele-dialog': () => {
+    showModeleDialog.value = true;
+  },
+  'open-fournisseur-dialog': () => {
+    showFournisseurDialog.value = true;
+  },
+  'open-fabricant-dialog': () => {
+    showFabricantDialog.value = true;
+  },
+  'open-famille-dialog': () => {
+    showFamilleDialog.value = true;
+  },
+  'open-lieu-dialog': (parentId) => handleOpenLieuDialog(parentId),
+  'open-consommable-dialog': () => {
+    showConsommableDialog.value = true;
+  },
+};
 
 const visibleCounters = computed(() =>
   (formData.value?.compteurs || []).filter(counter => !counter?.isDefaultCalendar && counter?.type !== 'Calendaire')

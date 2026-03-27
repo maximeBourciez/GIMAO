@@ -2,29 +2,37 @@
   <BaseListView
     :title="title"
     :headers="headers"
-    :items="filteredUsers"
+    :items="displayedUsers"
     :loading="loading"
-    :error-message="errorMessage"
+    :error-message="resolvedErrorMessage"
     :show-search="true"
     :show-create-button="false"
+    :items-per-page="-1"
+    :hide-default-footer="true"
     no-data-icon="mdi-account-off"
-    :internal-search="true"
+    :internal-search="false"
     @clear-error="errorMessage = ''"
     @row-click="goToAfficherUser($event.id)"
+    @search="handleSearch"
   >
     <template #before-table>
       <v-card elevation="1" class="rounded-lg pa-3 mb-4 role-filter-card">
         <div class="d-flex align-center justify-space-between flex-wrap gap-2">
           <div class="text-subtitle-1 font-weight-bold text-primary">Filtrer par rôle</div>
-          <v-chip-group v-model="selectedRole" mandatory selected-class="text-primary" class="role-chip-group">
+          <v-chip-group
+            v-model="selectedRole"
+            mandatory
+            selected-class="text-primary"
+            class="role-chip-group"
+          >
             <v-chip
               v-for="role in roles"
-              :key="role"
-              :value="role"
+              :key="role.id ?? 'all'"
+              :value="role.id"
               variant="outlined"
               size="small"
             >
-              {{ role }}
+              {{ role.label }}
             </v-chip>
           </v-chip-group>
         </div>
@@ -46,43 +54,55 @@
         {{ item.actif ? 'Oui' : 'Non' }}
       </v-chip>
     </template>
+
+    <template #after-table>
+      <ServerPaginationControls
+        :page="currentPage"
+        :page-size="pageSize"
+        :page-count="totalPages"
+        :total-items="totalItems"
+        item-label-singular="utilisateur"
+        item-label-plural="utilisateurs"
+        :reserve-fab-space="store.getters.hasPermission('user:create')"
+        @update:page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
+    </template>
   </BaseListView>
 
-  <!-- Bouton flottant en bas à droite -->
-  <v-btn
-    color="primary"
-    size="large"
-    icon
-    class="floating-add-button"
-    elevation="4"
+  <FloatingCreateButton
+    :visible="store.getters.hasPermission('user:create')"
+    :tooltip="createButtonText"
     @click="goToCreerUser"
-    v-if="store.getters.hasPermission('user:create')"
-  >
-    <v-icon size="large">mdi-plus</v-icon>
-    <v-tooltip activator="parent" location="left">
-      {{ createButtonText }}
-    </v-tooltip>
-  </v-btn>
+  />
 </template>
 
 <script setup>
-import BaseListView from '@/components/common/BaseListView.vue';
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useStore } from 'vuex';
-import { useApi } from '@/composables/useApi';
-import { API_BASE_URL } from '@/utils/constants';
 import { useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import BaseListView from '@/components/common/BaseListView.vue';
+import FloatingCreateButton from '@/components/common/FloatingCreateButton.vue';
+import ServerPaginationControls from '@/components/common/ServerPaginationControls.vue';
+import { useApi } from '@/composables/useApi';
+import { usePaginatedList } from '@/composables/usePaginatedList';
+import { API_BASE_URL } from '@/utils/constants';
 
-// Données
 const title = 'Gestion des comptes';
-const router = useRouter();
-const createButtonText = "Créer un nouvel utilisateur";
-const store = useStore();
+const createButtonText = 'Créer un nouvel utilisateur';
 
+const router = useRouter();
+const store = useStore();
 const { smAndDown } = useDisplay();
 
-// Headers Vuetify 3 (même format que dans TABLE_HEADERS)
+const api = useApi(API_BASE_URL);
+const rolesApi = useApi(API_BASE_URL);
+
+const errorMessage = ref('');
+const roles = ref([{ id: null, label: 'Tous' }]);
+const selectedRole = ref(null);
+
 const baseHeaders = [
   { title: "Nom d'utilisateur", value: 'nomUtilisateur', sortable: true, align: 'start' },
   { title: 'Nom', value: 'nom', sortable: true, align: 'start' },
@@ -90,79 +110,64 @@ const baseHeaders = [
   { title: 'Actif', value: 'actif', sortable: true, align: 'end' },
 ];
 
-// Responsive: on masque la colonne "Actif" sur petits écrans.
 const headers = computed(() => {
   if (smAndDown.value) {
-    return baseHeaders.filter((h) => h.value !== 'actif');
+    return baseHeaders.filter((header) => header.value !== 'actif');
   }
+
   return baseHeaders;
 });
 
-// États
-const users = ref([]);
-const roles = ref(['Tous']);
-const selectedRole = ref('Tous');
-const loading = ref(true);
-const errorMessage = ref('');
-
-// API
-const api = useApi(API_BASE_URL);
-
-// Utilisateurs filtrés selon le rôle
-const filteredUsers = computed(() => {
-  if (selectedRole.value === 'Tous') return users.value;
-  return users.value.filter((u) => u.role === selectedRole.value);
+const {
+  items,
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  loading,
+  errorMessage: paginationErrorMessage,
+  fetchPage,
+  handleSearch,
+} = usePaginatedList({
+  api,
+  endpoint: 'utilisateurs/',
+  initialPageSize: 10,
+  buildParams: () => ({
+    role_id: selectedRole.value ?? undefined,
+  }),
+  watchSource: () => selectedRole.value,
 });
 
-const loadData = async () => {
-  loading.value = true;
-  errorMessage.value = '';
+const displayedUsers = computed(() =>
+  items.value.map((user) => ({
+    id: user?.id,
+    nomUtilisateur: user?.nomUtilisateur ?? '-',
+    nom: `${user?.prenom ?? ''} ${user?.nomFamille ?? ''}`.trim() || '-',
+    role: user?.role?.nomRole || user?.role || '-',
+    actif: Boolean(user?.actif),
+  })),
+);
 
-  const [rolesResult, usersResult] = await Promise.allSettled([
-    api.get('roles/'),
-    api.get('utilisateurs/'),
-  ]);
+const resolvedErrorMessage = computed(() => errorMessage.value || paginationErrorMessage.value);
 
-  if (rolesResult.status === 'fulfilled' && Array.isArray(rolesResult.value)) {
-    const roleNames = rolesResult.value
-      .map((r) => r?.nomRole)
-      .filter(Boolean);
-    roles.value = ['Tous', ...roleNames];
-  } else {
-    roles.value = ['Tous'];
-  }
+const loadRoles = async () => {
+  try {
+    const response = await rolesApi.get('roles/');
+    const roleItems = Array.isArray(response)
+      ? response
+        .map((role) => ({
+          id: role?.id ?? null,
+          label: role?.nomRole ?? '',
+        }))
+        .filter((role) => role.label)
+      : [];
 
-  if (usersResult.status === 'fulfilled' && Array.isArray(usersResult.value)) {
-    users.value = usersResult.value.map((u) => ({
-      id: u?.id,
-      nomUtilisateur: u?.nomUtilisateur ?? '-',
-      nom: `${u?.prenom ?? ''} ${u?.nomFamille ?? ''}`.trim() || '-',
-      role: u?.role?.nomRole || u?.role || '-',
-      actif: Boolean(u?.actif),
-    }));
-  } else {
-    users.value = [];
-  }
-
-  if (rolesResult.status === 'rejected' && usersResult.status === 'rejected') {
-    errorMessage.value = 'Erreur lors du chargement des rôles et des utilisateurs.';
-  } else if (rolesResult.status === 'rejected') {
+    roles.value = [{ id: null, label: 'Tous' }, ...roleItems];
+  } catch (error) {
+    roles.value = [{ id: null, label: 'Tous' }];
     errorMessage.value = 'Erreur lors du chargement des rôles.';
-  } else if (usersResult.status === 'rejected') {
-    errorMessage.value = 'Erreur lors du chargement des utilisateurs.';
   }
-
-  // Si le rôle sélectionné n'existe plus (ex: roles non chargés), on revient à "Tous"
-  if (!roles.value.includes(selectedRole.value)) {
-    selectedRole.value = 'Tous';
-  }
-
-  loading.value = false;
 };
-
-onMounted(() => {
-  loadData();
-});
 
 const goToAfficherUser = (id) => {
   router.push({
@@ -174,6 +179,10 @@ const goToAfficherUser = (id) => {
 const goToCreerUser = () => {
   router.push({ name: 'CreateUser' });
 };
+
+onMounted(async () => {
+  await Promise.allSettled([loadRoles(), fetchPage()]);
+});
 </script>
 
 <style scoped>
@@ -186,16 +195,4 @@ const goToCreerUser = () => {
   max-width: 100%;
 }
 
-.floating-add-button {
-  position: fixed !important;
-  bottom: 24px;
-  right: 24px;
-  z-index: 100;
-  border-radius: 50% !important;
-}
-
-.floating-add-button:hover {
-  transform: scale(1.1);
-  transition: transform 0.2s ease;
-}
 </style>

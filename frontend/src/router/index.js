@@ -45,6 +45,7 @@ import NoticesHome from '@/views/Notices/NoticesHome.vue'
 // ------------------------------------------------------------------
 
 import DataManagement from '@/views/DataManagement/DataManagement.vue'
+import ExportData from '@/views/DataManagement/ExportData.vue'
 
 import CreateLocation from '@/views/DataManagement/Locations/CreateLocation.vue'
 import LocationList from '@/views/DataManagement/Locations/LocationList.vue'
@@ -306,6 +307,13 @@ const routes = [
     meta: { title: 'Gestion des données', requiresPermissions: ['menu:dataManagement'] }
   },
 
+  {
+    path: '/ExportData',
+    name: 'ExportData',
+    component: ExportData,
+    meta: { title: 'Export de données', requiresPermissions: ['export:view'] }
+  },
+
   // Bon de travail ---------------------------------------------------------------
 
   {
@@ -514,15 +522,15 @@ router.beforeEach((to, from, next) => {
     return
   } 
 
+  if (!isAuthenticated) {
+    next('/login')
+    return
+  }
+
   // Vérification validité auth
   if (!checkAuthValidity(store)) {
     store.commit('logout')
     next({ path: '/login', state: { message: 'Votre session a expiré. Veuillez vous reconnecter.' } })   
-    return
-  }
-
-  if (!isAuthenticated) {
-    next('/login')
     return
   }
 

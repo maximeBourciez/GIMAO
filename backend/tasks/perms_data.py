@@ -142,6 +142,24 @@ perms = {
 
     # ── Export global ────────────────────────────────────────────────────────
     'export:view': ("Accéder aux exports de données", 'affichage', None),
+    'export:eq': ("Exporter les équipements", 'action', 'export:view'),
+    'export:eqstatus': ("Exporter les statuts des équipements", 'action', 'export:view'),
+    'export:bt': ("Exporter les bons de travail", 'action', 'export:view'),
+    'export:di': ("Exporter les demandes d'intervention", 'action', 'export:view'),
+    'export:cons': ("Exporter les consommables", 'action', 'export:view'),
+    'export:histcons': ("Exporter l'historique des achats de consommables", 'action', 'export:view'),
+    'export:stockmag': ("Exporter les stocks des magasins", 'action', 'export:view'),
+    'export:mag': ("Exporter les magasins", 'action', 'export:view'),
+    'export:histmag': ("Exporter l'historique des sorties de magasins", 'action', 'export:view'),
+    'export:logs': ("Exporter l'historique des logs", 'action', 'export:view'),
+    'export:sup': ("Exporter les fournisseurs", 'action', 'export:view'),
+    'export:man': ("Exporter les fabricants", 'action', 'export:view'),
+    'export:eqmod': ("Exporter les modèles d'équipement", 'action', 'export:view'),
+    'export:lieu': ("Exporter les lieux", 'action', 'export:view'),
+    'export:cp': ("Exporter les compteurs numériques", 'action', 'export:view'),
+    'export:seuils': ("Exporter les seuils de compteurs", 'action', 'export:view'),
+    'export:periodicites': ("Exporter les périodicités", 'action', 'export:view'),
+    'export:user': ("Exporter les utilisateurs", 'action', 'export:view'),
 
     # ── Menu ─────────────────────────────────────────────────────────────────
     'menu:view':           ("Accéder au menu de navigation",         'affichage', None),
@@ -184,8 +202,7 @@ perms_map = {
         'di:viewList', 'di:viewDetail', 'di:create', 'di:editCreated',
         'bt:viewList', 'bt:viewDetail',
         'eq:viewList', 'eq:viewDetail',
-        'menu:view',
-        'dash:display.diCreated', 'dash:display.eq', 'dash:stats.di', 'dash:display.vertical',
+        'dash:display.diCreated', 'dash:display.eq', 'dash:stats.di','dash:display.vertical',
     ],
 
     "Magasinier": [
@@ -193,8 +210,6 @@ perms_map = {
         'stock:view', 'stock:export', 'stock:viewReservations', 'stock:addPurchase', 'stock:transfer',
         'cons:viewDetail', 'cons:create', 'cons:edit', 'cons:delete', 'cons:export',
         'mag:viewList', 'mag:viewDetail', 'mag:create', 'mag:edit', 'mag:delete', 'mag:export',
-        'menu:view',
-        'export:view',
         'dash:display.mag',
     ],
 }

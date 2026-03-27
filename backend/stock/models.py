@@ -10,7 +10,7 @@ class Magasin(ArchivableMixin, models.Model):
     adresse = models.ForeignKey(Adresse, on_delete=models.CASCADE, null=True, blank=True, help_text="Adresse du magasin")
 
     def __str__(self):
-        return self.nom
+        return f"{self.id} - {self.nom}"
 
     class Meta:
         db_table = 'gimao_magasin'
@@ -26,12 +26,16 @@ class Consommable(ArchivableMixin, models.Model):
     documents = models.ManyToManyField('donnees.Document', blank=True, help_text="Documents associés au consommable")
     
     def __str__(self):
-        return self.designation
+        return f"{self.id} - {self.designation}"
 
     class Meta:
         db_table = 'gimao_consommable'
         verbose_name = 'Consommable'
         verbose_name_plural = 'Consommables'
+        indexes = [
+            models.Index(fields=['archive', 'designation', 'id'], name='cons_arch_des_idx'),
+            models.Index(fields=['archive', 'seuilStockFaible', 'id'], name='cons_arch_seuil_idx'),
+        ]
 
 class PorterSur(models.Model):
     """
@@ -74,7 +78,7 @@ class PorterSur(models.Model):
         unique_together = ['consommable', 'fournisseur', 'fabricant', 'date_reference_prix']
     
     def __str__(self):
-        return f"{self.consommable} - {self.fournisseur} - {self.fabricant} ({self.date_reference_prix})"
+        return f"{self.id} - {self.consommable.designation} - {self.fournisseur.nom} - {self.fabricant.nom} ({self.date_reference_prix})"
 
 
 class Stocker(models.Model):
@@ -87,9 +91,12 @@ class Stocker(models.Model):
         verbose_name = 'Stock en magasin'
         verbose_name_plural = 'Stocks en magasin'
         unique_together = ['consommable', 'magasin']
+        indexes = [
+            models.Index(fields=['magasin', 'consommable'], name='stock_mag_cons_idx'),
+        ]
 
     def __str__(self):
-        return f"{self.consommable} dans {self.magasin} : {self.quantite}"
+        return f"{self.id} - {self.consommable.designation} - {self.magasin.nom} : {self.quantite}"
 
 
 class EstCompatible(models.Model):
@@ -101,3 +108,6 @@ class EstCompatible(models.Model):
         verbose_name = 'Compatibilité consommable-modèle'
         verbose_name_plural = 'Compatibilités consommable-modèle'
         unique_together = ['consommable', 'modeleEquipement']
+
+    def __str__(self):
+        return f"{self.id} - {self.consommable.designation} - {self.modeleEquipement.nom}"

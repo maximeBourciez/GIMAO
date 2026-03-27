@@ -14,12 +14,15 @@ class ModeleEquipement(models.Model):
     fabricant = models.ForeignKey(Fabricant, on_delete=models.PROTECT, related_name="modeles", help_text="Fabricant du modèle")
 
     def __str__(self):
-        return f"{self.nom} ({self.fabricant.nom})"
+        return f"{self.id} - {self.nom} - {self.fabricant.nom}"
     
     class Meta:
         db_table = 'gimao_modele_equipement'
         verbose_name = 'Modèle d\'équipement'
         verbose_name_plural = 'Modèles d\'équipements'
+        indexes = [
+            models.Index(fields=['nom'], name='modele_nom_idx'),
+        ]
 
 
 class FamilleEquipement(models.Model):
@@ -30,12 +33,15 @@ class FamilleEquipement(models.Model):
     familleParente = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name="sous_familles", help_text="Famille parente, si applicable")
 
     def __str__(self):
-        return self.nom
+        return f"{self.id} - {self.nom}"
     
     class Meta:
         db_table = 'gimao_famille_equipement'
         verbose_name = 'Famille d\'équipement'
         verbose_name_plural = 'Familles d\'équipements'
+        indexes = [
+            models.Index(fields=['nom'], name='famille_nom_idx'),
+        ]
 
 
 class Equipement(ArchivableMixin, models.Model):
@@ -70,7 +76,8 @@ class Equipement(ArchivableMixin, models.Model):
     y = models.FloatField(null=True, blank=True, help_text="Coordonnée Y del'équipement dans le lieu")
 
     def __str__(self):
-        return f"{self.designation} ({self.numSerie})"
+        return f"{self.id} - {self.designation} - {self.numSerie}"
+
 
     def get_dernier_statut(self):
         dernier_statut = self.statuts.order_by('-dateChangement').first()
@@ -80,6 +87,11 @@ class Equipement(ArchivableMixin, models.Model):
         db_table = 'gimao_equipement'
         verbose_name = 'Équipement'
         verbose_name_plural = 'Équipements'
+        indexes = [
+            models.Index(fields=['archive', 'designation', 'id'], name='eq_arch_des_id_idx'),
+            models.Index(fields=['archive', 'lieu', 'id'], name='eq_arch_lieu_id_idx'),
+            models.Index(fields=['archive', 'modele', 'id'], name='eq_arch_mod_id_idx'),
+        ]
 
 
 class StatutEquipement(models.Model):
@@ -98,13 +110,16 @@ class StatutEquipement(models.Model):
     equipement = models.ForeignKey(Equipement, on_delete=models.CASCADE, related_name="statuts", help_text="Équipement concerné")
 
     def __str__(self):
-        return f"{self.statut} ({self.dateChangement})"
+        return f"{self.id} - {self.statut} - {self.dateChangement}"
     
     class Meta:
         db_table = 'gimao_statut_equipement'
         verbose_name = 'Statut d\'équipement'
         verbose_name_plural = 'Statuts d\'équipements'
         ordering = ['-dateChangement']
+        indexes = [
+            models.Index(fields=['equipement', '-dateChangement'], name='eq_statut_last_idx'),
+        ]
 
 
 class Compteur(models.Model):
@@ -123,7 +138,7 @@ class Compteur(models.Model):
     
 
     def __str__(self):
-        return f"Compteur {self.id} - {self.equipement.designation} - Nom : {self.nomCompteur}"
+        return f"{self.id} - {self.nomCompteur} - {self.equipement.designation}"
     
     class Meta:
         db_table = 'gimao_compteur'
@@ -179,7 +194,7 @@ class Declencher(models.Model):
             valeurAfficheeProchaine = self.ordinalToISOString(self.prochaineMaintenance)
 
             return(
-                f"{self.compteur.nomCompteur} - Seuil: {valeurAfficheeProchaine} "
+                f"{self.id} - {self.compteur.nomCompteur} - Seuil: {valeurAfficheeProchaine} "
                 f"(Dernière: {self.ordinalToISOString(self.derniereIntervention)}, Écart: {self.ecartInterventions} {self.compteur.unite},"
                 f" Glissant: {'Oui' if self.estGlissant else 'Non'})"
             )
@@ -187,7 +202,7 @@ class Declencher(models.Model):
         else:
             valeurAfficheeProchaine = self.prochaineMaintenance
             return (
-                f"{self.compteur.nomCompteur} - Seuil: {valeurAfficheeProchaine} {self.compteur.unite }"
+                f"{self.id} - {self.compteur.nomCompteur} - Seuil: {valeurAfficheeProchaine} {self.compteur.unite }"
                 f" (Dernière: {self.derniereIntervention} {self.compteur.unite}, Écart: {self.ecartInterventions} {self.compteur.unite},"
                 f" Glissant: {'Oui' if self.estGlissant else 'Non'})"
             )
@@ -212,7 +227,7 @@ class Constituer(models.Model):
     consommable = models.ForeignKey(Consommable, on_delete=models.CASCADE, help_text="Consommable associé")
 
     def __str__(self):
-        return f"Equipement {self.equipement.id} - Consommable {self.consommable.id}"
+        return f"{self.id} - {self.equipement.designation} - Consommable {self.consommable.designation}"
     
     class Meta:
         db_table = 'gimao_constituer'
@@ -228,7 +243,7 @@ class DocumentEquipement(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, help_text="Document associé")
 
     def __str__(self):
-        return f"Equipement {self.equipement.id} - Document {self.document.id}"
+        return f"{self.id} - {self.equipement.designation} - Document {self.document.nomDocument}"
     
     class Meta:
         db_table = 'gimao_document_equipement'

@@ -30,6 +30,7 @@ import { useStore } from 'vuex'
 import FailureForm from '@/components/Forms/FailureForm.vue'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
+import { fetchAllPages } from '@/utils/paginatedApi'
 import '@/assets/css/global.css'
 
 const router = useRouter()
@@ -48,7 +49,7 @@ const fetchData = async () => {
 
   try {
     const [equipmentsResponse, typesDocumentsResponse] = await Promise.all([
-      api.get('equipements/'),
+      fetchAllPages(api, 'equipements/'),
       api.get('types-documents/')
     ])
     

@@ -33,6 +33,7 @@ import { useRouter, useRoute } from 'vue-router'
 import FailureForm from '@/components/Forms/FailureForm.vue'
 import { useApi } from '@/composables/useApi'
 import { API_BASE_URL } from '@/utils/constants'
+import { fetchAllPages } from '@/utils/paginatedApi'
 
 const router = useRouter()
 const route = useRoute()
@@ -47,7 +48,7 @@ const typesDocuments = ref([])
 
 const fetchEquipments = async () => {
   try {
-    equipments.value = await api.get('equipements/')
+    equipments.value = await fetchAllPages(api, 'equipements/')
   } catch (error) {
     console.error('Erreur lors de la récupération des équipements:', error)
   }

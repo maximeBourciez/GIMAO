@@ -95,24 +95,35 @@ class UtilisateurSerializer(serializers.ModelSerializer):
         read_only_fields = ['derniereConnexion', 'dateCreation']
 
  
+    def _get_prefetched_permissions_personnalisees(self, obj):
+        return getattr(obj, '_prefetched_objects_cache', {}).get('permissions_personnalisees')
+
     def get_permissions_names(self, obj):
         """
         Retourne les permissions de l'utilisateur.
         Si des permissions personnalisées existent, elles remplacent celles du rôle.
         Sinon, on retourne les permissions du rôle.
         """
-        perms_perso = UtilisateurPermission.objects.filter(
-            utilisateur=obj
-        ).select_related('permission')
-        
-        if perms_perso.exists():
-            return [up.permission.nomPermission for up in perms_perso]
+        perms_perso = self._get_prefetched_permissions_personnalisees(obj)
+        if perms_perso is not None:
+            if perms_perso:
+                return [up.permission.nomPermission for up in perms_perso]
+        else:
+            perms_perso = UtilisateurPermission.objects.filter(
+                utilisateur=obj
+            ).select_related('permission')
+            if perms_perso.exists():
+                return [up.permission.nomPermission for up in perms_perso]
+
         if obj.role:
             return [perm.nomPermission for perm in obj.role.permissions.all()]
         return []
 
     def get_a_permissions_personnalisees(self, obj):
         """Indique si l'utilisateur a des permissions personnalisées"""
+        perms_perso = self._get_prefetched_permissions_personnalisees(obj)
+        if perms_perso is not None:
+            return bool(perms_perso)
         return obj.permissions_personnalisees.exists()
 
 
