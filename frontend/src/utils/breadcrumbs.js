@@ -46,6 +46,7 @@ export const BREADCRUMBS = {
 
     // Gestion des données
     DataManagement: "Gestion des données",
+    ExportData: "Export de données",
 
     // Lieux
     LocationList: "Lieux",

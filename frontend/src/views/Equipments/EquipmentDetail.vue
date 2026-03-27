@@ -80,6 +80,10 @@
               <v-btn color="warning" prepend-icon="mdi-alert-circle" @click="signalFailure" v-if="store.getters.hasPermission('di:create')">
                 Créer une demande d'intervention (DI)
               </v-btn>
+              <v-btn color="primary" prepend-icon="mdi-calendar-clock" @click="openMaintenanceCalendar"
+                v-if="store.getters.hasPermission('eq:maintenance.calendar')">
+                Voir le calendrier maintenance
+              </v-btn>
             </v-card-actions>
           </v-card>
 
@@ -442,6 +446,20 @@ const signalFailure = () => {
       params: { equipementId: equipement.value.id }
     });
   }
+};
+
+const openMaintenanceCalendar = () => {
+  const equipmentId = equipmentDetails.value?.id;
+  if (!equipmentId) return;
+
+  router.push({
+    name: 'Calendar',
+    query: {
+      from: 'equipment',
+      mode: 'maintenance',
+      equipmentId: equipmentId
+    }
+  });
 };
 
 const viewCounter = (counter) => {

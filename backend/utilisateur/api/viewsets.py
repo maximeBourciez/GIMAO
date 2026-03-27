@@ -365,6 +365,20 @@ class UtilisateurViewSet(GimaoModelViewSet):
             pass  # On ne révèle rien pour la sécurité
 
         return Response({"detail": "Déconnexion réussie"}, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'])
+    def techniciens(self, request):
+        """
+        Retourne la liste des utilisateurs ayant le rôle de technicien.
+        GET /api/utilisateurs/techniciens/
+        """
+        technicien_role = Role.objects.filter(nomRole__iexact='Technicien').first()
+        if not technicien_role:
+            return Response({"detail": "Rôle 'Technicien' introuvable"}, status=status.HTTP_404_NOT_FOUND)
+
+        techniciens = Utilisateur.objects.filter(role=technicien_role, actif=True).order_by('nomUtilisateur')
+        serializer = UtilisateurSimpleSerializer(techniciens, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 # ==================== LOG VIEWSET ====================
 

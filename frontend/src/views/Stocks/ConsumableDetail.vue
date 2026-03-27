@@ -56,7 +56,7 @@
                 <v-data-table
                   v-if="consumable?.stocks?.length"
                   :headers="stockHeaders"
-                  :items="consumable.stocks"
+                  :items="consumable.stocks.filter(stock => !stock.quantite == 0)"
                   class="elevation-1"
                   hide-default-footer
                   :items-per-page="-1"

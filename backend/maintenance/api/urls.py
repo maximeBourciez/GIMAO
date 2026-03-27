@@ -6,7 +6,8 @@ from maintenance.api.viewsets import (
     TypePlanMaintenanceViewSet,
     PlanMaintenanceViewSet,
     PlanMaintenanceConsommableViewSet,
-    DashboardStatsViewset
+    DashboardStatsViewset,
+    MaintenanceCalendarViewSet
 )
 
 # Créer le router
@@ -42,4 +43,9 @@ urlpatterns = [
         DashboardStatsViewset.as_view({'get': 'list'}),
         name="stats",
     ),
+    path(
+        "maintenance/",
+        MaintenanceCalendarViewSet.as_view({'get': 'list'}),
+        name="maintenance-calendar",
+    )
 ]
