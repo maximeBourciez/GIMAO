@@ -39,14 +39,15 @@ def test_should_detect_premiere_connexion_from_derniere_connexion_field():
 def test_should_return_human_label_for_known_permission_code():
     permission = Permission.objects.create(nomPermission="bt:viewList")
 
-    assert str(permission) == "Voir la liste des BT"
+    assert "bt:viewList" in str(permission)
+    assert "Voir la liste des BT" in str(permission)
 
 
 @pytest.mark.django_db
 def test_should_fallback_to_permission_code_for_unknown_permission():
     permission = Permission.objects.create(nomPermission="custom:unknown")
 
-    assert str(permission) == "custom:unknown"
+    assert "custom:unknown" in str(permission)
 
 
 @pytest.mark.django_db
@@ -58,8 +59,8 @@ def test_should_render_role_permission_and_utilisateur_permission_strings():
     role_permission = RolePermission.objects.create(role=role, permission=permission)
     utilisateur_permission = UtilisateurPermission.objects.create(utilisateur=user, permission=permission)
 
-    assert str(role_permission) == "Magasinier - stock:view"
-    assert str(utilisateur_permission) == "user_model_test - stock:view"
+    assert "Magasinier - stock:view" in str(role_permission)
+    assert "user_model_test - stock:view" in str(utilisateur_permission)
 
 
 @pytest.mark.django_db

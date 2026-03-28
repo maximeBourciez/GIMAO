@@ -864,6 +864,8 @@ class BonTravailViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModel
         if getattr(self, 'action', None) not in {'list', 'assigne_a'}:
             return queryset
 
+        queryset = queryset.filter(archive=False)
+
         cloture_raw = str(self.request.query_params.get('cloture', 'false')).strip().lower()
         include_cloture = cloture_raw in ['true', '1']
         if include_cloture or statut == 'CLOTURE':
@@ -947,7 +949,7 @@ class BonTravailViewSet(PaginatedActionMixin, ArchivableViewSetMixin, GimaoModel
                 nom=data.get('nom') or '',
                 commentaire=data.get('commentaire', ''),
                 statut='TRANSFORMEE',
-                statut_suppose=data.get('statut_equipement'),
+                statut_suppose=data.get('statut_suppose') or data.get('statut_equipement') or 'EN_FONCTIONNEMENT',
                 date_creation=timezone.now(),
                 date_changementStatut=timezone.now(),
                 utilisateur=utilisateur,
