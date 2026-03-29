@@ -369,10 +369,15 @@ const onExportTypeChange = async () => {
     console.log(response)
     if (response && response.fields) {
       availableFields.value = response.fields
+      form.columns = response.fields.map(field => field.value)
+    } else {
+      availableFields.value = []
+      form.columns = []
     }
   } catch (error) {
     console.error("Erreur de la récupération des champs: ", error)
     availableFields.value = []
+    form.columns = []
   } finally {
     isFieldsLoading.value = false
   }
