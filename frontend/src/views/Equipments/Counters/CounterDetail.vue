@@ -285,8 +285,8 @@
       </v-card-title>
       <v-divider></v-divider>
       <v-card-text class="pa-4">
-        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :typesPM="typesPM"
-          :consumables="consumables" :existing-p-ms="availablesPMs" :types-documents="typesDocuments" @cancel="closeSeuilDialog"
+        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :typesPM="pmTypes"
+          :consumables="consumables" :existing-p-ms="existingPMs" :types-documents="typesDocuments" @cancel="closeSeuilDialog"
           :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="true" @save="handleFormSave" />
       </v-card-text>
       <v-divider></v-divider>
@@ -352,6 +352,14 @@ const countersForSelect = computed(() => {
   ];
 });
 
+const pmTypes = computed(() => {
+  typesPM.value = typesPM.value.filter(item => item.libelle === 'Préventive conditionnelle' || item.libelle === 'Préventive systématique').map(item => ({
+        id: item.id,
+        libelle: item.libelle
+      }));
+  return typesPM.value;
+});
+
 const progressionData = computed(() => {
   if (!counter.value || !counter.value.seuils) return {};
 
@@ -366,16 +374,6 @@ const progressionData = computed(() => {
     }
   });
   return data;
-});
-
-const availablesPMs = computed(() => {
-  if (!counter.value) return [];
-
-  const associatedPMIds = counter.value.seuils
-    .filter((s) => s.planMaintenance)
-    .map((s) => s.planMaintenance.id);
-
-  return existingPMs.value.filter((pm) => !associatedPMIds.includes(pm.id));
 });
 
 const getProgressionColor = (seuil) => {
