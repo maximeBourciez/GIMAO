@@ -3,7 +3,7 @@
     v-if="message"
     :type="type"
     :class="alertClass"
-    :dismissible="dismissible"
+    :closable="dismissible"
     @click:close="handleClose"
   >
     {{ message }}
