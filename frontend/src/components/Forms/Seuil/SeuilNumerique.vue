@@ -50,6 +50,15 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue"]);
 
+const toNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 // Copie locale pour éviter la mutation directe de la prop
 const localSeuil = reactive({
   derniereIntervention: props.modelValue.derniereIntervention ?? 0,
@@ -69,15 +78,20 @@ watch(
 );
 
 const updateProchaineMaintenance = () => {
-  const derniere = Number(localSeuil.derniereIntervention);
-  const ecart    = Number(localSeuil.ecartInterventions);
+  const derniere = toNumberOrNull(localSeuil.derniereIntervention);
+  const ecart = toNumberOrNull(localSeuil.ecartInterventions);
 
-  if (isNaN(derniere) || isNaN(ecart)) {
+  if (derniere === null || ecart === null) {
     localSeuil.prochaineMaintenance = "";
   } else {
     localSeuil.prochaineMaintenance = derniere + ecart;
   }
 
-  emit("update:modelValue", { ...localSeuil });
+  emit("update:modelValue", {
+    ...localSeuil,
+    derniereIntervention: toNumberOrNull(localSeuil.derniereIntervention),
+    ecartInterventions: toNumberOrNull(localSeuil.ecartInterventions),
+    prochaineMaintenance: toNumberOrNull(localSeuil.prochaineMaintenance),
+  });
 };
 </script>
