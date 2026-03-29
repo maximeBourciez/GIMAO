@@ -621,9 +621,14 @@ const closeSeuilDialog = () => {
   isEditSeuil.value = false;
 };
 
-const saveCounter = async () => {
+const saveCounter = async (updatedCounter) => {
+  if (!updatedCounter) {
+    successMessage.value = "Aucune modification détectée.";
+    return;
+  }
+
   // Mode édition
-  const changes = detectCounterChanges();
+  const changes = detectCounterChanges(updatedCounter);
 
   console.log("Modifications détectées du compteur :", changes);
 
@@ -632,43 +637,44 @@ const saveCounter = async () => {
     changes.user = store.getters.currentUser?.id;
 
     await api.put(`compteurs/${counterId}/`, changes);
+    counter.value = { ...counter.value, ...updatedCounter };
     successMessage.value = "Compteur mis à jour avec succès.";
   } else {
     successMessage.value = "Aucune modification détectée.";
   }
 };
 
-const detectCounterChanges = () => {
+const detectCounterChanges = (updatedCounter) => {
   const changes = {};
 
-  if (originalCounter.value.nomCompteur !== counter.value.nomCompteur) {
+  if (originalCounter.value.nomCompteur !== updatedCounter.nomCompteur) {
     changes.nomCompteur = {
       'ancien': originalCounter.value.nomCompteur,
-      'nouveau': counter.value.nomCompteur,
+      'nouveau': updatedCounter.nomCompteur,
     };
   }
-  if (originalCounter.value.valeurCourante !== counter.value.valeurCourante) {
+  if (originalCounter.value.valeurCourante !== updatedCounter.valeurCourante) {
     changes.valeurCourante = {
       'ancienne': originalCounter.value.valeurCourante,
-      'nouvelle': counter.value.valeurCourante,
+      'nouvelle': updatedCounter.valeurCourante,
     };
   }
-  if (originalCounter.value.unite !== counter.value.unite && counter.value.type !== 'Calendaire') {
+  if (originalCounter.value.unite !== updatedCounter.unite && updatedCounter.type !== 'Calendaire') {
     changes.unite = {
       'ancienne': originalCounter.value.unite,
-      'nouvelle': counter.value.unite,
+      'nouvelle': updatedCounter.unite,
     };
   }
-  if (originalCounter.value.estPrincipal !== counter.value.estPrincipal) {
+  if (originalCounter.value.estPrincipal !== updatedCounter.estPrincipal) {
     changes.estPrincipal = {
       'ancien': originalCounter.value.estPrincipal,
-      'nouveau': counter.value.estPrincipal,
+      'nouveau': updatedCounter.estPrincipal,
     };
   }
-  if (originalCounter.value.type !== counter.value.type) {
+  if (originalCounter.value.type !== updatedCounter.type) {
     changes.type = {
       'ancien': originalCounter.value.type,
-      'nouveau': counter.value.type,
+      'nouveau': updatedCounter.type,
     };
   }
 
