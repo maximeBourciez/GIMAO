@@ -5,7 +5,5 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM alpine:latest
-WORKDIR /app
-COPY --from=build /app/dist /app/dist
-CMD ["tail", "-f", "/dev/null"]
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html

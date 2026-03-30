@@ -83,7 +83,8 @@
         </v-card>
       </v-col>
 
-      <v-col cols="12" lg="6">
+      <!-- Colonne BT en attente (50%) -->
+      <v-col v-if="store.getters.hasPermission('stock:viewReservations')" cols="12" lg="6">
         <BTStockValidation
           ref="btStockValidationRef"
           @count-updated="btPendingCount = $event"
