@@ -38,6 +38,7 @@
               hide-details
               clearable
               class="flex-grow-1"
+              @keydown.enter.prevent
             />
           </div>
 

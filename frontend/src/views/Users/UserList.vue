@@ -7,6 +7,7 @@
     :error-message="resolvedErrorMessage"
     :show-search="true"
     :show-create-button="false"
+    :search-value="searchQuery"
     :items-per-page="-1"
     :hide-default-footer="true"
     no-data-icon="mdi-account-off"

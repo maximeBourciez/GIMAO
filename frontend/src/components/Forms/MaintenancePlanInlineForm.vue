@@ -114,11 +114,11 @@
       <v-alert v-if="selectedExistingPM" type="info" class="mt-4" variant="tonal">
         <div class="text-subtitle-2 font-weight-bold mb-2">
           <v-icon left size="small">mdi-information</v-icon>
-          Aperçu du plan sélectionné
+          Aperçu de l'opération de maintenance sélectionnée
         </div>
         <v-row dense class="mb-2">
           <v-col cols="12" md="6">
-            <div class="text-caption">Nom du plan</div>
+            <div class="text-caption">Nom de l'opération</div>
             <div class="font-weight-medium">{{ selectedExistingPM.nom }}</div>
           </v-col>
           <v-col cols="12" md="6">
@@ -158,8 +158,8 @@
           <FormField
             v-model="plan.nom"
             field-name="nom"
-            label="Nom du plan"
-            placeholder="Saisir le nom du plan"
+            label="Nom de l'opération de maintenance"
+            placeholder="Saisir le nom de l'opération"
             counter="100"
           />
         </v-col>
@@ -278,7 +278,7 @@
       <v-spacer />
       <v-btn variant="text" @click="handleCancel">Annuler</v-btn>
       <v-btn type="submit" color="primary" :disabled="!isValid">
-        {{ isEditMode ? "Modifier le plan" : "Ajouter le plan" }}
+        {{ isEditMode ? "Modifier l'opération" : "Ajouter l'opération" }}
       </v-btn>
     </v-card-actions>
   </v-form>

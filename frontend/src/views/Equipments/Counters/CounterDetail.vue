@@ -285,8 +285,8 @@
       </v-card-title>
       <v-divider></v-divider>
       <v-card-text class="pa-4">
-        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :typesPM="typesPM"
-          :consumables="consumables" :existing-p-ms="availablesPMs" :types-documents="typesDocuments" @cancel="closeSeuilDialog"
+        <MaintenancePlanInlineForm v-model="currentPlan" :counters="countersForSelect" :typesPM="pmTypes"
+          :consumables="consumables" :existing-p-ms="existingPMs" :types-documents="typesDocuments" @cancel="closeSeuilDialog"
           :show-pm-selection="true" :is-edit-mode="!!currentSeuil.id" :show-actions="true" @save="handleFormSave" />
       </v-card-text>
       <v-divider></v-divider>
@@ -352,6 +352,14 @@ const countersForSelect = computed(() => {
   ];
 });
 
+const pmTypes = computed(() => {
+  typesPM.value = typesPM.value.filter(item => item.libelle === 'Préventive conditionnelle' || item.libelle === 'Préventive systématique').map(item => ({
+        id: item.id,
+        libelle: item.libelle
+      }));
+  return typesPM.value;
+});
+
 const progressionData = computed(() => {
   if (!counter.value || !counter.value.seuils) return {};
 
@@ -366,16 +374,6 @@ const progressionData = computed(() => {
     }
   });
   return data;
-});
-
-const availablesPMs = computed(() => {
-  if (!counter.value) return [];
-
-  const associatedPMIds = counter.value.seuils
-    .filter((s) => s.planMaintenance)
-    .map((s) => s.planMaintenance.id);
-
-  return existingPMs.value.filter((pm) => !associatedPMIds.includes(pm.id));
 });
 
 const getProgressionColor = (seuil) => {
@@ -621,9 +619,14 @@ const closeSeuilDialog = () => {
   isEditSeuil.value = false;
 };
 
-const saveCounter = async () => {
+const saveCounter = async (updatedCounter) => {
+  if (!updatedCounter) {
+    successMessage.value = "Aucune modification détectée.";
+    return;
+  }
+
   // Mode édition
-  const changes = detectCounterChanges();
+  const changes = detectCounterChanges(updatedCounter);
 
   console.log("Modifications détectées du compteur :", changes);
 
@@ -632,43 +635,44 @@ const saveCounter = async () => {
     changes.user = store.getters.currentUser?.id;
 
     await api.put(`compteurs/${counterId}/`, changes);
+    counter.value = { ...counter.value, ...updatedCounter };
     successMessage.value = "Compteur mis à jour avec succès.";
   } else {
     successMessage.value = "Aucune modification détectée.";
   }
 };
 
-const detectCounterChanges = () => {
+const detectCounterChanges = (updatedCounter) => {
   const changes = {};
 
-  if (originalCounter.value.nomCompteur !== counter.value.nomCompteur) {
+  if (originalCounter.value.nomCompteur !== updatedCounter.nomCompteur) {
     changes.nomCompteur = {
       'ancien': originalCounter.value.nomCompteur,
-      'nouveau': counter.value.nomCompteur,
+      'nouveau': updatedCounter.nomCompteur,
     };
   }
-  if (originalCounter.value.valeurCourante !== counter.value.valeurCourante) {
+  if (originalCounter.value.valeurCourante !== updatedCounter.valeurCourante) {
     changes.valeurCourante = {
       'ancienne': originalCounter.value.valeurCourante,
-      'nouvelle': counter.value.valeurCourante,
+      'nouvelle': updatedCounter.valeurCourante,
     };
   }
-  if (originalCounter.value.unite !== counter.value.unite && counter.value.type !== 'Calendaire') {
+  if (originalCounter.value.unite !== updatedCounter.unite && updatedCounter.type !== 'Calendaire') {
     changes.unite = {
       'ancienne': originalCounter.value.unite,
-      'nouvelle': counter.value.unite,
+      'nouvelle': updatedCounter.unite,
     };
   }
-  if (originalCounter.value.estPrincipal !== counter.value.estPrincipal) {
+  if (originalCounter.value.estPrincipal !== updatedCounter.estPrincipal) {
     changes.estPrincipal = {
       'ancien': originalCounter.value.estPrincipal,
-      'nouveau': counter.value.estPrincipal,
+      'nouveau': updatedCounter.estPrincipal,
     };
   }
-  if (originalCounter.value.type !== counter.value.type) {
+  if (originalCounter.value.type !== updatedCounter.type) {
     changes.type = {
       'ancien': originalCounter.value.type,
-      'nouveau': counter.value.type,
+      'nouveau': updatedCounter.type,
     };
   }
 

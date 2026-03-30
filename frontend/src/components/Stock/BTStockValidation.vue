@@ -16,6 +16,7 @@
       hide-details
       clearable
       class="mb-4"
+      @keydown.enter.prevent
     />
 
     <v-card-text class="pt-0 px-0 pb-0">

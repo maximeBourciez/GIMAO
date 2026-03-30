@@ -7,6 +7,7 @@
     :error-message="errorMessage"
     :show-search="showSearch"
     :show-create-button="false"
+    :search-value="serverPagination ? serverSearch : undefined"
     :no-data-text="noDataText"
     :items-per-page="serverPagination ? -1 : 10"
     :hide-default-footer="serverPagination"

@@ -550,6 +550,18 @@ class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     def _update_declencher_from_changes(self, compteur, modifications, request):
         """Met à jour le seuil Declencher d'un compteur"""
         print(f"Mise à jour du seuil pour le compteur {compteur.id}")
+
+        def to_float(value, default=0.0):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
+        def to_int(value, default=0):
+            try:
+                return int(float(value))
+            except (TypeError, ValueError):
+                return default
         
         # Récupérer le premier Declencher (normalement il n'y en a qu'un par compteur)
         declencher = compteur.declenchements.first()
@@ -569,13 +581,14 @@ class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
         if 'derniereIntervention' in modifications:
             nouvelle_valeur = modifications['derniereIntervention'].get('nouvelle')
             if nouvelle_valeur is not None:
-                declencher.derniereIntervention = int(nouvelle_valeur)
+                declencher.derniereIntervention = to_int(nouvelle_valeur)
                 print(f"  derniereIntervention: -> {nouvelle_valeur}")
         
-        if 'intervalle' in modifications:
-            nouvelle_valeur = modifications['intervalle'].get('nouvelle')
+        ecart_key = 'intervalle' if 'intervalle' in modifications else 'ecartInterventions' if 'ecartInterventions' in modifications else None
+        if ecart_key:
+            nouvelle_valeur = modifications[ecart_key].get('nouvelle')
             if nouvelle_valeur is not None:
-                declencher.ecartInterventions = float(nouvelle_valeur)
+                declencher.ecartInterventions = to_float(nouvelle_valeur)
                 print(f"  ecartInterventions: -> {nouvelle_valeur}")
         
         if 'estGlissant' in modifications:
@@ -585,7 +598,7 @@ class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 print(f"  estGlissant: -> {nouvelle_valeur}")
         
         # Recalculer la prochaine maintenance
-        declencher.prochaineMaintenance = declencher.derniereIntervention + declencher.ecartInterventions
+        declencher.prochaineMaintenance = to_float(declencher.derniereIntervention) + to_float(declencher.ecartInterventions)
         print(f"  prochaineMaintenance calculée: {declencher.prochaineMaintenance}")
         
         declencher.save()
@@ -1174,6 +1187,18 @@ class DeclenchementViewSet(GimaoModelViewSet):
         # 1. MISE À JOUR DU SEUIL
         # ============================
         if seuil_diff:
+            def to_float(value, default=0.0):
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return default
+
+            def to_int(value, default=0):
+                try:
+                    return int(float(value))
+                except (TypeError, ValueError):
+                    return default
+
             for champ, valeurs in seuil_diff.items():
                 if champ in ['derniereIntervention', 'prochaineMaintenance', 'ecartInterventions']:
                     # Si c'est un champ de date, convertir en jours
@@ -1182,7 +1207,10 @@ class DeclenchementViewSet(GimaoModelViewSet):
                         setattr(declenchement, champ, nouvelle_valeur)
                     else:
                         nouvelle_valeur = valeurs.get('nouveau')
-                        setattr(declenchement, champ, nouvelle_valeur)
+                        if champ == 'derniereIntervention':
+                            setattr(declenchement, champ, to_int(nouvelle_valeur))
+                        else:
+                            setattr(declenchement, champ, to_float(nouvelle_valeur))
 
                 elif hasattr(declenchement, champ):
                     setattr(declenchement, champ, valeurs.get('nouveau'))
