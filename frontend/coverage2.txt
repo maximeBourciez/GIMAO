@@ -1,0 +1,210 @@
+﻿
+> gimao-frontend@1.0.0 test:coverage
+> vitest run --coverage
+
+
+[1m[46m RUN [49m[22m [36mv4.1.2 [39m[90mC:/Users/andob/Documents/SAE/Env_Docker/GIMAO/frontend[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32mÔ£ô[39m src/components/Forms/inputType/__tests__/FormCheckbox.spec.js [2m([22m[2m3 tests[22m[2m)[22m[32m 263[2mms[22m[39m
+ [32mÔ£ô[39m src/components/Forms/inputType/__tests__/FormDatePicker.spec.js [2m([22m[2m3 tests[22m[2m)[22m[33m 309[2mms[22m[39m
+ [32mÔ£ô[39m src/components/Forms/inputType/__tests__/FormField.spec.js [2m([22m[2m3 tests[22m[2m)[22m[33m 311[2mms[22m[39m
+ [32mÔ£ô[39m src/components/Forms/inputType/__tests__/FormTextarea.spec.js [2m([22m[2m3 tests[22m[2m)[22m[32m 293[2mms[22m[39m
+ [32mÔ£ô[39m src/components/Forms/inputType/__tests__/FormSelect.spec.js [2m([22m[2m3 tests[22m[2m)[22m[33m 311[2mms[22m[39m
+ [31mÔØ»[39m src/components/Forms/inputType/__tests__/FormFileInput.spec.js [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 347[2mms[22m[39m
+     [32mÔ£ô[39m renders label with no required star when not provided or false[32m 220[2mms[22m[39m
+[31m     [31m├ù[31m renders label with required star when isFieldRequired returns true[39m[32m 76[2mms[22m[39m
+     [32mÔ£ô[39m handles missing validation injections gracefully[32m 48[2mms[22m[39m
+ [32mÔ£ô[39m src/components/common/__tests__/FormAlert.spec.js [2m([22m[2m3 tests[22m[2m)[22m[33m 551[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m affiche un bouton de fermeture si dismissible est true [33m 423[2mms[22m[39m
+ [32mÔ£ô[39m src/components/common/__tests__/FloatingCreateButton.spec.js [2m([22m[2m3 tests[22m[2m)[22m[33m 815[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m s'affiche par d├®faut quand visible est true [33m 444[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m ├®met l'├®v├®nement click quand l'utilisateur interagit [33m 347[2mms[22m[39m
+ [32mÔ£ô[39m src/components/common/__tests__/BaseForm.spec.js [2m([22m[2m2 tests[22m[2m)[22m[33m 751[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m rend le titre et un bouton submit [33m 525[2mms[22m[39m
+ [32mÔ£ô[39m src/components/common/__tests__/ConfirmationModal.spec.js [2m([22m[2m5 tests[22m[2m)[22m[33m 1135[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m ├®met l'├®v├®nement confirm quand le bouton Confirmer est cliqu├® [33m 525[2mms[22m[39m
+ [32mÔ£ô[39m src/components/common/__tests__/FormActions.spec.js [2m([22m[2m6 tests[22m[2m)[22m[33m 1143[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m rend les boutons par d├®faut (Annuler et Enregistrer) [33m 452[2mms[22m[39m
+[90mstdout[2m | src/components/Forms/__tests__/ConsommableForm.spec.js[2m > [22m[2mConsommableForm.vue[2m > [22m[2mcr├®e un consommable via API post et emet created
+[22m[39mValidating simple form
+Field designation valid: true
+Field seuilStockFaible valid: true
+designation: Vis
+
+ [32mÔ£ô[39m src/components/__tests__/EquipmentListComponent.spec.js [2m([22m[2m3 tests[22m[2m)[22m[33m 1311[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m doit afficher la liste des ├®quipements apr├¿s le chargement initial [33m 758[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m doit filtrer le tableau quand l'utilisateur utilise la barre de recherche [33m 337[2mms[22m[39m
+[90mstdout[2m | src/components/Forms/__tests__/MagasinForm.spec.js[2m > [22m[2mMagasinForm.vue[2m > [22m[2msoumet correctement un nouveau magasin via l'API
+[22m[39mValidating simple form
+Field nom valid: true
+Field estMobile valid: true
+Field adresse.numero valid: true
+Field adresse.rue valid: true
+Field adresse.ville valid: true
+Field adresse.code_postal valid: true
+Field adresse.pays valid: true
+
+[90mstdout[2m | src/components/Forms/__tests__/MagasinForm.spec.js[2m > [22m[2mMagasinForm.vue[2m > [22m[2msoumet correctement un nouveau magasin via l'API
+[22m[39mMagasin cr├®├® avec succ├¿s: {
+  id: [33m5[39m,
+  nom: [32m'Magasin Nord'[39m,
+  estMobile: [33mfalse[39m,
+  adresse: {
+    numero: [32m''[39m,
+    rue: [32m''[39m,
+    ville: [32m''[39m,
+    code_postal: [32m''[39m,
+    pays: [32m''[39m,
+    complement: [1mnull[22m
+  }
+}
+
+[90mstdout[2m | src/components/Forms/__tests__/ConsommableForm.spec.js[2m > [22m[2mConsommableForm.vue[2m > [22m[2mmodifie un consommable via API patch et emet updated
+[22m[39mValidating simple form
+Field designation valid: true
+Field seuilStockFaible valid: true
+
+[90mstdout[2m | src/components/Forms/__tests__/MagasinForm.spec.js[2m > [22m[2mMagasinForm.vue[2m > [22m[2mmodifie un magasin mobile et emet updated
+[22m[39mValidating simple form
+Field nom valid: true
+Field estMobile valid: true
+Field adresse.numero valid: true
+Field adresse.rue valid: true
+Field adresse.ville valid: true
+Field adresse.code_postal valid: true
+Field adresse.pays valid: true
+
+[90mstdout[2m | src/components/Forms/__tests__/MagasinForm.spec.js[2m > [22m[2mMagasinForm.vue[2m > [22m[2mmodifie un magasin mobile et emet updated
+[22m[39mMagasin modifi├® avec succ├¿s: {
+  id: [32m'22'[39m,
+  nom: [32m'Stock Zone B'[39m,
+  estMobile: [33mtrue[39m,
+  adresse: {
+    numero: [32m''[39m,
+    rue: [32m''[39m,
+    ville: [32m''[39m,
+    code_postal: [32m''[39m,
+    pays: [32m''[39m,
+    complement: [1mnull[22m
+  }
+}
+
+[90mstdout[2m | src/components/Forms/__tests__/ConsommableForm.spec.js[2m > [22m[2mConsommableForm.vue[2m > [22m[2maffiche une erreur explicite en cas d'echec API
+[22m[39mValidating simple form
+Field designation valid: true
+Field seuilStockFaible valid: true
+designation: Rondelle
+
+[90mstdout[2m | src/components/Forms/__tests__/LieuForm.spec.js[2m > [22m[2mLieuForm.vue[2m > [22m[2mappelle la m├®thode d'enregistrement lors de la soumission basique et emet created
+[22m[39mValidating simple form
+Field nomLieu valid: true
+Field typeLieu valid: true
+Field lienPlan valid: true
+{
+  "nomLieu": "Salle des machines",
+  "typeLieu": "Atelier",
+  "lienPlan": null,
+  "lieuParent": null
+}
+
+[90mstdout[2m | src/components/Forms/__tests__/MagasinForm.spec.js[2m > [22m[2mMagasinForm.vue[2m > [22m[2maffiche une erreur quand la cr├®ation du magasin ├®choue
+[22m[39mValidating simple form
+Field nom valid: true
+Field estMobile valid: true
+Field adresse.numero valid: true
+Field adresse.rue valid: true
+Field adresse.ville valid: true
+Field adresse.code_postal valid: true
+Field adresse.pays valid: true
+
+ [32mÔ£ô[39m src/components/Forms/__tests__/ConsommableForm.spec.js [2m([22m[2m5 tests[22m[2m)[22m[33m 2006[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m affiche le bon titre en mode cr├®ation [33m 407[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m cr├®e un consommable via API post et emet created [33m 632[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m modifie un consommable via API patch et emet updated [33m 488[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m affiche une erreur explicite en cas d'echec API [33m 329[2mms[22m[39m
+[90mstdout[2m | src/components/Forms/__tests__/LieuForm.spec.js[2m > [22m[2mLieuForm.vue[2m > [22m[2mappelle la m├®thode d'enregistrement lors de la soumission basique et emet created
+[22m[39mLieu cr├®├® avec succ├¿s: {
+  id: [33m1[39m,
+  nomLieu: [32m'Salle des machines'[39m,
+  typeLieu: [32m'Atelier'[39m,
+  lienPlan: [1mnull[22m,
+  lieuParent: [1mnull[22m
+}
+
+ [32mÔ£ô[39m src/components/Forms/__tests__/MagasinForm.spec.js [2m([22m[2m5 tests[22m[2m)[22m[33m 2110[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m affiche le formulaire vide en mode ajout [33m 456[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m soumet correctement un nouveau magasin via l'API [33m 773[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m modifie un magasin mobile et emet updated [33m 313[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m affiche une erreur quand la cr├®ation du magasin ├®choue [33m 371[2mms[22m[39m
+ [32mÔ£ô[39m src/utils/__tests__/helpers.spec.js [2m([22m[2m8 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32mÔ£ô[39m src/composables/__tests__/useValidationRules.spec.js [2m([22m[2m11 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m src/utils/__tests__/paginatedApi.spec.js [2m([22m[2m8 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+[90mstdout[2m | src/composables/__tests__/useFormValidation.spec.js[2m > [22m[2museFormValidation.js[2m > [22m[2mg├¿re un formulaire simple avec r├¿gles sous forme de tableau (strings et objects)
+[22m[39mValidating simple form
+Field username valid: false
+Field age valid: false
+Validating simple form
+Field username valid: true
+Field age valid: true
+
+[90mstdout[2m | src/composables/__tests__/useFormValidation.spec.js[2m > [22m[2museFormValidation.js[2m > [22m[2mg├¿re un formulaire simple avec r├¿gles sous forme d'objet
+[22m[39mValidating simple form
+Field emailField valid: false
+Field amount valid: false
+Field code valid: false
+Field password valid: false
+Field customField valid: false
+Validating simple form
+Field emailField valid: true
+Field amount valid: true
+Field code valid: true
+Field password valid: true
+Field customField valid: true
+
+[90mstdout[2m | src/composables/__tests__/useFormValidation.spec.js[2m > [22m[2museFormValidation.js[2m > [22m[2mg├¿re les r├¿gles customs en fonction directe
+[22m[39mValidating simple form
+Field champ valid: false
+Validating simple form
+Field champ valid: true
+
+ [32mÔ£ô[39m src/composables/__tests__/useFormValidation.spec.js [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m src/composables/__tests__/http.spec.js [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+[90mstdout[2m | src/components/Forms/__tests__/LieuForm.spec.js[2m > [22m[2mLieuForm.vue[2m > [22m[2mg├®n├¿re un appel PATCH API en mode isEdit
+[22m[39mValidating simple form
+Field nomLieu valid: true
+Field typeLieu valid: true
+Field lienPlan valid: true
+{
+  "nomLieu": "Bureau 2",
+  "typeLieu": "Salle",
+  "lienPlan": null,
+  "lieuParent": null
+}
+
+[90mstdout[2m | src/components/Forms/__tests__/LieuForm.spec.js[2m > [22m[2mLieuForm.vue[2m > [22m[2mg├®n├¿re un appel PATCH API en mode isEdit
+[22m[39mLieu modifi├® avec succ├¿s: {
+  id: [32m'42'[39m,
+  nomLieu: [32m'Bureau 2'[39m,
+  typeLieu: [32m'Salle'[39m,
+  lienPlan: [1mnull[22m,
+  lieuParent: [1mnull[22m
+}
+
+[90mstdout[2m | src/components/Forms/__tests__/LieuForm.spec.js[2m > [22m[2mLieuForm.vue[2m > [22m[2maffiche un message d'erreur si l'API renvoie une erreur
+[22m[39mValidating simple form
+Field nomLieu valid: true
+Field typeLieu valid: false
+Field lienPlan valid: true
+
+ [32mÔ£ô[39m src/components/Forms/__tests__/LieuForm.spec.js [2m([22m[2m5 tests[22m[2m)[22m[33m 2102[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m affiche le formulaire vide en mode cr├®ation [33m 311[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m appelle la m├®thode d'enregistrement lors de la soumission basique et emet created [33m 1028[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m g├®n├¿re un appel PATCH API en mode isEdit [33m 391[2mms[22m[39m
+ [32mÔ£ô[39m src/components/Forms/inputType/__tests__/FormRadio.spec.js [2m([22m[2m3 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m20 passed[39m[22m[90m (21)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m93 passed[39m[22m[90m (94)[39m
+[2m   Start at [22m 01:50:58
+[2m   Duration [22m 11.11s[2m (transform 40.86s, setup 287ms, import 71.58s, tests 13.91s, environment 47.93s)[22m
+
