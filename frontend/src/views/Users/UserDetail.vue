@@ -74,7 +74,7 @@
 
                                 <!-- Permissions -->
                                 <v-col cols="12" class="mt-2">
-                                        <div class="d-flex align-center justify-space-between mb-2">
+                                        <!-- <div class="d-flex align-center justify-space-between mb-2">
                                                 <strong>Permissions</strong>
                                                 <v-btn
                                                         v-if="canEditUser"
@@ -86,7 +86,7 @@
                                                 >
                                                         Gérer les permissions
                                                 </v-btn>
-                                        </div>
+                                        </div> -->
                                         <div class="d-flex align-center gap-2 mb-1">
                                                 <v-chip
                                                         v-if="data.a_permissions_personnalisees"
