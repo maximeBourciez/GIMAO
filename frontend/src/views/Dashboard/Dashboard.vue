@@ -53,7 +53,26 @@
         v-else-if="store.getters.hasPermission('dash:display.vertical')"
         class="column"
       >
-        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.diCreated')">
+        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.di')">
+          <FailureListComponent
+            @row-click="handleRowClickDI"
+            title="Liste des DI"
+            :showSearch="true"
+            :showCreateButton="false"
+          />
+
+          <v-btn
+            color="primary"
+            class="mt-4 float-right mr-4 mb-4"
+            rounded=""
+            @click="handleCreateDI"
+            :showCreateButton="false"
+          >
+            Créer une DI
+          </v-btn>
+        </v-card>
+
+        <v-card rounded="" v-else-if="store.getters.hasPermission('dash:display.diCreated')">
           <FailureListComponent
             @row-click="handleRowClickDI"
             title="Vos DI"
@@ -73,33 +92,12 @@
           </v-btn>
         </v-card>
 
-        <v-card rounded="" v-else-if="store.getters.hasPermission('dash:display.di')">
-          <FailureListComponent
-            @row-click="handleRowClickDI"
-            title="Liste des DI"
-            :showSearch="true"
-            :showCreateButton="false"
-          />
-
-          <v-btn
-            color="primary"
-            class="mt-4 float-right mr-4 mb-4"
-            rounded=""
-            @click="handleCreateDI"
-            :showCreateButton="false"
-          >
-            Créer une DI
-          </v-btn>
-        </v-card>
-
-        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.btAssigned')">
+        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.bt')">
           <InterventionListComponent
             @row-click="handleRowClickBT"
-            title="Vos BT Assignés"
+            title="Liste des BT"
             :showSearch="true"
             :showCreateButton="false"
-            show-statut-filter
-            :apiEndpoint="`bons-travail/assigne_a/?utilisateur_id=${store.getters.currentUser.id}`"
           />
 
           <v-btn
@@ -111,12 +109,14 @@
           </v-btn>
         </v-card>
 
-        <v-card rounded="" v-if="store.getters.hasPermission('dash:display.bt')">
+        <v-card rounded="" v-else-if="store.getters.hasPermission('dash:display.btAssigned')">
           <InterventionListComponent
             @row-click="handleRowClickBT"
-            title="Liste des BT"
+            title="Vos BT Assignés"
             :showSearch="true"
             :showCreateButton="false"
+            show-statut-filter
+            :apiEndpoint="`bons-travail/assigne_a/?utilisateur_id=${store.getters.currentUser.id}`"
           />
 
           <v-btn

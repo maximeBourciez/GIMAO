@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib import messages
 from django.utils.crypto import get_random_string
-from .models import Role, Utilisateur, Log , Permission, RolePermission
+from .models import Role, Utilisateur, Log, Permission, RolePermission, Module
 
 
 class RolePermissionInline(admin.TabularInline):
@@ -105,10 +105,17 @@ class LogAdmin(admin.ModelAdmin):
         """Les logs ne peuvent pas être modifiés"""
         return False
     
+class ModuleAdmin(admin.ModelAdmin):
+    list_display = ('code', 'nom')
+    search_fields = ('code', 'nom')
+    ordering = ('nom',)
+
+
 class PermissionAdmin(admin.ModelAdmin):
-    list_display = ('get_label', 'nomPermission', 'description')
+    list_display = ('get_label', 'nomPermission', 'module', 'description')
     search_fields = ('nomPermission',)
-    ordering = ('nomPermission',)
+    list_filter = ('module',)
+    ordering = ('module__nom', 'nomPermission')
 
     def get_queryset(self, request):
         return super().get_queryset(request).exclude(nomPermission__endswith=':export').exclude(nomPermission='export:view')
@@ -226,6 +233,7 @@ class RolePermissionAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
+admin.site.register(Module, ModuleAdmin)
 admin.site.register(Role, RoleAdmin)
 admin.site.register(Utilisateur, UtilisateurAdmin)
 admin.site.register(Log, LogAdmin)

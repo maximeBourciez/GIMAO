@@ -102,12 +102,6 @@ export const TABLE_HEADERS = {
 
     FAILURES_SUPER_LIGHT: [
         {
-            title: "N°",
-            align: "start",
-            sortable: true,
-            value: "id",
-        },
-        {
             title: "Nom",
             align: "start",
             sortable: true,

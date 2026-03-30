@@ -462,14 +462,16 @@ const canRefuseClose = computed(
 // Méthodes pour cacher les boutons si l'utilisateur n'a pas les droits
 const canStartIntervention = computed(() => {
   const isAssigned = isUserAssignedToIntervention.value;
-  const isCreator = intervention.value?.utilisateur_createur?.id === currentUser.value.id
-  return (isAssigned || isCreator);
+  const isCreator = intervention.value?.utilisateur_createur?.id === currentUser.value?.id;
+  const isResponsable = intervention.value?.responsable?.id === currentUser.value?.id;
+  return isAssigned || isCreator || isResponsable;
 });
 
 const canFinishIntervention = computed(() => {
   const isAssigned = isUserAssignedToIntervention.value;
   const isCreator = intervention.value?.utilisateur_createur?.id === currentUser.value.id;
-  return (isAssigned || isCreator);
+  const isResponsable = intervention.value?.responsable?.id === currentUser.value?.id;
+  return isAssigned || isCreator || isResponsable;
 });
 
 const canUserEditBT = computed(() => {
@@ -640,7 +642,7 @@ const refuseCloseBonTravail = async () => {
   actionLoading.value = true;
   try {
     await api.patch(`bons-travail/${intervention.value.id}/updateStatus/`, {
-      statut: "EN_COURS",
+      statut: "EN_ATTENTE",
       commentaire_refus_cloture: refuseCloseFormData.value.commentaire_refus_cloture,
       user: currentUser.value?.id,
     });

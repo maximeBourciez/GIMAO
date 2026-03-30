@@ -14,8 +14,15 @@
             <v-form @submit.prevent="login">
               <FormField class="mb-4" v-model="nomUtilisateur" label="Nom d'utilisateur" type="text" required />
 
-              <FormField class="mb-4" v-if="showPasswordField" v-model="motDePasse" label="Mot de passe" type="password"
-                required />
+              <FormField
+                ref="passwordFieldRef"
+                class="mb-4"
+                v-if="showPasswordField"
+                v-model="motDePasse"
+                label="Mot de passe"
+                type="password"
+                required
+              />
 
               <v-alert v-if="error" type="error" class="mb-3">
                 {{ error }}
@@ -33,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, nextTick } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import { useApi } from "@/composables/useApi";
@@ -51,8 +58,15 @@ const nomUtilisateur = ref("");
 const motDePasse = ref("");
 const error = ref("");
 const loading = ref(false);
+const passwordFieldRef = ref(null);
 
-const message = ref(history.state?.message || null) // ref au lieu de computed
+const message = ref(history.state?.message || null);
+
+const focusPasswordField = async () => {
+  await nextTick();
+  const input = passwordFieldRef.value?.$el?.querySelector('input');
+  input?.focus();
+};
 
 const login = async () => {
   error.value = "";
@@ -60,10 +74,10 @@ const login = async () => {
   message.value = null;
 
   if (showPasswordField.value) {
-    loginWithPassword();
+    await loginWithPassword();
   } else {
     // Vérifier l'existence de l'utilisateur
-    checkUserExistence();
+    await checkUserExistence();
   }
 };
 
@@ -94,7 +108,7 @@ const loginWithPassword = async () => {
     if (err.response?.detail) {
       error.value = err.response.detail;
     } else {
-      error.value = "Erreur de connexion";
+      error.value = "Mot de passe incorrect";
     }
   } finally {
     loading.value = false;
@@ -110,6 +124,7 @@ const checkUserExistence = async () => {
     if (response.existe) {
       showPasswordField.value = true;
       loading.value = false;
+      await focusPasswordField();
     } else {
       if (response.message && response.message.length > 0) {
         error.value = response.message;

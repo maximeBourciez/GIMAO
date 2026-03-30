@@ -454,14 +454,51 @@ const toDateOnlyString = (value) => {
 const equipmentSelected = ref(null)
 const equipmentsOptions = ref([])
 const technicienSelected = ref(null)
+
+const normalizeEquipments = (payload) => {
+    const rawItems = payload?.results ?? payload?.data?.results ?? payload?.data ?? payload ?? []
+    const list = Array.isArray(rawItems) ? rawItems : []
+
+    return list.map(e => ({
+        id: e.id,
+        nom: e.designation
+    }))
+}
+
+const ensureSelectedEquipmentOption = async (equipmentId) => {
+    if (equipmentId === null || equipmentId === undefined || equipmentId === '') {
+        return
+    }
+
+    const parsedId = Number(equipmentId)
+    if (Number.isNaN(parsedId)) {
+        return
+    }
+
+    const alreadyPresent = equipmentsOptions.value.some(e => Number(e.id) === parsedId)
+    if (alreadyPresent) {
+        return
+    }
+
+    try {
+        const equipment = await api.get(`equipements/${parsedId}/`)
+        if (!equipment || equipment.id === undefined || equipment.id === null) {
+            return
+        }
+
+        equipmentsOptions.value.push({
+            id: equipment.id,
+            nom: equipment.designation || `Équipement ${equipment.id}`
+        })
+    } catch (e) {
+        console.error('Erreur chargement équipement sélectionné', e)
+    }
+}
+
 const fetchEquipments = async () => {
     try {
         const res = await api.get('equipements/')
-        const data = res ?? []
-        equipmentsOptions.value = (data || []).map(e => ({
-            id: e.id,
-            nom: e.designation
-        }))
+        equipmentsOptions.value = normalizeEquipments(res)
     } catch (e) {
         console.error('Erreur Equipements', e)
         equipmentsOptions.value = []
@@ -507,6 +544,7 @@ const initializeCalendarFromRoute = async () => {
     await loadDataIfNeeded()
 
     if (mode.value === 'maintenance' && routeEquipmentId !== null && routeEquipmentId !== undefined && routeEquipmentId !== '') {
+        await ensureSelectedEquipmentOption(routeEquipmentId)
         equipmentSelected.value = Number(routeEquipmentId)
     }
 }
