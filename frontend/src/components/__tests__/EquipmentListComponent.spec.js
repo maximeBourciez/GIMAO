@@ -115,17 +115,17 @@ describe('EquipmentListComponent', () => {
     // Remarque: la `BaseListView` a sûrement un input textuel. S'il n'a pas de nom explicite,
     // on vise souvent la class vuetify ou le label. Adaptes ce sélecteur à ton code.
     // Imaginons que "show-search" affiche un champ avec pour label ou placeholder "Rechercher"
-    // const searchInput = screen.getByRole('textbox') 
-    // await user.type(searchInput, 'Compresseur')
+    const searchInput = screen.getByLabelText('Rechercher') 
+    await user.type(searchInput, 'Compresseur')
 
     // On déclenche la recherche (le debounce défini dans let searchDebounceId = null prendra le relais)
 
     // THEN: L'API devrait être appelée avec '?search=Compresseur'
     // La Pompe disparaît, le compresseur reste.
-    // await waitFor(() => {
-    //   expect(screen.getByText('Compresseur')).toBeDefined()
-    //   expect(screen.queryByText('Pompe A1')).toBeNull() 
-    // }, { timeout: 1000 }) // On peut allonger le délai pour couvrir le debounce de 300ms
+    await waitFor(() => {
+      expect(screen.getByText('Compresseur')).toBeDefined()
+      expect(screen.queryByText('Pompe A1')).toBeNull() 
+    }, { timeout: 1200 })
   })
 
   it("doit afficher un message explicite en cas de défaillance réseau", async () => {

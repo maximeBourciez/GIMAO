@@ -37,4 +37,13 @@ venv/
 
 # distribution
 frontend/dist/*
+
+# Fichiers de configuration de Visual Studio Code
 .vscode/
+
+# Coverage / Fichiers de log de test
+coverage/
+frontend/coverage/
+cover*.txt
+err.txt
+coverage_output.txt
