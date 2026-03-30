@@ -42,8 +42,4 @@ frontend/dist/*
 .vscode/
 
 # Coverage / Fichiers de log de test
-coverage/
 frontend/coverage/
-cover*.txt
-err.txt
-coverage_output.txt
