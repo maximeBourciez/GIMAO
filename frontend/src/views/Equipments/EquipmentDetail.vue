@@ -485,7 +485,7 @@ const saveCounter = async () => {
     const fd = new FormData();
 
     const counterData = {
-      nom: currentCounter.value.nom,
+      nom: currentCounter.value.nomCompteur,
       unite: currentCounter.value.unite,
       valeurCourante: currentCounter.value.valeurCourante ?? 0,
       estPrincipal: currentCounter.value.estPrincipal,
