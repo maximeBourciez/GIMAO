@@ -1,5 +1,5 @@
 <template>
-  <v-card class="rounded-lg pa-4 h-100" elevation="1">
+  <v-card class="rounded-lg pa-4" elevation="1">
     <div class="mb-4">
       <h1 class="text-h4 text-primary">BT en attente de mise de côté</h1>
       <p class="text-subtitle-1 stock-summary mb-0">

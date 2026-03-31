@@ -4,6 +4,18 @@ const proxyTarget = process.env.VUE_APP_PROXY_TARGET || 'http://localhost:8000'
 
 module.exports = defineConfig({
   devServer: {
+    client: {
+      overlay: {
+        runtimeErrors: (error) => {
+          const message = error && typeof error.message === 'string' ? error.message : ''
+
+          return (
+            message !== 'ResizeObserver loop completed with undelivered notifications.' &&
+            message !== 'ResizeObserver loop limit exceeded'
+          )
+        }
+      }
+    },
     proxy: {
       '/api': {
         target: proxyTarget,
