@@ -227,16 +227,37 @@
     <v-card>
       <v-card-title>Ajouter un document</v-card-title>
       <v-divider></v-divider>
-      <v-card-text>
-        <v-text-field v-model="newDocument.nomDocument" label="Nom du document" placeholder="Nom du document" class="mb-3" />
-        <v-select v-model="newDocument.typeDocument_id" label="Type de document" :items="typesDocuments"
-          item-title="nomTypeDocument" item-value="id" class="mb-3" />
-        <v-file-input v-model="newDocument.file" label="Fichier" prepend-icon="mdi-paperclip" />
-      </v-card-text>
-      <v-card-actions class="justify-end pa-4">
-        <v-btn variant="text" @click="closeDocumentDialog">Annuler</v-btn>
-        <v-btn color="primary" :loading="addingDocument" @click="submitDocument">Ajouter</v-btn>
-      </v-card-actions>
+      <v-form ref="documentForm">
+        <v-card-text>
+          <FormField
+            v-model="newDocument.nomDocument"
+            field-name="nomDocument"
+            label="Nom du document"
+            placeholder="Nom du document"
+            class="mb-3"
+          />
+          <FormSelect
+            v-model="newDocument.typeDocument_id"
+            field-name="typeDocument_id"
+            label="Type de document"
+            :items="typesDocuments"
+            item-title="nomTypeDocument"
+            item-value="id"
+            :rules="[v => !!v || 'Le type de document est requis']"
+            class="mb-3"
+          />
+          <FormFileInput
+            v-model="newDocument.file"
+            name="documentFile"
+            label="Fichier"
+            :rules="[v => !!v || 'Le fichier est requis']"
+          />
+        </v-card-text>
+        <v-card-actions class="justify-end pa-4">
+          <v-btn variant="text" @click="closeDocumentDialog">Annuler</v-btn>
+          <v-btn color="primary" :loading="addingDocument" @click="submitDocument">Ajouter</v-btn>
+        </v-card-actions>
+      </v-form>
     </v-card>
   </v-dialog>
 
@@ -264,6 +285,9 @@ import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
+import FormField from '@/components/Forms/inputType/FormField.vue';
+import FormSelect from '@/components/Forms/inputType/FormSelect.vue';
+import FormFileInput from '@/components/Forms/inputType/FormFileInput.vue';
 import DocumentList from '@/components/DocumentList.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
@@ -309,17 +333,17 @@ const typesDocuments = ref([]);
 const showAddDocumentDialog = ref(false);
 const addingDocument = ref(false);
 const newDocument = ref({ nomDocument: '', typeDocument_id: null, file: null });
+const documentForm = ref(null);
 
 const closeDocumentDialog = () => {
   showAddDocumentDialog.value = false;
   newDocument.value = { nomDocument: '', typeDocument_id: null, file: null };
+  documentForm.value?.reset();
 };
 
 const submitDocument = async () => {
-  if (!newDocument.value.file || !newDocument.value.typeDocument_id) {
-    errorMessage.value = 'Fichier et type de document requis';
-    return;
-  }
+  const { valid } = await documentForm.value.validate();
+  if (!valid) return;
   addingDocument.value = true;
   try {
     const fd = new FormData();
