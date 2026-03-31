@@ -43,3 +43,6 @@ frontend/dist/*
 
 # Coverage / Fichiers de log de test
 frontend/coverage/
+
+# Fichiers de cron.log
+backend/media/cron_logs/*
