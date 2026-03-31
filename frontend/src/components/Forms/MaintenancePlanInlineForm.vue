@@ -16,6 +16,7 @@
             :items="countersForSelect"
             item-title="label"
             item-value="value"
+            disabled="selectedCounterType === 'Calendaire'"
           >
             <template #item="{ props, item }">
               <v-list-item v-bind="props">
