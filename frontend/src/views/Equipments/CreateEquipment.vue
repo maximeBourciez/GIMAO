@@ -161,7 +161,7 @@
                               <div class="d-flex align-center justify-space-between mb-2">
                                 <div class="d-flex align-center gap-2">
                                   <v-icon color="primary">mdi-clipboard-check</v-icon>
-                                  <h3 class="text-h6">{{ plan.nom || 'Plan sans nom' }}</h3>
+                                  <h3 class="text-h6">{{ plan.nom || 'Opération sans nom' }}</h3>
                                   <v-chip v-if="plan.type_id" :color="getPlanTypeColor(plan)" size="small" label>
                                     {{ getPlanTypeName(plan) }}
                                   </v-chip>
@@ -348,7 +348,7 @@
     <v-dialog v-model="showPlanDialog" max-width="1000px" @click:outside="closePlanDialog" persistent>
       <v-card>
         <v-card-title>
-          {{ isPlanEditMode ? 'Modifier un plan de maintenance' : 'Ajouter un plan de maintenance' }}
+          {{ isPlanEditMode ? 'Modifier une opération de maintenance' : 'Ajouter une opération de maintenance' }}
         </v-card-title>
         <v-card-text>
           <MaintenancePlanInlineForm v-model="currentPlan" :isEditMode="isPlanEditMode"
