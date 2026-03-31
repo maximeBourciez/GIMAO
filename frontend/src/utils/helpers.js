@@ -147,7 +147,6 @@ export const formatCalendarDate = (value) => {
     date = new Date(value);
   }
   else if (typeof value === 'number') {
-    console.log("Formatage date calendaire pour", value);
     const ORDINAL_EPOCH = 719162; 
     const daysFromEpoch = value - ORDINAL_EPOCH;
     date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
