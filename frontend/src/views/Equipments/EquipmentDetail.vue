@@ -41,18 +41,12 @@
 
             <!-- Documents de l'équipement -->
             <v-card-text>
-              <div class="d-flex align-center justify-space-between mb-2">
-                <h4>Documents de l'équipement</h4>
-                <v-btn size="small" color="primary" variant="outlined" prepend-icon="mdi-plus"
-                  @click="showAddDocumentDialog = true">
-                  Ajouter
-                </v-btn>
-              </div>
+              <h4 class="mb-2">Documents de l'équipement</h4>
               <DocumentList
                 v-if="equipmentDocuments.length > 0"
                 :documents="equipmentDocuments"
                 :show-type="true"
-                :show-delete="true"
+                :show-delete="false"
                 @download-success="handleDownloadSuccess"
                 @download-error="handleDownloadError"
                 @delete-success="handleDeleteSuccess"
@@ -222,45 +216,6 @@
     @cancel="showArchiveDialog = false"
   />
 
-  <!-- Dialog pour ajouter un document -->
-  <v-dialog v-model="showAddDocumentDialog" max-width="500px" @click:outside="closeDocumentDialog">
-    <v-card>
-      <v-card-title>Ajouter un document</v-card-title>
-      <v-divider></v-divider>
-      <v-form ref="documentForm">
-        <v-card-text>
-          <FormField
-            v-model="newDocument.nomDocument"
-            field-name="nomDocument"
-            label="Nom du document"
-            placeholder="Nom du document"
-            class="mb-3"
-          />
-          <FormSelect
-            v-model="newDocument.typeDocument_id"
-            field-name="typeDocument_id"
-            label="Type de document"
-            :items="typesDocuments"
-            item-title="nomTypeDocument"
-            item-value="id"
-            :rules="[v => !!v || 'Le type de document est requis']"
-            class="mb-3"
-          />
-          <FormFileInput
-            v-model="newDocument.file"
-            name="documentFile"
-            label="Fichier"
-            :rules="[v => !!v || 'Le fichier est requis']"
-          />
-        </v-card-text>
-        <v-card-actions class="justify-end pa-4">
-          <v-btn variant="text" @click="closeDocumentDialog">Annuler</v-btn>
-          <v-btn color="primary" :loading="addingDocument" @click="submitDocument">Ajouter</v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
-
   <!-- Dialog pour ajouter un compteur -->
   <v-dialog v-model="showCounterDialog" max-width="600px" @click:outside="closeCounterDialog">
     <v-card>
@@ -285,9 +240,6 @@ import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import BaseDetailView from '@/components/common/BaseDetailView.vue';
 import CounterInlineForm from '@/components/Forms/CounterInlineForm.vue';
-import FormField from '@/components/Forms/inputType/FormField.vue';
-import FormSelect from '@/components/Forms/inputType/FormSelect.vue';
-import FormFileInput from '@/components/Forms/inputType/FormFileInput.vue';
 import DocumentList from '@/components/DocumentList.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
@@ -325,46 +277,6 @@ const archiveEquipment = async () => {
     showArchiveDialog.value = false;
   } finally {
     archiving.value = false;
-  }
-};
-
-// Document
-const typesDocuments = ref([]);
-const showAddDocumentDialog = ref(false);
-const addingDocument = ref(false);
-const newDocument = ref({ nomDocument: '', typeDocument_id: null, file: null });
-const documentForm = ref(null);
-
-const closeDocumentDialog = () => {
-  showAddDocumentDialog.value = false;
-  newDocument.value = { nomDocument: '', typeDocument_id: null, file: null };
-  documentForm.value?.reset();
-};
-
-const submitDocument = async () => {
-  const { valid } = await documentForm.value.validate();
-  if (!valid) return;
-  addingDocument.value = true;
-  try {
-    const fd = new FormData();
-    fd.append('file', newDocument.value.file);
-    fd.append('typeDocument_id', newDocument.value.typeDocument_id);
-    if (newDocument.value.nomDocument) fd.append('nomDocument', newDocument.value.nomDocument);
-
-    const docApi = useApi(API_BASE_URL);
-    await docApi.post(`equipements/${route.params.id}/add-document/`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-
-    successMessage.value = 'Document ajouté avec succès';
-    closeDocumentDialog();
-    await fetchEquipmentData();
-    setTimeout(() => successMessage.value = '', 3000);
-  } catch (error) {
-    console.error('Erreur lors de l\'ajout du document:', error);
-    errorMessage.value = 'Erreur lors de l\'ajout du document';
-  } finally {
-    addingDocument.value = false;
   }
 };
 
@@ -622,15 +534,8 @@ const handleDeleteError = (message) => {
   setTimeout(() => errorMessage.value = '', 3000);
 };
 
-onMounted(async () => {
+onMounted(() => {
   fetchEquipmentData();
-  try {
-    const formDataApi = useApi(API_BASE_URL);
-    const data = await formDataApi.get('equipements/form-data/');
-    typesDocuments.value = data?.typesDocuments ?? [];
-  } catch (e) {
-    console.error('Erreur chargement types documents:', e);
-  }
 });
 
 const editCurrentEquip = () => [
