@@ -591,7 +591,7 @@ const handlePeriodicPlanEdit = (plan) => {
 
 // Affiche les actions (dont "Créer") à l'étape 4 si aucun compteur utilisateur, sinon seulement à la dernière étape.
 const showFormActions = computed(() =>
-  step.value === EQUIPMENT_CREATE_STEPS.length || (step.value === 4 && !hasUserCounters.value)
+  step.value === EQUIPMENT_CREATE_STEPS.length || step.value >= 4
 );
 
 // Helpers de navigation entre étapes
