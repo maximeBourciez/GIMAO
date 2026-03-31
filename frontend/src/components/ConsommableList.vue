@@ -84,11 +84,7 @@
       </v-col>
 
       <!-- Colonne BT en attente (50%) -->
-      <v-col
-        v-if="store.getters.hasPermission('stock:viewReservations') && btPanelReady"
-        cols="12"
-        lg="6"
-      >
+      <v-col v-if="store.getters.hasPermission('stock:viewReservations')" cols="12" lg="6">
         <BTStockValidation
           ref="btStockValidationRef"
           @count-updated="btPendingCount = $event"
@@ -168,7 +164,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useStore } from 'vuex';
 import MagasinFilter from '@/components/Stock/MagasinFilter.vue';
 import MagasinForm from '@/components/Forms/MagasinForm.vue';
@@ -215,9 +211,6 @@ const btPendingCount = ref(0);
 const btCompletedCount = ref(0);
 const btStockValidationRef = ref(null);
 const archiving = ref(false);
-const btPanelReady = ref(false);
-
-let btPanelRafId = null;
 
 const magasins = computed(() => magasinsApi.data.value || []);
 const showCreateButton = computed(() => store.getters.hasPermission('cons:create'));
@@ -385,15 +378,6 @@ const handleStockUpdated = async () => {
 
 onMounted(() => {
   fetchData();
-  btPanelRafId = requestAnimationFrame(() => {
-    btPanelReady.value = true;
-  });
-});
-
-onBeforeUnmount(() => {
-  if (btPanelRafId) {
-    cancelAnimationFrame(btPanelRafId);
-  }
 });
 </script>
 
