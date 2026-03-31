@@ -52,17 +52,18 @@ describe('ConsommableForm.vue', () => {
   })
 
   it('crée un consommable via API post et emet created', async () => {
+    // GIVEN (Étant donné) : Un formulaire vide pour créer un nouveau consommable
     const { emitted } = renderForm({ initialData: null })
     const user = userEvent.setup()
 
-    // Champ designation
+    // WHEN (Quand) : L'utilisateur saisit "Vis" comme désignation et soumet le formulaire
     const desInput = screen.getByPlaceholderText('Saisir la désignation du consommable')
     await user.type(desInput, 'Vis')
 
-    // On soumet
     const submitBtn = screen.getByRole('button', { name: /Cr.*er|Enregistrer|Sauvegarder/i })
     await user.click(submitBtn)
 
+    // THEN (Alors) : On attend l'affichage du message de succès et l'émission du signal "created"
     await waitFor(() => {
       expect(screen.getByText('Consommable créé avec succès')).toBeDefined()
       expect(emitted().created).toBeTruthy()
