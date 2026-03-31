@@ -25,7 +25,7 @@
                   </v-icon>
                 </template>
                 <v-list-item-title>
-                  {{ item.raw.label }}
+                  {{ item.raw.nomCompteur || 'Compteur sans nom' }}
                   <span v-if="item.raw.isPrincipal" class="text-caption text-primary ml-1">(Principal)</span>
                 </v-list-item-title>
                 <v-list-item-subtitle v-if="item.raw.type !== 'Calendaire'">
@@ -362,7 +362,7 @@ const countersForSelect = computed(() =>
     })
     .map(({ counter, index }) => ({
       value: index,
-      label: counter.nom,
+      label: counter.nomCompteur || 'Compteur sans nom',
       type: counter.type,
       isPrincipal: counter.estPrincipal,
       currentValue: counter.valeurCourante,
