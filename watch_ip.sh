@@ -3,6 +3,8 @@ CURRENT_IP=$(hostname -I | awk '{print $1}')
 
 echo "IP initiale : $CURRENT_IP"
 
+./init.sh
+
 while true; do
   sleep 60
   
