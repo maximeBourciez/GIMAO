@@ -41,12 +41,18 @@
 
             <!-- Documents de l'équipement -->
             <v-card-text>
-              <h4 class="mb-2">Documents de l'équipement</h4>
+              <div class="d-flex align-center justify-space-between mb-2">
+                <h4>Documents de l'équipement</h4>
+                <v-btn size="small" color="primary" variant="outlined" prepend-icon="mdi-plus"
+                  @click="showAddDocumentDialog = true">
+                  Ajouter
+                </v-btn>
+              </div>
               <DocumentList
                 v-if="equipmentDocuments.length > 0"
                 :documents="equipmentDocuments"
                 :show-type="true"
-                :show-delete="false"
+                :show-delete="true"
                 @download-success="handleDownloadSuccess"
                 @download-error="handleDownloadError"
                 @delete-success="handleDeleteSuccess"
@@ -216,6 +222,24 @@
     @cancel="showArchiveDialog = false"
   />
 
+  <!-- Dialog pour ajouter un document -->
+  <v-dialog v-model="showAddDocumentDialog" max-width="500px" @click:outside="closeDocumentDialog">
+    <v-card>
+      <v-card-title>Ajouter un document</v-card-title>
+      <v-divider></v-divider>
+      <v-card-text>
+        <v-text-field v-model="newDocument.nomDocument" label="Nom du document" placeholder="Nom du document" class="mb-3" />
+        <v-select v-model="newDocument.typeDocument_id" label="Type de document" :items="typesDocuments"
+          item-title="nomTypeDocument" item-value="id" class="mb-3" />
+        <v-file-input v-model="newDocument.file" label="Fichier" prepend-icon="mdi-paperclip" />
+      </v-card-text>
+      <v-card-actions class="justify-end pa-4">
+        <v-btn variant="text" @click="closeDocumentDialog">Annuler</v-btn>
+        <v-btn color="primary" :loading="addingDocument" @click="submitDocument">Ajouter</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <!-- Dialog pour ajouter un compteur -->
   <v-dialog v-model="showCounterDialog" max-width="600px" @click:outside="closeCounterDialog">
     <v-card>
@@ -277,6 +301,46 @@ const archiveEquipment = async () => {
     showArchiveDialog.value = false;
   } finally {
     archiving.value = false;
+  }
+};
+
+// Document
+const typesDocuments = ref([]);
+const showAddDocumentDialog = ref(false);
+const addingDocument = ref(false);
+const newDocument = ref({ nomDocument: '', typeDocument_id: null, file: null });
+
+const closeDocumentDialog = () => {
+  showAddDocumentDialog.value = false;
+  newDocument.value = { nomDocument: '', typeDocument_id: null, file: null };
+};
+
+const submitDocument = async () => {
+  if (!newDocument.value.file || !newDocument.value.typeDocument_id) {
+    errorMessage.value = 'Fichier et type de document requis';
+    return;
+  }
+  addingDocument.value = true;
+  try {
+    const fd = new FormData();
+    fd.append('file', newDocument.value.file);
+    fd.append('typeDocument_id', newDocument.value.typeDocument_id);
+    if (newDocument.value.nomDocument) fd.append('nomDocument', newDocument.value.nomDocument);
+
+    const docApi = useApi(API_BASE_URL);
+    await docApi.post(`equipements/${route.params.id}/add-document/`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    successMessage.value = 'Document ajouté avec succès';
+    closeDocumentDialog();
+    await fetchEquipmentData();
+    setTimeout(() => successMessage.value = '', 3000);
+  } catch (error) {
+    console.error('Erreur lors de l\'ajout du document:', error);
+    errorMessage.value = 'Erreur lors de l\'ajout du document';
+  } finally {
+    addingDocument.value = false;
   }
 };
 
@@ -534,8 +598,15 @@ const handleDeleteError = (message) => {
   setTimeout(() => errorMessage.value = '', 3000);
 };
 
-onMounted(() => {
+onMounted(async () => {
   fetchEquipmentData();
+  try {
+    const formDataApi = useApi(API_BASE_URL);
+    const data = await formDataApi.get('equipements/form-data/');
+    typesDocuments.value = data?.typesDocuments ?? [];
+  } catch (e) {
+    console.error('Erreur chargement types documents:', e);
+  }
 });
 
 const editCurrentEquip = () => [
