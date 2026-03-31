@@ -166,8 +166,13 @@ const openNodes = ref(new Set());
 // Refs pour le container
 const tableContainer = ref(null);
 const containerWidth = ref(0);
+const headerMode = ref("full");
 
 let resizeObserver;
+let rafId = null;
+
+const EQUIPMENT_COMPACT_BREAKPOINT = 700;
+const EQUIPMENT_HYSTERESIS = 32;
 
 // Handlers pour les événements du composant enfant
 const handleEquipmentsLoaded = (data) => {
@@ -269,8 +274,30 @@ const selectedModelIds = computed(() =>
 );
 
 // Headers responsifs
+const updateEquipmentResponsiveState = (width) => {
+  const normalizedWidth = Math.round(Number(width) || 0);
+
+  if (normalizedWidth <= 0) {
+    return;
+  }
+
+  containerWidth.value = normalizedWidth;
+
+  if (headerMode.value === "compact") {
+    if (normalizedWidth >= EQUIPMENT_COMPACT_BREAKPOINT + EQUIPMENT_HYSTERESIS) {
+      headerMode.value = "full";
+    }
+
+    return;
+  }
+
+  if (normalizedWidth < EQUIPMENT_COMPACT_BREAKPOINT - EQUIPMENT_HYSTERESIS) {
+    headerMode.value = "compact";
+  }
+};
+
 const computedTableHeaders = computed(() => {
-  if (containerWidth.value < 700) {
+  if (headerMode.value === "compact") {
     return compactHeaders;
   }
   return fullHeaders;
@@ -317,15 +344,31 @@ const containerStyle = computed(() => {
 onMounted(() => {
   resizeObserver = new ResizeObserver((entries) => {
     const entry = entries[0];
-    containerWidth.value = Math.round(entry.contentRect.width);
+    if (!entry) {
+      return;
+    }
+
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+    }
+
+    rafId = requestAnimationFrame(() => {
+      updateEquipmentResponsiveState(entry.contentRect.width);
+    });
   });
 
   if (tableContainer.value) {
-    resizeObserver.observe(tableContainer.value.$el ?? tableContainer.value);
+    const element = tableContainer.value.$el ?? tableContainer.value;
+    updateEquipmentResponsiveState(element.getBoundingClientRect().width);
+    resizeObserver.observe(element);
   }
 });
 
 onBeforeUnmount(() => {
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+  }
+
   resizeObserver?.disconnect();
 });
 </script>

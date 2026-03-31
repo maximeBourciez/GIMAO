@@ -7,6 +7,22 @@ import './assets/css/global.css';
 import '@mdi/font/css/materialdesignicons.css'
 import { initializeTheme } from './utils/theme';
 
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+  const isIgnoredResizeObserverError = (message) => (
+    message === 'ResizeObserver loop completed with undelivered notifications.' ||
+    message === 'ResizeObserver loop limit exceeded'
+  );
+
+  window.addEventListener('error', (event) => {
+    if (!isIgnoredResizeObserverError(event.message)) {
+      return;
+    }
+
+    event.preventDefault?.();
+    event.stopImmediatePropagation?.();
+  }, true);
+}
+
 const app = createApp(App);
 
 // Add favicon dynamically

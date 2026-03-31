@@ -144,11 +144,15 @@ const api = useApi(API_BASE_URL);
 
 const errorMessage = ref('');
 const containerWidth = ref(0);
+const isNarrowContainer = ref(false);
 const tableContainer = ref(null);
 const selectedStatut = ref(props.statut || '');
 
 let resizeObserver = null;
 let rafId = null;
+
+const INTERVENTION_COMPACT_BREAKPOINT = 860;
+const INTERVENTION_HYSTERESIS = 48;
 
 const usesLocalItems = computed(() => Array.isArray(props.items));
 
@@ -241,8 +245,35 @@ const resolvedVariant = computed(() => {
   return props.variant;
 });
 
+const updateInterventionResponsiveState = (width) => {
+  if (props.variant !== 'auto') {
+    isNarrowContainer.value = false;
+    return;
+  }
+
+  const normalizedWidth = Math.round(Number(width) || 0);
+
+  if (normalizedWidth <= 0) {
+    return;
+  }
+
+  containerWidth.value = normalizedWidth;
+
+  if (isNarrowContainer.value) {
+    if (normalizedWidth >= INTERVENTION_COMPACT_BREAKPOINT + INTERVENTION_HYSTERESIS) {
+      isNarrowContainer.value = false;
+    }
+
+    return;
+  }
+
+  if (normalizedWidth < INTERVENTION_COMPACT_BREAKPOINT - INTERVENTION_HYSTERESIS) {
+    isNarrowContainer.value = true;
+  }
+};
+
 const baseHeaders = computed(() => {
-  if (containerWidth.value < 860 && props.variant === 'auto') {
+  if (props.variant === 'auto' && isNarrowContainer.value) {
     return TABLE_HEADERS.INTERVENTIONS_MOBILE || [];
   }
 
@@ -287,6 +318,7 @@ const observeTableContainer = () => {
 
   const tableElement = tableContainer.value?.$el?.querySelector('.v-data-table') || tableContainer.value?.$el;
   if (tableElement) {
+    updateInterventionResponsiveState(tableElement.getBoundingClientRect().width);
     resizeObserver.observe(tableElement);
   }
 };
@@ -307,7 +339,7 @@ onMounted(() => {
       }
 
       rafId = requestAnimationFrame(() => {
-        containerWidth.value = Math.round(entries[0].contentRect.width);
+        updateInterventionResponsiveState(entries[0].contentRect.width);
       });
     }
   });
