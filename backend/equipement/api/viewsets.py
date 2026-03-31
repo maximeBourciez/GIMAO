@@ -50,6 +50,10 @@ class EquipementListPagination(LargePagination):
 class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
     queryset = Equipement.objects.select_related("lieu", "modele").prefetch_related(
         Prefetch(
+            "documents",
+            queryset=Document.objects.only("id"),
+        ),
+        Prefetch(
             "statuts",
             queryset=StatutEquipement.objects.only(
                 "id",

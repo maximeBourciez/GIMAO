@@ -8,9 +8,14 @@ def get_current_request():
     return getattr(_thread_locals, 'request', None)
 
 def get_current_user():
-    request = get_current_request()
+    try:
+        request = get_current_request()
+    except Exception:
+        request = None
+
     if request:
-        auth = request.headers.get("Authorization")
+        headers = getattr(request, "headers", {}) or {}
+        auth = headers.get("Authorization") if hasattr(headers, "get") else None
         if auth and auth.startswith("Bearer "):
             token = auth.split(" ")[1]
             token_hash = hashlib.sha256(token.encode()).hexdigest()
@@ -19,7 +24,7 @@ def get_current_user():
                 api_token = ApiToken.objects.get(token_hash=token_hash)
                 if api_token.is_valid():
                     return api_token.user
-            except:
+            except Exception:
                 pass
                 
         # Fallback pour le panel admin par exemple
@@ -28,7 +33,9 @@ def get_current_user():
                 return request.user.utilisateur
             elif hasattr(request.user, 'username'):
                 from .models import Utilisateur
-                return Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
+                mapped_user = Utilisateur.objects.filter(nomUtilisateur=request.user.username).first()
+                return mapped_user or request.user
+            return request.user
                 
     return getattr(_thread_locals, 'app_user', None)
 
