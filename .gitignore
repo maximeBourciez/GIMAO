@@ -7,22 +7,14 @@ node_modules/
 # Fichiers binaire 
 **/__pycache__/*
 
-# MIgrations 
+#Migrations de la base de données
 backend/*/migrations/0*.py
 
 
-# Fichier de stockage des images et des différents types de fichiers complémentaires 
-backend/media/*/*
 
 # Variables d'environnement
 *.env*
 !.env.*.example
-
-#Migrations de la base de données
-backend/*/migrations/0*.py
-
-# ignorer le fichier cron.log
-backend/media/cron_logs/cron.log
 
 # Suppression du venv backend
 backend/venv/
@@ -34,7 +26,6 @@ venv/
 # Fichiers d'IDE   
 */.idea
 
-
 # distribution
 frontend/dist/*
 
@@ -43,6 +34,3 @@ frontend/dist/*
 
 # Coverage / Fichiers de log de test
 frontend/coverage/
-
-# Fichiers de cron.log
-backend/media/cron_logs/*
