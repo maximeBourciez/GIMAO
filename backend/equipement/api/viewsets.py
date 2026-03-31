@@ -959,7 +959,7 @@ class CompteurViewSet(GimaoModelViewSet):
 
         # Mettre à jour les champs du compteur
         field_mapping = {
-            'nom': 'nomCompteur',
+            'nomCompteur': 'nomCompteur',
             'valeurCourante': 'valeurCourante',
             'unite': 'unite',
             'estPrincipal': 'estPrincipal',
@@ -969,8 +969,8 @@ class CompteurViewSet(GimaoModelViewSet):
         for field, model_field in field_mapping.items():
             if field in changes:
                 field_data = changes[field]
-                nouvelle_valeur = field_data.get('nouvelle')
-                ancienne_valeur = field_data.get('ancienne')
+                nouvelle_valeur = field_data.get('nouveau')
+                ancienne_valeur = field_data.get('ancien')
                 
                 if nouvelle_valeur is not None:
                     old_value = getattr(compteur, model_field)

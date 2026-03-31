@@ -19,7 +19,7 @@
 
           <v-col cols="12" md="4">
             <strong>Valeur actuelle :</strong>
-            <div class="text-h6">{{ counter.type === "Calendaire" ? formatDate(counter.valeurCourante) :
+            <div class="text-h6">{{ counter.type === "Calendaire" ? formatCalendarDate(counter.valeurCourante) :
               counter.valeurCourante }}</div>
           </v-col>
           <v-col cols="12" md="4" v-if="counter.type !== 'Calendaire'">
@@ -300,6 +300,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { useApi } from "@/composables/useApi";
 import { API_BASE_URL, MEDIA_BASE_URL, BASE_URL } from "@/utils/constants";
+import { formatCalendarDate } from "@/utils/helpers";
 import CounterInlineForm from "@/components/Forms/CounterInlineForm.vue";
 import MaintenancePlanInlineForm from "@/components/Forms/MaintenancePlanInlineForm.vue";
 import { fetchAllPages } from "@/utils/paginatedApi";
@@ -405,32 +406,6 @@ const getPMTypeLabel = (id) => {
 
 const getDocumentTypeLabel = (id) => {
   return typesDocuments.value.find((t) => t.id === id)?.nomTypeDocument || "—";
-};
-
-const formatDate = (value) => {
-  if (!value && value !== 0) return "—";
-
-  let date;
-
-  if (typeof value === 'string') {
-    date = new Date(value + 'T00:00:00');
-  }
-  else if (typeof value === 'number' && value > 10000000000) {
-    date = new Date(value);
-  }
-  else if (typeof value === 'number') {
-    console.log("Formatage date calendaire pour", value);
-    const ORDINAL_EPOCH = 719162; 
-    const daysFromEpoch = value - ORDINAL_EPOCH;
-    date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
-  }
-  else {
-    return "—";
-  }
-
-  if (isNaN(date.getTime())) return "—";
-
-  return date.toLocaleDateString("fr-FR", { timeZone: 'UTC' });
 };
 
 

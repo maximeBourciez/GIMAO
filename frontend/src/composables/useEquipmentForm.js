@@ -52,7 +52,7 @@ export function useEquipmentForm(isEditMode = false) {
   // a besoin d'une valeur date stable pour calculer les echeances.
   const createDefaultCalendarCounter = () => ({
     id: null,
-    nom: 'Calendrier',
+    nomCompteur: 'Calendrier',
     valeurCourante: todayToOrdinal(),
     unite: 'date',
     estPrincipal: false,
