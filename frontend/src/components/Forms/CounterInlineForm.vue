@@ -2,7 +2,7 @@
   <v-form @submit.prevent="handleSave">
     <v-row dense>
       <v-col cols="12" md="6">
-        <FormField v-model="counterLocal.nomCompteur" field-name="nomCompteur" label="Nom du compteur"
+        <FormField v-model="counterLocal.nom" field-name="nom" label="Nom du compteur"
           placeholder="Saisir le nom du compteur" counter="100" />
       </v-col>
 
@@ -17,9 +17,9 @@
           :items="COUNTER_UNITS" item-title="title" item-value="value" />
       </v-col>
 
-      <v-col cols="12" md="6" v-if="!(isEditMode && counterLocal.type === 'Calendaire')">
-        <FormSelect v-model="counterLocal.type" field-name="type" label="Type de compteur" :disabled="true"
-          :items="counterTypeOptions" />
+      <v-col cols="12" md="6">
+        <FormSelect v-model="counterLocal.type" field-name="type" label="Type de compteur" :disabled="isEditMode"
+          :items="['Numérique', 'Calendaire']" />
       </v-col>
 
       <v-col cols="12" md="6">
@@ -63,42 +63,30 @@ const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
 
 const localError = ref('')
 
-const cloneCounter = (value) => {
-  if (!value) return {}
-  const clone = JSON.parse(JSON.stringify(value))
-  // Le reste de l'app utilise `nom`, ce composant utilise `nomCompteur` — on synchronise
-  if (!clone.nomCompteur && clone.nom) clone.nomCompteur = clone.nom
-  return clone
-}
+// Copie locale pour pouvoir modifier les champs sans problème de props
+const counterLocal = computed({
+  get: () => props.modelValue,
+  set: (value) => {
+    emit('update:modelValue', value);
+  }
+});
 
-// Copie locale: évite de modifier le parent tant que l'utilisateur n'a pas sauvegardé.
-const counterLocal = ref(cloneCounter(props.modelValue))
-
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    counterLocal.value = cloneCounter(newValue)
-  },
-  { deep: true, immediate: true }
-)
+// Met à jour le parent à chaque changement
+watch(counterLocal, (newVal) => {
+  emit('update:modelValue', newVal)
+}, { deep: true })
 
 // Affiche le select d'unité uniquement si ce n'est pas calendaire
 const showUniteSelect = computed(() => counterLocal.value.type !== 'Calendaire')
-const counterTypeOptions = computed(() => {
-  if (props.isEditMode && counterLocal.value.type === 'Calendaire') {
-    return ['Calendaire']
-  }
-  return ['Numérique']
-})
 
 // Validation
 const isValid = computed(() => {
   if(counterLocal.value.type === 'Calendaire'){
-    return counterLocal.value.nomCompteur?.trim()
+    return counterLocal.value.nom?.trim()
   }
 
   else {
-    return counterLocal.value.nomCompteur?.trim() && counterLocal.value.unite && Number.isFinite(Number(counterLocal.value.valeurCourante))
+    return counterLocal.value.nom?.trim() && counterLocal.value.unite && Number.isFinite(Number(counterLocal.value.valeurCourante))
   }
 })
 
@@ -121,25 +109,13 @@ watch(() => counterLocal.value.type, (newType) => {
     const dd = String(d.getDate()).padStart(2, '0')
     counterLocal.value.valeurCourante = `${yyyy}-${mm}-${dd}`
     counterLocal.value.unite = 'date'
-    counterLocal.value.nomCompteur = 'Calendrier'
+    counterLocal.value.nom = 'Calendrier'
   } else {
     const n = Number(counterLocal.value.valeurCourante)
-    if (!props.isEditMode && !counterLocal.value.unite) {
-      counterLocal.value.unite = 'jours'
-    }
+    counterLocal.value.unite = 'Jours'
     counterLocal.value.valeurCourante = Number.isFinite(n) ? n : 0
   }
 }, { immediate: true })
-
-watch(
-  () => props.isEditMode,
-  (isEdit) => {
-    if (!isEdit && counterLocal.value.type === 'Calendaire') {
-      counterLocal.value.type = 'Numérique'
-    }
-  },
-  { immediate: true }
-)
 
 const handleSave = () => {
   if (!isValid.value) {
@@ -147,9 +123,7 @@ const handleSave = () => {
     return
   }
   localError.value = ''
-  const savedCounter = cloneCounter(counterLocal.value)
-  emit('update:modelValue', savedCounter)
-  emit('save', savedCounter)
+  emit('save');
   emit('cancel')
 }
 
