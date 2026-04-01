@@ -121,7 +121,7 @@ class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 
         return response
 
-    @action(detail=True, methods=['post'], url_path='add-document')
+    @action(detail=True, methods=['post'])
     @transaction.atomic
     def add_document(self, request, pk=None):
         """Ajoute un document directement lié à l'équipement"""
