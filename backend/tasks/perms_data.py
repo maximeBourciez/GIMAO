@@ -42,8 +42,10 @@ perms = {
     'eq:create':        ("Créer un équipement",                                 'action',    'eq:viewList'),
     'eq:edit':          ("Modifier un équipement",                              'action',    'eq:viewDetail'),
     'eq:delete':        ("Supprimer un équipement",                             'action',    'eq:viewDetail'),
-    'eq:export':        ("Exporter les équipements",                            'action',    'eq:viewList'),
-    'eq:archive':       ("Archiver un équipement",                              'action',    'eq:viewDetail'),
+    'eq:export':         ("Exporter les équipements",                           'action',    'eq:viewList'),
+    'eq:archive':        ("Archiver un équipement",                             'action',    'eq:viewDetail'),
+    'eq:document.add':   ("Ajouter un document à un équipement",                'action',    'eq:viewDetail'),
+    'eq:document.delete':("Supprimer un document d'un équipement",              'action',    'eq:viewDetail'),
 
     # ── Compteurs ────────────────────────────────────────────────────────────
     'cp:viewList':   ("Voir la liste des compteurs",    'affichage', None),
@@ -190,7 +192,7 @@ perms_map = {
     "Technicien": [
         'di:viewList', 'di:viewDetail', 'di:create', 'di:editCreated',
         'bt:viewList', 'bt:viewDetail', 'bt:start', 'bt:end', 'bt:editAssigned',
-        'eq:viewList', 'eq:viewDetail', 'eq:edit',
+        'eq:viewList', 'eq:viewDetail', 'eq:edit', 'eq:document.add',
         'cp:viewList', 'cp:viewDetail', 'cp:edit',
         'mp:viewList', 'mp:viewDetail',
         'stock:view',

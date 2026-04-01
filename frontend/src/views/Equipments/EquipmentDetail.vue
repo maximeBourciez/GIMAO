@@ -43,7 +43,8 @@
             <v-card-text>
               <div class="d-flex align-center justify-space-between mb-2">
                 <h4>Documents de l'équipement</h4>
-                <v-btn size="small" color="primary" variant="outlined" prepend-icon="mdi-plus"
+                <v-btn v-if="store.getters.hasPermission('eq:document.add')"
+                  size="small" color="primary" variant="outlined" prepend-icon="mdi-plus"
                   @click="showAddDocumentDialog = true">
                   Ajouter
                 </v-btn>
@@ -52,7 +53,7 @@
                 v-if="equipmentDocuments.length > 0"
                 :documents="equipmentDocuments"
                 :show-type="true"
-                :show-delete="true"
+                :show-delete="store.getters.hasPermission('eq:document.delete')"
                 @download-success="handleDownloadSuccess"
                 @download-error="handleDownloadError"
                 @delete-success="handleDeleteSuccess"
@@ -223,7 +224,7 @@
   />
 
   <!-- Dialog pour ajouter un document -->
-  <v-dialog v-model="showAddDocumentDialog" max-width="700px" @click:outside="closeDocumentDialog">
+  <v-dialog v-model="showAddDocumentDialog" max-width="900px" @click:outside="closeDocumentDialog">
     <v-card>
       <v-card-title>Ajouter un document</v-card-title>
       <v-divider />

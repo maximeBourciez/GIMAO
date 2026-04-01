@@ -65,7 +65,10 @@ const localError = ref('')
 
 const cloneCounter = (value) => {
   if (!value) return {}
-  return JSON.parse(JSON.stringify(value))
+  const clone = JSON.parse(JSON.stringify(value))
+  // Le reste de l'app utilise `nom`, ce composant utilise `nomCompteur` — on synchronise
+  if (!clone.nomCompteur && clone.nom) clone.nomCompteur = clone.nom
+  return clone
 }
 
 // Copie locale: évite de modifier le parent tant que l'utilisateur n'a pas sauvegardé.
