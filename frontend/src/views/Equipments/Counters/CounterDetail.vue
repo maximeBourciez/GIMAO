@@ -400,21 +400,12 @@ const getProgressionText = (seuil) => {
 // Méthodes utilitaires
 const getFileName = (path) => path?.split("/").pop() || "—";
 
-const getPMTypeLabel = (id) => {
-  return typesPM.value.find((t) => t.id === id)?.libelle || "—";
-};
-
-const getDocumentTypeLabel = (id) => {
-  return typesDocuments.value.find((t) => t.id === id)?.nomTypeDocument || "—";
-};
-
-
 const formatLastIntervention = (days) => {
   if (days === null || days === undefined) return "—";
 
   if (counter.value.type === "Calendaire") {
     console.log("Formatage date calendaire pour", days);
-    return formatDate(days);
+    return formatCalendarDate(days);
   } else {
     return `${days} ${counter.value.unite}`;
   }
@@ -424,36 +415,10 @@ const formatNextMaintenance = (days) => {
   if (days === null || days === undefined) return "—";
 
   if (counter.value.type === "Calendaire") {
-    return formatDate(days);
+    return formatCalendarDate(days);
   } else {
     return `${days} ${counter.value.unite}`;
   }
-};
-
-const formatDate = (value) => {
-  if (!value && value !== 0) return "—";
-
-  let date;
-
-  if (typeof value === 'string') {
-    date = new Date(value + 'T00:00:00');
-  }
-  else if (typeof value === 'number' && value > 10000000000) {
-    date = new Date(value);
-  }
-  else if (typeof value === 'number') {
-    console.log("Formatage date calendaire pour", value);
-    const ORDINAL_EPOCH = 719162; 
-    const daysFromEpoch = value - ORDINAL_EPOCH;
-    date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
-  }
-  else {
-    return "—";
-  }
-
-  if (isNaN(date.getTime())) return "—";
-
-  return date.toLocaleDateString("fr-FR", { timeZone: 'UTC' });
 };
 
 const formatIntervalle = (intervalle) => {
