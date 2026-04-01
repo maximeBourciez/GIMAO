@@ -45,7 +45,7 @@
                 <h4>Documents de l'équipement</h4>
                 <v-btn v-if="store.getters.hasPermission('eq:document.add')"
                   size="small" color="primary" variant="outlined" prepend-icon="mdi-plus"
-                  @click="showAddDocumentDialog = true">
+                  @click="openAddDocumentDialog">
                   Ajouter
                 </v-btn>
               </div>
@@ -309,6 +309,18 @@ const typesDocuments = ref([]);
 const showAddDocumentDialog = ref(false);
 const addingDocument = ref(false);
 const newDocuments = ref([{ ...EMPTY_DOC }]);
+
+const openAddDocumentDialog = async () => {
+  if (typesDocuments.value.length === 0) {
+    try {
+      const docApi = useApi(API_BASE_URL);
+      typesDocuments.value = (await docApi.get('types-documents/')) ?? [];
+    } catch (e) {
+      console.error('Erreur chargement types documents:', e);
+    }
+  }
+  showAddDocumentDialog.value = true;
+};
 
 const closeDocumentDialog = () => {
   showAddDocumentDialog.value = false;
@@ -597,15 +609,8 @@ const handleDeleteError = (message) => {
   setTimeout(() => errorMessage.value = '', 3000);
 };
 
-onMounted(async () => {
+onMounted(() => {
   fetchEquipmentData();
-  try {
-    const docApi = useApi(API_BASE_URL);
-    const data = await docApi.get('types-documents/');
-    typesDocuments.value = data ?? [];
-  } catch (e) {
-    console.error('Erreur chargement types documents:', e);
-  }
 });
 
 const editCurrentEquip = () => [

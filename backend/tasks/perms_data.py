@@ -42,8 +42,8 @@ perms = {
     'eq:create':        ("Créer un équipement",                                 'action',    'eq:viewList'),
     'eq:edit':          ("Modifier un équipement",                              'action',    'eq:viewDetail'),
     'eq:delete':        ("Supprimer un équipement",                             'action',    'eq:viewDetail'),
-    'eq:export':         ("Exporter les équipements",                           'action',    'eq:viewList'),
-    'eq:archive':        ("Archiver un équipement",                             'action',    'eq:viewDetail'),
+    'eq:export':        ("Exporter les équipements",                            'action',    'eq:viewList'),
+    'eq:archive':       ("Archiver un équipement",                              'action',    'eq:viewDetail'),
     'eq:document.add':   ("Ajouter un document à un équipement",                'action',    'eq:viewDetail'),
     'eq:document.delete':("Supprimer un document d'un équipement",              'action',    'eq:viewDetail'),
 
