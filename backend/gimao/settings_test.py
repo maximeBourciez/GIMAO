@@ -13,3 +13,11 @@ DATABASES = {
 
 # Désactiver les logs CRON pendant les tests
 CRONTAB_COMMAND_SUFFIX = ''
+
+# Les tests API existants utilisent majoritairement APIClient sans token explicite.
+# On désactive le middleware token pour garder un environnement de test stable.
+MIDDLEWARE = [
+    middleware
+    for middleware in MIDDLEWARE
+    if middleware != 'gimao.middleware.ApiTokenMiddleware'
+]

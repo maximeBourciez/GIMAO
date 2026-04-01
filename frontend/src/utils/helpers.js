@@ -134,3 +134,28 @@ export const toTimeInputValue = (value) => {
 
   return `${String(totalHours)}:${String(minutes).padStart(2, '0')}`;
 };
+
+export const formatCalendarDate = (value) => {
+  if (!value && value !== 0) return "—";
+
+  let date;
+
+  if (typeof value === 'string') {
+    date = new Date(value + 'T00:00:00');
+  }
+  else if (typeof value === 'number' && value > 10000000000) {
+    date = new Date(value);
+  }
+  else if (typeof value === 'number') {
+    const ORDINAL_EPOCH = 719162; 
+    const daysFromEpoch = value - ORDINAL_EPOCH;
+    date = new Date(Date.UTC(1970, 0, 1 + daysFromEpoch));
+  }
+  else {
+    return "—";
+  }
+
+  if (isNaN(date.getTime())) return "—";
+
+  return date.toLocaleDateString("fr-FR", { timeZone: 'UTC' });
+};

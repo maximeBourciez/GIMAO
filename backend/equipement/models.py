@@ -227,7 +227,7 @@ class Constituer(models.Model):
     consommable = models.ForeignKey(Consommable, on_delete=models.CASCADE, help_text="Consommable associé")
 
     def __str__(self):
-        return f"{self.id} - {self.equipement.designation} - Consommable {self.consommable.designation}"
+        return f"{self.id} - Equipement {self.equipement_id} - Consommable {self.consommable_id}"
     
     class Meta:
         db_table = 'gimao_constituer'
@@ -243,7 +243,7 @@ class DocumentEquipement(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, help_text="Document associé")
 
     def __str__(self):
-        return f"{self.id} - {self.equipement.designation} - Document {self.document.nomDocument}"
+        return f"{self.id} - Equipement {self.equipement_id} - Document {self.document_id}"
     
     class Meta:
         db_table = 'gimao_document_equipement'

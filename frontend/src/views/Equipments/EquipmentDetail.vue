@@ -106,7 +106,7 @@
 
                   <template #item.valeurCourante="{ item }">
                     {{ item.type === 'Calendaire' 
-                        ? new Date(item.valeurCourante).toLocaleDateString('fr-FR') 
+                        ? formatCalendarDate(item.valeurCourante) 
                         : item.valeurCourante 
                     }}
                   </template>
@@ -266,7 +266,7 @@ import DocumentForm from '@/components/Forms/DocumentForm.vue';
 import DocumentList from '@/components/DocumentList.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
 import { useApi } from '@/composables/useApi';
-import { getStatusColor, getStatusLabel } from '@/utils/helpers';
+import { getStatusColor, getStatusLabel, formatCalendarDate } from '@/utils/helpers';
 import { API_BASE_URL, BASE_URL, INTERVENTION_STATUS, TABLE_HEADERS } from '@/utils/constants';
 
 const router = useRouter();
@@ -567,7 +567,7 @@ const saveCounter = async () => {
     const fd = new FormData();
 
     const counterData = {
-      nom: currentCounter.value.nom,
+      nom: currentCounter.value.nomCompteur,
       unite: currentCounter.value.unite,
       valeurCourante: currentCounter.value.valeurCourante ?? 0,
       estPrincipal: currentCounter.value.estPrincipal,

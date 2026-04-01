@@ -46,10 +46,11 @@
             <FormSelect
               v-model="form.includeArchived"
               field-name="includeArchived"
-              :items="archivedOptions"
+              :items="filteredArchiveOptions"
               item-title="label"
               item-value="value"
               label="Données archivées"
+              :disabled="isArchiveOptionDisabled"
             />
           </v-col>
 
@@ -135,7 +136,7 @@
           <v-col cols="12">
             <v-card elevation="1" class="rounded-lg mb-4">
               <v-card-title class="font-weight-bold text-uppercase text-primary text-body-2">
-                Champs spécifiques (Laisser vide pour tout exporter)
+                Champs spécifiques
               </v-card-title>
               <v-divider></v-divider>
               
@@ -282,6 +283,17 @@ const archivedOptions = [
   { label: 'Uniquement les données archivées', value: 'yes' },
   { label: 'Tout inclure', value: 'both' },
 ]
+
+const filteredArchiveOptions = computed(() => {
+  if (availableFields.value?.some(f => f.value === 'archive')) {
+    return archivedOptions
+  }
+  return archivedOptions.filter(option => option.value !== 'both' && option.value !== 'yes')
+})
+
+const isArchiveOptionDisabled = computed(() => {
+  return !availableFields.value?.some(f => f.value === 'archive')
+})
 
 const exportTypes = [
   { label: 'Équipements', value: 'equipement', permission: 'export:eq' },

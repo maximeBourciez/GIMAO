@@ -9,7 +9,7 @@
       @filter-change="selectedStockFilter = $event"
     />
 
-    <v-row class="mb-4">
+    <v-row class="mb-4" align="start">
       <v-col cols="12" lg="6">
         <v-card class="rounded-lg pa-4" elevation="1">
           <div class="mb-4">

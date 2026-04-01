@@ -21,6 +21,19 @@ def get_safe_app_user(app_user):
 
     return app_user
 
+
+def resolve_log_actor(candidate_user):
+    safe_user = get_safe_app_user(candidate_user)
+    if safe_user is not None:
+        return safe_user
+
+    if getattr(candidate_user, 'is_authenticated', False):
+        username = getattr(candidate_user, 'username', None)
+        if username:
+            return Utilisateur.objects.filter(nomUtilisateur=username).first()
+
+    return None
+
 def make_serializable(obj):
     if isinstance(obj, Decimal):
         return str(obj)
@@ -108,7 +121,7 @@ def log_save(sender, instance, created, **kwargs):
 
     # Get User from Thread Local (now seamlessly handles token and fallback)
     from .middleware import get_current_user, get_thread_log_group
-    app_user = get_safe_app_user(get_current_user())
+    app_user = resolve_log_actor(get_current_user())
     log_group_id = get_thread_log_group()
 
     # Enrich idCible with FKs for association tables
@@ -144,7 +157,7 @@ def log_delete(sender, instance, **kwargs):
     from .middleware import get_thread_log_group
     log_group_id = get_thread_log_group()
 
-    app_user = get_safe_app_user(get_current_user())
+    app_user = resolve_log_actor(get_current_user())
 
     # Enrich idCible with FKs
     id_cible = {'id': instance.pk}

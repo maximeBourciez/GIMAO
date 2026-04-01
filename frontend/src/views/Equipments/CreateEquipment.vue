@@ -86,7 +86,7 @@
                               <div class="d-flex align-center justify-space-between mb-2">
                                 <div class="d-flex align-center gap-2">
                                   <v-icon color="primary">mdi-counter</v-icon>
-                                  <h3 class="text-h6 mr-2">{{ compteur.nom || 'Compteur sans nom' }}</h3>
+                                  <h3 class="text-h6 mr-2">{{ compteur.nomCompteur || 'Compteur sans nom' }}</h3>
                                   <v-chip v-if="compteur.estPrincipal" color="primary" size="small" label>
                                     Principal
                                   </v-chip>
@@ -161,7 +161,7 @@
                               <div class="d-flex align-center justify-space-between mb-2">
                                 <div class="d-flex align-center gap-2">
                                   <v-icon color="primary">mdi-clipboard-check</v-icon>
-                                  <h3 class="text-h6">{{ plan.nom || 'Plan sans nom' }}</h3>
+                                  <h3 class="text-h6">{{ plan.nom || 'Opération sans nom' }}</h3>
                                   <v-chip v-if="plan.type_id" :color="getPlanTypeColor(plan)" size="small" label>
                                     {{ getPlanTypeName(plan) }}
                                   </v-chip>
@@ -348,7 +348,7 @@
     <v-dialog v-model="showPlanDialog" max-width="1000px" @click:outside="closePlanDialog" persistent>
       <v-card>
         <v-card-title>
-          {{ isPlanEditMode ? 'Modifier un plan de maintenance' : 'Ajouter un plan de maintenance' }}
+          {{ isPlanEditMode ? 'Modifier une opération de maintenance' : 'Ajouter une opération de maintenance' }}
         </v-card-title>
         <v-card-text>
           <MaintenancePlanInlineForm v-model="currentPlan" :isEditMode="isPlanEditMode"
@@ -591,7 +591,7 @@ const handlePeriodicPlanEdit = (plan) => {
 
 // Affiche les actions (dont "Créer") à l'étape 4 si aucun compteur utilisateur, sinon seulement à la dernière étape.
 const showFormActions = computed(() =>
-  step.value === EQUIPMENT_CREATE_STEPS.length || (step.value === 4 && !hasUserCounters.value)
+  step.value === EQUIPMENT_CREATE_STEPS.length || step.value >= 4
 );
 
 // Helpers de navigation entre étapes
@@ -675,7 +675,7 @@ const handleSubmit = async () => {
 
   // Validation des compteurs
   const invalidCounters = (formData.value.compteurs || []).filter(c =>
-    !c?.isDefaultCalendar && (!c.nom || !c.unite)
+    !c?.isDefaultCalendar && (!c.nomCompteur || !c.unite)
   );
 
   if (invalidCounters.length > 0) {
@@ -707,7 +707,7 @@ const handleSubmit = async () => {
         // Envoyer uniquement les données de base du compteur
         const compteursData = formData.value.compteurs.map(c => ({
           id: c.id,
-          nom: c.nom,
+          nom: c.nomCompteur,
           valeurCourante: c.valeurCourante ?? 0,
           unite: c.unite,
           estPrincipal: c.estPrincipal,
@@ -785,7 +785,7 @@ const updateCounter = (index) => {
 const getCounterName = (compteurIndex) => {
   if (compteurIndex === null || compteurIndex === undefined) return 'Non défini';
   const counter = formData.value.compteurs[compteurIndex];
-  return counter ? counter.nom : 'Non défini';
+  return counter ? counter.nomCompteur : 'Non défini';
 };
 
 const getCounterType = (compteurIndex) => {
@@ -890,7 +890,7 @@ const canGoToNextStep = (validation) => {
 
   // Si on a des compteurs, on empêche la navigation si un compteur est incomplet.
   if (step.value === 4 && hasUserCounters.value) {
-    const hasInvalidCounter = (formData.value.compteurs || []).some(c => !c?.isDefaultCalendar && (!c.nom || !c.unite));
+    const hasInvalidCounter = (formData.value.compteurs || []).some(c => !c?.isDefaultCalendar && (!c.nomCompteur || !c.unite));
     if (hasInvalidCounter) return false;
   }
   return validation.isStepValid(step.value, formData.value);

@@ -21,6 +21,12 @@ def api_factory():
     return APIRequestFactory()
 
 
+def _extract_items(response_data):
+    if isinstance(response_data, dict) and "results" in response_data:
+        return response_data["results"]
+    return response_data
+
+
 @pytest.mark.django_db
 def test_should_return_400_when_distribution_without_consommable_id(api_factory):
     bon = BonTravailFactory()
@@ -1054,7 +1060,7 @@ def test_should_exclude_archived_bons_from_list(api_factory):
     response = view(request)
 
     assert response.status_code == 200
-    ids = {item["id"] for item in response.data}
+    ids = {item["id"] for item in _extract_items(response.data)}
     assert visible.id in ids
     assert len(ids) == 1
 
@@ -1070,7 +1076,7 @@ def test_should_exclude_cloture_from_list_by_default(api_factory):
     response = view(request)
 
     assert response.status_code == 200
-    ids = {item["id"] for item in response.data}
+    ids = {item["id"] for item in _extract_items(response.data)}
     assert bt_open.id in ids
     assert len(ids) == 1
 
@@ -1086,6 +1092,6 @@ def test_should_include_cloture_when_cloture_query_param_is_true(api_factory):
     response = view(request)
 
     assert response.status_code == 200
-    ids = {item["id"] for item in response.data}
+    ids = {item["id"] for item in _extract_items(response.data)}
     assert bt_open.id in ids
     assert bt_closed.id in ids

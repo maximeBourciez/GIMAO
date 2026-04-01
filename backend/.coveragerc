@@ -1,13 +1,17 @@
 [run]
+branch = True
 omit =
     # Infrastructure Django - pas du code métier
     manage.py
+    locustfile.py
+
     */wsgi.py
     */asgi.py
     */settings*.py
     */__init__.py
     */apps.py
     */admin.py
+    */urls.py
     # Migrations auto-générées
     */migrations/*
     # Fichiers de tests eux-mêmes
@@ -23,6 +27,10 @@ omit =
     maintenance/views.py
     security/views.py
     utilisateur/views.py
+    # Export data
+    exportData/*
+    # Viewsets API
+    */viewsets.py
     # Scripts d'initialisation de données (hors runtime API)
     tasks/create_initial_data.py
     tasks/perms_data.py
@@ -30,3 +38,4 @@ omit =
 [report]
 skip_covered = False
 skip_empty = True
+
