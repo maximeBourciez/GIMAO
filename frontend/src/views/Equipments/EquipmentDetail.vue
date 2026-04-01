@@ -346,7 +346,7 @@ const submitDocument = async () => {
     if (doc.nomDocument) fd.append('nomDocument', doc.nomDocument);
 
     const docApi = useApi(API_BASE_URL);
-    await docApi.post(`equipements/${route.params.id}/add-document/`, fd, {
+    await docApi.post(`equipements/${route.params.id}/add_document/`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
