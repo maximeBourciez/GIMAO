@@ -125,6 +125,29 @@ class EquipementViewSet(ArchivableViewSetMixin, GimaoModelViewSet):
                 
         return response
 
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def add_document(self, request, pk=None):
+        """Ajoute un document directement lié à l'équipement"""
+        equipement = self.get_object()
+        uploaded_file = request.FILES.get('file')
+        nom = request.data.get('nomDocument', '').strip()
+        type_id = request.data.get('typeDocument_id')
+
+        if not uploaded_file:
+            return Response({'error': 'Fichier requis'}, status=status.HTTP_400_BAD_REQUEST)
+        if not type_id:
+            return Response({'error': 'Type de document requis'}, status=status.HTTP_400_BAD_REQUEST)
+
+        document = Document.objects.create(
+            nomDocument=nom or uploaded_file.name,
+            typeDocument_id=type_id,
+            cheminAcces=uploaded_file
+        )
+        DocumentEquipement.objects.create(equipement=equipement, document=document)
+
+        return Response({'id': document.id, 'nomDocument': document.nomDocument}, status=status.HTTP_201_CREATED)
+
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         """Création d'un nouvel équipement"""
